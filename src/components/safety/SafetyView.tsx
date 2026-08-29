@@ -100,16 +100,16 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setIsDangerModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-black transition-all shadow-lg shadow-rose-600/30 animate-pulse"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-black transition-all shadow-lg shadow-rose-600/30 animate-pulse min-h-[44px] w-full sm:w-auto"
           >
             <AlertTriangle className="w-4 h-4" />
             <span>I need help now</span>
           </button>
 
-          <div className="flex items-center bg-canvas-muted p-1 rounded-xl border border-canvas-border">
+          <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border overflow-x-auto scrollbar-none max-w-full">
             <button
               onClick={() => setActiveTab('patient_safety')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
                 activeTab === 'patient_safety'
                   ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
                   : 'text-slate-600 hover:text-slate-800'
@@ -119,7 +119,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('doctor_triage')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
                 activeTab === 'doctor_triage'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-600 hover:text-slate-800'
@@ -129,7 +129,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('calendar')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
                 activeTab === 'calendar'
                   ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
                   : 'text-slate-600 hover:text-slate-800'
@@ -143,7 +143,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
 
       {/* Active Danger Warning Banner — light clinical amber/red */}
       {activeAlerts.length > 0 && (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between gap-4">
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-clinical-red text-white flex items-center justify-center shrink-0 shadow-md">
               <AlertTriangle className="w-5 h-5" />
@@ -158,15 +158,15 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
                 </span>
               </div>
               <p className="text-body-sm text-slate-800 font-semibold pt-0.5">
-                Swelling in legs and high blood pressure reported — sent to Dr. Anita Patel.
+                Swelling in legs and high blood pressure reported — sent to your care team.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
             <button
               onClick={() => setActiveTab('doctor_triage')}
-              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors"
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors min-h-[40px]"
             >
               Review Actions
             </button>
@@ -202,7 +202,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
                 <div className="bg-canvas-muted rounded-xl p-4 border border-canvas-border space-y-2">
                   <span className="text-body-sm font-bold text-accent flex items-center gap-1.5">
                     <Clock className="w-4 h-4 text-accent" />
-                    When to report danger sign (Dr. Patel review):
+                    When to report danger sign (Clinician review):
                   </span>
                   <ul className="text-body-sm text-slate-700 space-y-1 list-disc list-inside">
                     <li>Sudden swelling in both feet, ankles, or legs (edema)</li>

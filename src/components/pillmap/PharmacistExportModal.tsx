@@ -30,34 +30,34 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-lg overflow-hidden animate-scale-up">
         {/* Modal Top Control Bar */}
-        <div className="p-4 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 bg-canvas-muted border-b border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <FileText className="w-5 h-5 text-primary" />
+            <FileText className="w-5 h-5 text-primary shrink-0" />
             <h2 className="text-body font-bold text-slate-900 tracking-tight">
               1-Page Pharmacist Consultation & Regimen Map
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end w-full sm:w-auto">
             <button
               onClick={handleCopyJSON}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[36px]"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[44px]"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? 'Copied JSON' : 'Copy JSON'}</span>
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold transition-colors shadow-sm min-h-[36px]"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold transition-colors shadow-sm min-h-[44px]"
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-4 h-4" />
               <span>Print Document</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl hover:bg-canvas-muted text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-2 rounded-xl hover:bg-canvas-muted text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0"
               aria-label="Close export modal"
             >
               <X className="w-5 h-5" />
@@ -66,12 +66,12 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
         </div>
 
         {/* Printable Document Body */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-canvas-muted text-slate-900 space-y-6 print:bg-white print:text-black">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-canvas-muted text-slate-900 space-y-6 print:bg-white print:text-black">
           {/* Document Header */}
           <div className="border-b border-canvas-border pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-heading-lg tracking-tight text-slate-900 print:text-black">
+                <h1 className="text-heading-md sm:text-heading-lg tracking-tight text-slate-900 print:text-black font-bold">
                   CareCanvas — Clinical Pharmacist Regimen Map
                 </h1>
                 <span className="px-2 py-0.5 rounded-full bg-primary-light text-primary-text text-caption font-semibold border border-primary-border print:hidden">
@@ -82,7 +82,7 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
                 Patient: <strong className="text-slate-900 print:text-black">{bundle.patientName}</strong> | Generated: {new Date(bundle.generatedDate).toLocaleDateString()}
               </p>
             </div>
-            <div className="text-right text-body-sm text-muted print:text-gray-600">
+            <div className="text-left sm:text-right text-body-sm text-muted print:text-gray-600">
               <span className="font-semibold text-primary-text print:text-black block">Privacy-Preserving On-Device Vault</span>
               <span>Zero PHI Cloud Transmission</span>
             </div>
@@ -90,11 +90,11 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
 
           {/* Section 1: Brand / Generic Crosswalk Table */}
           <div className="space-y-2">
-            <h3 className="text-caption uppercase tracking-wider text-primary-text print:text-gray-800">
+            <h3 className="text-caption uppercase tracking-wider text-primary-text print:text-gray-800 font-bold">
               1. Active Medication Regimen & Crosswalk
             </h3>
-            <div className="border border-canvas-border rounded-xl overflow-hidden print:border-gray-300 bg-white">
-              <table className="w-full text-body-sm text-left">
+            <div className="border border-canvas-border rounded-xl overflow-x-auto print:border-gray-300 bg-white" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <table className="w-full text-body-sm text-left min-w-[550px]">
                 <thead className="bg-canvas-muted border-b border-canvas-border text-muted font-semibold uppercase text-caption print:bg-gray-100 print:text-black">
                   <tr>
                     <th className="p-2.5">Brand Name</th>

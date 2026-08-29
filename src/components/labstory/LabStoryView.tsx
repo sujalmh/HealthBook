@@ -161,7 +161,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   const handleAddDoctorComment = (labId: string, commentText: string) => {
     const updated = localVault.addDoctorCommentToLab(labId, {
       doctorId: activeProfile.userId,
-      doctorName: activeProfile.role === 'doctor' ? activeProfile.name : 'Dr. Anita Patel, MD',
+      doctorName: activeProfile.role === 'doctor' ? (activeProfile.name || '').trim() || 'Your doctor' : ((activeProfile.name || '').trim() && (activeProfile.name || '').trim() !== 'Patient' ? (activeProfile.name || '').trim() : 'Your doctor'),
       comment: commentText
     });
 
@@ -215,7 +215,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   return (
     <div className={`space-y-6 max-w-7xl mx-auto ${className}`}>
       {/* Top Header & Quick Actions */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-md shadow-primary/20 shrink-0">
             <Activity className="w-6 h-6" />
@@ -233,27 +233,30 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
           </div>
         </div>
 
-        {/* Header Action Buttons */}
+        {/* Header Action Buttons with >=44px Touch Targets */}
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
+            type="button"
             onClick={() => setIsDropzoneOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px]"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex-1 sm:flex-initial"
           >
-            <UploadCloud className="w-4 h-4" />
+            <UploadCloud className="w-4 h-4 shrink-0" />
             <span>Add Past Results</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setIsManualAddOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-900 text-body-sm font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px]"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-900 text-body-sm font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex-1 sm:flex-initial"
           >
-            <Plus className="w-4 h-4 text-primary" />
+            <Plus className="w-4 h-4 text-primary shrink-0" />
             <span>Add Result Manually</span>
           </button>
 
           <button
+            type="button"
             onClick={loadLabs}
-            className="p-2 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-muted hover:text-slate-900 border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px] min-w-[40px] flex items-center justify-center"
+            className="p-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-muted hover:text-slate-900 border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0"
             title="Refresh Timeline"
             aria-label="Refresh timeline"
           >
@@ -262,7 +265,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         </div>
       </div>
 
-      {/* Biomarker Selector Scrollbar / Pills */}
+      {/* Biomarker Selector Scrollbar / Pills with >=44px Touch Targets */}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-2.5 shadow-sm">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {availableMarkers.map((m) => {
@@ -270,11 +273,12 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
             return (
               <button
                 key={m.marker}
+                type="button"
                 onClick={() => {
                   setSelectedMarker(m.marker);
                   setCausalWindow(null);
                 }}
-                className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-body-sm font-bold transition-all whitespace-nowrap border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0 min-h-[36px] ${
+                className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-body-sm font-bold transition-all whitespace-nowrap border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0 min-h-[44px] ${
                   isSelected
                     ? 'bg-primary-light text-primary-text border-primary-border shadow-sm'
                     : 'bg-canvas-card text-muted hover:text-slate-900 hover:bg-canvas-muted border-canvas-border'
@@ -305,15 +309,15 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
       {/* Friendly empty when no labs yet */}
       {labs.length === 0 ? (
-        <div className="bg-canvas-card border border-dashed border-canvas-border rounded-2xl p-10 text-center space-y-4 shadow-sm">
+        <div className="bg-canvas-card border border-dashed border-canvas-border rounded-2xl p-6 sm:p-10 text-center space-y-4 shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-primary-light text-primary border border-primary-border flex items-center justify-center mx-auto">
             <Activity className="w-6 h-6" />
           </div>
           <h3 className="text-heading-md font-bold text-slate-900 tracking-tight">No lab results yet</h3>
           <p className="text-body-sm text-muted max-w-md mx-auto leading-relaxed">Upload past results or add one manually — your chart will appear here and update your other sections automatically.</p>
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <button onClick={() => setIsDropzoneOpen(true)} className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px]">Add Past Results</button>
-            <button onClick={() => setIsManualAddOpen(true)} className="px-4 py-2 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-900 border border-canvas-border text-body-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px]">Add Manually</button>
+          <div className="flex items-center justify-center gap-2.5 flex-wrap">
+            <button type="button" onClick={() => setIsDropzoneOpen(true)} className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center">Add Past Results</button>
+            <button type="button" onClick={() => setIsManualAddOpen(true)} className="px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-900 border border-canvas-border text-body-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center">Add Manually</button>
           </div>
         </div>
       ) : null}
@@ -350,7 +354,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       )}
 
       {/* Tabular Longitudinal Results History */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-canvas-border pb-4">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-primary-light border border-primary-border text-primary">
@@ -360,13 +364,13 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               Longitudinal Lab History: {selectedMarker} ({activeMarkerLabs.length} records)
             </h3>
           </div>
-          <span className="text-caption text-muted bg-canvas-muted border border-canvas-border px-2 py-1 rounded-full font-medium">
+          <span className="text-caption text-muted bg-canvas-muted border border-canvas-border px-2 py-1 rounded-full font-medium self-start sm:self-auto">
             Stored locally
           </span>
         </div>
 
-        <div className="overflow-x-auto -mx-1">
-          <table className="w-full text-left text-body-sm">
+        <div className="overflow-x-auto -mx-1 scrollbar-none">
+          <table className="w-full text-left text-body-sm min-w-[540px]">
             <thead>
               <tr className="border-b border-canvas-border text-caption text-muted uppercase tracking-wider">
                 <th className="py-2.5 px-3 font-semibold">Draw Date</th>
@@ -416,7 +420,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                       <td className="py-2.5 px-3">
                         {docComment ? (
                           <span className="flex items-center gap-1 text-amber-700 text-caption font-semibold">
-                            <Pin className="w-3 h-3" />
+                            <Pin className="w-3 h-3 shrink-0" />
                             <span className="truncate max-w-[160px]">{docComment.doctorName}: {docComment.comment.substring(0, 35)}...</span>
                           </span>
                         ) : (
@@ -436,18 +440,19 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         )}
       </div>
 
-      {/* Modal: Multi-Doc Timeline Ingestion (LS1) */}
+      {/* Modal: Multi-Doc Timeline Ingestion (LS1) with max-h-[90vh] overflow-y-auto */}
       {isDropzoneOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-canvas-border pb-4">
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-canvas-border pb-3">
               <div className="flex items-center gap-2 text-primary font-bold text-heading-md">
                 <UploadCloud className="w-5 h-5" />
-                <span>Multi-Year Lab Drop & Ingestion</span>
+                <span>Multi-Year Lab Ingestion</span>
               </div>
               <button
+                type="button"
                 onClick={() => setIsDropzoneOpen(false)}
-                className="text-muted hover:text-slate-900 p-1 rounded-lg hover:bg-canvas-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-canvas-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Close"
               >
                 ✕
@@ -460,9 +465,10 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
             <div className="space-y-2.5">
               <button
+                type="button"
                 onClick={() => handleIngestDataset('shanti')}
                 disabled={isLoading}
-                className="w-full text-left p-3.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle border border-canvas-border hover:border-primary-border/50 transition-all flex items-center justify-between group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                className="w-full text-left p-3.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle border border-canvas-border hover:border-primary-border/50 transition-all flex items-center justify-between group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 min-h-[44px]"
               >
                 <div>
                   <div className="text-body-sm font-bold text-slate-900 group-hover:text-primary">
@@ -476,9 +482,10 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               </button>
 
               <button
+                type="button"
                 onClick={() => handleIngestDataset('jenkins')}
                 disabled={isLoading}
-                className="w-full text-left p-3.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle border border-canvas-border hover:border-primary-border/50 transition-all flex items-center justify-between group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                className="w-full text-left p-3.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle border border-canvas-border hover:border-primary-border/50 transition-all flex items-center justify-between group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 min-h-[44px]"
               >
                 <div>
                   <div className="text-body-sm font-bold text-slate-900 group-hover:text-primary">
@@ -492,15 +499,16 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               </button>
             </div>
             {isLoading && (
-              <div className="flex items-center gap-2 text-body-sm text-primary font-medium">
+              <div className="flex items-center gap-2 text-body-sm text-primary font-medium py-1">
                 <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" /> Ingesting & normalizing…
               </div>
             )}
 
             <div className="border-t border-canvas-border pt-3 flex justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setIsDropzoneOpen(false)}
-                className="px-4 py-2 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px] text-body-sm"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] text-body-sm flex items-center justify-center"
               >
                 Cancel
               </button>
@@ -509,14 +517,14 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Manual Lab Data Entry */}
+      {/* Modal: Manual Lab Data Entry with max-h-[90vh] overflow-y-auto */}
       {isManualAddOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
           <form
             onSubmit={handleManualAddSubmit}
-            className="bg-canvas-card border border-canvas-border rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl text-body-sm"
+            className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 shadow-xl text-body-sm max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between border-b border-canvas-border pb-4">
+            <div className="flex items-center justify-between border-b border-canvas-border pb-3">
               <div className="flex items-center gap-2 text-primary font-bold text-heading-md">
                 <Plus className="w-4 h-4" />
                 <span>Add Lab Result Point</span>
@@ -524,7 +532,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsManualAddOpen(false)}
-                className="text-muted hover:text-slate-900 p-1 rounded-lg hover:bg-canvas-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-canvas-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Close"
               >
                 ✕
@@ -537,7 +545,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                 <select
                   value={manualMarker}
                   onChange={(e) => setManualMarker(e.target.value)}
-                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary min-h-[44px]"
                 >
                   <option value="Creatinine">Creatinine (mg/dL)</option>
                   <option value="eGFR">eGFR (mL/min/1.73m2)</option>
@@ -551,7 +559,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-muted mb-1 font-semibold text-caption">Numeric Value</label>
                   <input
@@ -560,7 +568,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                     value={manualValue}
                     onChange={(e) => setManualValue(e.target.value)}
                     required
-                    className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted"
+                    className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted min-h-[44px]"
                   />
                 </div>
                 <div>
@@ -570,7 +578,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                     value={manualUnit}
                     onChange={(e) => setManualUnit(e.target.value)}
                     required
-                    className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
                   />
                 </div>
               </div>
@@ -582,22 +590,22 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                   value={manualDate}
                   onChange={(e) => setManualDate(e.target.value)}
                   required
-                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
                 />
               </div>
             </div>
 
-            <div className="border-t border-canvas-border pt-3 flex justify-end gap-2">
+            <div className="border-t border-canvas-border pt-3 flex flex-col-reverse sm:flex-row justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsManualAddOpen(false)}
-                className="px-4 py-2 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px]"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px]"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center"
               >
                 Add to Timeline
               </button>

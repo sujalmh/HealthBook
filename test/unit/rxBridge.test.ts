@@ -455,5 +455,24 @@ describe('Milestone 4: RxBridge Post-Discharge 3-List Reconciliation Engine', ()
       const lisinoprilInActive = activeInVault.find((m) => m.genericName === 'Lisinopril');
       expect(lisinoprilInActive).toBeUndefined();
     });
+
+    it('verifies 3-list comparative items support status badge categories for mobile card breakdown', () => {
+      const items = ClinicalReconciliationEngine.reconcileThreeLists(mockShantiDevi3ListDataset);
+      const statusBadges = items.map((i) => i.statusBadge);
+      expect(statusBadges).toContain('NEW');
+      expect(statusBadges).toContain('DOSE_CHANGED');
+      expect(statusBadges).toContain('STOPPED');
+      expect(statusBadges).toContain('CONTINUED');
+
+      // Verify filter partition
+      const changedOnly = items.filter((i) => i.statusBadge !== 'CONTINUED');
+      const stoppedOnly = items.filter((i) => i.statusBadge === 'STOPPED');
+      const newOnly = items.filter((i) => i.statusBadge === 'NEW');
+
+      expect(changedOnly.length).toBeGreaterThan(0);
+      expect(stoppedOnly.length).toBeGreaterThan(0);
+      expect(newOnly.length).toBeGreaterThan(0);
+      expect(changedOnly.length).toBeGreaterThanOrEqual(stoppedOnly.length + newOnly.length);
+    });
   });
 });

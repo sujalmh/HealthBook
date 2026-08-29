@@ -122,7 +122,7 @@ export const PillCard: React.FC<PillCardProps> = ({
           </div>
         </div>
 
-        {/* Action icons - 44px touch target ensured via min-height on parent, compact buttons with focus rings */}
+        {/* Action icons - touch target >=44px, compact visual with focus rings */}
         {!isGhost && (
           <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
             {onSimulate && (
@@ -132,11 +132,11 @@ export const PillCard: React.FC<PillCardProps> = ({
                   e.stopPropagation();
                   onSimulate(pill, day, slot);
                 }}
-                className="p-1.5 rounded-lg text-muted hover:text-amber-700 hover:bg-amber-50 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-muted hover:text-amber-700 hover:bg-amber-50 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
                 title="Simulate missed dose clinical risk"
                 aria-label={`Simulate missing ${pill.name}`}
               >
-                <HelpCircle className="w-3.5 h-3.5" />
+                <HelpCircle className="w-4 h-4" />
               </button>
             )}
             {onRemove && (
@@ -146,15 +146,19 @@ export const PillCard: React.FC<PillCardProps> = ({
                   e.stopPropagation();
                   onRemove(pill.id);
                 }}
-                className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-muted hover:text-rose-600 hover:bg-rose-50 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
                 title="Remove from pillbox"
                 aria-label={`Remove ${pill.name}`}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             )}
-            <div className="cursor-grab active:cursor-grabbing text-muted hover:text-slate-700 p-1">
-              <GripVertical className="w-3 h-3" />
+            <div
+              className="cursor-grab active:cursor-grabbing text-muted hover:text-slate-700 min-h-[44px] min-w-[36px] flex items-center justify-center p-1 rounded-lg"
+              title="Drag to move"
+              aria-label="Drag handle"
+            >
+              <GripVertical className="w-4 h-4" />
             </div>
           </div>
         )}

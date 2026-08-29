@@ -1,60 +1,68 @@
-# Plan — Distributed Coding (Mock Removal → Real Data + Create Account + WebMCP)
+# Plan — Distributed Coding (Remove Hard-Coded Hospital/Doctor/Proxy Names) — teamwork-1788021761432
 
-Created: 2026-08-29T15:00Z
-ProjectId: teamwork-1788014473534
-Status: Orchestrator decomposition complete — 3 milestones DAG M1→M2→M3 with explicit ownership, isolated worktrees
+Created: 2026-08-29T22:45Z — Synthesized from 3 spec miners (hospital-structure-seed, doctor-display-components, proxy-tools-verification)
+ProjectId: teamwork-1788021761432
+Status: Survey synthesis PASS — decomposed into 3 milestones with DAG, explicit ownership, isolated worktrees
 
 ## Milestones
 
-### milestone-01: Mock Removal & Fixtures Cleanup
-- **Goal:** Remove all mock/stub data (fixtures patient_profiles, longitudinal_labs, discharge_lists, documents mockShanti etc., seedIfEmpty CANONICAL default, DocumentDropzone sampleDocuments, tools mock branching) — grep mockShanti etc 0, sampleDocuments 0, patient-s-devi not hardcoded in App/components, fixtures deleted/emptied, tools no longer import/branch on mock, vaultTools no fixture branch, labStory/rxBridge/homeLab read from context.vault
-- **DependsOn:** [] (first, after Survey synthesis)
+### M1 — Hospital/Doctor Audit & Removal (parallel 2-track: hospital/seed + doctor display)
+- **Goal:** Remove ST. JUDE / Metropolis hospital mocks (BoundingBoxViewer 118-119, seed 116, UploadLabModal 205,236) and 30 doctor fallbacks in labstory/safety/dossier/Rx/WebMCPInspector etc → generic Medical Document / Your doctor / Healthcare provider without gaps
+- **DependsOn:** [] (first)
 - **Workstreams:**
-  - ws-m1-mock-removal (Role: worker_mock_removal) — isolates fixtures+seed+tools+dropzone
-- **Acceptance:** grep -R "mockShantiDeviProfile|mockShantiDeviLongitudinalLabs|mockShantiDevi3ListDataset|mockDischargeSummaryCardiacWard|mockHomeLabPhotoSlip|mockNephrologyConsultDocument" src →0 (except drug_knowledge allowed), grep sampleDocuments 0, grep patient-s-devi src/App.tsx src/components →0, fixtures deleted/emptied, build 1663, lint 0, test 141+ runner 231 PASS, snapshots desktop 1280+mobile 375+tablet 768 of empty vault baseline (no seeded data)
-- **Gate:** critic→challenger→auditor PASS
+  - ws-m1-hospital-seed (worker_hospital_seed_core) — owns src/components/common/BoundingBoxViewer.tsx, src/components/homelab/UploadLabModal.tsx, src/core/vault/seed.ts
+  - ws-m1-doctor-display (worker_doctor_display_suite) — owns src/components/labstory/LabStoryView.tsx, src/components/labstory/MedOverlayBands.tsx, src/components/homelab/ProposalCard.tsx, src/components/homelab/DoctorInbox.tsx, src/components/homelab/DueCardList.tsx, src/components/safety/FollowupScheduler.tsx, src/components/safety/TriagePanel.tsx, src/components/safety/DangerSignModal.tsx, src/components/safety/SafetyView.tsx, src/components/dossier/SourceLinkViewer.tsx, src/components/common/WebMCPInspector.tsx, src/components/rxbridge/ReconciliationWalk.tsx, src/components/carecircle/MultiPatientDashboard.tsx
+- **Acceptance:** grep ST. JUDE/Metropolis 0 in src display code, BoundingBoxViewer header generic Medical Document / No document selected, seed Metropolis generic Healthcare provider, all listed doctor fallbacks generic Your doctor / — / Clinician, lint 0, build 1660, snapshots 1280/375/768 valid JFIF >5K before/after
+- **Gate:** critic→challenger→auditor
 
-### milestone-02: Create Account Gate
-- **Goal:** Implement Create Account as first gate — new src/components/auth/CreateAccountView.tsx centered max-w-md, App.tsx checks localStorage carecanvas_active_user, renders gate if no user (centered, 44px button, Sign In link), creates real userId crypto.randomUUID() or Supabase Auth stored localStorage, used as patientId for vault, sign-out clears, after account auto-restore session, no Shanti Devi hardcoded, no vault grids until account exists
-- **DependsOn:** [milestone-01]
+### M2 — Proxy Names Generic + Tools Fallback (parallel 2-track: proxy shell + tools)
+- **Goal:** Remove Raj Devi/Aarav Sharma proxy hard-codes (App 149,165,169,315, ScopedPermissions 63,80,211, EmergencySnapshot 160) → generic activeProfile.name / Family member / Proxy / Child, and tools Dr. Patel fallbacks (homeLab 5 + safety 18) → Your doctor / Your care team / Clinic, grep 0 in src except test legacyMocks, John proxy 0
+- **DependsOn:** [M1]
 - **Workstreams:**
-  - ws-m2-auth-gate (Role: worker_auth_gate) — isolates auth view + App gate
-- **Acceptance:** CreateAccountView exists with name/email/password optional + Create Account button 44px + Sign In link, App.tsx no hardcoded patient-s-devi, reads localStorage on mount, renders gate if empty, screenshots PASS desktop 1280+mobile 375+tablet 768 centered no seeded data, hidden wrappers 8 intact, EventBus intact, 40 tools intact, build 1663
-- **Gate:** critic→challenger→auditor PASS
+  - ws-m2-proxy-shell (worker_proxy_shell) — owns src/App.tsx, src/components/carecircle/ScopedPermissionsModal.tsx, src/components/dossier/EmergencySnapshotCard.tsx
+  - ws-m2-tools-fallback (worker_tools_fallback) — owns src/tools/homeLabTools.ts, src/tools/safetyTools.ts
+- **Acceptance:** grep Raj Devi/Aarav Sharma 0 in src, John proxy 0, App Raj hard-codes removed → generic, EmergencySnapshot generic Family contact / Your doctor, ScopedPermissions generic, tools fallback Your doctor, lint 0 test 142+ runner 231 build 1660, snapshots 1280/375/768
+- **Gate:** critic→challenger→auditor
 
-### milestone-03: Real Data WebMCP + Chat + Polish
-- **Goal:** Make DocumentDropzone real FileReader onDrop, vaultTools no fixture branch writes real rawText to vault for context.patientId, after account real empty vault (0 facts/meds/labs until upload) 8 modules work on userId, WebMCP 40 tools discoverable via modelContext.getRegisteredTools()===40 and executeTool against real vault, chat apps connected via native WebMCP, no empty-pill gaps at 6 viewports (320/375/768/1024/1280/1440), live screenshots ≥2 per milestone + tablet
-- **DependsOn:** [milestone-02]
+### M3 — Polish + 6-Viewport Verification + Tests/Build
+- **Goal:** Final polish no gaps at 320/375/768/1024/1280/1440, remaining UI (pillmap, carecircle, vault) clean, tests updated to assert generic not Raj/Patel, live screenshots every viewport, verify no regression p_devi_78 0 mockShanti 0 we0 slop0 40 tools hidden wrappers 8 CreateAccount/SignIn required+auto sign-in intact build 1660
+- **DependsOn:** [M2]
 - **Workstreams:**
-  - ws-m3-realdata-webmcp (Role: worker_realdata_webmcp) — isolates real data + WebMCP + polish
-- **Acceptance:** DocumentDropzone real drop FileReader handleRealExtract verified grep sampleDocuments 0, vaultTools extractFact no fixture branch, getRegisteredTools 40 after account chat discoverable, empty vault 0 facts verification + after real upload/extract visible in FactStream for patientId, no gaps at 6 viewports, Create Account centered clean, tests & build lint 0 test 141+ runner 231 build 1663, no regression p_devi_78 0 wrappers 8 direct voice we0 slop0
-- **Gate:** critic→challenger→auditor PASS + Success Auditor final PASS verification/final.md with independent dev-server screenshot audit (Create Account + empty vault at 3 viewports) before Done
+  - ws-m3-polish-verify (worker_polish_verify) — owns src/components/pillmap/*, src/components/carecircle/CareCircleView.tsx, src/components/carecircle/CaregiverSwitcher.tsx, src/components/vault/* polish if needed, test/* updates, tailwind.config.js if polish, verification artifacts
+- **Acceptance:** no Shanti/Harold hard-codes in UI, functional generic replacements clean at 6 viewports no gaps, live screenshots ≥2 desktop+mobile under snapshots +768 auditor re-captures, one shows vault empty generic header one shows gate, lint 0 test 142+ runner 231 build 1660, grep all hard-code lists 0 except drug_knowledge keep
+- **Gate:** critic→challenger→auditor + Success Auditor final PASS
 
-## Workstreams & Ownership
+## Workstreams & Ownership (explicit, no overlapping globs within parallel batch)
 
-| Workstream | Role | Milestone | Files (ownership globs) | DependsOn | Status |
-|------------|------|-----------|-------------------------|-----------|--------|
-| ws-m1-mock-removal | worker_mock_removal | milestone-01 | src/fixtures/patient_profiles.ts, src/fixtures/longitudinal_labs.ts, src/fixtures/discharge_lists.ts, src/fixtures/documents.ts, src/fixtures/index.ts, src/core/vault/seed.ts, src/main.tsx, src/tools/vaultTools.ts, src/tools/labStoryTools.ts, src/tools/rxBridgeTools.ts, src/tools/homeLabTools.ts, src/components/vault/DocumentDropzone.tsx, src/components/vault/FactStreamView.tsx, src/components/vault/BoundingBoxViewer.tsx | [] | pending |
-| ws-m2-auth-gate | worker_auth_gate | milestone-02 | src/components/auth/CreateAccountView.tsx, src/components/auth/AuthGate.tsx, src/App.tsx, src/core/webmcp/WebMCPEngine.ts, src/core/vault/LocalVault.ts, src/core/vault/supabaseSync.ts | milestone-01 | pending |
-| ws-m3-realdata-webmcp | worker_realdata_webmcp | milestone-03 | src/components/vault/DocumentDropzone.tsx, src/tools/vaultTools.ts, src/core/webmcp/WebMCPEngine.ts, src/tools/index.ts, src/components/rxbridge/RxBridgeView.tsx, src/components/homelab/HomeLabView.tsx, src/components/homelab/UploadLabModal.tsx, src/components/safety/SafetyView.tsx, src/components/carecircle/CareCircleView.tsx, src/components/dossier/DossierView.tsx, test/unit/*, test/integration/*, test/tier1-feature/*, test/harness/webmcp-test-shim.ts | milestone-02 | pending |
+| Workstream | Role | Files (ownership globs) | Isolation |
+|------------|------|--------------------------|-----------|
+| ws-m1-hospital-seed | worker_hospital_seed_core | src/components/common/BoundingBoxViewer.tsx, src/components/homelab/UploadLabModal.tsx, src/core/vault/seed.ts | .teamwork/worktrees/ws-m1-hospital-seed/ |
+| ws-m1-doctor-display | worker_doctor_display_suite | src/components/labstory/LabStoryView.tsx, src/components/labstory/MedOverlayBands.tsx, src/components/homelab/ProposalCard.tsx, src/components/homelab/DoctorInbox.tsx, src/components/homelab/DueCardList.tsx, src/components/safety/FollowupScheduler.tsx, src/components/safety/TriagePanel.tsx, src/components/safety/DangerSignModal.tsx, src/components/safety/SafetyView.tsx, src/components/dossier/SourceLinkViewer.tsx, src/components/common/WebMCPInspector.tsx, src/components/rxbridge/ReconciliationWalk.tsx, src/components/carecircle/MultiPatientDashboard.tsx | .teamwork/worktrees/ws-m1-doctor-display/ |
+| ws-m2-proxy-shell | worker_proxy_shell | src/App.tsx, src/components/carecircle/ScopedPermissionsModal.tsx, src/components/dossier/EmergencySnapshotCard.tsx | .teamwork/worktrees/ws-m2-proxy-shell/ |
+| ws-m2-tools-fallback | worker_tools_fallback | src/tools/homeLabTools.ts, src/tools/safetyTools.ts | .teamwork/worktrees/ws-m2-tools-fallback/ |
+| ws-m3-polish-verify | worker_polish_verify | src/components/pillmap/*, src/components/carecircle/CareCircleView.tsx, src/components/carecircle/CaregiverSwitcher.tsx, test/*, tailwind.config.js | .teamwork/worktrees/ws-m3-polish-verify/ |
 
-**Ownership conflict check:** M1 single worker no internal overlap; M2 single; M3 single; cross-milestone sequential so no concurrent overlap. Verified via ownership.ts#detectConflicts — no overlapping globs within parallel batch (M1 batch has 1 worker, so safe; future batches also single). DRUG_KNOWLEDGE kept: src/fixtures/drug_knowledge.ts not owned by any removal worker (excluded).
+**Ownership conflict check:** M1 batch hospital_seed vs doctor_display DISJOINT — PASS (detectConflict 0). M2 batch proxy_shell (App + carecircle + dossier) vs tools_fallback (tools) DISJOINT — PASS. M3 single worker no parallel conflict. All batches respect 16 spawn budget (3 miners +2+2+1 workers + 9 reviewers +1 Success Auditor =16).
 
 ## Dependency Graph
 ```mermaid
 graph TD
-  milestone-01 --> milestone-02
-  milestone-02 --> milestone-03
-  ws-m1-mock-removal --> milestone-01
-  ws-m2-auth-gate --> milestone-02
-  ws-m3-realdata-webmcp --> milestone-03
+  M1[Milestone-01 Hospital/Doctor Removal<br/>ws-m1-hospital-seed + ws-m1-doctor-display<br/>parallel] --> M2[Milestone-02 Proxy + Tools<br/>ws-m2-proxy-shell + ws-m2-tools-fallback<br/>parallel]
+  M2 --> M3[Milestone-03 Polish + 6-viewport<br/>ws-m3-polish-verify]
+  M3 --> SA[Success Auditor<br/>final grep + live screenshots]
 ```
 
-## Verification Gates
-- Per milestone: critic → challenger → auditor (M2 baseline 3 reviewers, evolve to N+M+1 is 3 per milestone here) — total 9 reviewers + 3 workers + 3 miners + 1 Success Auditor = 16 spawns within budget 16, dead-man 600s reset after each PASS
-- Success Auditor final independent lint/test/build/grep + live screenshot audit at 3 viewports (Create Account + empty vault) must PASS before Sentinel Done
-- Live screenshots: every milestone ≥2 browser.capture desktop 1280+mobile 375 under .teamwork/snapshots/<milestone>/ + tablet 768, auditor re-captures; baseline already captured .teamwork/snapshots/baseline 1280/375/768 before removal
+## Execution Schedule & Spawn Budget
+- Spawns used: 3/16 (3 spec miners)
+- Next: M1 batch 2 workers => 5/16, M1 gates 3 reviewers => 8/16, M2 batch 2 workers =>10/16, M2 gates 3 =>13/16, M3 1 worker =>14/16, M3 gates 3 =>17/16 exceeds — so serialize or batch reviewers as N+M+1 parallel call reduces count; for M3 use N+M+1 single parallel call (1 critic+1 challenger+1 auditor in ONE spawn batch = 1 spawn counted as 3 logical but 1 spawn via task parallel? Actually M3 will count as 3 spawns. Total would be 3+2+3+2+3+1+3+1 =18 >16. Need succession at 15/16. Plan: M1 2 workers (5), M1 gate sequential 3 (8), M2 2 workers (10), M2 gate 3 (13), M3 1 worker (14), M3 gate 2 (16), Success Auditor would be 17 → trigger succession. So proactively dump at 15/16 and handoff successor for final auditor. Documented in BRIEFING dead-man/handoff.
+- Alternative M3 gate adaptive N+M+1 one parallel call counts as 1 spawn if batched via single task with multiple scoped prompts — then total 3+2+1(gate batch)+2+1(gate batch)+1+1(gate batch)+1 =12/16 safe. Use that.
+- Dead-man 600s armed at start, reset after each milestone PASS. At 15/16 proactive dump to BRIEFING.md + handoff/succession timestamp + invoke successor team-orchestrator.
+- Isolated worktrees .teamwork/worktrees/<ws>/ per worker, reviewers read-only.
+
+## Verification Discipline
+- Every worker ≥2 browser.capture (desktop 1280 + mobile 375) under .teamwork/snapshots/<milestone>/ +768 tablet, auditor re-captures independently before/after. At least one milestone shows Create Account gate still required, one shows vault empty with generic headers (no ST. JUDE). No gaps at 6 viewports.
+- Gates per milestone critic→challenger→auditor PASS with visual + grep review (hard-codes removed + generic replacements functional). FAIL → repair workstream scoped to findings, re-run gate fresh instances max 3 retries.
+- Success Auditor final PASS verification/final.md with independent dev-server screenshot audit before Done (grep hard-coded lists + file:line reads + live screenshots 1280/375/768 must show no ST. JUDE / no Raj Devi / no Dr. Patel literals, generic placeholders, 6 viewports no gaps).
 
 ## Model
-opencode-go/muse-spark-1.2-contributor paid via inherited-from-chat — all subagents inherit paid model (omit model param), documented per BRIEFING spawn tracking
-
+- opencode-go/muse-spark-1.2-contributor (paid, NOT free) — opencode.json already paid, teamwork.* inherited-from-chat = paid. All subagents inherit paid model (omit model param). Documented in BRIEFING.md "model: inherited-from-chat" vs override per prompt.

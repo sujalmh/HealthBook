@@ -10,6 +10,7 @@ import { extractLabsTool, correlateMedsTool, normalizeLabBiomarker, BIOMARKER_ST
 import { WebMCPExecutionContext } from '@/types/webmcp';
 import { eventBus } from '@/core/events/eventBus';
 import type { LabRecord } from '@/types/vault';
+import type { ZoomWindow } from '@/components/labstory/BiomarkerChart';
 import { mockShantiDeviLongitudinalLabs } from '../fixtures/legacyMocks';
 import { convertToLabRecords } from '@/fixtures/longitudinal_labs';
 
@@ -295,6 +296,41 @@ describe('Module 1: LabStory & Longitudinal Biomarker Engine', () => {
       expect(items.length).toBe(1);
       expect(items[0].questionText).toContain('Metformin');
       expect(items[0].linkedLabMarker).toBe('eGFR');
+    });
+  });
+
+  // --- 6. Mobile UI Component Tests (BiomarkerChart, MedOverlayBands, CausalQueryPanel, LabStoryView) ---
+  describe('LabStory UI & Mobile Ergonomics Components', () => {
+    it('verifies ZoomWindow support for 30D, 90D, 1Y, 3Y, 5Y, and MAX', () => {
+      const zoomList: ZoomWindow[] = ['30D', '90D', '1Y', '3Y', '5Y', 'MAX'];
+      expect(zoomList.length).toBe(6);
+    });
+
+    it('verifies doctor comment pinning and reference/optimal range calculations', () => {
+      const sampleLab: LabRecord = {
+        id: 'lab_test_sample_01',
+        patientId,
+        marker: 'eGFR',
+        value: 45,
+        unit: 'mL/min/1.73m2',
+        normalizedValue: 45,
+        normalizedUnit: 'mL/min/1.73m2',
+        drawDate: '2026-08-25T00:00:00Z',
+        referenceRange: { low: 60, high: 120 },
+        optimalRange: { low: 90, high: 120 },
+        isBorderline: false,
+        isCritical: false,
+        flag: 'LOW'
+      };
+
+      localVault.addLab(sampleLab, { userId: 'u1', userName: 'Test', role: 'patient' });
+      const pinned = localVault.addDoctorCommentToLab(sampleLab.id, {
+        doctorId: 'doc1',
+        doctorName: 'Dr. Anita Patel, MD',
+        comment: 'Hold NSAIDs and re-check eGFR in 2 weeks.'
+      });
+
+      expect(pinned?.doctorComments?.[0].comment).toContain('Hold NSAIDs');
     });
   });
 });

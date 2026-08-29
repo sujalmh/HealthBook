@@ -151,15 +151,15 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
 
       {/* Filter Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 max-w-full overflow-hidden">
           <Filter className="w-3.5 h-3.5 text-muted shrink-0" />
-          <span className="text-muted whitespace-nowrap">Filter by Module:</span>
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-muted whitespace-nowrap shrink-0">Filter by Module:</span>
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full pb-1">
             {['all', 'rxbridge', 'labstory', 'homelab', 'safety', 'vault'].map((mod) => (
               <button
                 key={mod}
                 onClick={() => setFilterModule(mod)}
-                className={`px-2.5 py-1 rounded-lg capitalize font-medium transition-colors min-h-[32px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                className={`px-3 py-1.5 rounded-lg capitalize font-medium transition-colors whitespace-nowrap min-h-[36px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                   filterModule === mod
                     ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm'
                     : 'bg-canvas-muted text-muted hover:bg-canvas-border border border-transparent'

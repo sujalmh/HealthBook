@@ -41,16 +41,16 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full shadow-lg overflow-hidden animate-scale-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
         {/* Header */}
-        <div className="p-5 bg-gradient-to-r from-primary to-accent border-b border-canvas-border flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-primary to-accent border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white">
               <Bell className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-heading-md text-white tracking-tight">
+              <h2 className="text-body sm:text-heading-md font-bold text-white tracking-tight">
                 Daily Medication Reminders
               </h2>
               <p className="text-caption text-white/80">Time-Slot Batch Notifications</p>
@@ -61,19 +61,19 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
             className="p-2 rounded-xl hover:bg-white/20 text-white/90 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Close modal"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSave} className="p-6 space-y-4 text-body-sm text-slate-800">
+        <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-4 text-body-sm text-slate-800">
           <p className="text-muted text-body-sm">
             Batch reminders send a single consolidated alert for all medications in each time window, avoiding alert fatigue.
           </p>
 
           <div className="space-y-3">
             {/* Morning */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
                 <Sun className="w-4 h-4 text-amber-500" />
                 <span className="font-semibold text-slate-800">Morning Dose</span>
@@ -82,12 +82,12 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
                 type="time"
                 value={morningTime}
                 onChange={(e) => setMorningTime(e.target.value)}
-                className="bg-white border border-canvas-border rounded-xl px-3 py-2 font-mono text-body-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full sm:w-auto bg-white border border-canvas-border rounded-xl px-3 py-2 font-mono text-body-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
               />
             </div>
 
             {/* Noon */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
                 <CloudSun className="w-4 h-4 text-primary" />
                 <span className="font-semibold text-slate-800">Noon Dose</span>
@@ -96,12 +96,12 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
                 type="time"
                 value={noonTime}
                 onChange={(e) => setNoonTime(e.target.value)}
-                className="bg-white border border-canvas-border rounded-xl px-3 py-2 font-mono text-body-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full sm:w-auto bg-white border border-canvas-border rounded-xl px-3 py-2 font-mono text-body-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
               />
             </div>
 
             {/* Evening */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
                 <Sunset className="w-4 h-4 text-orange-500" />
                 <span className="font-semibold text-slate-800">Evening Dose</span>
@@ -110,12 +110,12 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
                 type="time"
                 value={eveningTime}
                 onChange={(e) => setEveningTime(e.target.value)}
-                className="bg-white border border-canvas-border rounded-xl px-3 py-2 font-mono text-body-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full sm:w-auto bg-white border border-canvas-border rounded-xl px-3 py-2 font-mono text-body-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
               />
             </div>
 
             {/* Bedtime */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
                 <Moon className="w-4 h-4 text-indigo-500" />
                 <span className="font-semibold text-slate-800">Bedtime Dose</span>
@@ -124,7 +124,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
                 type="time"
                 value={bedtimeTime}
                 onChange={(e) => setBedtimeTime(e.target.value)}
-                className="bg-white border border-canvas-border rounded-xl px-3 py-2 font-mono text-body-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full sm:w-auto bg-white border border-canvas-border rounded-xl px-3 py-2 font-mono text-body-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
               />
             </div>
           </div>
@@ -138,17 +138,17 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
           )}
 
           {/* Actions */}
-          <div className="pt-3 border-t border-canvas-border flex items-center justify-end gap-3">
+          <div className="pt-3 border-t border-canvas-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 w-full">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-canvas-border hover:bg-canvas-muted text-slate-700 font-semibold text-body-sm min-h-[44px]"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-canvas-border hover:bg-canvas-muted text-slate-700 font-semibold text-body-sm min-h-[44px] flex items-center justify-center"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-body-sm shadow-sm min-h-[44px]"
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-body-sm shadow-sm min-h-[44px]"
             >
               <Bell className="w-4 h-4" />
               <span>Save Reminders</span>

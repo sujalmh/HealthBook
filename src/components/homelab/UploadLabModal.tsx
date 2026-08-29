@@ -48,7 +48,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
 
   const handleSimulateUpload = async (preset: 'photo_slip' | 'pdf_report' = 'photo_slip') => {
     setIsProcessing(true);
-    setSelectedFile(preset === 'photo_slip' ? 'metropolis_lab_photo.jpg' : 'lab_report_aug2026.pdf');
+    setSelectedFile(preset === 'photo_slip' ? 'lab_photo_sample.jpg' : 'lab_report_aug2026.pdf');
 
     try {
       const result = await webMCPEngine.execute(
@@ -202,7 +202,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>{isProcessing ? 'Extracting OCR...' : 'Sample Photo Slip (Metropolis)'}</span>
+                    <span>{isProcessing ? 'Extracting OCR...' : 'Sample Photo Slip'}</span>
                   </button>
 
                   <button
@@ -233,7 +233,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                 <div className="flex items-center justify-between text-body-sm">
                   <span className="font-semibold text-slate-700 flex items-center gap-1.5">
                     <FileText className="w-4 h-4 text-primary" />
-                    Source: Metropolis Healthcare Remote Collection Slip
+                    Source: Remote Collection Slip
                   </span>
                   <span className="text-emerald-700 font-mono text-caption">OCR Confidence: 96%</span>
                 </div>
@@ -264,15 +264,15 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                   </h4>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
-                    className="flex items-center gap-1 text-body-sm text-primary hover:text-primary-hover font-semibold min-h-[32px]"
+                    className="flex items-center gap-1.5 text-body-sm text-primary hover:text-primary-hover font-semibold px-3 py-1.5 rounded-xl hover:bg-primary-light transition-colors min-h-[44px]"
                   >
-                    <Edit2 className="w-3.5 h-3.5" />
+                    <Edit2 className="w-4 h-4" />
                     <span>{isEditing ? 'Cancel Edit' : 'Edit Values'}</span>
                   </button>
                 </div>
 
                 {!isEditing ? (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="bg-canvas-muted rounded-2xl p-3 border border-canvas-border space-y-1">
                       <span className="text-caption text-muted">Creatinine</span>
                       <div className="text-heading-md text-amber-600">{editForm.creatinine} mg/dL</div>
@@ -290,14 +290,14 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-1">
                       <label className="text-caption text-muted">Creatinine (mg/dL)</label>
                       <input
                         type="text"
                         value={editForm.creatinine}
                         onChange={(e) => setEditForm({ ...editForm, creatinine: e.target.value })}
-                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
                       />
                     </div>
                     <div className="space-y-1">
@@ -306,7 +306,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                         type="text"
                         value={editForm.egfr}
                         onChange={(e) => setEditForm({ ...editForm, egfr: e.target.value })}
-                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
                       />
                     </div>
                     <div className="space-y-1">
@@ -315,7 +315,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                         type="text"
                         value={editForm.potassium}
                         onChange={(e) => setEditForm({ ...editForm, potassium: e.target.value })}
-                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
                       />
                     </div>
                   </div>
@@ -326,10 +326,10 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
         </div>
 
         {/* Modal Footer / Action Gate */}
-        <div className="px-6 py-4 border-t border-canvas-border bg-white flex items-center justify-between gap-3">
+        <div className="px-6 py-4 border-t border-canvas-border bg-white flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[44px]"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[44px] flex items-center justify-center"
           >
             Cancel
           </button>
@@ -337,7 +337,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           {isExtracted && (
             <button
               onClick={handleApproveAndCommit}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Approve & Add to LabStory</span>

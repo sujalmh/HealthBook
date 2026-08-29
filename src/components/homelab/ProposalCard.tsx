@@ -142,7 +142,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   };
 
   const handleAddQuestionToBank = () => {
-    const qText = `Dr. ${proposal.doctorName}: Why is my ${proposal.medName} being changed to ${proposal.proposedDose}?`;
+    const qText = `${(proposal.doctorName || '').trim() || 'Your doctor'}: Why is my ${proposal.medName} being changed to ${proposal.proposedDose}?`;
     localVault.addQuestion({
       id: `q_${Date.now()}`,
       patientId: proposal.patientId,
@@ -209,7 +209,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 </span>
               )}
             </div>
-            <h4 className="text-heading-md text-slate-900">{proposal.doctorName || 'Dr. Anita Patel, MD'}</h4>
+            <h4 className="text-heading-md text-slate-900 truncate max-w-[60%] min-w-0">{(proposal.doctorName || '').trim() || 'Your doctor'}</h4>
           </div>
         </div>
 
@@ -285,25 +285,25 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
       {/* Action Buttons / Human In The Loop Gate */}
       {isPending ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-canvas-border">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-canvas-border">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <button
               onClick={handleAddQuestionToBank}
               disabled={isQuestionAdded}
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-body-sm font-semibold border transition-colors min-h-[44px] ${
+              className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-body-sm font-semibold border transition-colors min-h-[44px] ${
                 isQuestionAdded
                   ? 'bg-amber-50 border-amber-200 text-amber-800'
                   : 'bg-white hover:bg-canvas-muted border-canvas-border text-slate-700'
               }`}
             >
               <HelpCircle className="w-4 h-4 text-amber-500" />
-              <span>{isQuestionAdded ? 'Question In Bank' : 'Ask Dr. Patel'}</span>
+              <span>{isQuestionAdded ? 'Question In Bank' : `Ask ${(proposal.doctorName || '').trim() || 'your doctor'}`}</span>
             </button>
 
             <button
               onClick={handleReject}
               disabled={isProcessing}
-              className="px-3 py-2.5 rounded-xl bg-white hover:bg-rose-50 text-muted hover:text-rose-700 text-body-sm font-semibold border border-canvas-border hover:border-rose-200 transition-colors min-h-[44px]"
+              className="flex items-center justify-center px-4 py-2.5 rounded-xl bg-white hover:bg-rose-50 text-muted hover:text-rose-700 text-body-sm font-semibold border border-canvas-border hover:border-rose-200 transition-colors min-h-[44px]"
             >
               Reject Change
             </button>
@@ -312,11 +312,11 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           <button
             onClick={handleApprove}
             disabled={isProcessing}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>
-              {activeProfile.isProxy ? `Approve on Behalf of ${activeProfile.onBehalfOf || 'Patient'}` : 'Approve Dose Reduction'}
+              {activeProfile.isProxy ? `Approve for ${activeProfile.onBehalfOf || 'Patient'}` : 'Approve Dose Reduction'}
             </span>
           </button>
         </div>

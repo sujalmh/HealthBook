@@ -141,7 +141,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
   };
 
   return (
-    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4 ${className}`}>
+    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${className}`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-canvas-border pb-4">
         <div className="flex items-center gap-2.5">
@@ -162,27 +162,28 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
         </div>
       </div>
 
-      {/* Preset Query Chips */}
+      {/* Preset Query Chips with >=44px Touch Targets */}
       <div className="space-y-2">
         <div className="text-caption font-bold text-muted uppercase tracking-wider">Suggested Causal Queries</div>
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {presetQueries.map((preset, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={() => {
                 setQueryText(preset.query);
                 handleExecuteQuery(preset.query, preset.marker);
               }}
-              className="text-caption px-2.5 py-1.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 hover:text-slate-900 border border-canvas-border hover:border-primary-border/40 font-semibold flex items-center gap-1.5 transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[32px]"
+              className="text-caption px-3 py-2 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 hover:text-slate-900 border border-canvas-border hover:border-primary-border/40 font-semibold flex items-center gap-2 transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px]"
             >
-              <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span>{preset.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Free-form Input */}
+      {/* Free-form Input with >=44px Action Button */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <div className="relative flex-1">
           <input
@@ -195,14 +196,15 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
           />
         </div>
         <button
+          type="button"
           onClick={() => handleExecuteQuery()}
           disabled={isLoading || (!queryText.trim() && !activeMarker)}
-          className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-body-sm flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50 transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px]"
+          className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-body-sm flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px]"
         >
           {isLoading ? (
             <span className="inline-block animate-spin">⏳</span>
           ) : (
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-4 h-4" />
           )}
           <span>{isLoading ? 'Analyzing...' : 'Ask Why'}</span>
         </button>
@@ -235,13 +237,13 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
           {causalResult.correlatedMedications && causalResult.correlatedMedications.length > 0 && (
             <div className="bg-canvas-card border border-canvas-border rounded-xl p-2.5 flex items-center gap-2 flex-wrap shadow-sm">
               <span className="text-caption font-bold text-muted flex items-center gap-1">
-                <Pill className="w-3.5 h-3.5 text-primary" />
+                <Pill className="w-3.5 h-3.5 text-primary shrink-0" />
                 Correlated Medications:
               </span>
               {causalResult.correlatedMedications.map((med: string, i: number) => (
                 <span
                   key={i}
-                  className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border"
+                  className="text-caption px-2.5 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border"
                 >
                   {med}
                 </span>
@@ -249,12 +251,12 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
             </div>
           )}
 
-          {/* Doctor Question Generator (LS7) */}
+          {/* Doctor Question Generator (LS7) with >=44px Touch Target */}
           {causalResult.recommendedDoctorQuestion && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1 flex-1">
                 <div className="text-caption font-bold uppercase tracking-wider text-amber-700 flex items-center gap-1">
-                  <BookmarkPlus className="w-3.5 h-3.5" />
+                  <BookmarkPlus className="w-3.5 h-3.5 shrink-0" />
                   <span>Targeted Doctor Question</span>
                 </div>
                 <p className="text-body-sm text-slate-900 font-medium italic leading-relaxed">
@@ -263,9 +265,10 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
               </div>
 
               <button
+                type="button"
                 onClick={handleAddToQuestionBank}
                 disabled={isQuestionAdded}
-                className={`px-3 py-2 rounded-xl font-bold text-body-sm flex items-center gap-1.5 shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[40px] ${
+                className={`px-4 py-2.5 rounded-xl font-bold text-body-sm flex items-center justify-center gap-2 shrink-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] w-full sm:w-auto ${
                   isQuestionAdded
                     ? 'bg-emerald-600 text-white'
                     : 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm'
@@ -273,12 +276,12 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
               >
                 {isQuestionAdded ? (
                   <>
-                    <Check className="w-3.5 h-3.5" />
+                    <Check className="w-4 h-4 shrink-0" />
                     <span>In Question Bank</span>
                   </>
                 ) : (
                   <>
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4 shrink-0" />
                     <span>Add to Question Bank</span>
                   </>
                 )}

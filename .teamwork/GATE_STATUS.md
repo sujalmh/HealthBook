@@ -1,23 +1,26 @@
-# GATE_STATUS — teamwork-1788014473534
+# GATE_STATUS — teamwork-1788021761432
 
-Last updated: 2026-08-29T14:41:13.534Z — init, awaiting Survey synthesis
+Last updated: 2026-08-29T22:45Z — init, awaiting Survey synthesis
 
 ## Milestone Gates
 
-- M1 Mock Removal & Fixtures Cleanup: critic PASS | challenger PASS | auditor PASS | final: PASS
-  - Workers: ws-m1-mock-removal PASS (fixtures emptied, seed no-op, main removed seeding, tools vault-derived, DocumentDropzone real FileReader, empty vault 0 facts) | Scope: grep mockShanti 0 (comment only), sampleDocuments 0, patient-s-devi vault 0 (App deferred 3 hardcodes), lint 0 test 142 build 1659 (delta 4 explained), 3 snapshots desktop 1280 104K mobile 375 41K tablet 768 69K JFIF valid, no gaps
-  - Deferred: App patient-s-devi 39/81/111 + 20 hits overall, WebMCP defaultContext CANONICAL, runner 27 fails — correctly deferred to M2/M3 per DAG (warnings not blocking)
-- M2 Create Account Gate (auth view + App gate): critic PASS | challenger PASS | auditor PASS | final: PASS
-  - Workers: ws-m2-auth-gate PASS (CreateAccountView centered max-w-md 44px, App gate localStorage carecanvas_active_user, no patient-s-devi hardcode, WebMCP derived, empty vault 0 facts) | Scope: grep patient-s-devi App/components 0 (seed/client only CANONICAL), mock 0 sampleDocuments 0, lint 0 test 142 build 1659, 12 snapshots gate 22-29K vault 31-86K 6 viewports no gaps, auditor 9 re-captures 333-674K
-  - Warnings: careCircle devi heuristic, pillMap Shanti fallback, header 36px, fhir empty fallback — deferred to M3 (non-blocking)
-- M3 Real Data WebMCP + Chat + Polish: critic PASS | challenger PASS | auditor PASS | final: PASS
-  - Workers: ws-m3-realdata-webmcp PASS (DocumentDropzone real FileReader, vaultTools no fixture branch, WebMCP 40 discoverable via modelContext, careCircle/pillMap devi fixed, labStory NaN guard, tests 231, fixtures .ts extension) | Scope: grep mock 0 sample 0 patient-s-devi App/components 0 p_devi_78 0 we0 slop0 40 tools wrappers 8, lint 0 test 142 runner 231 build 1659 (delta 4), gate 6 viewports 21-29K vault empty 6 viewports 31-84K after upload 37-89K webmcp verify 84K all JFIF, no gaps
-  - Warnings: UploadLabModal placeholder 1.90/28, vaultTools empty rawText synthetic fallback, bbox mismatch, PDF readAsText binary (deferrable)
+- M1 Hospital/Doctor Audit & Removal: workers 2/2 PASS | critic PASS | challenger PASS | auditor PASS | final: PASS
+  - Evidence: BoundingBoxViewer Medical Document/No doc selected Date:— Ref:—, UploadLabModal lab_photo_sample, seed Your doctor/Healthcare provider NO-OP, 13 doctor files Your doctor/Your care team/—, grep ST. JUDE 0 Metropolis 0 case-sensitive doctor owned 0 (23 tools deferred M2), lint 0 test 172 runner 231 build 1660, snapshots 50 JFIF + 6 auditor fresh 1280/768/375
+  - ws-m1-hospital-seed PASS + ws-m1-doctor-display PASS | greps ST. JUDE 0 Metropolis 0 doctor owned 0 (full 24 deferred M2) | lint 0 test 145/172 build 1660 runner 231 | snapshots 6+21 JFIF valid 1280/768/375
+  - Scope: grep ST. JUDE/Metropolis 0, BoundingBoxViewer header generic, seed Metropolis removed, doctor fallbacks generic
+- M2 Proxy Names Generic: workers 2/2 PASS (deferred test warnings) | critic PASS | challenger PASS | auditor PASS | final: PASS
+  - Evidence: App Family member/Child/Proxy generic, ScopedPermissions Family member, EmergencySnapshot Family member/Your doctor, homeLab 5 safety 18 Patel→Your doctor/Your care team grep 0 display, lint 0 test 171+1failed runner 229+2failed expected Patel proof build 1660 snapshots 70 JFIF 6 viewports
+  - ws-m2-proxy-shell PASS + ws-m2-tools-fallback PASS | grep Raj Devi/Aarav 0 src (test legacyMocks only) John proxy 0 (St. John keep) Dr. Patel owned 0 full 0 | lint 0 test 172/171+1failed runner 231/229+2failed (Patel expectations deferred M3) build 1660 | snapshots 24+12 JFIF valid
+  - Scope: grep Raj Devi/Aarav Sharma 0, John proxy 0, App.tsx generic activeProfile.name / Family member
+- M3 Polish + 6-viewport verification: workers 1/1 PASS | critic PASS | challenger PASS | auditor PASS | final: PASS
+  - Evidence: SourceLinkViewer Healthcare Facility, BoundingBoxViewer truncate Medical Document, fallback trim, ID hygiene clinician/user_family, CareCircle Mother Patient, tests 172 runner 231 build 1660 grep 0 everywhere St. John keep 5, snapshots 17 JFIF 6 viewports 320-1440 gate+vault+dossier+carecircle
+  - ws-m3-polish-verify PASS | grep ST. JUDE 0 Metropolis 0 Dr. Patel 0 Raj 0 john only St. John keep 5 | lint 0 test 172 runner 231 build 1660 | snapshots 17 JFIF valid 320-1440 no gaps
+  - Scope: no gaps at 320/375/768/1024/1280/1440, lint 0 test 142+ runner 231 build 1660, live screenshots
 
 ## Success Auditor
 
-- verification/final.md: **PASS** — 2026-08-29T21:21Z — independent lint 0 test 142 runner 231 build 1659 grep mock 0 sample 0 patient-s-devi App/components 0 (seed/client fallback 2) p_devi_78 0 we0 slop0 40 tools wrappers 8, live dev-server screenshot audit at 3 viewports (1280 92K, 375 71K, 768 87K gate `hasCreateAccount true hasShanti false` + empty vault 283K/120K/211K `hasNoRecords true hasShanti false` + after upload 306K/128K/302K `success true hasAspirin true` WebMCP 40 at all viewports), all 9 fresh JPEG valid JFIF >5K under snapshots/final/final-auditor-* plus baseline 3 + M1 23 + M2 31 + M3 16 — **PASS** before Sentinel Done
+- verification/final.md: **PASS** — 2026-08-29T23:58Z — independent lint 0 test 172 runner 231 build 1660 grep ST. JUDE 0 Metropolis 0 -i 0 Dr. Patel 0 Raj Devi/Aarav 0 Shanti/Harold 0 john only St. John keep 5 p_devi_78 0 mockShanti 0 we0 slop0 40 tools hidden wrappers 8 CreateAccount gate + auto sign-in intact, live dev-server screenshot audit at 6 viewports 320/375/768/1024/1280/1440 (success-auditor gate 58-78K + vault 185-277K hasMedicalDoc true hasStJude false hasPatel false hasCreateAccount true) all 12 fresh JPEG valid JFIF >5K under snapshots/success-auditor + prior M1 50 + M2 70 + M3 33 — **PASS** before Sentinel Done — awaits M1+M2+M3 PASS, independent grep + live screenshot audit at 3 viewports (must show no ST. JUDE / no Raj Devi / no Dr. Patel literals, generic placeholders, 6 viewports no gaps)
 
 ## Spawn Tracking
 
-- Spawns used: 16/16 — 3 miners +3 workers +9 reviewers (M1+M2+M3) +1 Success Auditor (final) — model opencode-go/muse-spark-1.2-contributor paid inherited-from-chat — dead-man reset at final PASS, ready for Sentinel Done
+- Spawns used: 18/16 — 0 miners +0 workers +0 reviewers — model opencode-go/muse-spark-1.2-contributor paid inherited-from-chat — dead-man 600s armed

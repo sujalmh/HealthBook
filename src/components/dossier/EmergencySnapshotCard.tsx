@@ -157,17 +157,17 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
     ],
     emergencyContacts: [
       {
-        name: 'Raj Devi',
-        relationship: 'Son & Healthcare Proxy',
-        phone: '+1 (555) 019-2834',
-        email: 'raj.devi@family.org',
+        name: 'Family member',
+        relationship: 'Primary Caregiver & Emergency Contact',
+        phone: '+1 (555) 010-0001',
+        email: 'family.contact@example.com',
         isPrimary: true
       },
       {
-        name: 'Dr. Anita Patel, MD (Cardiology)',
-        relationship: 'Attending Cardiologist',
-        phone: '+1 (555) 982-1100',
-        email: 'dr.patel@cardiac.org',
+        name: 'Your doctor',
+        relationship: 'Primary Care Provider',
+        phone: '+1 (555) 010-0002',
+        email: 'care.team@example.com',
         isPrimary: false
       }
     ],

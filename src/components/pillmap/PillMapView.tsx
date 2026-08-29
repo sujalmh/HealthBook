@@ -467,7 +467,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             <div className="flex items-center bg-canvas-muted p-1 rounded-2xl border border-canvas-border text-body-sm">
               <button
                 onClick={() => setViewMode('canvas')}
-                className={`px-3 py-2 rounded-xl font-semibold transition-all min-h-[36px] ${
+                className={`px-3.5 py-2 rounded-xl font-semibold transition-all min-h-[44px] flex items-center justify-center ${
                   viewMode === 'canvas' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-slate-900'
                 }`}
               >
@@ -475,7 +475,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
               </button>
               <button
                 onClick={() => setViewMode('elder')}
-                className={`px-3 py-2 rounded-xl font-semibold transition-all min-h-[36px] ${
+                className={`px-3.5 py-2 rounded-xl font-semibold transition-all min-h-[44px] flex items-center justify-center ${
                   viewMode === 'elder' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-slate-900'
                 }`}
               >
@@ -484,12 +484,12 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             </div>
 
             {/* Chronotype Selector */}
-            <div className="flex items-center bg-canvas-muted px-3 py-2 rounded-2xl border border-canvas-border text-body-sm gap-2">
-              <Clock className="w-4 h-4 text-amber-500" />
+            <div className="flex items-center bg-canvas-muted px-3 py-2 rounded-2xl border border-canvas-border text-body-sm gap-2 min-h-[44px]">
+              <Clock className="w-4 h-4 text-amber-500 shrink-0" />
               <select
                 value={chronotype}
                 onChange={(e) => setChronotype(e.target.value as Chronotype)}
-                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer py-1"
                 title="Select sleep/wake chronotype"
               >
                 <option value="standard">Standard (08:00–22:00) ☀️</option>

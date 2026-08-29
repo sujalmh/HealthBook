@@ -39,7 +39,7 @@ const PATIENTS: PatientSummaryCard[] = [
     dueLabsCount: 1,
     pendingProposalsCount: 1,
     activeDangerAlertsCount: 1,
-    nextEvent: 'Dr. Patel Clinic Follow-Up (In 3 Days)',
+    nextEvent: 'Clinic Follow-Up (In 3 Days)',
     status: 'critical'
   },
   {

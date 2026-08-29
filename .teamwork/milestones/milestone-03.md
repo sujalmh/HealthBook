@@ -1,8 +1,1 @@
-# Milestone 03 — Real Data WebMCP + Chat + Polish
-
-Status: pending
-DependsOn: [milestone-02]
-Workstreams: ws-m3-realdata-webmcp (worker_realdata_webmcp)
-Goal: Real FileReader, vaultTools real extract, 40 tools discoverable, empty vault + after upload, 6 viewports polish
-Acceptance: DocumentDropzone real drop, vaultTools no fixture branch, getRegisteredTools 40, empty vault 0 facts, after real upload verified, no gaps at 6 viewports, build 1663
-Gate: critic→challenger→auditor + Success Auditor final
+# M3 Polish + 6-viewport verification\n\nID: milestone-03\nDependsOn: ["milestone-02"]\nStatus: pending\nWorkstreams: ws-m3-polish-verify\n\nGate: critic→challenger→auditor\nAcceptance: see plan.md\n

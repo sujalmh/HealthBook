@@ -12,7 +12,7 @@ interface BoundingBoxViewerProps {
 
 export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
   documentId,
-  documentTitle = 'Document Viewer — Select a record to inspect',
+  documentTitle = 'Medical Document',
   boundingBox: propBox,
   onClose,
 }) => {
@@ -51,7 +51,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
   return (
     <div className="bg-white border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-2xl flex flex-col h-full text-slate-800">
       {/* Header with zoom controls */}
-      <div className="flex items-center justify-between gap-2 border-b border-canvas-border pb-3 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-canvas-border pb-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 bg-primary-light border border-primary-border rounded-xl text-primary-text shrink-0">
             <FileText className="w-5 h-5" />
@@ -63,10 +63,10 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center bg-canvas-muted border border-canvas-border rounded-xl p-1 text-xs">
+          <div className="flex items-center bg-canvas-muted border border-canvas-border rounded-xl p-1 text-xs min-h-[36px]">
             <button
               onClick={handleZoomOut}
-              className="p-1.5 hover:bg-white rounded-lg text-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
+              className="p-1.5 hover:bg-white rounded-lg text-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[28px] min-w-[28px] flex items-center justify-center"
               title="Zoom Out"
               aria-label="Zoom out"
             >
@@ -75,7 +75,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
             <span className="px-2 font-mono text-caption text-slate-700 min-w-[48px] text-center">{Math.round(zoom * 100)}%</span>
             <button
               onClick={handleZoomIn}
-              className="p-1.5 hover:bg-white rounded-lg text-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
+              className="p-1.5 hover:bg-white rounded-lg text-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[28px] min-w-[28px] flex items-center justify-center"
               title="Zoom In"
               aria-label="Zoom in"
             >
@@ -83,7 +83,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
             </button>
             <button
               onClick={handleResetZoom}
-              className="p-1.5 hover:bg-white rounded-lg text-muted hover:text-slate-800 transition-colors ml-1 border-l border-canvas-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
+              className="p-1.5 hover:bg-white rounded-lg text-muted hover:text-slate-800 transition-colors ml-1 border-l border-canvas-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[28px] min-w-[28px] flex items-center justify-center"
               title="Reset Zoom"
               aria-label="Reset zoom"
             >
@@ -106,21 +106,21 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
       {/* Document Viewport Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto bg-canvas-muted rounded-xl border border-canvas-border p-3 sm:p-4 relative flex items-center justify-center min-h-[380px]"
+        className="flex-1 overflow-auto bg-canvas-muted rounded-xl border border-canvas-border p-3 sm:p-4 relative flex items-center justify-center min-h-[260px] sm:min-h-[380px]"
       >
         <div
           className="relative bg-white text-slate-900 rounded-xl shadow-xl transition-transform duration-200 origin-center p-6 sm:p-8 select-text font-serif text-[11px] leading-relaxed border border-canvas-border max-w-lg w-full"
           style={{ transform: `scale(${zoom})` }}
         >
-          {/* Simulated Medical Document Layout */}
+          {/* Simulated Medical Document Layout — generic vault-derived header */}
           <div className="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-start gap-2">
-            <div>
-              <h1 className="font-bold text-sm tracking-wider uppercase">ST. JUDE MEDICAL CENTER</h1>
-              <p className="text-caption text-muted font-sans font-medium">Inpatient Discharge Summary & Transition Record</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="font-bold text-sm tracking-wider uppercase truncate max-w-full">{documentId ? documentTitle : 'Medical Document'}</h1>
+              <p className="text-caption text-muted font-sans font-medium truncate">Document Preview</p>
             </div>
             <div className="text-right text-caption text-muted font-mono">
-              <div>Date: Aug 28, 2026</div>
-              <div>MRN: #940-281-CC</div>
+              <div>Date: —</div>
+              <div>Ref: —</div>
             </div>
           </div>
 

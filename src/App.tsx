@@ -55,6 +55,46 @@ export const App: React.FC = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
 
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const navContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const navItemRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
+
+  const checkScrollPositions = () => {
+    const el = navContainerRef.current;
+    if (!el) return;
+    const sl = el.scrollLeft;
+    const max = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(sl > 4);
+    setCanScrollRight(sl < max - 4);
+  };
+
+  useEffect(() => {
+    const el = navContainerRef.current;
+    if (!el) return;
+    checkScrollPositions();
+    el.addEventListener('scroll', checkScrollPositions, { passive: true });
+    window.addEventListener('resize', checkScrollPositions, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', checkScrollPositions);
+      window.removeEventListener('resize', checkScrollPositions);
+    };
+  }, [isHydrated, activeProfile]);
+
+  // Auto-scroll active tab into view on change
+  useEffect(() => {
+    const activeEl = navItemRefs.current[activeModule];
+    if (activeEl && navContainerRef.current) {
+      activeEl.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      });
+      const timer = setTimeout(checkScrollPositions, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [activeModule]);
+
   // Restore session from localStorage on mount
   useEffect(() => {
     try {
@@ -146,7 +186,7 @@ export const App: React.FC = () => {
       const baseName = activeProfile.isProxy ? activeProfile.onBehalfOf || activeProfile.name : activeProfile.name;
       const next: ActiveProfile = {
         ...activeProfile,
-        name: 'Raj Devi',
+        name: 'Family member',
         role: 'caregiver',
         isProxy: true,
         relationship: 'son',
@@ -157,23 +197,23 @@ export const App: React.FC = () => {
       eventBus.dispatchToast({
         type: 'info',
         title: 'Proxy Mode Active',
-        message: `Switched to Raj Devi (son) acting on behalf of ${baseName}.`,
+        message: `Switched to ${next.name} (son) acting on behalf of ${baseName}.`,
       });
     } else if (role === 'child') {
       const next: ActiveProfile = {
         ...activeProfile,
-        name: 'Raj Devi',
+        name: 'Family member',
         role: 'caregiver',
         isProxy: true,
         relationship: 'father',
-        onBehalfOf: 'Aarav Sharma',
+        onBehalfOf: 'Child',
         permissionLevel: 'manage',
       };
       setActiveProfile(next);
       eventBus.dispatchToast({
         type: 'info',
         title: 'Proxy Mode Active',
-        message: 'Switched to Raj Devi acting on behalf of Aarav Sharma (child).',
+        message: `Switched to ${next.name} acting on behalf of ${next.onBehalfOf} (child).`,
       });
     } else {
       // Back to patient — restore from stored original
@@ -219,14 +259,14 @@ export const App: React.FC = () => {
   };
 
   const navItems = [
-    { id: 'vault', label: 'My Records', icon: Shield, badge: pendingCount > 0 ? `${pendingCount}` : null },
-    { id: 'labstory', label: 'Lab Results', icon: Activity },
-    { id: 'pillmap', label: 'My Medicines', icon: Pill },
-    { id: 'rxbridge', label: 'Medicine Review', icon: FileCheck2 },
-    { id: 'homelab', label: 'Tests to Do', icon: HeartPulse },
-    { id: 'safety', label: 'Get Help', icon: AlertTriangle },
-    { id: 'carecircle', label: 'Family', icon: Users },
-    { id: 'dossier', label: 'For My Doctor', icon: FolderLock },
+    { id: 'vault', label: 'My Records', shortLabel: 'Records', icon: Shield, badge: pendingCount > 0 ? `${pendingCount}` : null },
+    { id: 'labstory', label: 'Lab Results', shortLabel: 'Labs', icon: Activity },
+    { id: 'pillmap', label: 'My Medicines', shortLabel: 'Meds', icon: Pill },
+    { id: 'rxbridge', label: 'Medicine Review', shortLabel: 'Review', icon: FileCheck2 },
+    { id: 'homelab', label: 'Tests to Do', shortLabel: 'Tests', icon: HeartPulse },
+    { id: 'safety', label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle },
+    { id: 'carecircle', label: 'Family', shortLabel: 'Family', icon: Users },
+    { id: 'dossier', label: 'For My Doctor', shortLabel: 'Doctor', icon: FolderLock },
   ];
 
   // Semantic primary tokens — indigo light palette (tokenized, no hard hex)
@@ -269,18 +309,18 @@ export const App: React.FC = () => {
     : activeProfile.name.split(' ')[0].slice(0, 8) || 'Patient';
 
   return (
-    <div className="min-h-screen bg-canvas-bg text-slate-900 flex flex-col antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-canvas-bg text-slate-900 flex flex-col antialiased w-full max-w-full overflow-x-hidden">
       {/* Top Application Bar — glass, soft shadow, tokenized */}
-      <header className="border-b border-canvas-border bg-white/95 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 py-3 shadow-sm">
+      <header className="border-b border-canvas-border bg-white/95 backdrop-blur-md sticky top-0 z-40 px-2.5 sm:px-6 py-2.5 sm:py-3 shadow-sm w-full max-w-full">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4">
           {/* Logo & Subtitle — refined typography, token gradient */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-none">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 shrink-0 ring-1 ring-primary/10">
-              <HeartPulse className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 shrink-0 ring-1 ring-primary/10">
+              <HeartPulse className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-base font-black tracking-tight text-slate-900">CareCanvas</h1>
+                <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900 truncate">CareCanvas</h1>
                 <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border hidden sm:inline-flex items-center leading-none">
                   Private & Secure
                 </span>
@@ -296,38 +336,54 @@ export const App: React.FC = () => {
 
           {/* Right Action Bar: Profile Switcher, Question Bank, Inspector, Sign Out */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {/* Caregiver Proxy Switcher — generic, no hardcoded patient id */}
-            <div className="flex items-center bg-white rounded-xl p-1 border border-canvas-border shadow-sm text-xs">
+            {/* Mobile Profile Switch Button (<sm) — dedicated 44x44px target with role & avatar indicator */}
+            <button
+              onClick={() => handleSwitchProfile(activeProfile.isProxy ? 'patient' : 'caregiver')}
+              className="sm:hidden flex items-center justify-center min-h-[44px] min-w-[44px] px-2 rounded-xl bg-white border border-canvas-border hover:bg-canvas-muted text-slate-700 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary relative"
+              aria-label={activeProfile.isProxy ? 'Switch to Patient' : 'Switch to Proxy'}
+              title={activeProfile.isProxy ? `Acting as ${activeProfile.name} (Caregiver) — tap to switch to Patient` : `Acting as ${patientShort} — tap to switch to Caregiver`}
+            >
+              <div className="flex items-center gap-1">
+                <span className="w-6 h-6 rounded-full bg-primary-light text-primary-text font-black text-xs flex items-center justify-center border border-primary-border">
+                  {activeProfile.isProxy ? activeProfile.name.slice(0, 1).toUpperCase() : patientInitial}
+                </span>
+                <Users className="w-3.5 h-3.5 text-muted" />
+              </div>
+            </button>
+
+            {/* Desktop/Tablet Segmented Switcher (>=sm) */}
+            <div className="hidden sm:flex items-center bg-white rounded-xl p-1 border border-canvas-border shadow-sm text-xs min-h-[44px]">
               <button
                 onClick={() => handleSwitchProfile('patient')}
-                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] sm:min-h-[36px] flex items-center justify-center ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary min-h-[36px] flex items-center justify-center ${
                   !activeProfile.isProxy ? 'bg-primary-light text-primary-text font-bold border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
                 aria-label={`Switch to ${patientShort}`}
               >
-                <span className="hidden sm:inline truncate max-w-[80px]">{patientShort}</span><span className="sm:hidden">{patientInitial}</span>
+                <span className="truncate max-w-[90px]">{patientShort}</span>
               </button>
               <button
                 onClick={() => handleSwitchProfile('caregiver')}
-                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] sm:min-h-[36px] flex items-center justify-center ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary min-h-[36px] flex items-center justify-center ${
                   activeProfile.isProxy ? 'bg-primary-light text-primary-text font-bold border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
-                aria-label="Switch to Raj proxy"
+                aria-label="Switch to Proxy"
               >
-                <span className="hidden sm:inline">Raj</span><span className="sm:hidden">Raj</span>
+                <span>Proxy</span>
               </button>
             </div>
 
             {/* Question Bank Button */}
             <button
               onClick={() => setIsQuestionBankOpen(true)}
-              className="relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-xs font-semibold border border-canvas-border shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary"
+              className="relative flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-xs font-semibold border border-canvas-border shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Questions"
+              title="Doctor Question Bank"
             >
               <HelpCircle className="w-4 h-4 text-amber-600 shrink-0" />
               <span className="hidden md:inline">Questions</span>
               {questionCount > 0 && (
-                <span className="bg-amber-500 text-white font-bold text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center shrink-0 leading-none">
+                <span className="absolute -top-1 -right-1 md:static md:top-auto md:right-auto bg-amber-500 text-white font-bold text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center shrink-0 leading-none shadow-xs">
                   {questionCount > 99 ? '99+' : questionCount}
                 </span>
               )}
@@ -336,14 +392,14 @@ export const App: React.FC = () => {
             {/* Activity Log Toggle */}
             <button
               onClick={() => setIsInspectorOpen(true)}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-primary-light hover:brightness-95 text-primary-text text-xs font-bold border border-primary-border transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
+              className="relative flex items-center justify-center gap-1 sm:gap-2 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-primary-light hover:brightness-95 text-primary-text text-xs font-bold border border-primary-border transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
               title="See what's happening behind the scenes"
               aria-label="Activity"
             >
               <Terminal className="w-4 h-4 text-primary-text shrink-0" />
               <span className="hidden md:inline">Activity</span>
               {pendingCount > 0 && (
-                <span className="bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1.5 rounded-full font-bold animate-pulse shrink-0 flex items-center justify-center leading-none">
+                <span className="absolute -top-1 -right-1 md:static md:top-auto md:right-auto bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1.5 rounded-full font-bold animate-pulse shrink-0 flex items-center justify-center leading-none shadow-xs">
                   {pendingCount > 99 ? '99+' : pendingCount}
                 </span>
               )}
@@ -352,7 +408,7 @@ export const App: React.FC = () => {
             {/* Sign Out — clears localStorage and shows gate */}
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold border border-canvas-border hover:border-rose-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-rose-500 min-h-[36px]"
+              className="flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold border border-canvas-border hover:border-rose-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-rose-500"
               aria-label="Sign out"
               title={`Signed in as ${activeProfile.name} — click to sign out`}
             >
@@ -394,7 +450,7 @@ export const App: React.FC = () => {
       </div>
 
       {/* Main Content Area — empty vault until upload (0 facts/meds/labs) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 transition-all duration-200 overflow-x-hidden">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 transition-all duration-200 overflow-x-hidden max-w-full">
         {/* MODULE 0: APPROVED FACT VAULT */}
         <div className={activeModule === 'vault' ? 'block space-y-6' : 'hidden'}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -451,39 +507,69 @@ export const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Bottom Navbar — mobile polished, safe-area, 44px targets, tokenized */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-canvas-border shadow-[0_-4px_12px_rgba(0,0,0,0.04)] z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          <div className="flex items-center gap-1 px-2 py-2 min-w-max mx-auto w-max">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeModule === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveModule(item.id as ActiveModule);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl text-[10px] font-bold leading-none transition-all duration-200 min-w-[64px] min-h-[44px] shrink-0 focus-visible:ring-2 focus-visible:ring-primary ${
-                    isActive
-                      ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm'
-                      : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                  }`}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <div className="relative">
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-primary-text' : 'text-muted'}`} />
-                    {item.badge && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-black border-2 border-white leading-none">
-                        {Number(item.badge) > 99 ? '99+' : item.badge}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[9px] tracking-wide text-center leading-tight max-w-[64px] truncate">{item.label}</span>
-                </button>
-              );
-            })}
+      {/* Bottom Navbar — mobile polished, safe-area, 44px targets, scroll fade indicators */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-canvas-border shadow-[0_-4px_12px_rgba(0,0,0,0.06)] z-40"
+        style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom, 0px))' }}
+        aria-label="Mobile Navigation"
+      >
+        <div className="relative w-full max-w-full">
+          {/* Left visual scroll fade gradient mask indicator */}
+          <div
+            className={`pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white via-white/80 to-transparent z-10 transition-opacity duration-200 ${
+              canScrollLeft ? 'opacity-100' : 'opacity-0'
+            }`}
+            aria-hidden="true"
+          />
+
+          {/* Right visual scroll fade gradient mask indicator */}
+          <div
+            className={`pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white via-white/80 to-transparent z-10 transition-opacity duration-200 ${
+              canScrollRight ? 'opacity-100' : 'opacity-0'
+            }`}
+            aria-hidden="true"
+          />
+
+          <div
+            ref={navContainerRef}
+            className="overflow-x-auto scrollbar-none px-2 py-1.5"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            <div className="flex items-center gap-1 min-w-max mx-auto w-max px-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeModule === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    ref={(el) => {
+                      navItemRefs.current[item.id] = el;
+                    }}
+                    onClick={() => {
+                      setActiveModule(item.id as ActiveModule);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`flex flex-col items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-[10px] font-bold leading-none transition-all duration-200 min-w-[56px] sm:min-w-[62px] min-h-[48px] shrink-0 focus-visible:ring-2 focus-visible:ring-primary relative ${
+                      isActive
+                        ? 'bg-primary-light text-primary-text border border-primary-border shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                    }`}
+                    aria-current={isActive ? 'page' : undefined}
+                    aria-label={item.label}
+                  >
+                    <div className="relative">
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-primary-text' : 'text-slate-500'}`} />
+                      {item.badge && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-black border-2 border-white leading-none">
+                          {Number(item.badge) > 99 ? '99+' : item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] tracking-tight text-center leading-tight whitespace-nowrap">{item.shortLabel}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </nav>

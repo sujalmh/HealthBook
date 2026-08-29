@@ -51,7 +51,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       borderClass: 'border-primary-border',
       textClass: 'text-primary-text',
       indication: 'Hypertension & Cardioprotection',
-      prescribedBy: 'Dr. Anita Patel, MD',
+      prescribedBy: 'Your doctor',
       notes: 'Discontinued on hospital discharge due to acute eGFR decline (32 mL/min).'
     },
     {
@@ -67,7 +67,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       borderClass: 'border-emerald-200',
       textClass: 'text-emerald-700',
       indication: 'Type 2 Diabetes Glycemic Control',
-      prescribedBy: 'Dr. S. Kumar, MD',
+      prescribedBy: 'Your doctor',
       notes: 'Titrated to 1000mg BID in 2024; reduced to 500mg Daily post-AKI to avoid lactic acidosis.'
     },
     {
@@ -172,7 +172,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
   };
 
   return (
-    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 space-y-3 shadow-sm ${className}`}>
+    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm ${className}`}>
       {/* Header with Info and Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-canvas-border pb-3">
         <div className="flex items-center gap-2">
@@ -192,15 +192,16 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
           </div>
         </div>
 
-        {/* Legend / Toggles */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Legend / Toggles with >=44px Touch Targets */}
+        <div className="flex items-center gap-2 flex-wrap">
           {defaultTimelineMeds.map((med) => {
             const isVis = visibleMeds[med.id] !== false;
             return (
               <button
                 key={med.id}
+                type="button"
                 onClick={() => toggleMed(med.id)}
-                className={`text-caption px-2 py-1 rounded-full font-bold flex items-center gap-1.5 transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[28px] ${
+                className={`text-caption px-3 py-2 rounded-full font-bold flex items-center gap-2 transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] touch-manipulation ${
                   isVis
                     ? `${med.bgClass} ${med.borderClass} ${med.textClass} shadow-sm`
                     : 'bg-canvas-card text-muted border-canvas-border opacity-60'
@@ -208,11 +209,11 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
                 title={`Toggle ${med.name}`}
               >
                 <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: isVis ? med.colorHex : '#64748B' }}
                 />
                 <span>{med.name}</span>
-                {isVis ? <Eye className="w-3 h-3 opacity-60" /> : <EyeOff className="w-3 h-3 opacity-60" />}
+                {isVis ? <Eye className="w-3.5 h-3.5 opacity-70 shrink-0" /> : <EyeOff className="w-3.5 h-3.5 opacity-70 shrink-0" />}
               </button>
             );
           })}
@@ -233,31 +234,37 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
         {defaultTimelineMeds
           .filter((m) => visibleMeds[m.id] !== false)
           .map((med) => {
-            const left = getPositionPercent(med.startDate);
-            const width = getWidthPercent(med.startDate, med.stopDate);
+            const leftPct = getPositionPercent(med.startDate);
+            const widthPct = getWidthPercent(med.startDate, med.stopDate);
+            // Clamp left position so that a 64px min-width band never clips or overflows the container on narrow screens
+            const clampedLeft = Math.min(leftPct, 84);
             const isSelected = selectedMed?.id === med.id;
 
             return (
-              <div key={med.id} className="relative h-7 w-full flex items-center">
-                {/* Horizontal Band */}
+              <div key={med.id} className="relative h-8 w-full flex items-center">
+                {/* Horizontal Band with minimum width and non-collapsing drug label */}
                 <button
+                  type="button"
                   onClick={() => setSelectedMed(selectedMed?.id === med.id ? null : med)}
                   style={{
-                    left: `${left}%`,
-                    width: `${width}%`
+                    left: `${clampedLeft}%`,
+                    width: `${Math.max(widthPct, 12)}%`,
+                    minWidth: '64px',
+                    maxWidth: `calc(100% - ${clampedLeft}%)`
                   }}
-                  className={`absolute h-6 rounded-lg px-2 flex items-center justify-between text-left text-caption font-semibold transition-all border shadow-sm cursor-pointer truncate z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${med.bgClass} ${med.borderClass} ${med.textClass} ${
-                    isSelected ? 'ring-2 ring-primary/30 scale-[1.01]' : ''
+                  className={`absolute h-7 rounded-lg px-2 flex items-center justify-between text-left text-caption font-semibold transition-all border shadow-sm cursor-pointer z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${med.bgClass} ${med.borderClass} ${med.textClass} ${
+                    isSelected ? 'ring-2 ring-primary/40 scale-[1.01]' : ''
                   }`}
+                  aria-label={`${med.name} ${med.dosage} (${med.status})`}
                 >
-                  <span className="truncate flex items-center gap-1.5">
-                    {med.category === 'nsaid' && <ShieldAlert className="w-3 h-3 text-rose-400 shrink-0" />}
-                    <span className="font-bold">{med.name}</span>
-                    <span className="opacity-80 text-[10px] hidden sm:inline font-normal">({med.dosage})</span>
+                  <span className="truncate flex items-center gap-1.5 min-w-0 mr-1">
+                    {med.category === 'nsaid' && <ShieldAlert className="w-3 h-3 text-rose-500 shrink-0" />}
+                    <span className="font-bold truncate">{med.name}</span>
+                    <span className="opacity-80 text-[10px] hidden md:inline font-normal shrink-0">({med.dosage})</span>
                   </span>
 
-                  <span className="text-[9px] px-1 py-0.2 rounded font-bold bg-black/30 shrink-0 ml-1">
-                    {med.status.toUpperCase()}
+                  <span className="text-[9px] px-1 py-0.5 rounded font-bold bg-black/20 shrink-0 uppercase">
+                    {med.status}
                   </span>
                 </button>
               </div>
@@ -267,8 +274,8 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
 
       {/* Selected Medication Details Card */}
       {selectedMed && (
-        <div className="mt-3 p-3.5 bg-canvas-muted border border-canvas-border rounded-xl flex items-start justify-between gap-4 animate-fade-in text-body-sm shadow-sm">
-          <div className="space-y-1">
+        <div className="mt-3 p-3.5 sm:p-4 bg-canvas-muted border border-canvas-border rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in text-body-sm shadow-sm">
+          <div className="space-y-1 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-slate-900 text-body-sm">{selectedMed.name}</span>
               <span className={`text-caption px-2 py-0.5 rounded-full font-bold border ${selectedMed.bgClass} ${selectedMed.borderClass} ${selectedMed.textClass}`}>
@@ -284,13 +291,14 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
             <div className="flex items-center gap-3 text-caption text-muted pt-1 flex-wrap">
               <span>Indication: <strong className="text-slate-900">{selectedMed.indication}</strong></span>
               <span>•</span>
-              <span>Prescriber: <strong className="text-slate-900">{selectedMed.prescribedBy}</strong></span>
+              <span>Prescriber: <strong className="text-slate-900">{(selectedMed.prescribedBy || '').trim() || 'Your doctor'}</strong></span>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => setSelectedMed(null)}
-            className="text-muted hover:text-slate-900 text-caption px-2 py-1 bg-canvas-card rounded-lg hover:bg-white border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0 min-h-[32px]"
+            className="text-muted hover:text-slate-900 text-caption px-3.5 py-2 bg-canvas-card rounded-xl hover:bg-white border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center font-bold self-end sm:self-center"
           >
             Dismiss
           </button>

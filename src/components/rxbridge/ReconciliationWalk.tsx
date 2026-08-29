@@ -115,7 +115,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
         </div>
 
         {/* Stepper Pills Strip */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-1 scrollbar-none max-w-full">
           {items.map((item, idx) => {
             const isCurrent = idx === currentIndex;
             return (
@@ -126,7 +126,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
                   setShowNoteInput(false);
                   setPatientNote(item.patientComment || '');
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[38px] ${
                   isCurrent
                     ? 'bg-primary text-white shadow-sm ring-2 ring-primary-border'
                     : item.isApprovedByPatient
@@ -137,7 +137,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
                 {item.isApprovedByPatient ? (
                   <CheckCircle2 className="w-3.5 h-3.5 text-clinical-emerald shrink-0" />
                 ) : (
-                  <span className="w-3.5 h-3.5 rounded-full bg-canvas-border text-[9px] flex items-center justify-center font-mono text-muted">
+                  <span className="w-4 h-4 rounded-full bg-canvas-border text-[9px] flex items-center justify-center font-mono text-muted">
                     {idx + 1}
                   </span>
                 )}
@@ -346,7 +346,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             <textarea
               value={patientNote}
               onChange={(e) => setPatientNote(e.target.value)}
-              placeholder="e.g. Remember to ask Dr. Patel if I can take this with milk, or set an alarm for 8am..."
+              placeholder="e.g. Remember to ask your doctor if I can take this with milk, or set an alarm for 8am..."
               rows={2}
               className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
@@ -372,10 +372,10 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => onApproveMed(currentItem.medId)}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs shadow-lg transition-all ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs shadow-lg transition-all min-h-[44px] ${
                 isApproved
                   ? 'bg-emerald-600 text-white shadow-emerald-900/30'
-                  : 'bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-sky-900/30 hover:scale-102'
+                  : 'bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-sky-900/30 hover:scale-[1.01]'
               }`}
             >
               <Check className="w-4 h-4" />
@@ -385,7 +385,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             {!showNoteInput && (
               <button
                 onClick={() => setShowNoteInput(true)}
-                className="px-3.5 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors"
+                className="px-3.5 py-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors flex items-center justify-center min-h-[44px] min-w-[44px]"
                 title="Add note"
               >
                 <MessageSquare className="w-4 h-4" />
@@ -394,11 +394,11 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
 
           {/* Stepper Nav Buttons */}
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
             <button
               onClick={handlePrev}
               disabled={currentIndex === 0}
-              className={`flex items-center gap-1 px-3.5 py-2 rounded-xl text-body-sm font-semibold border transition-colors ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl text-body-sm font-semibold border transition-colors min-h-[44px] ${
                 currentIndex === 0
                   ? 'bg-canvas-muted text-muted border-canvas-border cursor-not-allowed'
                   : 'bg-canvas-card hover:bg-canvas-muted text-slate-800 border-canvas-border'
@@ -410,7 +410,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
 
             <button
               onClick={handleNext}
-              className="flex items-center gap-1 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold border border-primary transition-colors shadow-sm"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold border border-primary transition-colors shadow-sm min-h-[44px]"
             >
               <span>{currentIndex === items.length - 1 ? 'Finish review' : 'Next med'}</span>
               <ChevronRight className="w-4 h-4" />

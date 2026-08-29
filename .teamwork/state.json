@@ -1,142 +1,144 @@
 {
   "version": 1,
-  "projectId": "teamwork-1788014473534",
+  "projectId": "teamwork-1788021761432",
   "request": {
-    "objective": "Now remove all mock, stub data. I want to use it with real data. First thing is create account, thats all. then everything works with webmcp, connected to chat apps.",
+    "objective": "Hard coded hospital names, doctor names, hard coded john proxy its mock data remove it. Do thorough check of such things and remove it.",
     "constraints": [
       "Use Antigravity Distributed Coding pattern Sentinel->Orchestrator->Explorer/Workers->Critic->Challenger->Auditor->Success Auditor per pattern.json",
       "Preserve OpenCode+Teamwork invariants: per-workstream file ownership, DAG, worktrees, state.json/progress.md",
       "Do NOT read secrets (.env, *.pem, credentials/**) — use import.meta.env indirection",
-      "Do NOT regress M1-M4 UI modern + slop-free: tokens, we pronoun 0, slop 0, 40 tools, hidden wrappers 8, EventBus, supabase only for auth scoping",
-      "Remove user mock data only; keep drug_knowledge clinical base",
-      "Account-first: unauthenticated App.tsx shows CreateAccountView centered, not Shanti Devi hardcoded",
-      "Real file handling: DocumentDropzone hide sampleDocuments, implement FileReader real extract",
+      "Do NOT regress real-data gate: CreateAccountView/SignInView email/password required + auto sign-in via token must stay",
+      "Remove display hard-codes only; keep drug_knowledge clinical base and types",
+      "Replacement must be generic functional (Your hospital/doctor/Family member or vault-derived), no empty gaps",
       "Live screenshot discipline: workers capture >=2 (desktop 1280+mobile 375) under snapshots, auditor re-captures",
-      "Build must still 1663 modules"
+      "Thorough check: Explorer must grep full hospital/doctor/proxy list and document keep/remove"
     ],
     "acceptanceCriteria": [
       "Request artifact preserved verbatim at .teamwork/request.md",
       "State initialized via TeamworkEngine.initProject with new teamwork-* projectId",
-      "Explorer baseline: research/explorer-mock-*.md with grep inventory + before screenshots 1280/375/768",
-      "Mock removal: mockShanti etc 0, sampleDocuments 0, patient-s-devi not hardcoded in App/components, fixtures deleted/emptied, tools no longer branch on mock",
-      "Create Account: new CreateAccountView, App.tsx checks localStorage, renders gate if no user, 44px, screenshots PASS",
-      "Real data + WebMCP: DocumentDropzone real drop FileReader, vaultTools no fixture branch, getRegisteredTools 40 after account, chat discoverable",
-      "No empty-pill gaps at 6 viewports",
+      "Explorer baseline: research/explorer-hardcoded-*.md with full grep inventory + before screenshots 1280/375/768",
+      "Hospital names removal: ST. JUDE/Metropolis grep 0, BoundingBoxViewer header generic",
+      "Doctor names removal: Dr. Anita/Dr. A. Patel grep 0 in components, fallbacks generic Your doctor",
+      "Proxy names removal: Raj Devi/Aarav Sharma grep 0, John proxy if any 0, generic replacements",
+      "No hard-coded patient demo names in UI: Shanti/Harold grep 0 in components",
+      "Functional generic replacements: clean layout at 6 viewports, no gaps",
       "Live screenshots every milestone >=2 desktop+mobile under snapshots, auditor re-captures",
-      "No regression: p_devi_78 0, 40 tools, hidden wrappers 8, build 1663",
-      "Tests & build: lint 0, test 141+ PASS, runner 231 PASS, build 1663",
+      "No regression: p_devi_78 0, mockShanti 0, we 0, slop 0, 40 tools, hidden wrappers 8, build 1660",
+      "Tests & build: lint 0, test 142+ PASS, runner 231 PASS, build 1660",
       "Gates: critic->challenger->auditor per milestone PASS, Success Auditor final PASS"
     ],
     "nonGoals": [
-      "Full Supabase Auth email verification / OAuth / RLS — localStorage sufficient",
+      "Full Supabase Auth email verification / OAuth / RLS — keep localStorage gate",
       "EHR FHIR / TrialBridge / Offline PWA / new design system",
       "Proprietary Antigravity hidden prompts",
       "Tool doctor templates Should we ... out of scope"
     ],
-    "createdAt": "2026-08-29T14:41:13.534Z",
-    "originalInput": "Now remove all mock, stub data. I want to use it with real data. First thing is create account, thats all. then everything works with webmcp, connected to chat apps.",
+    "createdAt": "2026-08-29T16:42:41.432Z",
+    "originalInput": "Hard coded hospital names, doctor names, hard coded john proxy its mock data remove it. Do thorough check of such things and remove it.",
     "integrityMode": "development",
     "executionPath": "distributed-coding",
     "workingDirectory": ".teamwork"
   },
   "plan": {
-    "createdAt": "2026-08-29T14:49:02.123Z",
+    "createdAt": "2026-08-29T16:42:41.432Z",
     "milestones": [
       {
         "id": "milestone-01",
-        "title": "Mock Removal & Fixtures Cleanup",
-        "description": "Remove mock fixtures, seed defaults, sampleDocuments, tools mock branching",
-        "dependsOn": [],
+        "title": "M1 Hospital/Doctor Audit & Removal",
         "status": "completed",
+        "dependsOn": [],
         "workstreams": [
-          "ws-m1-mock-removal"
+          "ws-m1-hospital-seed",
+          "ws-m1-doctor-display"
         ]
       },
       {
         "id": "milestone-02",
-        "title": "Create Account Gate",
-        "description": "CreateAccountView centered, App gate via localStorage, real userId",
+        "title": "M2 Proxy Names Generic + Tools Fallback",
+        "status": "completed",
         "dependsOn": [
           "milestone-01"
         ],
-        "status": "completed",
         "workstreams": [
-          "ws-m2-auth-gate"
+          "ws-m2-proxy-shell",
+          "ws-m2-tools-fallback"
         ]
       },
       {
         "id": "milestone-03",
-        "title": "Real Data WebMCP + Chat + Polish",
-        "description": "Real FileReader, vaultTools real extract, 40 tools discoverable, empty vault + after upload, 6 viewports polish",
+        "title": "M3 Polish + 6-viewport verification",
+        "status": "completed",
         "dependsOn": [
           "milestone-02"
         ],
-        "status": "completed",
         "workstreams": [
-          "ws-m3-realdata-webmcp"
+          "ws-m3-polish-verify"
         ]
       }
     ],
     "workstreams": [
       {
-        "id": "ws-m1-mock-removal",
+        "id": "ws-m1-hospital-seed",
         "milestone": "milestone-01",
-        "role": "worker_mock_removal",
-        "description": "Remove mock fixtures/seed/tools branching/DocumentDropzone mock",
+        "role": "worker_hospital_seed_core",
         "files": [
-          "src/fixtures/patient_profiles.ts",
-          "src/fixtures/longitudinal_labs.ts",
-          "src/fixtures/discharge_lists.ts",
-          "src/fixtures/documents.ts",
-          "src/fixtures/index.ts",
-          "src/core/vault/seed.ts",
-          "src/main.tsx",
-          "src/tools/vaultTools.ts",
-          "src/tools/labStoryTools.ts",
-          "src/tools/rxBridgeTools.ts",
-          "src/tools/homeLabTools.ts",
-          "src/components/vault/DocumentDropzone.tsx",
-          "src/components/vault/FactStreamView.tsx",
-          "src/components/vault/BoundingBoxViewer.tsx"
+          "src/components/common/BoundingBoxViewer.tsx",
+          "src/components/homelab/UploadLabModal.tsx",
+          "src/core/vault/seed.ts"
         ],
-        "dependsOn": [],
         "status": "completed"
       },
       {
-        "id": "ws-m2-auth-gate",
+        "id": "ws-m1-doctor-display",
+        "milestone": "milestone-01",
+        "role": "worker_doctor_display_suite",
+        "files": [
+          "src/components/labstory/LabStoryView.tsx",
+          "src/components/labstory/MedOverlayBands.tsx",
+          "src/components/homelab/ProposalCard.tsx",
+          "src/components/homelab/DoctorInbox.tsx",
+          "src/components/homelab/DueCardList.tsx",
+          "src/components/safety/FollowupScheduler.tsx",
+          "src/components/safety/TriagePanel.tsx",
+          "src/components/safety/DangerSignModal.tsx",
+          "src/components/safety/SafetyView.tsx",
+          "src/components/dossier/SourceLinkViewer.tsx",
+          "src/components/common/WebMCPInspector.tsx",
+          "src/components/rxbridge/ReconciliationWalk.tsx",
+          "src/components/carecircle/MultiPatientDashboard.tsx"
+        ],
+        "status": "completed"
+      },
+      {
+        "id": "ws-m2-proxy-shell",
         "milestone": "milestone-02",
-        "role": "worker_auth_gate",
-        "description": "CreateAccountView + App gate + WebMCP defaultContext empty",
+        "role": "worker_proxy_shell",
         "files": [
-          "src/components/auth/CreateAccountView.tsx",
-          "src/components/auth/AuthGate.tsx",
           "src/App.tsx",
-          "src/core/webmcp/WebMCPEngine.ts",
-          "src/core/vault/LocalVault.ts",
-          "src/core/vault/supabaseSync.ts"
-        ],
-        "dependsOn": [
-          "milestone-01"
+          "src/components/carecircle/ScopedPermissionsModal.tsx",
+          "src/components/dossier/EmergencySnapshotCard.tsx"
         ],
         "status": "completed"
       },
       {
-        "id": "ws-m3-realdata-webmcp",
-        "milestone": "milestone-03",
-        "role": "worker_realdata_webmcp",
-        "description": "Real FileReader, vaultTools real, WebMCP 40, empty vault polish, tests",
+        "id": "ws-m2-tools-fallback",
+        "milestone": "milestone-02",
+        "role": "worker_tools_fallback",
         "files": [
-          "src/components/vault/DocumentDropzone.tsx",
-          "src/tools/vaultTools.ts",
-          "src/core/webmcp/WebMCPEngine.ts",
-          "src/tools/index.ts",
-          "src/components/rxbridge/RxBridgeView.tsx",
-          "src/components/homelab/HomeLabView.tsx",
-          "test/unit/*",
-          "test/integration/*"
+          "src/tools/homeLabTools.ts",
+          "src/tools/safetyTools.ts"
         ],
-        "dependsOn": [
-          "milestone-02"
+        "status": "completed"
+      },
+      {
+        "id": "ws-m3-polish-verify",
+        "milestone": "milestone-03",
+        "role": "worker_polish_verify",
+        "files": [
+          "src/components/pillmap/*",
+          "src/components/carecircle/CareCircleView.tsx",
+          "src/components/carecircle/CaregiverSwitcher.tsx",
+          "test/*"
         ],
         "status": "completed"
       }
@@ -144,50 +146,63 @@
   },
   "ownership": [
     {
-      "workstream": "ws-m1-mock-removal",
+      "workstream": "ws-m1-hospital-seed",
       "files": [
-        "src/fixtures/patient_profiles.ts",
-        "src/fixtures/longitudinal_labs.ts",
-        "src/fixtures/discharge_lists.ts",
-        "src/fixtures/documents.ts",
-        "src/fixtures/index.ts",
-        "src/core/vault/seed.ts",
-        "src/main.tsx",
-        "src/tools/vaultTools.ts",
-        "src/tools/labStoryTools.ts",
-        "src/tools/rxBridgeTools.ts",
-        "src/tools/homeLabTools.ts",
-        "src/components/vault/DocumentDropzone.tsx",
-        "src/components/vault/FactStreamView.tsx",
-        "src/components/vault/BoundingBoxViewer.tsx"
+        "src/components/common/BoundingBoxViewer.tsx",
+        "src/components/homelab/UploadLabModal.tsx",
+        "src/core/vault/seed.ts"
       ],
-      "owner": "worker_mock_removal",
+      "owner": "worker_hospital_seed_core",
       "status": "pending"
     },
     {
-      "workstream": "ws-m2-auth-gate",
+      "workstream": "ws-m1-doctor-display",
       "files": [
-        "src/components/auth/CreateAccountView.tsx",
-        "src/components/auth/AuthGate.tsx",
+        "src/components/labstory/LabStoryView.tsx",
+        "src/components/labstory/MedOverlayBands.tsx",
+        "src/components/homelab/ProposalCard.tsx",
+        "src/components/homelab/DoctorInbox.tsx",
+        "src/components/homelab/DueCardList.tsx",
+        "src/components/safety/FollowupScheduler.tsx",
+        "src/components/safety/TriagePanel.tsx",
+        "src/components/safety/DangerSignModal.tsx",
+        "src/components/safety/SafetyView.tsx",
+        "src/components/dossier/SourceLinkViewer.tsx",
+        "src/components/common/WebMCPInspector.tsx",
+        "src/components/rxbridge/ReconciliationWalk.tsx",
+        "src/components/carecircle/MultiPatientDashboard.tsx"
+      ],
+      "owner": "worker_doctor_display_suite",
+      "status": "pending"
+    },
+    {
+      "workstream": "ws-m2-proxy-shell",
+      "files": [
         "src/App.tsx",
-        "src/core/webmcp/WebMCPEngine.ts",
-        "src/core/vault/LocalVault.ts",
-        "src/core/vault/supabaseSync.ts"
+        "src/components/carecircle/ScopedPermissionsModal.tsx",
+        "src/components/dossier/EmergencySnapshotCard.tsx"
       ],
-      "owner": "worker_auth_gate",
+      "owner": "worker_proxy_shell",
       "status": "pending"
     },
     {
-      "workstream": "ws-m3-realdata-webmcp",
+      "workstream": "ws-m2-tools-fallback",
       "files": [
-        "src/components/vault/DocumentDropzone.tsx",
-        "src/tools/vaultTools.ts",
-        "src/core/webmcp/WebMCPEngine.ts",
-        "src/tools/index.ts",
-        "src/components/rxbridge/RxBridgeView.tsx",
-        "src/components/homelab/HomeLabView.tsx"
+        "src/tools/homeLabTools.ts",
+        "src/tools/safetyTools.ts"
       ],
-      "owner": "worker_realdata_webmcp",
+      "owner": "worker_tools_fallback",
+      "status": "pending"
+    },
+    {
+      "workstream": "ws-m3-polish-verify",
+      "files": [
+        "src/components/pillmap/*",
+        "src/components/carecircle/CareCircleView.tsx",
+        "src/components/carecircle/CaregiverSwitcher.tsx",
+        "test/*"
+      ],
+      "owner": "worker_polish_verify",
       "status": "pending"
     }
   ],
@@ -199,9 +214,11 @@
     ],
     "failedMilestones": [],
     "completedWorkstreams": [
-      "ws-m1-mock-removal",
-      "ws-m2-auth-gate",
-      "ws-m3-realdata-webmcp"
+      "ws-m1-hospital-seed",
+      "ws-m1-doctor-display",
+      "ws-m2-proxy-shell",
+      "ws-m2-tools-fallback",
+      "ws-m3-polish-verify"
     ],
     "activeWorkstreams": []
   },
@@ -209,40 +226,54 @@
     "gates": [
       {
         "milestone": "milestone-01",
-        "critic": "PASS",
-        "challenger": "PASS",
-        "auditor": "PASS",
-        "final": "PASS",
-        "evidence": ".teamwork/workstreams/ws-m1-mock-removal-result.md + snapshots/milestone-01/m1-*.jpg + logs + reviews/critic-challenger-auditor-milestone-01.md"
+        "verdict": "PASS",
+        "reviewers": [
+          "critic",
+          "challenger",
+          "auditor"
+        ],
+        "evidence": [
+          ".teamwork/snapshots/milestone-01/auditor-m01-desktop-1280.jpg",
+          ".teamwork/snapshots/milestone-01/auditor-m01-vault-desktop-1280.jpg"
+        ]
       },
       {
         "milestone": "milestone-02",
-        "critic": "PASS",
-        "challenger": "PASS",
-        "auditor": "PASS",
-        "final": "PASS",
-        "evidence": ".teamwork/workstreams/ws-m2-auth-gate-result.md + snapshots/milestone-02/m2-*.jpg + reviews/critic-challenger-auditor-milestone-02.md"
+        "verdict": "PASS",
+        "reviewers": [
+          "critic",
+          "challenger",
+          "auditor"
+        ],
+        "evidence": [
+          ".teamwork/snapshots/milestone-02/ws-m2-proxy-shell-vault-desktop-1280.jpg",
+          ".teamwork/snapshots/milestone-02/ws-m2-tools-fallback-vault-desktop-1280.jpg"
+        ]
       },
       {
         "milestone": "milestone-03",
-        "critic": "PASS",
-        "challenger": "PASS",
-        "auditor": "PASS",
-        "final": "PASS",
-        "evidence": ".teamwork/workstreams/ws-m3-realdata-webmcp-result.md + snapshots/milestone-03/m3-*.jpg + reviews/critic-challenger-auditor-milestone-03.md"
+        "verdict": "PASS",
+        "reviewers": [
+          "critic",
+          "challenger",
+          "auditor"
+        ],
+        "evidence": [
+          ".teamwork/snapshots/milestone-03/ws-m3-polish-verify-vault-desktop-1280.jpg"
+        ]
       },
       {
         "milestone": "success-auditor",
-        "critic": "PASS",
-        "challenger": "PASS",
-        "auditor": "PASS",
-        "final": "PASS",
-        "evidence": "verification/final.md + snapshots/final/final-auditor-* 9 JPEG + logs /tmp/final-audit/*"
+        "verdict": "PASS",
+        "evidence": [
+          ".teamwork/verification/final.md",
+          ".teamwork/snapshots/success-auditor/success-auditor-vault-1280.jpg"
+        ]
       }
     ]
   },
   "context": {
-    "handoffCount": 1
+    "handoffCount": 0
   },
   "metadata": {
     "artifactsDir": ".teamwork",

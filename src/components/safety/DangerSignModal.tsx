@@ -121,7 +121,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
         type: isEmergency ? 'warning' : 'info',
         title: 'Danger Sign Escalated',
         message: isEmergency
-          ? 'Urgent alert dispatched to Dr. Patel. If symptoms worsen, call 911.'
+          ? 'Urgent alert dispatched to your care team. If symptoms worsen, call 911.'
           : 'Report sent to clinical triage queue.'
       });
 
@@ -136,22 +136,24 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-canvas-border bg-rose-50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 text-clinical-red flex items-center justify-center border border-rose-200 shadow-sm">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-canvas-border bg-rose-50 gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-clinical-red flex items-center justify-center border border-rose-200 shadow-sm shrink-0">
               <ShieldAlert className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="text-heading-md text-slate-900">Report red-flag danger signs</h3>
-              <p className="text-body-sm text-clinical-red">Immediate clinical escalation & doctor notification</p>
+            <div className="min-w-0">
+              <h3 className="text-heading-md text-slate-900 truncate">Report red-flag danger signs</h3>
+              <p className="text-body-sm text-clinical-red line-clamp-1">Immediate clinical escalation & doctor notification</p>
             </div>
           </div>
+
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted hover:text-slate-900 flex items-center justify-center transition-colors"
+            className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center shrink-0 min-h-[44px] min-w-[44px]"
+            aria-label="Close danger sign modal"
           >
             <X className="w-4 h-4" />
           </button>
@@ -191,7 +193,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
                     key={s.tag}
                     type="button"
                     onClick={() => toggleSymptom(s.tag)}
-                    className={`flex items-center justify-between p-3 rounded-xl text-body-sm font-semibold border transition-all text-left ${
+                    className={`flex items-center justify-between p-3 rounded-xl text-body-sm font-semibold border transition-all text-left min-h-[44px] ${
                       isSelected
                         ? 'bg-rose-50 border-rose-200 text-clinical-red shadow-sm'
                         : 'bg-canvas-card border-canvas-border text-muted hover:text-slate-900'
@@ -213,7 +215,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
               <select
                 value={severityRating}
                 onChange={(e) => setSeverityRating(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 font-bold min-h-[44px]"
               >
                 <option value="mild">Mild (Noticeable but stable)</option>
                 <option value="moderate">Moderate (Interferes with activity)</option>
@@ -231,21 +233,21 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
                   placeholder="Sys"
                   value={systolicBP}
                   onChange={(e) => setSystolicBP(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-center text-rose-700 font-bold"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs text-center text-rose-700 font-bold min-w-0 w-full min-h-[44px]"
                 />
                 <input
                   type="number"
                   placeholder="Dia"
                   value={diastolicBP}
                   onChange={(e) => setDiastolicBP(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-center text-rose-700 font-bold"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs text-center text-rose-700 font-bold min-w-0 w-full min-h-[44px]"
                 />
                 <input
                   type="number"
                   placeholder="HR bpm"
                   value={heartRate}
                   onChange={(e) => setHeartRate(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs text-center text-sky-700 font-bold"
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs text-center text-sky-700 font-bold min-w-0 w-full min-h-[44px]"
                 />
               </div>
             </div>
@@ -264,9 +266,9 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
           </div>
 
           {/* Photo Attachment Toggle */}
-          <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 flex items-center justify-between">
+          <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <Camera className="w-4 h-4 text-sky-400" />
+              <Camera className="w-4 h-4 text-sky-400 shrink-0" />
               <div className="text-xs">
                 <div className="font-bold text-slate-800">Attach Clinical Photo</div>
                 <div className="text-slate-600 text-[11px]">
@@ -277,10 +279,10 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
             <button
               type="button"
               onClick={() => setHasPhoto(!hasPhoto)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors min-h-[44px] flex items-center justify-center ${
                 hasPhoto
                   ? 'bg-sky-500/20 border-sky-500/40 text-sky-700'
-                  : 'bg-slate-100 border-slate-200 text-slate-600'
+                  : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
               }`}
             >
               {hasPhoto ? 'Attached (ankle_edema.jpg)' : 'Attach Photo'}
@@ -289,11 +291,11 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
         </form>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-canvas-border bg-canvas-muted flex items-center justify-between gap-3">
+        <div className="px-4 sm:px-6 py-4 border-t border-canvas-border bg-canvas-muted flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors min-h-[44px] flex items-center justify-center"
           >
             Cancel
           </button>
@@ -301,10 +303,10 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || selectedTags.length === 0}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-lg shadow-rose-600/30"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-lg shadow-rose-600/30 min-h-[44px]"
           >
             <Send className="w-4 h-4" />
-            <span>{isSubmitting ? 'Dispatching...' : 'Dispatch Alert to Doctor Patel'}</span>
+            <span>{isSubmitting ? 'Dispatching...' : 'Dispatch Alert to Your Doctor'}</span>
           </button>
         </div>
       </div>

@@ -146,18 +146,18 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
         severity: 'urgent_doctor_same_day',
       },
       schedule_followup: {
-        title: 'Dr. Patel Nephrology Clinic Review',
+        title: 'Clinic Review',
         dueDate: '2026-09-11',
         location: 'clinic',
       },
       switch_profile: {
-        targetUserId: 'user-raj-devi',
+        targetUserId: 'user-family-member',
         role: 'caregiver',
         onBehalfOfPatientId: '',
       },
       grant_doctor_access: {
-        doctorName: 'Dr. Kevin Chen, MD',
-        doctorClinic: 'Metropolitan Cardiology',
+        doctorName: 'Your doctor',
+        doctorClinic: 'Clinic',
         durationDays: 7,
       },
     };

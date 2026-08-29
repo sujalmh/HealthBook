@@ -115,22 +115,22 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-xl space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full p-4 sm:p-8 shadow-xl space-y-5 sm:space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4 gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
               <KeyRound className="w-6 h-6" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-heading-lg text-slate-900">Clinician handover delegation</h3>
-                <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border uppercase">
+                <h3 className="text-heading-lg text-slate-900 truncate">Clinician handover delegation</h3>
+                <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border uppercase shrink-0">
                   CD4 secure access
                 </span>
               </div>
-              <p className="text-body-sm text-muted">
+              <p className="text-body-sm text-muted line-clamp-1">
                 Grant time-bound access tokens to new physicians with zero cloud storage and instant 1-click revocation.
               </p>
             </div>
@@ -138,14 +138,15 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted hover:text-slate-900 transition-colors min-h-[44px] min-w-[44px]"
+            className="w-11 h-11 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted hover:text-slate-900 transition-colors flex items-center justify-center shrink-0 min-h-[44px] min-w-[44px]"
+            aria-label="Close doctor access modal"
           >
             ✕
           </button>
         </div>
 
         {/* Create Grant Form — tokenized */}
-        <form onSubmit={handleGenerateGrant} className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-4">
+        <form onSubmit={handleGenerateGrant} className="bg-canvas-muted rounded-xl p-4 sm:p-5 border border-canvas-border space-y-4">
           <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
             Generate Time-Bound Access Passkey
           </h4>
@@ -161,7 +162,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                 value={doctorEmail}
                 onChange={(e) => setDoctorEmail(e.target.value)}
                 placeholder="e.g. dr.chen@nephrology.org or dr.sharma@clinic.com"
-                className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors min-h-[44px]"
               />
             </div>
           </div>
@@ -169,7 +170,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
           {/* Duration Presets */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Access Duration Window</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {[
                 { days: 7, label: '7 Days (Standard)' },
                 { days: 30, label: '30 Days (Follow-up)' },
@@ -179,7 +180,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                   key={preset.days}
                   type="button"
                   onClick={() => setDurationDays(preset.days)}
-                    className={`py-2 rounded-xl text-body-sm font-bold transition-all min-h-[36px] ${
+                  className={`py-2.5 px-3 rounded-xl text-body-sm font-bold transition-all min-h-[44px] flex items-center justify-center ${
                     durationDays === preset.days
                       ? 'bg-primary text-white shadow-sm border border-primary'
                       : 'bg-canvas-card text-muted hover:text-slate-900 border border-canvas-border'
@@ -197,7 +198,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
             <select
               value={scope}
               onChange={(e) => setScope(e.target.value as any)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 transition-colors min-h-[44px]"
             >
               <option value="full_dossier">Full Continuity Dossier (Labs, Meds, Notes, BBoxes)</option>
               <option value="snapshot_only">Emergency Snapshot Only (Vitals, Allergies, Active Meds)</option>
@@ -208,7 +209,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
           <button
             type="submit"
             disabled={isGenerating || !doctorEmail.trim()}
-            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 min-h-[44px]"
           >
             <Sparkles className="w-4 h-4" />
             <span>{isGenerating ? 'Generating...' : `Generate ${durationDays}-Day Access Token`}</span>

@@ -114,27 +114,29 @@ export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact, onReso
       {/* Value & Plain Narration */}
       <div className="space-y-2">
         {isEditing ? (
-          <div className="flex items-center gap-2 my-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 my-1">
             <input
               type="text"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="px-3 py-2 bg-canvas-muted border border-primary rounded-xl text-body-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary flex-1 min-h-[40px]"
+              className="px-3.5 py-2.5 bg-canvas-muted border border-primary rounded-xl text-body-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary w-full sm:flex-1 min-h-[44px]"
               aria-label="Edit fact value"
             />
-            <button
-              onClick={handleSaveEdit}
-              disabled={loading}
-              className="px-3 py-2 bg-clinical-emerald hover:brightness-95 text-white text-body-sm font-semibold rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 min-h-[40px]"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setIsEditing(false)}
-              className="px-3 py-2 bg-canvas-muted hover:bg-muted-subtle text-slate-700 text-body-sm rounded-xl border border-canvas-border transition-colors min-h-[40px]"
-            >
-              Cancel
-            </button>
+            <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
+              <button
+                onClick={handleSaveEdit}
+                disabled={loading}
+                className="flex-1 sm:flex-initial px-4 py-2.5 bg-clinical-emerald hover:brightness-95 text-white text-body-sm font-semibold rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 min-h-[44px] flex items-center justify-center"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex-1 sm:flex-initial px-4 py-2.5 bg-canvas-muted hover:bg-muted-subtle text-slate-700 text-body-sm rounded-xl border border-canvas-border transition-colors min-h-[44px] flex items-center justify-center"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         ) : (
           <div className="text-body font-semibold text-slate-900 flex items-baseline gap-1.5 flex-wrap">
@@ -158,13 +160,13 @@ export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact, onReso
       </div>
 
       {/* Action Bar: Approve, Edit, Reject */}
-      <div className="flex items-center gap-2 pt-1">
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 pt-1">
         <button
           onClick={handleApprove}
           disabled={loading}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-clinical-emerald hover:brightness-95 text-white rounded-xl text-body-sm font-bold transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-50 min-h-[44px]"
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-clinical-emerald hover:brightness-95 text-white rounded-xl text-body-sm font-bold transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-50 min-h-[44px]"
         >
-          <Check className="w-3.5 h-3.5" />
+          <Check className="w-4 h-4" />
           Approve
         </button>
         <button
@@ -172,7 +174,7 @@ export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact, onReso
           disabled={loading}
           className="inline-flex items-center justify-center gap-1 px-4 py-2.5 bg-canvas-muted hover:bg-muted-subtle text-slate-800 rounded-xl text-body-sm font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px]"
         >
-          <Edit3 className="w-3.5 h-3.5" />
+          <Edit3 className="w-4 h-4" />
           Edit
         </button>
         <button
@@ -180,7 +182,7 @@ export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact, onReso
           disabled={loading}
           className="inline-flex items-center justify-center gap-1 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-body-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px]"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-4 h-4" />
           Reject
         </button>
       </div>

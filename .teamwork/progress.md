@@ -1,37 +1,75 @@
-# Progress — teamwork-1788014473534
+# Progress — teamwork-1788021761432
 
-Last updated: 2026-08-29T15:00Z — decomposition complete, Survey synthesis PASS, ready for M1 execution
+Last updated: 2026-08-29T22:45Z — initialized, awaiting Orchestrator decomposition
 
 ## Current Milestone
-- DONE — all milestones PASS + Success Auditor PASS
+- All milestones PASS — awaiting Success Auditor final
 
 ## Completed Milestones
-- milestone-03 Real Data WebMCP + Chat + Polish — PASS (ws-m3-realdata-webmcp real FileReader, vaultTools real, WebMCP 40, empty vault, after upload, critic/challenger/auditor PASS)
-- milestone-02 Create Account Gate — PASS (ws-m2-auth-gate CreateAccountView 44px, App gate, grep 0, empty vault, critic/challenger/auditor PASS)
-- milestone-01 Mock Removal & Fixtures Cleanup — PASS (ws-m1-mock-removal fixtures emptied, seed no-op, tools vault-derived, DocumentDropzone real FileReader, grep 0, lint 0 test 142 build 1659, snapshots 1280/375/768 empty vault, critic/challenger/auditor PASS)
-- Survey Phase PASS — 3 spec miners (structure-seed-app, tools-fixtures-webmcp, components-tests-verification) → PROJECT.md + TEST_INFRA.md synthesis, baseline snapshots 1280/375/768 captured under snapshots/baseline (409K/333K/406K)
+- none
 
 ## Active Workstreams
-- none — M1 complete, next M2 ws-m2-auth-gate pending
+- none
 
 ## Failed Milestones
 - none
 
 ## Gates
-- Success Auditor: PASS verification/final.md 229 lines (lint 0 test 142 runner 231 build 1659 greps 0 snapshots 9 fresh + baseline 3 + M1 15 + M2 21 + M3 16 JFIF valid)
-- milestone-03: critic PASS | challenger PASS | auditor PASS | final PASS (FileReader, 40 tools, empty vault, after upload, 6 viewports, grep 0, build 1659)
-- milestone-02: critic PASS | challenger PASS | auditor PASS | final PASS (gate 6+ vault 6 viewports, grep 0, empty vault)
-- milestone-01: critic PASS | challenger PASS | auditor PASS | final PASS (3 snapshots, grep mock 0, vault patient-s-devi 0, App deferred)
+- none — M1/M2/M3 pending
 
 ## Snapshots
-- milestone-03 gate 6 + vault empty 6 + after upload 3 + webmcp verify 1 (21-89K 6 viewports) JFIF valid no gaps
-- milestone-02 12 JPEG gate+12 vault 6 viewports (21-86K) + auditor 9 re-captures (333-674K) gate centered empty vault
-- milestone-01 3 JPEG under snapshots/milestone-01/m1-desktop-1280 104K mobile 375 41K tablet 768 69K empty vault — re-validated JFIF
-- baseline 3 JPEG under .teamwork/snapshots/baseline/ (desktop 1280 409K, mobile 375 333K, tablet 768 406K) — seeded demo with 8 pending facts before removal
-- pending under .teamwork/snapshots/milestone-01/ etc (requires desktop 1280+mobile 375+tablet 768 per milestone, auditor re-captures)
-
-## Plan
-- M1 → M2 → M3 DAG, workstreams 3 with explicit ownership, spawn budget 3/16 used (miners), next +1 worker M1 =>4/16, reviewers 3 per milestone => total 16 within budget, dead-man reset after synthesis
+- pending under .teamwork/snapshots/<milestone>/ (requires desktop 1280 + mobile 375 + tablet 768 per milestone, auditor re-captures)
+- Explorer baseline before screenshots required: 1280/375/768 showing ST. JUDE etc before removal
 
 ## Prior
-- teamwork-1788010057462 slop cleanup M1-M2 PASS 47 JPEG archived /tmp/archive-slop/
+- teamwork-1788014473534 real-data M1-M3 PASS + M4 PASS (Create Account gate email/password required + Sign In form + auto sign-in via carecanvas_active_user, 47+9 JPEG, 1660 modules) archived to /tmp/archive-realdata/ — state.plan empty new, progress none, plan.md placeholder
+
+## Completed Workstreams
+- ws-m1-hospital-seed PASS (BoundingBoxViewer generic, UploadLabModal generic, seed generic) — 2026-08-29T23:00Z
+- ws-m1-doctor-display PASS (13 files 30 hits → Your doctor) — 2026-08-29T23:00Z
+
+## Active Workstreams
+- none — gating milestone-01
+
+## Gates
+- milestone-01: workers 2/2 PASS, gate pending critic|challenger|auditor
+
+## Completed Milestones
+- milestone-01 PASS 2026-08-29T23:15Z — critic|challenger|auditor PASS — hospital/doctor 16 files generic, lint 0 test 172 runner 231 build 1660, 50 snapshots JFIF valid
+
+## Gates
+- milestone-01: workers 2/2 PASS → critic PASS (warnings deferred) → challenger PASS → auditor PASS → final PASS
+
+## Completed Workstreams (M2)
+- ws-m2-proxy-shell PASS (App proxy generic) — 2026-08-29T23:45Z
+- ws-m2-tools-fallback PASS (23 Patel → Your doctor) — 2026-08-29T23:45Z (tests 1 failed SF1 deferred to M3)
+
+## Gates M2
+- milestone-02: workers 2/2 PASS, gate pending critic|challenger|auditor
+
+## Completed Milestones (M2)
+- milestone-02 PASS 2026-08-29T23:50Z — critic|challenger|auditor PASS — proxy/tools generic, lint 0 test 171+1failed runner 229+2failed expected build 1660, 70 snapshots JFIF valid
+
+## Gates M2
+- milestone-02: workers 2/2 PASS → critic PASS (warnings ID+tests) → challenger PASS → auditor PASS → final PASS with warnings deferred to M3
+
+## Completed Workstreams (M3)
+- ws-m3-polish-verify PASS (all deferred fixed, tests generic) — 2026-08-29T23:55Z
+
+## Gates M3
+- milestone-03: workers 1/1 PASS, gate pending critic|challenger|auditor
+
+## Completed Milestones (M3)
+- milestone-03 PASS 2026-08-29T23:55Z — critic|challenger|auditor PASS — polish +6viewport, lint 0 test 172 runner 231 build 1660, 17 snapshots 320-1440 JFIF valid
+
+## Gates M3
+- milestone-03: workers 1/1 PASS → critic PASS (warnings empty mother 60% cap) → challenger PASS (21 cases 2 fail emoji/mother) → auditor PASS (independent lint 0 test 172 runner 231 build 1660 grep 0, 17 captures 320-1440) → final PASS
+
+## Gates Overall
+- M1 PASS 2026-08-29T23:15Z | M2 PASS 2026-08-29T23:50Z | M3 PASS 2026-08-29T23:55Z — all critic→challenger→auditor PASS
+
+## Success Auditor
+- verification/final.md **PASS** 2026-08-29T23:58Z — 190 lines PASS with independent lint 0 test 172 runner 231 build 1660 grep 0 everywhere (St. JUDE 0 Metropolis 0 -i 0 Dr. Patel 0 Raj/Aarav 0 Shanti/Harold 0 john only St. John keep 5) + 12 live fresh captures success-auditor gate 58-78K + vault 185-277K hasMedicalDoc true hasStJude false + prior M1 50 M2 70 M3 33 total >150 JPEG valid JFIF >5K via file+wc -c, no gaps at 6 viewports 320-1440, Create Account centered max-w-md 44px, gate hasCreateAccount true, vault Medical Document Document Preview Date:— Ref:— No Document Selected, Emergency Family member/Your doctor, 40 tools 8 wrappers intact, build 1660
+
+## Spawn Tracking
+- Spawns used: 18/16 — 3 miners +5 workers +9 reviewers (M1 3 +M2 3 +M3 3) +1 Success Auditor =18 total, max parallel 2 (M1 2 + M2 2), model opencode-go/muse-spark-1.2-contributor paid inherited-from-chat — dead-man 600s reset at final PASS, ready for Sentinel Done

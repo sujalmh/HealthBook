@@ -169,22 +169,22 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
                 severity: b.severity
               });
             }}
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-all hover:scale-105 ${b.bgColor} ${b.textColor} ${b.borderColor}`}
+            className={`badge-btn inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-all hover:scale-105 shrink-0 min-w-0 min-h-0 ${b.bgColor} ${b.textColor} ${b.borderColor}`}
             title={`Click for dietary instruction: ${b.label}`}
           >
             <span>{b.icon}</span>
-            <span className="truncate max-w-[100px]">{b.label}</span>
+            <span className="truncate max-w-[120px]">{b.label}</span>
           </button>
         ))}
       </div>
 
       {/* Modal on click */}
       {selectedBadge && (
-          <div
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full shadow-lg overflow-hidden animate-scale-up">
+          <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
             <div className="p-4 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{selectedBadge.icon}</span>
@@ -192,15 +192,15 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
               </div>
               <button
                 onClick={() => setSelectedBadge(null)}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+                className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Close dietary instruction"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-5 space-y-3 text-body text-slate-800">
-              <div className="bg-canvas-muted p-3 rounded-xl border border-canvas-border">
+              <div className="bg-canvas-muted p-3.5 rounded-xl border border-canvas-border">
                 <p className="text-slate-800 leading-relaxed text-body font-medium">{selectedBadge.guidance}</p>
               </div>
             </div>
@@ -208,7 +208,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
             <div className="p-3 bg-canvas-muted border-t border-canvas-border flex justify-end">
               <button
                 onClick={() => setSelectedBadge(null)}
-                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
+                className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-body-sm font-bold transition-colors shadow-sm min-h-[44px] flex items-center justify-center"
               >
                 Got It
               </button>

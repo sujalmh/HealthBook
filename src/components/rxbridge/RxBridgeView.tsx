@@ -374,20 +374,20 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           <div className="flex items-center bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm">
             <button
               onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold transition-all min-h-[40px] ${
                 viewMode === 'table' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <TableIcon className="w-3.5 h-3.5" />
+              <TableIcon className="w-4 h-4" />
               <span>Compare Lists</span>
             </button>
             <button
               onClick={() => setViewMode('walk')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold transition-all min-h-[40px] ${
                 viewMode === 'walk' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Bot className="w-3.5 h-3.5" />
+              <Bot className="w-4 h-4" />
               <span>Step-by-Step</span>
             </button>
           </div>
@@ -397,7 +397,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             {/* Teach-Back Button */}
             <button
               onClick={() => setIsTeachBackOpen(true)}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all min-h-[40px] ${
                 teachBackRecord?.comprehensionScore === 'accurate'
                   ? 'bg-emerald-600/30 text-emerald-700 border-emerald-500/50'
                   : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-700 border-indigo-500/40'
@@ -410,9 +410,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             {/* 1-Page Summary Export */}
             <button
               onClick={handleOpenExportSummary}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-semibold transition-all min-h-[40px]"
             >
-              <Printer className="w-4 h-4 text-sky-400" />
+              <Printer className="w-4 h-4 text-sky-500" />
               <span>Print Summary</span>
             </button>
 
@@ -421,7 +421,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               onClick={handleFinalizeAndHandoffToPillMap}
               disabled={totalApproved !== reconciledItems.length}
               title={totalApproved !== reconciledItems.length ? `Approve all ${reconciledItems.length} medicines first (${totalApproved}/${reconciledItems.length})` : 'Add to my weekly medicines'}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-body-sm font-bold shadow-md transition-all min-h-[44px] ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-body-sm font-bold shadow-md transition-all min-h-[44px] ${
                 totalApproved !== reconciledItems.length
                   ? 'bg-canvas-muted text-muted cursor-not-allowed border border-canvas-border'
                   : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/20 hover:scale-[1.01]'

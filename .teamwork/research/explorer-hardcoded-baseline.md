@@ -1,0 +1,1 @@
+# Explorer Baseline — Before Screenshots Placeholder\nBefore screenshots required 1280/375/768 showing hard-coded names BoundingBoxViewer ST. JUDE etc — will be captured via dev-server browser.capture under .teamwork/snapshots/baseline/ before removal.\nCounts documented: see spec-miner-hospital-structure-seed + doctor-display + proxy-tools.\n

@@ -1,0 +1,1 @@
+# ws-m2-tools-fallback — worker_tools_fallback\n\nMilestone: milestone-02\nRole: worker_tools_fallback\nFiles: src/tools/homeLabTools.ts, src/tools/safetyTools.ts\nStatus: pending\n\nOwnership: src/tools/homeLabTools.ts, src/tools/safetyTools.ts\nIsolation: .teamwork/worktrees/ws-m2-tools-fallback/\n

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   Activity,
   Pin,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import type { LabRecord } from '@/types/vault';
 
-export type ZoomWindow = '30D' | '90D' | '1Y' | '5Y' | 'MAX';
+export type ZoomWindow = '30D' | '90D' | '1Y' | '3Y' | '5Y' | 'MAX';
 
 interface BiomarkerChartProps {
   markerName: string;
@@ -53,6 +53,34 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [newCommentText, setNewCommentText] = useState('');
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(800);
+
+  // Measure container width dynamically for crisp responsive SVG rendering
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const w = containerRef.current.clientWidth;
+        if (w > 0) setContainerWidth(w);
+      }
+    };
+    updateWidth();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const w = entry.contentRect.width;
+          if (w > 0) setContainerWidth(Math.round(w));
+        }
+      });
+      observer.observe(containerRef.current);
+      return () => observer.disconnect();
+    } else {
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }
+  }, []);
 
   // Filter labs according to active zoom
   const filteredLabs = useMemo(() => {
@@ -65,6 +93,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     if (activeZoom === '30D') cutoffMs = 30 * 24 * 60 * 60 * 1000;
     else if (activeZoom === '90D') cutoffMs = 90 * 24 * 60 * 60 * 1000;
     else if (activeZoom === '1Y') cutoffMs = 365 * 24 * 60 * 60 * 1000;
+    else if (activeZoom === '3Y') cutoffMs = 3 * 365 * 24 * 60 * 60 * 1000;
     else if (activeZoom === '5Y') cutoffMs = 5 * 365 * 24 * 60 * 60 * 1000;
 
     const windowStart = latestEpoch - cutoffMs;
@@ -73,12 +102,15 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     return windowFiltered.length >= 2 ? windowFiltered : sorted.slice(-3);
   }, [labs, activeZoom]);
 
-  // Dimension & Scaling Calculations
-  const chartWidth = 900;
-  const chartHeight = 340;
-  const padding = { top: 40, right: 40, bottom: 45, left: 60 };
-  const innerWidth = chartWidth - padding.left - padding.right;
-  const innerHeight = chartHeight - padding.top - padding.bottom;
+  // Dimension & Scaling Calculations adapted to container
+  const isMobile = containerWidth < 600;
+  const chartWidth = Math.max(containerWidth, 280);
+  const chartHeight = isMobile ? 260 : 340;
+  const padding = isMobile
+    ? { top: 28, right: 18, bottom: 36, left: 46 }
+    : { top: 40, right: 40, bottom: 45, left: 60 };
+  const innerWidth = Math.max(10, chartWidth - padding.left - padding.right);
+  const innerHeight = Math.max(10, chartHeight - padding.top - padding.bottom);
 
   const { minX, maxX, minY, maxY, refRange, optRange, unit } = useMemo(() => {
     if (filteredLabs.length === 0) {
@@ -154,11 +186,11 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
       d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
     }
     return d;
-  }, [filteredLabs, minX, maxX, minY, maxY]);
+  }, [filteredLabs, minX, maxX, minY, maxY, padding.left, innerWidth, padding.top, innerHeight]);
 
   // Y-Axis Ticks
   const yTicks = useMemo(() => {
-    const ticksCount = 5;
+    const ticksCount = isMobile ? 4 : 5;
     const step = (maxY - minY) / ticksCount;
     const ticks: number[] = [];
     for (let i = 0; i <= ticksCount; i++) {
@@ -166,17 +198,27 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
       ticks.push(Number(val.toFixed(val < 5 ? 2 : 1)));
     }
     return ticks;
-  }, [minY, maxY]);
+  }, [minY, maxY, isMobile]);
 
-  // X-Axis Ticks
+  // X-Axis Ticks with decimation on narrow screens to prevent overlap
   const xTicks = useMemo(() => {
     if (filteredLabs.length === 0) return [];
-    return filteredLabs.map((l) => ({
+    const all = filteredLabs.map((l) => ({
       epoch: new Date(l.drawDate).getTime(),
       label: new Date(l.drawDate).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
       fullDate: new Date(l.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     }));
-  }, [filteredLabs]);
+
+    if (all.length <= 3) return all;
+
+    if (isMobile) {
+      const first = all[0];
+      const last = all[all.length - 1];
+      const mid = all[Math.floor(all.length / 2)];
+      return [first, mid, last];
+    }
+    return all;
+  }, [filteredLabs, isMobile]);
 
   const handlePointClick = (pt: LabRecord) => {
     setSelectedPoint(pt);
@@ -198,10 +240,12 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     setIsAddingComment(false);
   };
 
+  const zoomOptions: ZoomWindow[] = ['30D', '90D', '1Y', '3Y', '5Y', 'MAX'];
+
   return (
-    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4 ${className}`}>
+    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${className}`}>
       {/* Top Chart Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-canvas-border pb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-canvas-border pb-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary-light border border-primary-border text-primary shrink-0">
             <Activity className="w-5 h-5" />
@@ -220,37 +264,40 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
         </div>
 
         {/* Right Controls: Range Toggles & Zoom Selectors */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Dual Range Toggles (LS5) */}
-          <div className="flex items-center bg-canvas-muted border border-canvas-border rounded-xl p-1 text-body-sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap">
+          {/* Dual Range Toggles (LS5) with >=44px Touch Targets */}
+          <div className="flex items-center gap-1.5 bg-canvas-muted border border-canvas-border rounded-xl p-1 text-body-sm w-full sm:w-auto">
             <button
+              type="button"
               onClick={() => onToggleReferenceRange(!showReferenceRange)}
-              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              className={`min-h-[44px] px-3 py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-colors flex-1 sm:flex-initial focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 showReferenceRange ? 'bg-canvas-card text-slate-900 shadow-sm border border-canvas-border' : 'text-muted hover:text-slate-900'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-muted inline-block" />
-              <span>Reference ({refRange.low}–{refRange.high})</span>
+              <span className="w-2 h-2 rounded-full bg-muted inline-block shrink-0" />
+              <span className="text-caption sm:text-body-sm whitespace-nowrap">Ref ({refRange.low}–{refRange.high})</span>
             </button>
 
             <button
+              type="button"
               onClick={() => onToggleOptimalRange(!showOptimalRange)}
-              className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              className={`min-h-[44px] px-3 py-2 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-colors flex-1 sm:flex-initial focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 showOptimalRange ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm' : 'text-muted hover:text-slate-900'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-              <span>Optimal ({optRange.low}–{optRange.high})</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block shrink-0" />
+              <span className="text-caption sm:text-body-sm whitespace-nowrap">Optimal ({optRange.low}–{optRange.high})</span>
             </button>
           </div>
 
-          {/* Zoom Window Filter (LS2) */}
-          <div className="flex items-center bg-canvas-muted border border-canvas-border rounded-xl p-1 text-body-sm">
-            {(['30D', '90D', '1Y', '5Y', 'MAX'] as ZoomWindow[]).map((z) => (
+          {/* Zoom Window Filter (LS2) with >=44px Touch Targets */}
+          <div className="flex items-center gap-1 bg-canvas-muted border border-canvas-border rounded-xl p-1 text-body-sm overflow-x-auto scrollbar-none w-full sm:w-auto max-w-full">
+            {zoomOptions.map((z) => (
               <button
                 key={z}
+                type="button"
                 onClick={() => onZoomChange(z)}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                className={`min-h-[44px] min-w-[44px] px-2.5 py-2 rounded-lg font-bold transition-colors flex items-center justify-center flex-1 sm:flex-initial focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   activeZoom === z ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-slate-900'
                 }`}
               >
@@ -261,12 +308,15 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
         </div>
       </div>
 
-      {/* SVG Canvas Area */}
-      <div className="relative w-full overflow-hidden rounded-xl bg-canvas-muted border border-canvas-border">
+      {/* SVG Canvas Area Container */}
+      <div
+        ref={containerRef}
+        className="relative w-full overflow-hidden rounded-xl bg-canvas-muted border border-canvas-border"
+      >
         <svg
           ref={svgRef}
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className="w-full h-auto select-none overflow-visible"
+          className="w-full h-auto select-none block overflow-visible"
         >
           <defs>
             {/* Gradients */}
@@ -312,11 +362,11 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                   strokeDasharray="4 4"
                 />
                 <text
-                  x={padding.left - 10}
+                  x={padding.left - 8}
                   y={y + 4}
                   textAnchor="end"
                   fill="#64748b"
-                  fontSize="10"
+                  fontSize="11"
                   fontFamily="sans-serif"
                   fontWeight="600"
                 >
@@ -348,7 +398,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                 x={scaleX(new Date(causalHighlightWindow.start).getTime()) + 8}
                 y={padding.top + 16}
                 fill="#fbbf24"
-                fontSize="9"
+                fontSize="11"
                 fontWeight="bold"
               >
                 ⚡ Causal Window: {causalHighlightWindow.label || 'Drug Interaction Shift'}
@@ -391,7 +441,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                 y={scaleY(refRange.high) - 4}
                 textAnchor="end"
                 fill="#94a3b8"
-                fontSize="9"
+                fontSize="11"
                 fontWeight="bold"
               >
                 Ref High: {refRange.high}
@@ -421,10 +471,10 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
               />
               <text
                 x={chartWidth - padding.right - 6}
-                y={scaleY(optRange.high) + 12}
+                y={scaleY(optRange.high) + 14}
                 textAnchor="end"
                 fill="#34d399"
-                fontSize="9"
+                fontSize="11"
                 fontWeight="bold"
               >
                 Optimal Target: {optRange.low}–{optRange.high}
@@ -454,7 +504,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                   y={padding.top + innerHeight + 20}
                   textAnchor="middle"
                   fill="#94a3b8"
-                  fontSize="10"
+                  fontSize="11"
                   fontFamily="sans-serif"
                   fontWeight="600"
                 >
@@ -464,7 +514,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             );
           })}
 
-          {/* 7. Data Points (Interactive hover, tap, doctor pins) */}
+          {/* 7. Data Points (Interactive hover, tap, doctor pins) with >=44px Touch Targets */}
           {filteredLabs.map((lab) => {
             const cx = scaleX(new Date(lab.drawDate).getTime());
             const cy = scaleY(lab.normalizedValue);
@@ -493,10 +543,16 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                 onClick={() => handlePointClick(lab)}
                 onMouseEnter={() => setHoveredPoint(lab)}
                 onMouseLeave={() => setHoveredPoint(null)}
+                role="button"
+                tabIndex={0}
+                aria-label={`${markerName}: ${lab.normalizedValue} ${lab.normalizedUnit} on ${new Date(lab.drawDate).toLocaleDateString()}`}
               >
-                {/* Outer hover halo */}
+                {/* Generous touch hit target (44px diameter = r=22) so mobile taps never fail */}
+                <circle cx={cx} cy={cy} r="22" fill="transparent" />
+
+                {/* Outer hover/select halo */}
                 {(isHovered || isSelected) && (
-                  <circle cx={cx} cy={cy} r="14" fill={pointColor} fillOpacity="0.25" className="animate-pulse" />
+                  <circle cx={cx} cy={cy} r="15" fill={pointColor} fillOpacity="0.28" className="animate-pulse" />
                 )}
 
                 {/* Main point circle */}
@@ -523,9 +579,9 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
           })}
         </svg>
 
-        {/* Floating Tooltip Card (Hover or Selected Point) */}
+        {/* Floating Tooltip Card (Hover or Selected Point) - Desktop: absolute top-right; Mobile: Docked bottom to avoid obscuring data points */}
         {(hoveredPoint || selectedPoint) && (
-          <div className="absolute top-3 right-3 z-20 bg-canvas-card/95 backdrop-blur-md border border-canvas-border rounded-xl p-3.5 shadow-md max-w-xs space-y-1.5 animate-fade-in text-body-sm">
+          <div className="relative sm:absolute sm:top-3 sm:right-3 z-20 bg-canvas-card/95 backdrop-blur-md border-t sm:border border-canvas-border sm:rounded-xl p-3.5 shadow-md w-full sm:max-w-xs space-y-1.5 animate-fade-in text-body-sm">
             {(() => {
               const p = hoveredPoint || selectedPoint!;
               const hasComment = p.doctorComment || (p.doctorComments && p.doctorComments.length > 0);
@@ -578,26 +634,28 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                     </div>
                   )}
 
-                  <div className="pt-1.5 flex items-center justify-between gap-2">
+                  <div className="pt-2 flex items-center justify-between gap-2">
                     <button
+                      type="button"
                       onClick={() => {
                         setSelectedPoint(p);
                         setIsAddingComment(true);
                       }}
-                      className="text-caption text-primary hover:text-primary-hover font-bold flex items-center gap-1 bg-primary-light hover:bg-primary-light/80 px-2 py-1 rounded-lg border border-primary-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="min-h-[44px] text-caption text-primary hover:text-primary-hover font-bold flex items-center justify-center gap-1.5 bg-primary-light hover:bg-primary-light/80 px-3 py-2 rounded-xl border border-primary-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
-                      <PlusCircle className="w-3 h-3" />
+                      <PlusCircle className="w-3.5 h-3.5" />
                       <span>Pin Doctor Note</span>
                     </button>
 
                     {selectedPoint && (
                       <button
+                        type="button"
                         onClick={() => {
                           setSelectedPoint(null);
                           setHoveredPoint(null);
                           setIsAddingComment(false);
                         }}
-                        className="text-caption text-muted hover:text-slate-900"
+                        className="min-h-[44px] min-w-[44px] px-3 py-2 text-caption text-muted hover:text-slate-900 flex items-center justify-center font-semibold rounded-xl hover:bg-canvas-muted transition-colors"
                       >
                         Close
                       </button>
@@ -619,8 +677,9 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
               <span>Pin Clinician Review Note (📌 LS8)</span>
             </div>
             <button
+              type="button"
               onClick={() => setIsAddingComment(false)}
-              className="text-muted hover:text-slate-900 p-1 rounded-lg hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -640,17 +699,19 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             className="w-full bg-canvas-card border border-canvas-border rounded-xl p-2.5 text-slate-900 placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 text-body-sm resize-none"
           />
 
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
             <button
+              type="button"
               onClick={() => setIsAddingComment(false)}
-              className="px-3 py-1.5 rounded-xl bg-canvas-card hover:bg-white text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[36px]"
+              className="min-h-[44px] px-4 py-2.5 rounded-xl bg-canvas-card hover:bg-white text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary flex items-center justify-center"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleSaveDoctorComment}
               disabled={!newCommentText.trim()}
-              className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[36px]"
+              className="min-h-[44px] px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary flex items-center justify-center"
             >
               Pin Comment
             </button>

@@ -221,7 +221,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
       ref={containerRef}
       className="relative bg-white border border-canvas-border rounded-2xl shadow-sm p-3 sm:p-4 select-none"
     >
-      {/* SVG Conflict Arc Overlay — hidden on mobile to avoid clutter */}
+      {/* SVG Conflict Arc Overlay — desktop/tablet overlay */}
       <div className="hidden sm:block">
         <SVGArcOverlay
           arcs={interactionArcs}
@@ -231,7 +231,31 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         />
       </div>
 
-      {/* Main Responsive Grid Container — horizontal scroll on mobile, not clipped */}
+      {/* Mobile Conflict Indicator (< 640px) */}
+      {(interactionArcs.length > 0 || duplicateAlerts.length > 0) && (
+        <div className="sm:hidden mb-2.5 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span className="font-bold truncate">
+              {interactionArcs.length} conflict{interactionArcs.length === 1 ? '' : 's'} on weekly schedule
+            </span>
+          </div>
+          <span className="text-[10px] text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full font-semibold shrink-0">
+            Swipe to review
+          </span>
+        </div>
+      )}
+
+      {/* Mobile Scroll Affordance Cue */}
+      <div className="sm:hidden flex items-center justify-between px-1 pb-2 text-[11px] text-muted font-medium">
+        <span>👈 Mon</span>
+        <span className="text-slate-700 font-semibold bg-canvas-muted px-2.5 py-0.5 rounded-full border border-canvas-border">
+          Swipe horizontally for full week
+        </span>
+        <span>Sun 👉</span>
+      </div>
+
+      {/* Main Responsive Grid Container — smooth horizontal scroll on mobile, not clipped */}
       <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="min-w-[720px] sm:min-w-[960px]">
         {/* Table Structure */}

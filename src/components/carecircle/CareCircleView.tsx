@@ -115,10 +115,10 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
       />
 
       {/* Sub-Navigation Tabs — pill, tokenized */}
-      <div className="flex items-center bg-canvas-card p-1 rounded-xl border border-canvas-border text-body-sm w-fit shadow-sm">
+      <div className="flex items-center gap-1 bg-canvas-card p-1 rounded-xl border border-canvas-border text-body-sm max-w-full overflow-x-auto scrollbar-none shadow-sm">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 rounded-xl font-bold transition-all ${
+          className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'overview'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-600 hover:text-slate-800'
@@ -129,7 +129,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
         <button
           onClick={() => setActiveTab('multi_patient')}
-          className={`px-4 py-2 rounded-xl font-bold transition-all ${
+          className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'multi_patient'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-600 hover:text-slate-800'
@@ -140,7 +140,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
         <button
           onClick={() => setActiveTab('audit_log')}
-          className={`px-4 py-2 rounded-xl font-bold transition-all ${
+          className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'audit_log'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-600 hover:text-slate-800'
@@ -181,7 +181,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-primary-light text-primary flex items-center justify-center font-bold text-sm border border-primary-border">
-                          {link.caregiverName?.charAt(0) || 'R'}
+                          {link.caregiverName?.charAt(0) || 'F'}
                         </div>
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">

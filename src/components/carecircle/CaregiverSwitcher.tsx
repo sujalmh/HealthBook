@@ -48,7 +48,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
         'switch_profile',
         { targetPatientId },
         {
-          patientId: target === 'self' ? 'user-raj-devi' : targetPatientId,
+          patientId: target === 'self' ? 'user-family-member' : targetPatientId,
           activeProfile: {
             userId: activeProfile.userId,
             name: activeProfile.name,
@@ -78,10 +78,10 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
           <span className="text-body-sm font-bold text-slate-800">Active profile:</span>
         </div>
 
-        <div className="flex items-center bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm">
+        <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm overflow-x-auto scrollbar-none max-w-full">
           <button
             onClick={() => handleSwitch('self')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] ${
               !isProxy
                 ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
                 : 'text-slate-600 hover:text-slate-800'
@@ -92,18 +92,18 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
 
           <button
             onClick={() => handleSwitch('mother')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] ${
               isProxy && activeProfile.onBehalfOf?.includes('Patient')
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-600 hover:text-slate-800'
             }`}
           >
-            Mother (S. Devi, 78)
+            Mother (Patient, 78)
           </button>
 
           <button
             onClick={() => handleSwitch('child')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+            className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] ${
               isProxy && activeProfile.onBehalfOf?.includes('Child')
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-600 hover:text-slate-800'
@@ -116,13 +116,13 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
 
       {/* Active Proxy Mode Banner — light, tokenized */}
       {isProxy && (
-        <div className="bg-primary-light border border-primary-border rounded-xl p-4 flex items-center justify-between gap-4 shadow-sm animate-fade-in">
+        <div className="bg-primary-light border border-primary-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-fade-in">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-sm">
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-caption font-black text-primary uppercase tracking-wider">
                   Caregiver proxy mode active
                 </span>
@@ -140,7 +140,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
 
           <button
             onClick={() => handleSwitch('self')}
-            className="px-3 py-2 rounded-xl bg-canvas-card hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold shrink-0 border border-canvas-border transition-colors min-h-[36px]"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-canvas-card hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold shrink-0 border border-canvas-border transition-colors min-h-[44px] flex items-center justify-center"
           >
             Exit proxy mode
           </button>

@@ -149,10 +149,10 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-caption text-muted pt-1">
-                  <span className="flex items-center gap-1">
-                    <User className="w-3.5 h-3.5" />
-                    Prescribed by {card.prescribedBy || 'Dr. Anita Patel, MD'}
+                <div className="flex items-center justify-between text-caption text-muted pt-1 gap-2">
+                  <span className="flex items-center gap-1 min-w-0 truncate">
+                    <User className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Prescribed by {(card.prescribedBy || '').trim() || 'Your doctor'}</span>
                   </span>
                   <span>Prescribed: {new Date(card.prescribedDate).toLocaleDateString()}</span>
                 </div>

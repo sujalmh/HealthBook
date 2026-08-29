@@ -61,16 +61,16 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-canvas-border rounded-2xl max-w-xl w-full shadow-lg overflow-hidden animate-scale-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-amber-50 via-canvas-muted to-rose-50 border-b border-canvas-border flex items-center justify-between">
+        <div className="p-4 sm:p-6 bg-gradient-to-r from-amber-50 via-canvas-muted to-rose-50 border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-200 flex items-center justify-center text-amber-600">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-heading-lg tracking-tight text-slate-900">
+              <h2 className="text-body sm:text-heading-lg font-bold tracking-tight text-slate-900">
                 Missed Dose Adherence Simulator
               </h2>
               <p className="text-caption text-amber-700 font-semibold">
@@ -88,7 +88,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5 text-body text-slate-800">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-body text-slate-800">
           {/* Medication & Slot Selector */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
@@ -144,11 +144,11 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
           </div>
 
           {/* Clinical Risk Summary */}
-          <div className="bg-canvas-muted p-4 rounded-2xl border border-canvas-border space-y-2">
+          <div className="bg-canvas-muted p-3.5 sm:p-4 rounded-2xl border border-canvas-border space-y-2">
             <div className="flex items-center gap-2 text-caption font-bold text-amber-700 uppercase tracking-wider">
               <Activity className="w-4 h-4" /> Projected Clinical Impact
             </div>
-            <p className="text-slate-900 font-medium leading-relaxed text-body">
+            <p className="text-slate-900 font-medium leading-relaxed text-body-sm sm:text-body">
               {simulation.clinicalImpactSummary}
             </p>
             {simulation.projectedBiomarkerDelta && (
@@ -160,7 +160,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
           </div>
 
           {/* Recovery Protocol */}
-          <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 space-y-2">
+          <div className="bg-emerald-50 p-3.5 sm:p-4 rounded-2xl border border-emerald-200 space-y-2">
             <div className="flex items-center gap-2 text-caption font-bold text-emerald-700 uppercase tracking-wider">
               <Sparkles className="w-4 h-4" /> Recommended Recovery Protocol
             </div>
@@ -186,12 +186,12 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
         </div>
 
         {/* Footer with Question Bank Action */}
-        <div className="p-6 bg-canvas-muted border-t border-canvas-border flex items-center justify-between gap-4">
+        <div className="p-4 sm:p-6 bg-canvas-muted border-t border-canvas-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
           <button
             type="button"
             onClick={handleAddQuestion}
             disabled={questionAdded}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-white text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors disabled:opacity-50 min-h-[44px]"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-white text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors disabled:opacity-50 min-h-[44px]"
           >
             {questionAdded ? (
               <>
@@ -209,7 +209,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold transition-colors min-h-[44px] shadow-sm"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold transition-colors min-h-[44px] flex items-center justify-center shadow-sm"
           >
             Close Simulation
           </button>

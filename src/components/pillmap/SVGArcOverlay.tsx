@@ -245,8 +245,8 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
 
       {/* Slide-over / Modal Clinical Mechanism Sheet */}
       {selectedArc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full shadow-lg overflow-hidden animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
             {/* Header */}
             <div
               className={`p-4 border-b flex items-center justify-between ${
@@ -259,12 +259,12 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 {selectedArc.severity === 'CONTRAINDICATED' ? (
-                  <ShieldAlert className="w-6 h-6 text-rose-400" />
+                  <ShieldAlert className="w-6 h-6 text-rose-500 shrink-0" />
                 ) : (
-                  <AlertTriangle className="w-6 h-6 text-amber-400" />
+                  <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0" />
                 )}
                 <div>
-                  <h3 className="font-bold text-base tracking-tight">
+                  <h3 className="font-bold text-body sm:text-base tracking-tight">
                     {selectedArc.severity === 'CONTRAINDICATED'
                       ? 'Contraindicated Drug Interaction'
                       : selectedArc.severity === 'MAJOR'
@@ -278,7 +278,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
               </div>
               <button
                 onClick={() => setSelectedArc(null)}
-                className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-2 rounded-xl hover:bg-black/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0"
                 aria-label="Close interaction details"
               >
                 <X className="w-5 h-5" />
@@ -286,21 +286,21 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4 text-slate-800 text-body">
+            <div className="p-4 sm:p-6 space-y-4 text-slate-800 text-body">
               <div className="bg-canvas-muted p-3.5 rounded-xl border border-canvas-border space-y-1">
-                <span className="text-caption tracking-wide uppercase text-muted">
+                <span className="text-caption tracking-wide uppercase text-muted font-bold">
                   Clinical Mechanism
                 </span>
-                <p className="text-slate-900 leading-relaxed font-medium">
+                <p className="text-slate-900 leading-relaxed font-medium text-body-sm sm:text-body">
                   {selectedArc.mechanism}
                 </p>
               </div>
 
               <div className="bg-sky-50 p-3.5 rounded-xl border border-sky-200 space-y-1">
-                <span className="text-caption tracking-wide uppercase text-sky-700 flex items-center gap-1.5">
+                <span className="text-caption tracking-wide uppercase text-sky-700 font-bold flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" /> Recommended Clinical Action
                 </span>
-                <p className="text-sky-900 leading-relaxed text-body">
+                <p className="text-sky-900 leading-relaxed text-body-sm sm:text-body">
                   {selectedArc.clinicalGuidance}
                 </p>
               </div>
@@ -314,10 +314,10 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-canvas-muted border-t border-canvas-border flex justify-end">
+            <div className="p-3.5 sm:p-4 bg-canvas-muted border-t border-canvas-border flex justify-end">
               <button
                 onClick={() => setSelectedArc(null)}
-                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
+                className="w-full sm:w-auto px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-body-sm font-bold transition-colors shadow-sm min-h-[44px] flex items-center justify-center"
               >
                 Close Explanation
               </button>

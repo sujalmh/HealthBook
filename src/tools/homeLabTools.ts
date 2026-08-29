@@ -237,8 +237,8 @@ export const doctorReviewCommentTool: WebMCPToolDefinition = {
     const doctorComment = {
       commentId: `comment_${Date.now()}`,
       labId: params.labId,
-      doctorId: params.doctorId || 'dr_patel_md',
-      doctorName: params.doctorName || 'Dr. A. Patel, MD',
+      doctorId: (params.doctorId || '').trim() || 'clinician',
+      doctorName: (params.doctorName || '').trim() || 'Your doctor',
       commentText: params.commentText,
       pinnedMarker: params.pinnedMarker || 'Creatinine 2026-08-28',
       timestamp: new Date().toISOString(),
@@ -264,7 +264,7 @@ export const doctorReviewCommentTool: WebMCPToolDefinition = {
       tool: 'doctor_review_comment',
       timestamp: new Date().toISOString(),
       data: doctorComment,
-      plainLanguageSummary: `Dr. Patel pinned comment: "${params.commentText}"`,
+      plainLanguageSummary: `Your doctor pinned comment: "${params.commentText}"`,
       humanApprovalRequired: false
     };
   }
@@ -294,28 +294,28 @@ export const proposeDosageChangeTool: WebMCPToolDefinition = {
     canvasRerenders: ['pillmap', 'dossier'],
     toastNotification: {
       type: 'warning',
-      messageTemplate: 'Dr. Patel submitted a medication adjustment proposal.'
+      messageTemplate: 'Your doctor submitted a medication adjustment proposal.'
     }
   },
   execute: async (params: { medName: string; currentDose?: string; proposedDose: string; reason: string; linkedLabId?: string; doctorName?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const proposal: ProposalRecord = {
       id: `prop_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
       patientId: context.patientId,
-      doctorName: params.doctorName || 'Dr. A. Patel, MD',
-      doctorId: 'dr_patel_md',
+      doctorName: (params.doctorName || '').trim() || 'Your doctor',
+      doctorId: 'clinician',
       type: 'dose_change',
       medName: params.medName,
       previousDose: params.currentDose || '1000mg',
       proposedDose: params.proposedDose,
       reason: params.reason,
-      plainNarration: `Dr. Patel recommends changing ${params.medName} from ${params.currentDose || '1000mg'} to ${params.proposedDose} because ${params.reason}.`,
+      plainNarration: `${(params.doctorName || '').trim() || 'Your doctor'} recommends changing ${params.medName} from ${params.currentDose || '1000mg'} to ${params.proposedDose} because ${params.reason}.`,
       linkedLabId: params.linkedLabId || 'lab_pending',
       status: 'pending',
       timestamp: new Date().toISOString()
     };
 
     context.vault.addProposal(proposal, {
-      userId: proposal.doctorId || 'dr_patel_md',
+      userId: (proposal.doctorId || '').trim() || 'clinician',
       userName: proposal.doctorName,
       role: 'doctor'
     });

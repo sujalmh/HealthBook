@@ -183,11 +183,11 @@ export const DossierView: React.FC<DossierViewProps> = ({
         </div>
 
         {/* Action Buttons: Export Package, Handover Access, Refresh */}
-        <div className="flex items-center gap-2.5 self-end md:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={loadCompiledDossier}
             disabled={isLoading}
-            className="p-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted text-body-sm font-bold border border-canvas-border transition-colors min-h-[44px] min-w-[44px]"
+            className="p-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted text-body-sm font-bold border border-canvas-border transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             title="Refresh dossier"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -248,17 +248,17 @@ export const DossierView: React.FC<DossierViewProps> = ({
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-caption text-muted uppercase font-bold tracking-wider">Privacy</span>
-            <p className="text-heading-md text-clinical-emerald">Private & secure</p>
+            <span className="text-caption text-muted uppercase font-bold tracking-wider">Safety stamp</span>
+            <p className="text-heading-md text-slate-900">Verified</p>
           </div>
         </div>
       </div>
 
       {/* Navigation Sub-Tabs — pill, tokenized */}
-      <div className="flex items-center bg-canvas-card p-1 rounded-xl border border-canvas-border text-body-sm w-fit shadow-sm">
+      <div className="flex items-center gap-1 bg-canvas-card p-1 rounded-xl border border-canvas-border text-body-sm max-w-full overflow-x-auto scrollbar-none shadow-sm">
         <button
           onClick={() => setActiveTab('timeline')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'timeline'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-600 hover:text-slate-800'
@@ -270,7 +270,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
         <button
           onClick={() => setActiveTab('snapshot')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'snapshot'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-600 hover:text-slate-800'
@@ -282,7 +282,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
         <button
           onClick={() => setActiveTab('source_inspector')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'source_inspector'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
               : 'text-slate-600 hover:text-slate-800'
@@ -296,7 +296,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           onClick={() => {
             setIsDoctorAccessModalOpen(true);
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all text-slate-600 hover:text-slate-800`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all text-slate-600 hover:text-slate-800 whitespace-nowrap min-h-[40px]`}
         >
           <KeyRound className="w-4 h-4" />
           <span>Share Settings</span>

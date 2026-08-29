@@ -549,7 +549,7 @@ export class ClinicalReconciliationEngine {
         'Are there any OTC supplements or pain relievers I must strictly avoid with my new blood thinner?'
       ],
       emergencyContact: {
-        clinicName: 'Metropolitan Cardiac Institute Outpatient Clinic',
+        clinicName: 'Healthcare Facility Outpatient Clinic',
         phone: '1-800-555-CARD',
         dischargeWardPhone: '1-800-555-WARD'
       },

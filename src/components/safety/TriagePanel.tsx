@@ -44,7 +44,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     vitalSigns: { systolicBP: 185, diastolicBP: 105, heartRate: 92 },
     timestamp: new Date().toISOString(),
     triagePriority: 'URGENT' as const,
-    firstAidAdvice: "Alert dispatched to Dr. Patel's triage queue."
+    firstAidAdvice: "Alert dispatched to your care team's triage queue."
   };
 
   // Remote Pillbox Action 1: Remove NSAID Ibuprofen
@@ -60,7 +60,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId,
-          activeProfile: { userId: 'dr_patel_md', name: 'Dr. Anita Patel, MD', role: 'doctor', isProxy: false },
+          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
         }
@@ -70,7 +70,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         eventBus.dispatchToast({
           type: 'warning',
           title: 'Stop Order Dispatched',
-          message: 'Dr. Patel ordered immediate discontinuation of Ibuprofen 800mg.'
+          message: 'Your care team ordered immediate discontinuation of Ibuprofen 800mg.'
         });
         eventBus.emit('proposal_submitted', { patientId });
         if (onActionDispatched) onActionDispatched();
@@ -95,7 +95,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId,
-          activeProfile: { userId: 'dr_patel_md', name: 'Dr. Anita Patel, MD', role: 'doctor', isProxy: false },
+          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
         }
@@ -105,7 +105,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         eventBus.dispatchToast({
           type: 'warning',
           title: 'Dose Increase Dispatched',
-          message: 'Dr. Patel proposed titrating Amlodipine to 10mg daily.'
+          message: 'Your care team proposed titrating Amlodipine to 10mg daily.'
         });
         eventBus.emit('proposal_submitted', { patientId });
         if (onActionDispatched) onActionDispatched();
@@ -131,7 +131,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId,
-          activeProfile: { userId: 'dr_patel_md', name: 'Dr. Anita Patel, MD', role: 'doctor', isProxy: false },
+          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
         }
@@ -141,7 +141,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         eventBus.dispatchToast({
           type: 'warning',
           title: 'Medication Addition Dispatched',
-          message: 'Dr. Patel proposed adding Furosemide 20mg QAM.'
+          message: 'Your care team proposed adding Furosemide 20mg QAM.'
         });
         eventBus.emit('proposal_submitted', { patientId });
         if (onActionDispatched) onActionDispatched();
@@ -165,7 +165,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-caption text-clinical-red uppercase tracking-wider font-bold">
-                  Doctor triage dashboard — Dr. Anita Patel, MD
+                  Doctor triage dashboard — Your care team
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-rose-100 text-clinical-red text-[10px] font-bold border border-rose-200 animate-pulse">
                   PRIORITY: {activeReport.triagePriority || 'URGENT'}
@@ -251,10 +251,11 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
             <button
               onClick={handleRemoveIbuprofen}
               disabled={isExecuting === 'remove_ibuprofen'}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20"
+              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 min-h-[44px]"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>{isExecuting === 'remove_ibuprofen' ? 'Dispatching...' : 'Dispatch Stop Order (doctor_remove_medication)'}</span>
+              <Send className="w-4 h-4 shrink-0" />
+              <span>{isExecuting === 'remove_ibuprofen' ? 'Dispatching...' : 'Dispatch Stop Order'}</span>
+              <span className="hidden sm:inline font-mono opacity-80">(doctor_remove_medication)</span>
             </button>
           </div>
 
@@ -276,10 +277,11 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
             <button
               onClick={handleTitrateAmlodipine}
               disabled={isExecuting === 'titrate_amlodipine'}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-sky-600/20"
+              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-sky-600/20 min-h-[44px]"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>{isExecuting === 'titrate_amlodipine' ? 'Dispatching...' : 'Dispatch Dose Increase (doctor_change_dose)'}</span>
+              <Send className="w-4 h-4 shrink-0" />
+              <span>{isExecuting === 'titrate_amlodipine' ? 'Dispatching...' : 'Dispatch Dose Increase'}</span>
+              <span className="hidden sm:inline font-mono opacity-80">(doctor_change_dose)</span>
             </button>
           </div>
 
@@ -301,10 +303,11 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
             <button
               onClick={handleAddDiuretic}
               disabled={isExecuting === 'add_furosemide'}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20"
+              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 min-h-[44px]"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>{isExecuting === 'add_furosemide' ? 'Dispatching...' : 'Dispatch Add Medication (doctor_add_medication)'}</span>
+              <Send className="w-4 h-4 shrink-0" />
+              <span>{isExecuting === 'add_furosemide' ? 'Dispatching...' : 'Dispatch Add Medication'}</span>
+              <span className="hidden sm:inline font-mono opacity-80">(doctor_add_medication)</span>
             </button>
           </div>
 
@@ -325,10 +328,11 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
 
             <button
               onClick={() => setIsFollowupOpen(true)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 min-h-[44px]"
             >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Configure Follow-Up Order (schedule_followup)</span>
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span>Configure Follow-Up Order</span>
+              <span className="hidden sm:inline font-mono opacity-80">(schedule_followup)</span>
             </button>
           </div>
         </div>

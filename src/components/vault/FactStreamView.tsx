@@ -130,12 +130,12 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
           </div>
 
           {/* Category Filter — pill tokenized */}
-          <div className="flex items-center gap-2 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm overflow-x-auto scrollbar-none shrink-0">
+          <div className="flex items-center gap-1.5 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm overflow-x-auto scrollbar-none max-w-full shrink-0">
             {['all', 'lab', 'medication', 'allergy', 'condition'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg capitalize font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary whitespace-nowrap min-h-[32px] ${
+                className={`px-3.5 py-2 rounded-lg capitalize font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary whitespace-nowrap min-h-[36px] ${
                   selectedCategory === cat
                     ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm'
                     : 'text-muted hover:text-slate-900 hover:bg-white border border-transparent'

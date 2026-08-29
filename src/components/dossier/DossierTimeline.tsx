@@ -128,9 +128,9 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
       </div>
 
       {/* Timeline Stream Container */}
-      <div className="relative border-l-2 border-canvas-border ml-4 sm:ml-6 pl-6 sm:pl-8 space-y-6">
+      <div className="relative border-l-2 border-canvas-border ml-3 sm:ml-6 pl-4 sm:pl-8 space-y-5 sm:space-y-6">
         {filteredItems.length === 0 ? (
-          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-8 text-center text-muted space-y-2 shadow-sm">
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 sm:p-8 text-center text-muted space-y-2 shadow-sm">
             <Clock className="w-8 h-8 text-muted-light mx-auto" />
             <p className="font-semibold text-heading-md text-slate-900">No events found</p>
             <p className="text-body-sm">No events match your filter — try resetting.</p>
@@ -139,7 +139,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
                 setSelectedCategory('all');
                 setSearchQuery('');
               }}
-              className="text-body-sm text-accent font-bold hover:underline"
+              className="text-body-sm text-accent font-bold hover:underline min-h-[44px]"
             >
               Reset filters
             </button>
@@ -151,12 +151,12 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
               className="relative group transition-all"
             >
               {/* Timeline Bullet Anchor */}
-              <div className="absolute -left-[35px] sm:-left-[43px] top-4 w-7 h-7 rounded-full bg-canvas-muted border-2 border-canvas-border group-hover:border-primary flex items-center justify-center transition-colors shadow-sm">
+              <div className="absolute -left-[26px] sm:-left-[43px] top-4 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-canvas-muted border-2 border-canvas-border group-hover:border-primary flex items-center justify-center transition-colors shadow-sm">
                 {getCategoryIcon(item.category)}
               </div>
 
               {/* Event Card */}
-              <div className="bg-canvas-card border border-canvas-border hover:border-primary-border rounded-xl p-5 shadow-sm space-y-3 transition-all">
+              <div className="bg-canvas-card border border-canvas-border hover:border-primary-border rounded-xl p-3.5 sm:p-5 shadow-sm space-y-3 transition-all">
                 {/* Event Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                   <div className="flex items-center gap-2">

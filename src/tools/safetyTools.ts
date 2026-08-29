@@ -47,7 +47,7 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
       timestamp: new Date().toISOString(),
       triagePriority: isSevere ? 'URGENT' : 'ROUTINE',
       firstAidAdvice: isSevere
-        ? "Report sent to Dr. Patel's urgent triage queue. If you experience severe chest pain or sudden inability to breathe, call 911 immediately."
+        ? "Report sent to your care team's urgent triage queue. If you experience severe chest pain or sudden inability to breathe, call 911 immediately."
         : 'Report logged for clinician review.'
     };
 
@@ -97,7 +97,7 @@ export const notifyDoctorTool: WebMCPToolDefinition = {
     const receipt = {
       notificationId: `notif_${Date.now()}`,
       priority: params.priority,
-      routedToDoctor: 'Dr. A. Patel, MD (Cardiology Triage)',
+      routedToDoctor: 'Your care team',
       timestamp: new Date().toISOString(),
       status: 'delivered_to_doctor_inbox'
     };
@@ -107,7 +107,7 @@ export const notifyDoctorTool: WebMCPToolDefinition = {
       tool: 'notify_doctor',
       timestamp: new Date().toISOString(),
       data: receipt,
-      plainLanguageSummary: `High-priority notification (${params.priority}) successfully delivered to Dr. Patel's triage queue.`,
+      plainLanguageSummary: `High-priority notification (${params.priority}) successfully delivered to your care team's triage queue.`,
       humanApprovalRequired: false
     };
   }
@@ -136,17 +136,17 @@ export const doctorAddMedicationTool: WebMCPToolDefinition = {
       {
         id: `prop_add_${Date.now()}`,
         patientId: context.patientId,
-        doctorName: 'Dr. A. Patel, MD',
+        doctorName: 'Your doctor',
         type: 'add_med',
         medName: params.medName,
         proposedDose: params.dose,
         proposedSlot: params.slot || 'morning',
         reason: params.reason,
-        plainNarration: `Dr. Patel recommends adding ${params.medName} ${params.dose} because: ${params.reason}.`,
+        plainNarration: `Your doctor recommends adding ${params.medName} ${params.dose} because: ${params.reason}.`,
         status: 'pending',
         timestamp: new Date().toISOString()
       },
-      { userId: 'dr_patel_md', userName: 'Dr. A. Patel, MD', role: 'doctor' }
+      { userId: 'clinician', userName: 'Your doctor', role: 'doctor' }
     );
 
     return {
@@ -180,7 +180,7 @@ export const doctorRemoveMedicationTool: WebMCPToolDefinition = {
   uiSideEffects: {
     toastNotification: {
       type: 'warning',
-      messageTemplate: 'Dr. Patel recommends stopping a medication.'
+      messageTemplate: 'Your doctor recommends stopping a medication.'
     }
   },
   execute: async (params: { medName: string; reason: string; patientId?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
@@ -200,16 +200,16 @@ export const doctorRemoveMedicationTool: WebMCPToolDefinition = {
       {
         id: `prop_remove_${Date.now()}`,
         patientId: params.patientId || context.patientId,
-        doctorName: 'Dr. A. Patel, MD',
+        doctorName: 'Your doctor',
         type: 'remove_med',
         medName: params.medName,
         proposedDose: '0mg',
         reason: params.reason,
-        plainNarration: `Dr. Patel recommends STOPPING ${params.medName} immediately due to: ${params.reason}.`,
+        plainNarration: `Your doctor recommends stopping ${params.medName} immediately due to: ${params.reason}.`,
         status: 'pending',
         timestamp: new Date().toISOString()
       },
-      { userId: 'dr_patel_md', userName: 'Dr. A. Patel, MD', role: 'doctor' }
+      { userId: 'clinician', userName: 'Your doctor', role: 'doctor' }
     );
 
     return {
@@ -245,16 +245,16 @@ export const doctorChangeDoseTool: WebMCPToolDefinition = {
       {
         id: `prop_change_${Date.now()}`,
         patientId: context.patientId,
-        doctorName: 'Dr. A. Patel, MD',
+        doctorName: 'Your doctor',
         type: 'dose_change',
         medName: params.medName,
         proposedDose: params.newDose,
         reason: params.reason,
-        plainNarration: `Dr. Patel adjusted ${params.medName} dose to ${params.newDose} because: ${params.reason}.`,
+        plainNarration: `Your doctor adjusted ${params.medName} dose to ${params.newDose} because: ${params.reason}.`,
         status: 'pending',
         timestamp: new Date().toISOString()
       },
-      { userId: 'dr_patel_md', userName: 'Dr. A. Patel, MD', role: 'doctor' }
+      { userId: 'clinician', userName: 'Your doctor', role: 'doctor' }
     );
 
     return {
@@ -380,15 +380,15 @@ export const scheduleFollowupTool: WebMCPToolDefinition = {
       {
         id: `apt_${Date.now()}`,
         patientId: context.patientId,
-        title: `🏥 ${params.providerName || 'Dr. Patel'} Follow-up: ${params.reason}`,
+        title: `🏥 ${(params.providerName || '').trim() || 'Your doctor'} Follow-up: ${params.reason}`,
         eventType: 'doctor_followup',
         scheduledDate: params.date.startsWith('+') ? new Date(Date.now() + 3 * 86400000).toISOString() : params.date,
         reason: params.reason,
-        providerName: params.providerName || 'Dr. A. Patel, MD',
+        providerName: (params.providerName || '').trim() || 'Your doctor',
         notifyHoursBefore: [24, 2],
         isCompleted: false,
         syncedToCalendar: true,
-        sharedWithCaregivers: ['user_raj_son']
+        sharedWithCaregivers: ['user_family']
       },
       { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role }
     );
@@ -435,7 +435,7 @@ export const scheduleLabTool: WebMCPToolDefinition = {
       testPanel: params.testPanel,
       biomarkers: ['Serum Creatinine', 'Serum Potassium', 'eGFR'],
       dueDate: params.targetDate || new Date(Date.now() + 28 * 86400000).toISOString(),
-      prescribedBy: 'Dr. A. Patel, MD',
+      prescribedBy: 'Your doctor',
       prescribedDate: new Date().toISOString(),
       instructions: 'Fasting not required for repeat kidney panel. Upload smartphone photo of result slip.',
       status: 'due_soon' as const
@@ -479,7 +479,7 @@ BEGIN:VEVENT
 UID:event-${params.eventId}@carecanvas.app
 DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
 DTSTART:${new Date(Date.now() + 3 * 86400000).toISOString().replace(/[-:]/g, '').split('.')[0]}Z
-SUMMARY:Dr. Patel Clinic Follow-Up
+SUMMARY:Clinic Follow-Up
 DESCRIPTION:Edema and kidney evaluation appointment.
 BEGIN:VALARM
 TRIGGER:-P1D
@@ -502,8 +502,8 @@ END:VCALENDAR
       data: {
         eventId: params.eventId,
         icsData: icsContent,
-        syncedRecipients: params.recipients || ['patient', 'caregiver_raj'],
-        googleCalendarIntent: 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Dr+Patel+Follow-up'
+        syncedRecipients: params.recipients || ['patient', 'caregiver_family'],
+        googleCalendarIntent: 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Clinic+Follow-up'
       },
       plainLanguageSummary: 'Calendar synchronized with 24-hour and 2-hour alert notifications for patient and caregiver.',
       humanApprovalRequired: false

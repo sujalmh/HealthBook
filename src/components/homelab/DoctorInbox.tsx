@@ -64,13 +64,13 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         {
           labId: selectedLabId,
           commentText: pinnedText,
-          doctorName: 'Dr. Anita Patel, MD (Nephrology)',
-          doctorId: 'dr_patel_md',
+          doctorName: 'Your doctor',
+          doctorId: 'clinician',
           pinnedMarker: 'eGFR 28 mL/min'
         },
         {
           patientId,
-          activeProfile: { userId: 'dr_patel_md', name: 'Dr. Anita Patel, MD', role: 'doctor', isProxy: false },
+          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
         }
@@ -105,12 +105,12 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
           currentDose: propCurrentDose,
           proposedDose: propNewDose,
           reason: propReason,
-          doctorName: 'Dr. Anita Patel, MD',
+          doctorName: 'Your doctor',
           linkedLabId: selectedLabId
         },
         {
           patientId,
-          activeProfile: { userId: 'dr_patel_md', name: 'Dr. Anita Patel, MD', role: 'doctor', isProxy: false },
+          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
         }
@@ -145,7 +145,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         },
         {
           patientId,
-          activeProfile: { userId: 'dr_patel_md', name: 'Dr. Anita Patel, MD', role: 'doctor', isProxy: false },
+          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
         }
@@ -180,7 +180,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
                 Doctor Triage & Review Inbox
               </span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-caption font-semibold border border-emerald-200">
-                Dr. Anita Patel, MD (Active)
+                Clinician (Active)
               </span>
             </div>
             <h3 className="text-heading-md text-slate-900">
@@ -250,14 +250,14 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
           </div>
 
           <form onSubmit={handleSubmitProposal} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-body-sm font-semibold text-slate-700">Target Medication</label>
                 <input
                   type="text"
                   value={propMedName}
                   onChange={(e) => setPropMedName(e.target.value)}
-                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-slate-800 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-slate-800 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
                   placeholder="e.g. Metformin"
                 />
               </div>
@@ -267,7 +267,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
                   type="text"
                   value={propCurrentDose}
                   onChange={(e) => setPropCurrentDose(e.target.value)}
-                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
                   placeholder="e.g. 1000mg BID"
                 />
               </div>
@@ -279,7 +279,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
                 type="text"
                 value={propNewDose}
                 onChange={(e) => setPropNewDose(e.target.value)}
-                className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-emerald-700 font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-emerald-700 font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
                 placeholder="e.g. 500mg Daily (Morning Only)"
               />
             </div>

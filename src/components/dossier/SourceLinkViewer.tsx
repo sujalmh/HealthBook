@@ -144,14 +144,15 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
         </div>
 
         {/* Action Buttons: Page Nav, Zoom Controls, Close */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           {/* Page Switcher */}
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs">
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs min-h-[36px]">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
-              className="p-1 rounded-lg text-slate-600 hover:text-slate-800 disabled:opacity-30 transition-colors"
+              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-800 disabled:opacity-30 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
               title="Previous Page"
+              aria-label="Previous page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -159,19 +160,21 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
             <button
               onClick={() => setCurrentPage(p => Math.min(2, p + 1))}
               disabled={currentPage >= 2}
-              className="p-1 rounded-lg text-slate-600 hover:text-slate-800 disabled:opacity-30 transition-colors"
+              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-800 disabled:opacity-30 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
               title="Next Page"
+              aria-label="Next page"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           {/* Zoom Controls */}
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs">
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs min-h-[36px]">
             <button
               onClick={handleZoomOut}
-              className="p-1 hover:bg-slate-100 rounded text-slate-700 transition-colors"
+              className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
               title="Zoom Out"
+              aria-label="Zoom out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
@@ -180,15 +183,17 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
             </span>
             <button
               onClick={handleZoomIn}
-              className="p-1 hover:bg-slate-100 rounded text-slate-700 transition-colors"
+              className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
               title="Zoom In"
+              aria-label="Zoom in"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleResetZoom}
-              className="p-1 hover:bg-slate-100 rounded text-slate-600 hover:text-slate-800 transition-colors ml-1 border-l border-slate-200"
+              className="p-1.5 hover:bg-slate-100 rounded text-slate-600 hover:text-slate-800 transition-colors ml-1 border-l border-slate-200 min-h-[28px] min-w-[28px] flex items-center justify-center"
               title="Reset Zoom & Center"
+              aria-label="Reset zoom"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -197,7 +202,8 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors"
+              className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors flex items-center justify-center shrink-0 min-h-[36px] min-w-[36px]"
+              aria-label="Close source link viewer"
             >
               ✕
             </button>
@@ -208,7 +214,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
       {/* Document Viewport — tokenized */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto bg-canvas-muted rounded-xl border border-canvas-border p-6 min-h-[440px] max-h-[560px] relative flex justify-center items-start shadow-inner"
+        className="flex-1 overflow-auto bg-canvas-muted rounded-xl border border-canvas-border p-3 sm:p-6 min-h-[260px] sm:min-h-[440px] max-h-[50vh] sm:max-h-[560px] relative flex justify-center items-start shadow-inner"
       >
         <div
           ref={docWrapperRef}
@@ -218,14 +224,14 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
           {/* Document Content Render Based on Document Type */}
           {activeDocId.includes('nephrology') || activeFileName.includes('nephrology') ? (
             <div className="space-y-4">
-              <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start">
-                <div>
-                  <h1 className="font-bold text-sm tracking-wider uppercase">REGIONAL NEPHROLOGY CLINIC</h1>
+              <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <h1 className="font-bold text-sm tracking-wider uppercase truncate">Healthcare Facility</h1>
                   <p className="text-[10px] text-slate-600 font-sans">Specialist Consultation Note</p>
                 </div>
                 <div className="text-right text-[10px] text-slate-600 font-mono">
                   <div>Date: 2024-04-12</div>
-                  <div>Attending: Dr. Chen, MD</div>
+                  <div>Attending: —</div>
                 </div>
               </div>
 
@@ -261,9 +267,9 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
             </div>
           ) : activeDocId.includes('homelab') || activeFileName.includes('homelab') ? (
             <div className="space-y-4">
-              <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start">
-                <div>
-                  <h1 className="font-bold text-sm tracking-wider uppercase">METROPOLIS HEALTHCARE</h1>
+              <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <h1 className="font-bold text-sm tracking-wider uppercase truncate">Healthcare Facility</h1>
                   <p className="text-[10px] text-slate-600 font-sans">Remote Specimen Collection & Rapid Biomarker Slip</p>
                 </div>
                 <div className="text-right text-[10px] text-slate-600 font-mono">
@@ -317,12 +323,12 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
               </div>
             </div>
           ) : (
-            /* Default: Metropolitan Cardiac Institute Discharge Summary */
+            /* Default: Healthcare Facility Discharge Summary */
             <div className="space-y-4">
-              <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start">
-                <div>
-                  <h1 className="font-bold text-sm tracking-wider uppercase">METROPOLITAN CARDIAC INSTITUTE</h1>
-                  <p className="text-[10px] text-slate-600 font-sans">Inpatient Discharge Summary & Reconciliation Orders</p>
+              <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <h1 className="font-bold text-sm tracking-wider uppercase truncate">Healthcare Facility</h1>
+                  <p className="text-[10px] text-slate-600 font-sans">Discharge Summary & Care Plan</p>
                 </div>
                 <div className="text-right text-[10px] text-slate-600 font-mono">
                   <div>Discharge: 2026-08-25</div>
@@ -332,7 +338,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
 
               <div className="grid grid-cols-2 gap-2 text-[10px] bg-slate-100 p-2.5 rounded font-sans">
                 <div><strong>Patient:</strong> Patient (78F)</div>
-                <div><strong>Attending:</strong> Dr. A. Patel, MD, FACC</div>
+                <div><strong>Attending:</strong> —</div>
                 <div><strong>Admission:</strong> 2026-08-20</div>
                 <div><strong>Discharge:</strong> 2026-08-25</div>
               </div>

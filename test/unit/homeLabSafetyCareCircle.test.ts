@@ -330,7 +330,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
 
       expect(result.success).toBe(true);
       expect(result.data.triagePriority).toBe('URGENT');
-      expect(result.data.firstAidAdvice).toContain('Dr. Patel');
+      expect(result.data.firstAidAdvice.toLowerCase()).toMatch(/your care team|triage queue|your doctor/);
 
       // Check danger report stored in vault
       const reports = vault.getDangerReports(patientId);
