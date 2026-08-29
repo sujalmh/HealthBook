@@ -225,8 +225,12 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
           </div>
 
           {grants.length === 0 ? (
-            <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 text-center text-slate-400 text-xs">
-              No active clinician access grants found.
+            <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 text-center space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <p className="text-xs font-bold text-slate-200">No doctors shared with yet</p>
+              <p className="text-xs text-slate-400">When you want to share, add a doctor above — you can remove access anytime.</p>
             </div>
           ) : (
             <div className="space-y-3">

@@ -609,6 +609,19 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         )}
       </div>
 
+      {/* Friendly empty when no medicines */}
+      {activeMedsCount === 0 && viewMode !== 'elder' ? (
+        <div className="bg-slate-900/60 border border-dashed border-slate-700 rounded-3xl p-10 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
+            <Pill className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-100">No medicines yet</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">Add a medicine below, or go to <span className="text-sky-300 font-semibold">Medicine Review</span> to bring your hospital list here.</p>
+          <button onClick={() => setIsAddMedOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow">
+            <Plus className="w-4 h-4" /> Add a medicine
+          </button>
+        </div>
+      ) : null}
       {/* Main View Mode Render */}
       {viewMode === 'elder' ? (
         <SimpleElderView
@@ -617,7 +630,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           pillsInSlot={grid.monday?.morning || []}
           onSwitchToFullView={() => setViewMode('canvas')}
         />
-      ) : (
+      ) : activeMedsCount === 0 ? null : (
         <div className="space-y-6">
           {/* Interactive 7x4 Weekly Pillbox Grid */}
           <PillboxGrid

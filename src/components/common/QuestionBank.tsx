@@ -163,8 +163,12 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
       {/* Questions List */}
       <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
         {filteredQuestions.length === 0 ? (
-          <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-800 text-slate-500 text-xs">
-            No questions recorded yet. Use the form above or trigger clinical tools (RxBridge, LabStory) to auto-generate questions.
+          <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-800 space-y-2">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto">
+              <HelpCircle className="w-5 h-5" />
+            </div>
+            <p className="text-xs font-bold text-slate-300">No questions yet</p>
+            <p className="text-xs text-slate-500">Add one above for your next visit — we'll keep it safe here.</p>
           </div>
         ) : (
           filteredQuestions.map((q) => (

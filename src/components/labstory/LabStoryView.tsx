@@ -302,32 +302,51 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         </div>
       </div>
 
+      {/* Friendly empty when no labs yet */}
+      {labs.length === 0 ? (
+        <div className="bg-slate-900/60 border border-dashed border-slate-700 rounded-3xl p-10 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center mx-auto">
+            <Activity className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-slate-100">No lab results yet</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">Upload past results or add one manually — your chart will appear here and update your other sections automatically.</p>
+          <div className="flex items-center justify-center gap-2">
+            <button onClick={() => setIsDropzoneOpen(true)} className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold">Add Past Results</button>
+            <button onClick={() => setIsManualAddOpen(true)} className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold">Add Manually</button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Story Sentence Longitudinal Trajectory Narrative (LS6) */}
-      <StorySentence marker={selectedMarker} labs={activeMarkerLabs} />
+      {labs.length > 0 && <StorySentence marker={selectedMarker} labs={activeMarkerLabs} />}
 
       {/* Main Interactive Visual Canvas: Biomarker Chart (LS2, LS5, LS8) */}
-      <BiomarkerChart
-        markerName={selectedMarker}
-        labs={activeMarkerLabs}
-        activeZoom={activeZoom}
-        onZoomChange={setActiveZoom}
-        showReferenceRange={showReferenceRange}
-        showOptimalRange={showOptimalRange}
-        onToggleReferenceRange={setShowReferenceRange}
-        onToggleOptimalRange={setShowOptimalRange}
-        onAddDoctorComment={handleAddDoctorComment}
-        causalHighlightWindow={causalWindow}
-      />
+      {labs.length > 0 && (
+        <BiomarkerChart
+          markerName={selectedMarker}
+          labs={activeMarkerLabs}
+          activeZoom={activeZoom}
+          onZoomChange={setActiveZoom}
+          showReferenceRange={showReferenceRange}
+          showOptimalRange={showOptimalRange}
+          onToggleReferenceRange={setShowReferenceRange}
+          onToggleOptimalRange={setShowOptimalRange}
+          onAddDoctorComment={handleAddDoctorComment}
+          causalHighlightWindow={causalWindow}
+        />
+      )}
 
       {/* Medication Timeline Overlay Bands (LS4) */}
-      <MedOverlayBands minTime={minEpoch} maxTime={maxEpoch} />
+      {labs.length > 0 && <MedOverlayBands minTime={minEpoch} maxTime={maxEpoch} />}
 
       {/* "Ask Why" Conversational Causal Engine Panel (LS3, LS7) */}
-      <CausalQueryPanel
-        patientId={patientId}
-        activeMarker={selectedMarker}
-        onHighlightCausalWindow={setCausalWindow}
-      />
+      {labs.length > 0 && (
+        <CausalQueryPanel
+          patientId={patientId}
+          activeMarker={selectedMarker}
+          onHighlightCausalWindow={setCausalWindow}
+        />
+      )}
 
       {/* Tabular Longitudinal Results History */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">

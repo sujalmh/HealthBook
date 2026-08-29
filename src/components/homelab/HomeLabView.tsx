@@ -12,7 +12,8 @@ import {
   Activity,
   AlertTriangle,
   RefreshCw,
-  Plus
+  Plus,
+  CheckCircle2
 } from 'lucide-react';
 import { DueCardList } from './DueCardList';
 import { UploadLabModal } from './UploadLabModal';
@@ -185,8 +186,12 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
             </div>
 
             {proposals.length === 0 ? (
-              <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 text-center text-xs text-slate-400">
-                No active dosage proposals on file.
+              <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 text-center space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <p className="text-xs font-bold text-slate-200">You're all caught up!</p>
+                <p className="text-xs text-slate-400">No dose changes right now.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">

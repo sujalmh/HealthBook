@@ -184,13 +184,18 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
           {activeTab === 'manage_existing' ? (
             <div className="space-y-4">
               {caregiverLinks.length === 0 ? (
-                <div className="bg-slate-950 rounded-2xl p-6 text-center space-y-2 border border-slate-800">
-                  <p className="text-xs text-slate-400">No active linked caregiver profiles on file.</p>
+                <div className="bg-slate-950 rounded-2xl p-6 text-center space-y-3 border border-slate-800">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-200">No helpers yet</p>
+                  <p className="text-xs text-slate-400">Add a family member who helps with your health.</p>
                   <button
                     onClick={() => setActiveTab('link_new')}
-                    className="text-xs text-sky-400 font-bold hover:underline"
+                    className="inline-flex items-center gap-1.5 text-xs text-sky-400 font-bold hover:underline"
                   >
-                    Link a family caregiver now
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Add a helper
                   </button>
                 </div>
               ) : (

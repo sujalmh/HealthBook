@@ -106,8 +106,12 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
 
         {/* Fact Grid */}
         {filteredApprovedFacts.length === 0 ? (
-          <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-800 text-slate-500 text-xs">
-            No approved facts in this category yet. Ingest a document above and approve extracted facts.
+          <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-800 space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <p className="text-xs text-slate-400">No records here yet.</p>
+            <p className="text-[11px] text-slate-500">Add a document above and review what we find.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

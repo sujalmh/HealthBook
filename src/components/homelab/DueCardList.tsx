@@ -31,22 +31,22 @@ export const DueCardList: React.FC<DueCardListProps> = ({
 
   if (dueCards.length === 0) {
     return (
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 text-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-slate-800 text-sky-400 flex items-center justify-center mx-auto">
-          <Calendar className="w-6 h-6" />
+      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 text-center space-y-3">
+        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
+          <CheckCircle2 className="w-6 h-6" />
         </div>
         <div className="space-y-1">
-          <h3 className="text-base font-bold text-slate-100">No Pending Prescribed Labs</h3>
+          <h3 className="text-base font-bold text-slate-100">All caught up!</h3>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            You are completely up to date with your doctor-prescribed monitoring cadence.
+            No tests waiting — you're up to date. When your doctor asks for a new test, it will appear here.
           </p>
         </div>
         <button
           onClick={() => onUploadClick()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-colors shadow-lg shadow-sky-600/20"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors"
         >
           <UploadCloud className="w-4 h-4" />
-          <span>Upload Lab Result Slip</span>
+          <span>Upload a result</span>
         </button>
       </div>
     );
@@ -57,10 +57,10 @@ export const DueCardList: React.FC<DueCardListProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-sky-400" />
-          <h3 className="text-base font-bold text-slate-100">Prescribed Lab Cadence</h3>
+          <h3 className="text-base font-bold text-slate-100">Your Tests</h3>
         </div>
         <span className="text-xs text-slate-400">
-          {dueCards.filter((c) => c.status !== 'completed').length} active cadence(s)
+          {dueCards.filter((c) => c.status !== 'completed').length} waiting
         </span>
       </div>
 

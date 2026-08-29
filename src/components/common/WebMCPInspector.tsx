@@ -362,8 +362,12 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
               </div>
 
               {telemetryLogs.length === 0 ? (
-                <div className="p-12 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-800 text-slate-500 text-xs">
-                  No tool invocations recorded yet. Use the application canvases or Playground tab to trigger tools.
+                <div className="p-12 text-center bg-slate-950/40 rounded-xl border border-dashed border-slate-800 space-y-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                    <Activity className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-300">Nothing happened yet</p>
+                  <p className="text-xs text-slate-500">Use the app and see steps here — simple and transparent.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
