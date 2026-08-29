@@ -135,9 +135,14 @@ export const App: React.FC = () => {
     { id: 'dossier', label: 'For My Doctor', icon: FolderLock },
   ];
 
+  // One pastel accent — soft indigo/lavender for light mode
+  const pastelActive = 'bg-[#EEF2FF] text-[#3B5BDB] border-[#C7D2FE] shadow-sm';
+  const pastelIconActive = 'text-[#3B5BDB]';
+  const pastelIconIdle = 'text-slate-500';
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased overflow-x-hidden">
-      {/* Top Application Bar — light, high contrast, mobile-safe */}
+    <div className="min-h-screen bg-[#F3F4F6] text-slate-900 flex flex-col antialiased overflow-x-hidden">
+      {/* Top Application Bar — light gray bg, white cards, one pastel accent */}
       <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-6 py-3 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo & Subtitle */}
@@ -163,12 +168,12 @@ export const App: React.FC = () => {
 
           {/* Right Action Bar: Profile Switcher, Question Bank, Inspector */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Caregiver Proxy Switcher — collapses to icons on tiny screens */}
+            {/* Caregiver Proxy Switcher — pastel accent for active */}
             <div className="flex items-center bg-white rounded-xl p-1 border border-slate-200 shadow-sm text-xs">
               <button
                 onClick={() => handleSwitchProfile('patient')}
                 className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                  !activeProfile.isProxy ? 'bg-sky-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  !activeProfile.isProxy ? 'bg-[#EEF2FF] text-[#3B5BDB] font-bold border border-[#C7D2FE] shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 <span className="hidden sm:inline">S. Devi</span><span className="sm:hidden">S.D</span>
@@ -176,7 +181,7 @@ export const App: React.FC = () => {
               <button
                 onClick={() => handleSwitchProfile('caregiver')}
                 className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                  activeProfile.isProxy ? 'bg-indigo-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  activeProfile.isProxy ? 'bg-[#EEF2FF] text-[#3B5BDB] font-bold border border-[#C7D2FE] shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 <span className="hidden sm:inline">Raj</span><span className="sm:hidden">Raj</span>
@@ -198,14 +203,14 @@ export const App: React.FC = () => {
               )}
             </button>
 
-            {/* Activity Log Toggle */}
+            {/* Activity Log Toggle — pastel */}
             <button
               onClick={() => setIsInspectorOpen(true)}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold border border-sky-200 transition-colors shadow-sm"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-[#EEF2FF] hover:bg-[#E0E7FF] text-[#3B5BDB] text-xs font-bold border border-[#C7D2FE] transition-colors shadow-sm"
               title="See what's happening behind the scenes"
               aria-label="Activity"
             >
-              <Terminal className="w-4 h-4 text-sky-600 shrink-0" />
+              <Terminal className="w-4 h-4 text-[#3B5BDB] shrink-0" />
               <span className="hidden md:inline">Activity</span>
               {pendingCount > 0 && (
                 <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-pulse shrink-0">
@@ -217,8 +222,8 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Module Navigation Tabs — light, scrollable on mobile with edge fades, no overflow */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 shadow-sm overflow-hidden">
+      {/* Module Navigation Tabs — desktop only (bottom nav on mobile), one pastel accent */}
+      <div className="hidden md:block bg-white border-b border-slate-200 px-4 sm:px-6 shadow-sm overflow-hidden">
         <div className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto py-2 scrollbar-none -mx-1 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -229,11 +234,11 @@ export const App: React.FC = () => {
                 onClick={() => setActiveModule(item.id as ActiveModule)}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-sky-50 text-sky-700 border border-sky-200 shadow-sm'
+                    ? `${pastelActive}`
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-sky-600' : 'text-slate-500'}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? pastelIconActive : pastelIconIdle}`} />
                 <span>{item.label}</span>
                 {item.badge && (
                   <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0">
@@ -246,8 +251,8 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Area — light, max-w, mobile padding, no horizontal overflow */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 overflow-x-hidden">
+      {/* Main Content Area — light gray bg, white cards, text sections */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 overflow-x-hidden pb-24 md:pb-6">
         {/* MODULE 0: APPROVED FACT VAULT */}
         <div className={activeModule === 'vault' ? 'block space-y-6' : 'hidden'}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -304,9 +309,45 @@ export const App: React.FC = () => {
         </div>
       </main>
 
+      {/* Bottom Navbar — mobile easy navigation, one pastel accent, light gray bg, white cards */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] z-40 safe-area-pb" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="flex items-center gap-1 px-2 py-2 min-w-max mx-auto w-max">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeModule === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveModule(item.id as ActiveModule);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl text-[10px] font-bold leading-none transition-all min-w-[64px] shrink-0 ${
+                    isActive
+                      ? 'bg-[#EEF2FF] text-[#3B5BDB] border border-[#C7D2FE] shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-[#3B5BDB]' : 'text-slate-500'}`} />
+                    {item.badge && (
+                      <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-black border-2 border-white">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[9px] tracking-wide text-center leading-tight max-w-[64px] truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
       {/* Global Modals */}
       {isQuestionBankOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-fade-in">
           <div className="max-w-2xl w-full">
             <QuestionBank patientId={activeProfile.userId} onClose={() => setIsQuestionBankOpen(false)} />
           </div>
