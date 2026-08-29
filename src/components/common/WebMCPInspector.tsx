@@ -153,7 +153,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
       switch_profile: {
         targetUserId: 'user-raj-devi',
         role: 'caregiver',
-        onBehalfOfPatientId: 'patient-s-devi',
+        onBehalfOfPatientId: '',
       },
       grant_doctor_access: {
         doctorName: 'Dr. Kevin Chen, MD',

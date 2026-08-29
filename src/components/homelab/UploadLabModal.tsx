@@ -16,7 +16,6 @@ import {
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
-import { mockHomeLabPhotoSlip } from '@/fixtures/documents';
 
 interface UploadLabModalProps {
   isOpen: boolean;

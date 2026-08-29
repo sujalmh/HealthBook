@@ -40,10 +40,12 @@ export const linkPatientTool: WebMCPToolDefinition = {
       };
     }
 
+    // Vault-derived patient name: prefer activeProfile context generic, no hardcoded Shanti/Jenkins (M3 real-data fix)
+    const resolvedPatientName = context.activeProfile.onBehalfOf || context.activeProfile.name || params.patientId || 'Patient';
     const link: LinkedCareProfile = {
       linkId: `link_${Date.now()}`,
       patientId: params.patientId,
-      patientName: params.patientId.includes('devi') ? 'Smt. Shanti Devi' : 'Harold Jenkins',
+      patientName: resolvedPatientName,
       relationship: params.relationship,
       caregiverId: context.activeProfile.userId,
       caregiverName: context.activeProfile.name,
@@ -150,7 +152,8 @@ export const switchProfileTool: WebMCPToolDefinition = {
   },
   execute: async (params: { targetPatientId: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const isSelf = params.targetPatientId === 'self' || params.targetPatientId === context.activeProfile.userId;
-    const patientName = params.targetPatientId.includes('devi') ? 'Smt. Shanti Devi (Mother)' : isSelf ? 'Self' : 'Harold Jenkins';
+    // Generic vault-derived name: use activeProfile context or patientId, no hardcoded Shanti/Jenkins (M3)
+    const patientName = isSelf ? 'Self' : (context.activeProfile.onBehalfOf || context.activeProfile.name || params.targetPatientId);
 
     context.patientId = isSelf ? context.activeProfile.userId : params.targetPatientId;
     context.activeProfile.isProxy = !isSelf;
@@ -220,7 +223,7 @@ export const actOnBehalfTool: WebMCPToolDefinition = {
         userId: context.activeProfile.userId,
         userName: context.activeProfile.name,
         role: context.activeProfile.role,
-        onBehalfOf: context.activeProfile.onBehalfOf || 'Smt. Shanti Devi'
+        onBehalfOf: context.activeProfile.onBehalfOf || 'Patient'
       },
       params.actionPayload
     );

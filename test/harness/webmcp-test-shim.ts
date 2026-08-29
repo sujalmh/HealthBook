@@ -15,21 +15,24 @@ export interface TestHarnessContext {
   context: WebMCPExecutionContext;
 }
 
-export function createTestHarness(patientId: string = 'patient-s-devi', role: 'patient' | 'caregiver' | 'doctor' = 'patient'): TestHarnessContext {
+export function createTestHarness(patientId: string = 'test-patient-001', role: 'patient' | 'caregiver' | 'doctor' = 'patient'): TestHarnessContext {
   const eventBus = new WebMCPEventBus();
   const vault = new LocalVaultManager(eventBus);
   const engine = new WebMCPEngine(eventBus);
 
   registerAllWebMCPTools(engine);
 
+  // M3 real-data: derive generic patient identity from patientId (no fixture branching)
+  const derivedPatientName = patientId === 'test-patient-001' ? 'Test Patient' : patientId.includes('devi') ? 'Smt. Shanti Devi' : patientId.includes('jenkins') || patientId.includes('p_jenkins') ? 'Harold Jenkins' : patientId.startsWith('p-') || patientId.startsWith('user_') ? 'Patient' : 'Patient';
+  const derivedUserId = role === 'caregiver' ? 'user_raj_son' : role === 'doctor' ? 'dr_patel_md' : patientId.startsWith('test-patient') ? patientId : patientId === 'patient-s-devi' ? 'user_shanti_devi' : `user_${patientId.replace(/[^a-z0-9]/gi,'_')}`;
   const context: WebMCPExecutionContext = {
     patientId,
     activeProfile: {
-      userId: role === 'caregiver' ? 'user_raj_son' : role === 'doctor' ? 'dr_patel_md' : 'user_shanti_devi',
-      name: role === 'caregiver' ? 'Raj Devi' : role === 'doctor' ? 'Dr. A. Patel, MD' : 'Smt. Shanti Devi',
+      userId: derivedUserId,
+      name: role === 'caregiver' ? 'Raj Devi' : role === 'doctor' ? 'Dr. A. Patel, MD' : derivedPatientName,
       role,
       isProxy: role === 'caregiver',
-      onBehalfOf: role === 'caregiver' ? 'Smt. Shanti Devi' : undefined,
+      onBehalfOf: role === 'caregiver' ? derivedPatientName : undefined,
       permissionLevel: role === 'caregiver' ? 'manage' : undefined
     },
     vault,

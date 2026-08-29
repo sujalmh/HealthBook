@@ -31,8 +31,8 @@ interface PatientSummaryCard {
 
 const PATIENTS: PatientSummaryCard[] = [
   {
-    id: 'patient-s-devi',
-    name: 'Smt. Shanti Devi',
+    id: '',
+    name: 'Patient',
     relationship: 'Mother',
     age: 78,
     conditions: ['CKD Stage 3b', 'Hypertension', 'Type 2 Diabetes'],
@@ -44,7 +44,7 @@ const PATIENTS: PatientSummaryCard[] = [
   },
   {
     id: 'patient-h-jenkins',
-    name: 'Harold Jenkins',
+    name: 'Patient',
     relationship: 'Father-in-law',
     age: 80,
     conditions: ['Heart Failure', 'Osteoarthritis', 'Hypertension'],
@@ -56,7 +56,7 @@ const PATIENTS: PatientSummaryCard[] = [
   },
   {
     id: 'patient-child-003',
-    name: 'Aarav Sharma',
+    name: 'Child Patient',
     relationship: 'Child / Dependent',
     age: 8,
     conditions: ['Mild Pediatric Asthma'],

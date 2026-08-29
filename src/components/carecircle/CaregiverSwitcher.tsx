@@ -40,7 +40,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
       target === 'self'
         ? 'self'
         : target === 'mother'
-        ? 'patient-s-devi'
+        ? ''
         : 'patient-child-003';
 
     try {
@@ -54,7 +54,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
             name: activeProfile.name,
             role: activeProfile.role as any,
             isProxy: target !== 'self',
-            onBehalfOf: target === 'mother' ? 'Smt. Shanti Devi (Mother)' : target === 'child' ? 'Aarav (Child)' : undefined
+            onBehalfOf: target === 'mother' ? 'Patient (Mother)' : target === 'child' ? 'Child (Child)' : undefined
           },
           vault: localVault,
           eventBus
@@ -93,7 +93,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
           <button
             onClick={() => handleSwitch('mother')}
             className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-              isProxy && activeProfile.onBehalfOf?.includes('Shanti')
+              isProxy && activeProfile.onBehalfOf?.includes('Patient')
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-600 hover:text-slate-800'
             }`}
@@ -104,12 +104,12 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
           <button
             onClick={() => handleSwitch('child')}
             className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-              isProxy && activeProfile.onBehalfOf?.includes('Aarav')
+              isProxy && activeProfile.onBehalfOf?.includes('Child')
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-600 hover:text-slate-800'
             }`}
           >
-            Child (Aarav, 8)
+            Child (Child, 8)
           </button>
         </div>
       </div>
@@ -132,7 +132,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
                 </span>
               </div>
               <p className="text-body-sm text-slate-700 font-medium pt-0.5">
-                Acting on behalf of <strong className="text-slate-900">{activeProfile.onBehalfOf || 'Smt. Shanti Devi'}</strong>.
+                Acting on behalf of <strong className="text-slate-900">{activeProfile.onBehalfOf || 'Patient'}</strong>.
                 All approved proposals and uploaded slips will be cryptographically signed to the audit trail.
               </p>
             </div>

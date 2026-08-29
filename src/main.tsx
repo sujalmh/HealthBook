@@ -5,7 +5,6 @@ import './index.css';
 import { localVault, wireLocalVaultToEventBus } from './core/vault/LocalVault';
 import { registerAllWebMCPTools } from './tools';
 import { eventBus } from './core/events/eventBus';
-import { seedIfEmpty, CANONICAL_PATIENT_ID } from './core/vault/seed.ts';
 
 async function bootstrap(): Promise<void> {
   // 1. Initialize Privacy-First LocalVault (IndexedDB)
@@ -18,73 +17,49 @@ async function bootstrap(): Promise<void> {
     console.log('[CareCanvas] LocalVault wired to EventBus.');
   }
 
-  // 3. Supabase hydration with local seed fallback (M3)
-  //    - If Supabase is enabled (env DATABASE_URL present), hydrate first.
-  //    - If hydrated>0 skip seed (vault already has remote data, idempotent).
-  //    - Else (skipped / hydrated===0 / error / offline) fall back to seedIfEmpty (single source, idempotent).
-  //    - If Supabase is not enabled (missing DATABASE_URL), local-only path: seedIfEmpty only.
-  //    - All errors are non-blocking; hydration before React mount with fallback so mount always succeeds.
-  //    - wireLocalVaultToEventBus remains wired above; App.tsx hidden wrappers untouched (cohesion preserved).
+  // 3. Supabase hydration (no mock seed) — M1 Mock Removal
+  //    CLEAN: No auto-seeding of mock patient. Vault stays empty until Create Account (M2).
+  //    CANONICAL_PATIENT_ID remains only as legacy fallback in seed.ts for existing rows, not as default activeProfile.
+  //    Real patientId will come from authenticated session in M2 (localStorage carecanvas_active_user).
+  //    Hydration is best-effort and non-blocking; failures do not seed mock data.
   try {
     const { isSupabaseEnabled } = await import('./core/supabase/client.ts');
     if (isSupabaseEnabled()) {
       try {
         const { hydrateFromSupabase } = await import('./core/vault/supabaseSync.ts');
-        const result = await hydrateFromSupabase(CANONICAL_PATIENT_ID, localVault);
-        if (result.hydrated > 0) {
-          console.log('[CareCanvas] Hydrated from Supabase', result.counts);
-        } else {
-          // Fallback to seed if empty (no remote rows) or skipped (REST not configured / local-only mode)
-          const seedRes = seedIfEmpty(localVault, CANONICAL_PATIENT_ID);
-          if (seedRes.seeded) {
-            console.log(`[CareCanvas] Seeded canonical patient ${CANONICAL_PATIENT_ID}`, seedRes.counts, seedRes.inserted);
+        // Determine real patientId if available (M2 will store in localStorage); fallback to empty (no seed)
+        const storedUser = (() => {
+          try {
+            const raw = localStorage.getItem('carecanvas_active_user');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              return parsed?.userId || parsed?.id || null;
+            }
+          } catch {}
+          return null;
+        })();
+        const patientId = storedUser || null;
+        if (patientId) {
+          const result = await hydrateFromSupabase(patientId, localVault);
+          if (result.hydrated > 0) {
+            console.log('[CareCanvas] Hydrated from Supabase', result.counts);
           } else {
-            console.log(`[CareCanvas] Seed skipped (${seedRes.reason}) for ${CANONICAL_PATIENT_ID}`, seedRes.counts);
+            console.log('[CareCanvas] Supabase empty or skipped, vault remains empty (no mock seed)');
+            if ((result as any).skipped) {
+              console.log('[CareCanvas] Supabase hydration skipped (local-only fallback)', (result as any).error ?? '');
+            }
           }
-          if (result.skipped) {
-            console.log('[CareCanvas] Supabase hydration skipped (local-only fallback)', result.error ?? '');
-          } else if (result.hydrated === 0) {
-            console.log('[CareCanvas] Supabase empty, seeded locally');
-          }
+        } else {
+          console.log('[CareCanvas] No authenticated user — empty vault, waiting for Create Account (no mock seed)');
         }
       } catch (e) {
-        console.warn('[CareCanvas] Hydration failed, falling back to seed', e);
-        try {
-          const seedRes = seedIfEmpty(localVault, CANONICAL_PATIENT_ID);
-          if (seedRes.seeded) {
-            console.log(`[CareCanvas] Seeded canonical patient ${CANONICAL_PATIENT_ID}`, seedRes.counts, seedRes.inserted);
-          } else {
-            console.log(`[CareCanvas] Seed skipped (${seedRes.reason}) for ${CANONICAL_PATIENT_ID}`, seedRes.counts);
-          }
-        } catch (se) {
-          console.warn('[CareCanvas] Seed failed — continuing without baseline', se);
-        }
+        console.warn('[CareCanvas] Hydration failed — empty vault, no mock seed', e);
       }
     } else {
-      // Local-only fallback: env missing => seed directly (graceful)
-      try {
-        const result = seedIfEmpty(localVault, CANONICAL_PATIENT_ID);
-        if (result.seeded) {
-          console.log(`[CareCanvas] Seeded canonical patient ${CANONICAL_PATIENT_ID}`, result.counts, result.inserted);
-        } else {
-          console.log(`[CareCanvas] Seed skipped (${result.reason}) for ${CANONICAL_PATIENT_ID}`, result.counts);
-        }
-      } catch (e) {
-        console.warn('[CareCanvas] Seed failed — continuing without baseline', e);
-      }
+      console.log('[CareCanvas] Supabase not enabled — empty vault, waiting for Create Account (no mock seed)');
     }
   } catch (e) {
-    console.warn('[CareCanvas] Bootstrap hydration check failed — falling back to seed', e);
-    try {
-      const result = seedIfEmpty(localVault, CANONICAL_PATIENT_ID);
-      if (result.seeded) {
-        console.log(`[CareCanvas] Seeded canonical patient ${CANONICAL_PATIENT_ID}`, result.counts, result.inserted);
-      } else {
-        console.log(`[CareCanvas] Seed skipped (${result.reason}) for ${CANONICAL_PATIENT_ID}`, result.counts);
-      }
-    } catch (se) {
-      console.warn('[CareCanvas] Seed failed — continuing without baseline', se);
-    }
+    console.warn('[CareCanvas] Bootstrap hydration check failed — empty vault, no mock seed', e);
   }
 
   // 4. Register all 40 WebMCP Tools across 7 Modules

@@ -10,7 +10,6 @@ import type {
 } from '../../types/webmcp.ts';
 import { WebMCPEventBus } from '../events/eventBus.ts';
 import { localVault } from '../vault/LocalVault.ts';
-import { CANONICAL_PATIENT_ID } from '../vault/seed.ts';
 
 export class WebMCPEngine {
   private registry: Map<string, WebMCPToolDefinition> = new Map();
@@ -183,18 +182,30 @@ export class WebMCPEngine {
       return errorResult;
     }
 
+    // Derive patientId/activeProfile from explicit context or stored session — no hardcoded Shanti fallback.
+    // Priority: explicit context.patientId/activeProfile > localStorage carecanvas_active_user > empty
+    const storedProfile = (() => {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const raw = localStorage.getItem('carecanvas_active_user');
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p?.userId) return p;
+          }
+        }
+      } catch {}
+      return null;
+    })();
+    const resolvedPatientId = (context as any)?.patientId || storedProfile?.userId || '';
+    const resolvedProfile = (context as any)?.activeProfile || storedProfile || { userId: resolvedPatientId || '', name: '', role: 'patient', isProxy: false };
+
     const defaultContext: WebMCPExecutionContext = {
-      patientId: CANONICAL_PATIENT_ID,
-      activeProfile: {
-        userId: 'user_shanti_devi',
-        name: 'Smt. Shanti Devi',
-        role: 'patient',
-        isProxy: false
-      },
       vault: localVault,
       eventBus: this.eventBus,
-      ...context
-    };
+      ...(context as any),
+      patientId: resolvedPatientId,
+      activeProfile: resolvedProfile as any,
+    } as WebMCPExecutionContext;
 
     // Validate parameters — use strict JSON-Schema validation (type/enum) not just required checks
     try {

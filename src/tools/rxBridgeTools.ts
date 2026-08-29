@@ -1,13 +1,13 @@
 /**
- * CareCanvas WebMCP Tools: RxBridge Post-Discharge Reconciliation Engine (M4)
+ * CareCanvas WebMCP Tools: RxBridge Post-Discharge Reconciliation Engine — CLEAN (M1)
  * Tools: explain_med_change, flag_interaction, flag_diet_interaction, suggest_question_for_doctor, export_patient_summary
+ * No mock dataset fallback — requires real params.dataset or builds from vault getMedications/getQuestions.
  */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
 import { ClinicalReconciliationEngine } from '../core/knowledge/reconciliationEngine.ts';
-import type { ChangeStatusBadge, Patient3ListDischargeDataset } from '../types/rxbridge.ts';
-import { mockShantiDevi3ListDataset } from '../fixtures/discharge_lists.ts';
+import type { Patient3ListDischargeDataset } from '../types/rxbridge.ts';
 
 export const explainMedChangeTool: WebMCPToolDefinition = {
   name: 'explain_med_change',
@@ -351,7 +351,51 @@ export const exportPatientSummaryTool: WebMCPToolDefinition = {
     },
     context: WebMCPExecutionContext
   ): Promise<WebMCPToolResult> => {
-    const dataset = params.dataset || mockShantiDevi3ListDataset;
+    let dataset = params.dataset as Patient3ListDischargeDataset | undefined;
+
+    // No mock fallback — require real dataset or build minimal from vault for context.patientId
+    if (!dataset) {
+      // Try to build minimal dataset from vault for real patient
+      const vaultMeds = (() => {
+        try {
+          return context.vault ? context.vault.getMedications(params.patientId) : [];
+        } catch {
+          return [];
+        }
+      })();
+      if (vaultMeds.length > 0) {
+        const patientName = (context.activeProfile as any)?.name || 'Patient';
+        dataset = {
+          patientId: params.patientId,
+          patientName,
+          admissionDate: new Date(Date.now() - 5 * 86400000).toISOString().slice(0, 10),
+          dischargeDate: new Date().toISOString().slice(0, 10),
+          ward: 'General',
+          attendingPhysician: 'Care Team',
+          preAdmissionMeds: [],
+          inHospitalMeds: [],
+          dischargeMeds: vaultMeds.map((m: any) => ({
+            medName: m.genericName || m.name || 'Medication',
+            dose: m.dosage || 'Standard',
+            frequency: m.frequency || 'Once daily',
+            status: 'CONTINUED' as const,
+            reason: 'Vault-derived',
+            timingSlots: m.timingSlots || ['morning']
+          }))
+        } as Patient3ListDischargeDataset;
+      } else {
+        return {
+          success: false,
+          tool: 'export_patient_summary',
+          timestamp: new Date().toISOString(),
+          data: null,
+          plainLanguageSummary: 'No dataset provided and vault contains no medications for this patient. Upload your discharge list or provide dataset param.',
+          humanApprovalRequired: false,
+          error: { code: 'DATASET_REQUIRED', message: 'Provide params.dataset or ensure vault has medications for patient.' }
+        };
+      }
+    }
+
     const questions = context.vault
       ? context.vault.getQuestions(params.patientId).map((q: any) => q.questionText)
       : [];

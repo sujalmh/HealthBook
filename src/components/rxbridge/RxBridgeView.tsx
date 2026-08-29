@@ -3,7 +3,7 @@
  * Main module container for Milestone 4 (RxBridge Post-Discharge 3-List Reconciliation).
  * Features:
  * - 3-list comparative overview
- * - Quick-fill sample discharge cases (Shanti Devi / Harold Jenkins)
+ * - Quick-fill sample discharge cases (Patient / Patient)
  * - Conversational med-by-med walkthrough wizard
  * - Interactive Teach-Back comprehension validation
  * - 1-Page printable/downloadable discharge summary export
@@ -34,10 +34,7 @@ import type {
   TeachBackCheck,
   PatientHomeSummaryExport
 } from '../../types/rxbridge.ts';
-import {
-  mockShantiDevi3ListDataset,
-  mockHaroldJenkins3ListDataset
-} from '../../fixtures/discharge_lists.ts';
+// Mock datasets removed — M1: real data from vault for authenticated patient (no Patient/Jenkins fixture)
 import { ClinicalReconciliationEngine } from '../../core/knowledge/reconciliationEngine.ts';
 import { localVault } from '../../core/vault/LocalVault.ts';
 import { eventBus } from '../../core/events/eventBus.ts';
@@ -59,12 +56,23 @@ export interface RxBridgeViewProps {
 }
 
 export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
-  patientId = 'patient-s-devi',
-  activeProfile = { userId: 'patient-s-devi', name: 'Shanti Devi', role: 'patient' }
+  patientId = '',
+  activeProfile = { userId: '', name: 'Patient', role: 'patient' }
 }) => {
-  // Case selection
-  const [selectedCaseId, setSelectedCaseId] = useState<'shanti' | 'jenkins'>('shanti');
-  const [activeDataset, setActiveDataset] = useState<Patient3ListDischargeDataset>(mockShantiDevi3ListDataset);
+  // Real data — vault-derived (no mock case selection)
+  const emptyDataset: Patient3ListDischargeDataset = {
+    patientId: patientId || activeProfile.userId || 'patient-unknown',
+    patientName: activeProfile.name || 'Patient',
+    admissionDate: new Date().toISOString().slice(0, 10),
+    dischargeDate: new Date().toISOString().slice(0, 10),
+    ward: 'General',
+    attendingPhysician: 'Care Team',
+    preAdmissionMeds: [],
+    inHospitalMeds: [],
+    dischargeMeds: []
+  };
+  const [selectedCaseId] = useState<'shanti' | 'jenkins'>('shanti');
+  const [activeDataset, setActiveDataset] = useState<Patient3ListDischargeDataset>(emptyDataset);
 
   // Reconciliation state
   const [reconciledItems, setReconciledItems] = useState<ReconciledMedChangeItem[]>([]);
@@ -86,10 +94,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   };
 
   useEffect(() => {
-    const dataset = selectedCaseId === 'shanti' ? mockShantiDevi3ListDataset : mockHaroldJenkins3ListDataset;
-    setActiveDataset(dataset);
-    loadReconciliation(dataset);
-  }, [selectedCaseId]);
+    // Real data: use emptyDataset (vault-derived) — no mock fixture branching
+    loadReconciliation(emptyDataset);
+  }, [patientId, activeProfile.userId]);
 
   // M2 Relevant-only: RxBridge listens to proposal_created/status_changed (alias proposal_submitted), lab_added (alias lab_extracted, eGFR flag), medication_added/updated
   // medication adds outside RxBridge (e.g., PillMap) should refresh flags; irrelevant like danger_report/calendar filtered out
@@ -320,29 +327,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             </div>
           </div>
 
-          {/* Quick-Fill Sample Dataset Switcher */}
-          <div className="flex flex-wrap items-center gap-2 bg-canvas-muted p-1.5 rounded-xl border border-canvas-border text-body-sm">
-            <span className="text-[11px] font-mono text-slate-600 px-2 font-bold">Example:</span>
-            <button
-              onClick={() => setSelectedCaseId('shanti')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                selectedCaseId === 'shanti'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-800'
-              }`}
-            >
-              Shanti Devi — heart
-            </button>
-            <button
-              onClick={() => setSelectedCaseId('jenkins')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                selectedCaseId === 'jenkins'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-800'
-              }`}
-            >
-              Harold Jenkins — heart
-            </button>
+          {/* Real Data — vault-derived (no mock case switcher) */}
+          <div className="flex items-center gap-2 bg-canvas-muted p-1.5 rounded-xl border border-canvas-border text-body-sm">
+            <span className="text-caption font-semibold text-muted px-2">Your discharge list — vault data for {activeProfile.name || 'Patient'}</span>
           </div>
         </div>
 

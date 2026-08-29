@@ -5,7 +5,7 @@ import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
 export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }> = ({
-  patientId = 'patient-s-devi',
+  patientId = '',
   onClose,
 }) => {
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);

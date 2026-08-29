@@ -33,7 +33,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
   const [activeTab, setActiveTab] = useState<'manage_existing' | 'link_new'>('manage_existing');
 
   // Link New Form
-  const [newPatientId, setNewPatientId] = useState('patient-s-devi');
+  const [newPatientId, setNewPatientId] = useState('');
   const [relationship, setRelationship] = useState<'parent' | 'child' | 'spouse' | 'guardian' | 'advocate'>('parent');
   const [authToken, setAuthToken] = useState('token_auth_valid_8923');
   const [permissionTier, setPermissionTier] = useState<CaregiverPermissionLevel>('manage');

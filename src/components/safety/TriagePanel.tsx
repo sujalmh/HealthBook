@@ -172,7 +172,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
                 </span>
               </div>
               <h3 className="text-heading-md text-slate-900">
-                Acute safety escalation — Smt. Shanti Devi (78F)
+                Acute safety escalation — Patient (78F)
               </h3>
             </div>
           </div>

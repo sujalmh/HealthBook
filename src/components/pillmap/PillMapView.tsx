@@ -71,8 +71,8 @@ const COMMON_OTCS = [
 ];
 
 export const PillMapView: React.FC<PillMapViewProps> = ({
-  patientId = 'patient-s-devi',
-  activeProfile = { userId: 'patient-s-devi', name: 'Shanti Devi', role: 'patient' }
+  patientId = '',
+  activeProfile = { userId: '', name: 'Patient', role: 'patient' }
 }) => {
   const [chronotype, setChronotype] = useState<Chronotype>('standard');
   const [viewMode, setViewMode] = useState<'canvas' | 'elder'>('canvas');
@@ -332,7 +332,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const handleOpenExport = () => {
     const activeMeds = localVault.getMedications(patientId, 'active');
     const bundle: PharmacistExportBundle = {
-      patientName: activeProfile.isProxy ? 'Shanti Devi' : activeProfile.name,
+      patientName: activeProfile.isProxy ? 'Patient' : activeProfile.name,
       generatedDate: new Date().toISOString(),
       activeRegimenGrid: grid,
       brandGenericCrosswalk: activeMeds.map((m) => ({

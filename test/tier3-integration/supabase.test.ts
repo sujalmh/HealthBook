@@ -136,12 +136,11 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
     expect(vault.getMedications(CANONICAL).length).toBe(0);
     expect(countEvents(bus, 'medication_added')).toBe(0);
 
-    // Fallback seed still works (5 meds baseline per seed.ts)
+    // Fallback seed is now no-op empty vault (M1 clean)
     const seedRes = seedIfEmpty(vault, CANONICAL);
     expect(seedRes.seeded || seedRes.skipped).toBeDefined();
-    expect(vault.getMedications(CANONICAL).length).toBeGreaterThanOrEqual(5);
-    // 5 meds is baseline; allow >=5
-    expect(countEvents(bus, 'medication_added')).toBeGreaterThanOrEqual(5);
+    expect(vault.getMedications(CANONICAL).length).toBe(0);
+    expect(countEvents(bus, 'medication_added')).toBe(0);
   });
 
   // ------------------------------------------------------------------
@@ -397,13 +396,12 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
     expect(typeof hRes.skipped).toBe('boolean');
     expect(vault.getMedications(CANONICAL).length).toBe(0);
 
-    // Fallback path: seedIfEmpty should seed 5 meds (baseline)
+    // Fallback path: seedIfEmpty is now no-op empty (M1)
     const seedRes = seedIfEmpty(vault, CANONICAL);
-    expect(vault.getMedications(CANONICAL).length).toBeGreaterThanOrEqual(5);
-    expect(vault.getLabs(CANONICAL).length).toBeGreaterThan(0);
-    // If seedRes returned inserted counts, verify at least 5 meds inserted
+    expect(vault.getMedications(CANONICAL).length).toBe(0);
+    expect(vault.getLabs(CANONICAL).length).toBe(0);
     if (seedRes.inserted) {
-      expect(seedRes.inserted.medications).toBeGreaterThanOrEqual(5);
+      expect(seedRes.inserted.medications).toBe(0);
     }
 
     // Variant: mock to return {error} not throw
@@ -415,8 +413,8 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
     expect(h2.hydrated).toBe(0);
     expect(h2.skipped).toBe(false);
     const s2 = seedIfEmpty(v2, CANONICAL);
-    expect(v2.getMedications(CANONICAL).length).toBeGreaterThanOrEqual(5);
-    expect(s2.inserted.medications).toBeGreaterThanOrEqual(5);
+    expect(v2.getMedications(CANONICAL).length).toBe(0);
+    expect(s2.inserted.medications).toBe(0);
   });
 
   // ------------------------------------------------------------------

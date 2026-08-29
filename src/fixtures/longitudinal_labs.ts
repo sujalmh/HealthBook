@@ -1,8 +1,10 @@
 /**
- * CareCanvas Fixtures: 5-Year Longitudinal Lab Histories (2022-2026)
+ * CareCanvas Fixtures: Longitudinal Lab Helpers — CLEAN (M1 Mock Removal)
+ * Mock datasets removed; real data comes from vault for context.patientId.
+ * Keeps convertToLabRecords helper for real-data transforms.
  */
 
-import type {  LabRecord  } from '../types/vault.ts';
+import type { LabRecord } from '../types/vault.ts';
 
 export interface LongitudinalLabDataPoint {
   date: string;
@@ -18,180 +20,11 @@ export interface LongitudinalLabDataPoint {
   clinical_context: string;
 }
 
-export const mockShantiDeviLongitudinalLabs: LongitudinalLabDataPoint[] = [
-  {
-    date: '2022-03-15T08:30:00Z',
-    creatinine: 1.10,
-    egfr: 58,
-    hba1c: 6.8,
-    glucose_fasting: 118,
-    potassium: 4.2,
-    cholesterol_total: 215,
-    ldl: 138,
-    hdl: 44,
-    triglycerides: 165,
-    clinical_context: 'Annual routine physical exam; baseline mild CKD stage 3a.'
-  },
-  {
-    date: '2023-01-20T09:00:00Z',
-    creatinine: 1.25,
-    egfr: 50,
-    hba1c: 7.4,
-    glucose_fasting: 134,
-    potassium: 4.4,
-    cholesterol_total: 198,
-    ldl: 120,
-    hdl: 45,
-    triglycerides: 155,
-    clinical_context: 'Metformin initiated 500mg daily.'
-  },
-  {
-    date: '2023-11-10T10:15:00Z',
-    creatinine: 1.30,
-    egfr: 48,
-    hba1c: 7.9,
-    glucose_fasting: 145,
-    potassium: 4.5,
-    cholesterol_total: 205,
-    ldl: 125,
-    hdl: 43,
-    triglycerides: 170,
-    clinical_context: 'Prednisone 20mg burst prescribed for severe osteoarthritis flare (Glucose spike).'
-  },
-  {
-    date: '2024-08-14T08:45:00Z',
-    creatinine: 1.45,
-    egfr: 42,
-    hba1c: 7.2,
-    glucose_fasting: 122,
-    potassium: 4.6,
-    cholesterol_total: 175,
-    ldl: 95,
-    hdl: 46,
-    triglycerides: 140,
-    clinical_context: 'Atorvastatin titrated to 40mg; lipid improvements noted.'
-  },
-  {
-    date: '2025-06-02T09:30:00Z',
-    creatinine: 1.60,
-    egfr: 37,
-    hba1c: 7.6,
-    glucose_fasting: 130,
-    potassium: 4.7,
-    cholesterol_total: 170,
-    ldl: 90,
-    hdl: 47,
-    triglycerides: 135,
-    clinical_context: 'Routine nephrology follow-up; CKD Stage 3b confirmed.'
-  },
-  {
-    date: '2026-08-25T11:00:00Z',
-    creatinine: 1.80,
-    egfr: 32,
-    hba1c: 7.8,
-    glucose_fasting: 142,
-    potassium: 4.9,
-    cholesterol_total: 168,
-    ldl: 88,
-    hdl: 48,
-    triglycerides: 130,
-    clinical_context: 'Hospital discharge post-cardiac admission.'
-  },
-  {
-    date: '2026-08-28T09:15:00Z',
-    creatinine: 1.90,
-    egfr: 28,
-    hba1c: 7.8,
-    glucose_fasting: 140,
-    potassium: 4.8,
-    cholesterol_total: 165,
-    ldl: 86,
-    hdl: 48,
-    triglycerides: 128,
-    clinical_context: 'HomeLab remote slip upload; triggers Metformin dose reduction from 1000mg to 500mg.'
-  }
-];
-
-export const mockHaroldJenkinsLongitudinalLabs: LongitudinalLabDataPoint[] = [
-  {
-    date: '2022-04-10T08:00:00Z',
-    creatinine: 1.40,
-    egfr: 45,
-    hba1c: 8.4,
-    glucose_fasting: 160,
-    potassium: 4.3,
-    cholesterol_total: 220,
-    ldl: 140,
-    hdl: 40,
-    triglycerides: 190,
-    clinical_context: 'Initial diagnosis of CKD Stage 3a and T2D.'
-  },
-  {
-    date: '2023-05-18T09:00:00Z',
-    creatinine: 1.55,
-    egfr: 40,
-    hba1c: 8.0,
-    glucose_fasting: 148,
-    potassium: 4.6,
-    cholesterol_total: 195,
-    ldl: 118,
-    hdl: 42,
-    triglycerides: 175,
-    clinical_context: 'Empagliflozin added; HbA1c down to 8.0%.'
-  },
-  {
-    date: '2024-03-12T10:00:00Z',
-    creatinine: 2.05,
-    egfr: 28,
-    hba1c: 8.1,
-    glucose_fasting: 152,
-    potassium: 5.1,
-    cholesterol_total: 185,
-    ldl: 110,
-    hdl: 42,
-    triglycerides: 165,
-    clinical_context: 'Acute eGFR decline to 28 during Ketorolac (NSAID) course for gout flare.'
-  },
-  {
-    date: '2025-02-14T09:30:00Z',
-    creatinine: 1.75,
-    egfr: 34,
-    hba1c: 8.2,
-    glucose_fasting: 155,
-    potassium: 4.8,
-    cholesterol_total: 178,
-    ldl: 102,
-    hdl: 43,
-    triglycerides: 160,
-    clinical_context: 'Partial kidney recovery post NSAID cessation; baseline CKD 3b stabilized.'
-  },
-  {
-    date: '2026-08-15T08:30:00Z',
-    creatinine: 1.80,
-    egfr: 33,
-    hba1c: 8.2,
-    glucose_fasting: 150,
-    potassium: 4.9,
-    cholesterol_total: 172,
-    ldl: 96,
-    hdl: 44,
-    triglycerides: 155,
-    clinical_context: 'Hospital discharge post HFpEF exacerbation.'
-  },
-  {
-    date: '2026-08-29T10:00:00Z',
-    creatinine: 2.10,
-    egfr: 26,
-    hba1c: 8.2,
-    glucose_fasting: 150,
-    potassium: 5.2,
-    cholesterol_total: 170,
-    ldl: 95,
-    hdl: 44,
-    triglycerides: 150,
-    clinical_context: 'Day 14 remote HomeLab upload; eGFR dropped to 26; Metformin halved.'
-  }
-];
+// Mock longitudinal datasets removed — M1.
+// Tools must read from context.vault for real patient labs; no mock fallback.
+// Test-only legacy bridge:
+export * from '../../test/fixtures/legacyMocks.ts';
+export const __fixtureClean_longitudinal_labs = true;
 
 export function convertToLabRecords(patientId: string, dataPoints: LongitudinalLabDataPoint[]): LabRecord[] {
   const records: LabRecord[] = [];

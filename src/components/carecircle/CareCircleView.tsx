@@ -257,7 +257,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
       ) : activeTab === 'multi_patient' ? (
         <MultiPatientDashboard
           onSelectPatient={(pid) => {
-            if (pid === 'patient-s-devi') onProfileChange('mother');
+            if (pid === '') onProfileChange('mother');
             else if (pid === 'patient-child-003') onProfileChange('child');
             else onProfileChange('self');
           }}

@@ -291,7 +291,7 @@ export const exportForPharmacistTool: WebMCPToolDefinition = {
     }
 
     const bundle = {
-      patientName: context.activeProfile.onBehalfOf ? 'Smt. Shanti Devi' : context.activeProfile.name,
+      patientName: context.activeProfile.onBehalfOf || context.activeProfile.name || 'Patient',
       generatedDate: new Date().toISOString(),
       activeMedicationsCount: meds.length,
       brandGenericCrosswalk: meds.map((m: any) => ({

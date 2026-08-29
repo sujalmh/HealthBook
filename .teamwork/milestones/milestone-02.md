@@ -1,7 +1,8 @@
-# Milestone milestone-02: Polish, Responsive No-Gaps & Final Build Verification
+# Milestone 02 — Create Account Gate
 
-Verify no decorative pill gaps at 320/375/768/1024/1280/1440, header/DocumentDropzone/PrivacyBadge/PillMap render clean without placeholders, adjust padding/gap if needed (no new slop), final build/lint/test/runner verification, prepare for Success Auditor gate.
-
-- Workstreams: ws-polish-verification
-- DependsOn: milestone-01
-- Status: pending
+Status: pending
+DependsOn: [milestone-01]
+Workstreams: ws-m2-auth-gate (worker_auth_gate)
+Goal: CreateAccountView centered + App localStorage gate + real userId
+Acceptance: CreateAccountView exists 44px, App checks localStorage, renders gate if no user, no Shanti hardcode, screenshots PASS 1280/375/768
+Gate: critic→challenger→auditor

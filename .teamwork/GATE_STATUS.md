@@ -1,29 +1,23 @@
-# GATE_STATUS — teamwork-1788010057462
+# GATE_STATUS — teamwork-1788014473534
 
-Last updated: 2026-08-29T19:59Z (Success Auditor PASS) — Last updated: 2026-08-29T20:15Z (M2 auditor PASS) — Last updated: 2026-08-29T19:45Z (auditor PASS) — Last updated: 2026-08-29T19:30Z (critic PASS) — Last updated: 2026-08-29T19:24Z — milestone-01 workers done, awaiting gates
+Last updated: 2026-08-29T14:41:13.534Z — init, awaiting Survey synthesis
 
 ## Milestone Gates
 
-- M1 Slop Removal & Direct Voice Rewrite: critic PASS | challenger PASS | auditor PASS | final: PASS
-  - Workers: vault_direct PASS (DocumentDropzone 84 pill gone, 79 direct, 125 fixed, FactStream 68/71/141 voice, grep we vault 0) | common_badge PASS (PrivacyBadge Local data, Zero-Cloud 0, 100% Client-Side 0, QB 186 fixed) | pillmap_labstory PASS (Weekly pill box gone, LabStory Stored locally)
-  - Scope: grep slop 0 pre-gate verified, we 0 pre-gate verified, 14 snapshots, build 1663
-- M2 Polish, Responsive No-Gaps & Final Build Verification: critic PASS | challenger PASS | auditor PASS | final: PASS
-  - DependsOn M1, workstream ws-polish-verification pending
+- M1 Mock Removal & Fixtures Cleanup: critic PASS | challenger PASS | auditor PASS | final: PASS
+  - Workers: ws-m1-mock-removal PASS (fixtures emptied, seed no-op, main removed seeding, tools vault-derived, DocumentDropzone real FileReader, empty vault 0 facts) | Scope: grep mockShanti 0 (comment only), sampleDocuments 0, patient-s-devi vault 0 (App deferred 3 hardcodes), lint 0 test 142 build 1659 (delta 4 explained), 3 snapshots desktop 1280 104K mobile 375 41K tablet 768 69K JFIF valid, no gaps
+  - Deferred: App patient-s-devi 39/81/111 + 20 hits overall, WebMCP defaultContext CANONICAL, runner 27 fails — correctly deferred to M2/M3 per DAG (warnings not blocking)
+- M2 Create Account Gate (auth view + App gate): critic PASS | challenger PASS | auditor PASS | final: PASS
+  - Workers: ws-m2-auth-gate PASS (CreateAccountView centered max-w-md 44px, App gate localStorage carecanvas_active_user, no patient-s-devi hardcode, WebMCP derived, empty vault 0 facts) | Scope: grep patient-s-devi App/components 0 (seed/client only CANONICAL), mock 0 sampleDocuments 0, lint 0 test 142 build 1659, 12 snapshots gate 22-29K vault 31-86K 6 viewports no gaps, auditor 9 re-captures 333-674K
+  - Warnings: careCircle devi heuristic, pillMap Shanti fallback, header 36px, fhir empty fallback — deferred to M3 (non-blocking)
+- M3 Real Data WebMCP + Chat + Polish: critic PASS | challenger PASS | auditor PASS | final: PASS
+  - Workers: ws-m3-realdata-webmcp PASS (DocumentDropzone real FileReader, vaultTools no fixture branch, WebMCP 40 discoverable via modelContext, careCircle/pillMap devi fixed, labStory NaN guard, tests 231, fixtures .ts extension) | Scope: grep mock 0 sample 0 patient-s-devi App/components 0 p_devi_78 0 we0 slop0 40 tools wrappers 8, lint 0 test 142 runner 231 build 1659 (delta 4), gate 6 viewports 21-29K vault empty 6 viewports 31-84K after upload 37-89K webmcp verify 84K all JFIF, no gaps
+  - Warnings: UploadLabModal placeholder 1.90/28, vaultTools empty rawText synthetic fallback, bbox mismatch, PDF readAsText binary (deferrable)
 
 ## Success Auditor
 
-- verification/final.md: PASS (185 lines, 2026-08-29T19:59Z) — Success Auditor 14/16 PASS (lint 0, build 1663 CSS 67.44kB gz 11.49KB 11515 <50KB, test 141 passed|1 skipped 11 suites, runner 231 PASS 15 suites, grep slop 0, we word-boundary 0, p_devi_78 0, hidden wrappers 8 at App 260/278/282/286/291/296/301/310 +2 isActive 232/321, 40 tools, isSupabaseEnabled 14, wireLocalVault 4) — live 9 fresh captures 1280/375/768/320/1024/1440 + pillmap/labstory/modal tours via browser.open snapshot + browser.capture UnknownVizError fallback puppeteer-core 25.9.0 justified, no gaps at 6 viewports, no regression
-  - Evidence: .teamwork/verification/final.md PASS, .teamwork/snapshots/final/success-auditor-*.jpg 9 JPEG (333K-674K) valid JFIF >5K via file, prior M1 20 JPEG + M2 18 JPEG total 47 JPEG valid
+- verification/final.md: **PASS** — 2026-08-29T21:21Z — independent lint 0 test 142 runner 231 build 1659 grep mock 0 sample 0 patient-s-devi App/components 0 (seed/client fallback 2) p_devi_78 0 we0 slop0 40 tools wrappers 8, live dev-server screenshot audit at 3 viewports (1280 92K, 375 71K, 768 87K gate `hasCreateAccount true hasShanti false` + empty vault 283K/120K/211K `hasNoRecords true hasShanti false` + after upload 306K/128K/302K `success true hasAspirin true` WebMCP 40 at all viewports), all 9 fresh JPEG valid JFIF >5K under snapshots/final/final-auditor-* plus baseline 3 + M1 23 + M2 31 + M3 16 — **PASS** before Sentinel Done
 
 ## Spawn Tracking
 
-- Spawns used: 14/16 — 3 miners +4 workers +6 reviewers +1 Success Auditor (final) — dead-man completed — 3 miners +4 workers +6 reviewers (M1 critic/challenger/auditor + M2 critic/challenger/auditor) — dead-man reset at M2 PASS — 3 miners +3 workers +3 reviewers (critic/challenger/auditor M1) (vault, common, pillmap)
-- Model: opencode-go/muse-spark-1.2-contributor per Sentinel (paid, inherited-from-chat)
-
----
-## Success Auditor — 2026-08-29T19:59Z (teamwork-1788010057462)
-- verification/final.md: **PASS** — Success Auditor 14/16 independent verification PASS (lint 0 build 1663 CSS 11.49KB gz 11515 test 141 runner 231 slop 0 we 0 wrappers 8 tools 40)
-- Live captures: 9 fresh success-auditor JPEGs 1280/375/768/320/1024/1440 + pillmap/labstory/modal tours via browser.open desktop 1440 snapshot + browser.capture UnknownVizError fallback puppeteer-core justified
-- No gaps at 6 viewports verified, no regression, gates M1+M2 critic→challenger→auditor each PASS
-- Spawn used 14/16 — ready for Sentinel Done
-
+- Spawns used: 16/16 — 3 miners +3 workers +9 reviewers (M1+M2+M3) +1 Success Auditor (final) — model opencode-go/muse-spark-1.2-contributor paid inherited-from-chat — dead-man reset at final PASS, ready for Sentinel Done

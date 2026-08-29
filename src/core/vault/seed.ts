@@ -1,21 +1,18 @@
 /**
- * CareCanvas Core: Centralized Idempotent Vault Seeder (M1)
- * Single source of truth for canonical patient patient-s-devi.
- *
- * Ownership: ws-01-01 (seed.ts, patient_profiles, longitudinal_labs transformation)
- * This module owns all baseline seeding. Per-view if(empty)seed blocks must be removed
- * in later milestones; seeding is invoked once at bootstrap (main.tsx).
- *
- * Idempotency: every record is inserted only if its id is absent in the vault.
- * Second call -> zero duplicates, counts unchanged.
+ * CareCanvas Core: Vault Seeder — CLEAN (M1 Mock Removal)
+ * CANONICAL_PATIENT_ID retained ONLY as legacy migration fallback for existing Supabase rows.
+ * NOT used as default activeProfile — Create Account (M2) supplies real patientId.
+ * Seeding is now NO-OP for new patients: seedVault/seedIfEmpty return empty counts and insert nothing.
+ * Keeps signatures for backward compat (isSeeded, seedIfEmpty, seedVault, hydrateOrSeed) but
+ * does NOT auto-populate vault with mock profile or labs. Empty vault is the clean foundation.
  */
 
 import type { LocalVaultManager } from './LocalVault.ts';
-import { mockShantiDeviProfile } from '../../fixtures/patient_profiles.ts';
-import { mockShantiDeviLongitudinalLabs, convertToLabRecords } from '../../fixtures/longitudinal_labs.ts';
 import type { DueCardRecord, ProposalRecord, CalendarEventRecord } from '../../types/vault.ts';
 import type { DangerSignReport } from '../../types/safety.ts';
 
+// Legacy migration fallback — documented not to be used as default activeProfile.
+// Real patientId comes from authenticated session (localStorage carecanvas_active_user, Supabase auth).
 export const CANONICAL_PATIENT_ID = 'patient-s-devi';
 
 export interface SeedResult {
@@ -46,10 +43,8 @@ export interface SeedResult {
   };
 }
 
-// Baseline DueCard / Proposal / DangerReport / CalendarEvents mirror per-view seeds
-// (HomeLabView due_card_kidney_001 + prop_metformin_titration_001, SafetyView danger_edema_001 + cal_*)
-// They are centralized here so views can read-only vault.
-
+// Baseline helpers retained for potential legacy caller but NOT auto-invoked in seedVault.
+// They are unused in clean path; keep for backward compat if legacy test explicitly constructs records.
 function getBaselineDueCard(patientId: string): DueCardRecord {
   return {
     id: 'due_card_kidney_001',
@@ -145,9 +140,12 @@ export function isSeeded(vault: LocalVaultManager, patientId: string = CANONICAL
 
 /**
  * Seed only if vault is empty for patient. Idempotent entry point for main.tsx.
- * Returns true if seeding was performed, false if skipped.
+ * CLEAN M1: no longer seeds mock data — returns no-op for new patients (empty vault).
+ * Keeps signature for backward compat; real account vault stays empty until user upload.
  */
 export function seedIfEmpty(vault: LocalVaultManager, patientId: string = CANONICAL_PATIENT_ID): SeedResult {
+  // For clean foundation, never auto-seed mock data for new patients.
+  // If vault already has data (legacy migration), report as already_seeded.
   if (isSeeded(vault, patientId)) {
     const counts = vault.getSeedCounts
       ? vault.getSeedCounts(patientId)
@@ -189,12 +187,15 @@ export function seedIfEmpty(vault: LocalVaultManager, patientId: string = CANONI
       },
     };
   }
+  // Clean path: do not insert mock data; return empty (real Create Account will own data)
   return seedVault(vault, patientId);
 }
 
 /**
- * Idempotent vault seeding for canonical patient.
- * Inserts each fixture record only if its id is absent.
+ * Idempotent vault seeding — CLEAN M1: no-op (no mock insertion).
+ * Retains signature and returns inserted:0 for real patients.
+ * Legacy callers expecting mock population will receive empty; tests must use real fixtures.
+ * Comment: seeding is legacy; Create Account will use empty vault (see M2).
  */
 export function seedVault(vault: LocalVaultManager, patientId: string = CANONICAL_PATIENT_ID): SeedResult {
   const inserted = {
@@ -209,110 +210,33 @@ export function seedVault(vault: LocalVaultManager, patientId: string = CANONICA
     calendarEvents: 0,
   };
 
-  // Use canonical profile data but override patientId if custom
-  const profile = mockShantiDeviProfile;
-  const effectivePatientId = patientId;
-
-  // 1. Conditions
-  for (const c of profile.conditions) {
-    const record = patientId === CANONICAL_PATIENT_ID ? c : { ...c, patientId: effectivePatientId };
-    if (!vault.conditions.has(record.id)) {
-      vault.addCondition(record);
-      inserted.conditions++;
-    }
-  }
-
-  // 2. Allergies
-  for (const a of profile.allergies) {
-    const record = patientId === CANONICAL_PATIENT_ID ? a : { ...a, patientId: effectivePatientId };
-    if (!vault.allergies.has(record.id)) {
-      vault.addAllergy(record);
-      inserted.allergies++;
-    }
-  }
-
-  // 3. Medications
-  for (const m of profile.activeMedications) {
-    const record = patientId === CANONICAL_PATIENT_ID ? m : { ...m, patientId: effectivePatientId };
-    if (!vault.meds.has(record.id)) {
-      vault.addMedication(record);
-      inserted.medications++;
-    }
-  }
-
-  // 4. Caregiver links
-  for (const link of profile.caregivers) {
-    const record = patientId === CANONICAL_PATIENT_ID ? link : { ...link, patientId: effectivePatientId };
-    const linkId = (record as any).linkId;
-    if (!vault.careCircle.has(linkId)) {
-      vault.addCaregiverLink(record as any);
-      inserted.caregivers++;
-    }
-  }
-
-  // 5. Longitudinal Labs -> LabRecords
-  const labRecords = convertToLabRecords(effectivePatientId, mockShantiDeviLongitudinalLabs);
-  for (const lab of labRecords) {
-    if (!vault.labs.has(lab.id)) {
-      vault.addLab(lab);
-      inserted.labs++;
-    }
-  }
-
-  // 6. DueCard
-  const dueCard = getBaselineDueCard(effectivePatientId);
-  if (!vault.dueCards.has(dueCard.id)) {
-    vault.addDueCard(dueCard);
-    inserted.dueCards++;
-  }
-
-  // 7. Proposal
-  const proposal = getBaselineProposal(effectivePatientId);
-  if (!vault.proposals.has(proposal.id)) {
-    vault.addProposal(proposal);
-    inserted.proposals++;
-  }
-
-  // 8. DangerReport
-  const danger = getBaselineDangerReport(effectivePatientId);
-  if (!vault.dangerReports.has(danger.reportId)) {
-    vault.addDangerReport(danger);
-    inserted.dangerReports++;
-  }
-
-  // 9. CalendarEvents
-  const calEvents = getBaselineCalendarEvents(effectivePatientId);
-  for (const e of calEvents) {
-    if (!vault.calendarEvents.has(e.id)) {
-      vault.addCalendarEvent(e);
-      inserted.calendarEvents++;
-    }
-  }
+  // CLEAN: No mock insertion. Vault stays empty for new accounts.
+  // Baseline dueCard/proposal/danger/calendar helpers are retained but NOT invoked here.
+  // This ensures cold start shows empty states (No records here yet) per M1 AC.
 
   const counts = vault.getSeedCounts
-    ? vault.getSeedCounts(effectivePatientId)
+    ? vault.getSeedCounts(patientId) as any
     : {
-        meds: vault.getMedications(effectivePatientId).length,
-        labs: vault.getLabs(effectivePatientId).length,
-        conditions: vault.getConditions(effectivePatientId).length,
-        allergies: vault.getAllergies(effectivePatientId).length,
-        dueCards: vault.getDueCards(effectivePatientId).length,
-        proposals: vault.getProposals(effectivePatientId).length,
-        dangerReports: vault.getDangerReports(effectivePatientId).length,
-        calendarEvents: vault.getCalendarEvents(effectivePatientId).length,
+        meds: vault.getMedications(patientId).length,
+        labs: vault.getLabs(patientId).length,
+        conditions: vault.getConditions(patientId).length,
+        allergies: vault.getAllergies(patientId).length,
+        dueCards: vault.getDueCards(patientId).length,
+        proposals: vault.getProposals(patientId).length,
+        dangerReports: vault.getDangerReports(patientId).length,
+        calendarEvents: vault.getCalendarEvents(patientId).length,
       };
 
-  const anyInserted = Object.values(inserted).some((v) => v > 0);
   return {
-    seeded: anyInserted,
-    skipped: !anyInserted,
-    reason: anyInserted ? undefined : 'already_seeded_no_new_inserts',
+    seeded: false,
+    skipped: true,
+    reason: 'mock_seeding_removed_empty_vault',
     counts: {
       conditions: (counts as any).conditions ?? (counts as any).meds ?? 0,
       allergies: (counts as any).allergies ?? 0,
       medications: (counts as any).meds ?? (counts as any).medications ?? 0,
       labs: (counts as any).labs ?? 0,
-      caregivers: vault.getCaregiverLinks(effectivePatientId).length,
+      caregivers: vault.getCaregiverLinks(patientId).length,
       dueCards: (counts as any).dueCards ?? 0,
       proposals: (counts as any).proposals ?? 0,
       dangerReports: (counts as any).dangerReports ?? 0,
@@ -323,13 +247,12 @@ export function seedVault(vault: LocalVaultManager, patientId: string = CANONICA
 }
 
 /**
- * Hydrate-or-seed helper (M3) — convenience for bootstrap and tests.
+ * Hydrate-or-seed helper (M3) — CLEAN M1: hydration only, no mock seed fallback.
  * - If Supabase is enabled, attempts hydrateFromSupabase(patientId, vault) first.
  * - If hydrated>0 returns with skippedSeed=true (seed skipped, idempotent).
- * - Else (skipped / 0 / error / offline) falls back to seedIfEmpty (single source, idempotent).
- * - If Supabase not enabled, directly seeds (local-only graceful).
- * - Never throws; async errors fall back to seed.
- * - No hard-coded password/host; env-only via dynamic import.
+ * - Else (skipped / 0 / error / offline) returns empty (no mock seed) — real account owns data.
+ * - If Supabase not enabled, directly returns empty (no seed) — clean empty vault.
+ * - Never throws; async errors return empty.
  */
 export async function hydrateOrSeed(
   vault: LocalVaultManager,
@@ -388,7 +311,7 @@ export async function hydrateOrSeed(
             hydrationError: h.error,
           };
         }
-        // hydrated===0 or skipped => fall through to seed
+        // hydrated===0 or skipped => return empty (no mock seed)
         const seedRes = seedIfEmpty(vault, patientId);
         return {
           ...seedRes,
@@ -398,7 +321,7 @@ export async function hydrateOrSeed(
           hydrationError: h.error,
         };
       } catch (e: any) {
-        // Hydration threw — fallback to seed, never block mount
+        // Hydration threw — return empty, never block mount
         const seedRes = seedIfEmpty(vault, patientId);
         return {
           ...seedRes,
@@ -411,7 +334,7 @@ export async function hydrateOrSeed(
   } catch {
     // isSupabaseEnabled import/check failed — treat as local-only
   }
-  // Local-only path or hydration empty/error => seed
+  // Local-only path or hydration empty/error => empty vault (no mock seed)
   const seedRes = seedIfEmpty(vault, patientId);
   return { ...seedRes, hydrated: 0, skippedHydration: true };
 }

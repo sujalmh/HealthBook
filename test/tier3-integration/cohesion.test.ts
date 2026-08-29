@@ -52,21 +52,20 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   });
 
   // ------------------------------------------------------------------
-  // Cold-start idempotent
+  // Cold-start idempotent — CLEAN M1: empty vault (no mock seeding)
   // ------------------------------------------------------------------
   describe('cold-start idempotent seed', () => {
-    it('seedIfEmpty fresh vault seeds once, second call skips with zero inserts', () => {
+    it('seedIfEmpty fresh vault is no-op (empty vault) and second call also skips', () => {
       const r1 = seedIfEmpty(vault, CANONICAL);
-      expect(r1.seeded).toBe(true);
-      expect(r1.skipped).toBe(false);
+      expect(r1.seeded).toBe(false);
+      expect(r1.skipped).toBe(true);
       const c1 = vault.getSeedCounts(CANONICAL);
-      expect(c1.meds).toBeGreaterThan(0);
-      expect(c1.labs).toBeGreaterThan(0);
+      expect(c1.meds).toBe(0);
+      expect(c1.labs).toBe(0);
 
       const r2 = seedIfEmpty(vault, CANONICAL);
       expect(r2.seeded).toBe(false);
       expect(r2.skipped).toBe(true);
-      expect(r2.reason).toBe('already_seeded');
       const c2 = vault.getSeedCounts(CANONICAL);
       expect(c2.meds).toBe(c1.meds);
       expect(c2.labs).toBe(c1.labs);
@@ -74,10 +73,10 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(r2.inserted.labs).toBe(0);
     });
 
-    it('isSeeded reflects vault state, seedVault idempotent on second call', () => {
+    it('isSeeded reflects vault state, seedVault is no-op', () => {
       expect(isSeeded(vault, CANONICAL)).toBe(false);
       seedVault(vault, CANONICAL);
-      expect(isSeeded(vault, CANONICAL)).toBe(true);
+      expect(isSeeded(vault, CANONICAL)).toBe(false);
       const before = vault.getSeedCounts(CANONICAL);
       const r2 = seedVault(vault, CANONICAL);
       expect(r2.inserted.medications).toBe(0);
@@ -87,7 +86,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(after.labs).toBe(before.labs);
     });
 
-    it('clear then seed restores canonical counts', () => {
+    it('clear then seed remains empty', () => {
       seedIfEmpty(vault, CANONICAL);
       const c1 = vault.getSeedCounts(CANONICAL);
       vault.clear({ preserveAudit: false });
@@ -95,6 +94,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       seedIfEmpty(vault, CANONICAL);
       const c2 = vault.getSeedCounts(CANONICAL);
       expect(c2.meds).toBe(c1.meds);
+      expect(c2.meds).toBe(0);
     });
   });
 
@@ -169,7 +169,8 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
     });
 
     it('updateMedication emits medication_updated -> PillMap arcs + LabStory overlay + Dossier', () => {
-      seedIfEmpty(vault, CANONICAL);
+      // Seed a med manually (seed is now no-op empty)
+      vault.addMedication({ id: 'med_seed_cohesion_1', patientId: CANONICAL, brandName: 'TestMed', genericName: 'TestMed', dosage: '5mg', unit: 'mg', frequency: 'BID', timingSlots: ['morning'], withFood: false, status: 'active' } as any);
       bus.clearHistory();
       let pillMapUpdated = 0;
       let labStoryUpdated = 0;
@@ -203,7 +204,8 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   // ------------------------------------------------------------------
   describe('lab propagation (LabStory ↔ HomeLab ↔ Dossier)', () => {
     it('addLab emits lab_added, LabStory timeline sorted, HomeLab dueCard transitions, Dossier audit', () => {
-      seedIfEmpty(vault, CANONICAL);
+      // Create dueCard manually (seed is empty)
+      vault.addDueCard({ id: 'due_card_kidney_001', patientId: CANONICAL, testPanel: 'Creatinine & eGFR', biomarkers: ['Creatinine', 'eGFR'], dueDate: new Date().toISOString(), prescribedBy: 'Dr. Patel', prescribedDate: new Date().toISOString(), status: 'due_soon' } as any);
       bus.clearHistory();
       let labStoryCalls = 0;
       let homeLabCalls = 0;
@@ -234,10 +236,9 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       vault.addLab(newLab as any, { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
 
       expect(vault.getLabs(CANONICAL).some(l => l.id === newLab.id)).toBe(true);
-      // Timeline sorted by drawDate
+      // Timeline sorted by drawDate — with empty vault, 1 is valid
       const labs = vault.getLabs(CANONICAL, 'Creatinine');
-      expect(labs.length).toBeGreaterThan(1);
-      // Last should be newest
+      expect(labs.length).toBeGreaterThanOrEqual(1);
       expect(labs[labs.length - 1].id).toBe(newLab.id);
 
       expect(countEvents(bus, 'lab_added')).toBe(1);
@@ -583,7 +584,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   // ------------------------------------------------------------------
   describe('relevant-only telemetry (spurious-rerender guards)', () => {
     it('adding doctor comment to lab does NOT emit medication/lab events nor trigger PillMap', () => {
-      seedIfEmpty(vault, CANONICAL);
+      vault.addLab({ id: 'lab_for_comment_1', patientId: CANONICAL, marker: 'eGFR', value: 30, unit: 'mL/min/1.73m2', normalizedValue: 30, normalizedUnit: 'mL/min/1.73m2', drawDate: new Date().toISOString(), referenceRange: { low: 60, high: 120 }, optimalRange: { low: 90, high: 120 }, isBorderline: false, isCritical: false } as any);
       const labId = vault.getLabs(CANONICAL)[0].id;
       bus.clearHistory();
       let pillMapMedAdded = 0;

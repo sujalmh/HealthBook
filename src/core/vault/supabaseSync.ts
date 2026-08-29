@@ -5,12 +5,14 @@
  * - syncToSupabase: fire-and-forget upsert after local Map.set + EventBus emit (non-blocking, no event duplication)
  * - hydrateFromSupabase / hydrateFromSupabaseToVault: pull Postgres rows -> Map.set silently without emitting duplicate `added` inflation
  *
- * Patient isolation: exact `patientId === CANONICAL_PATIENT_ID` (never includes, never prefix)
+ * Patient isolation: exact `patientId ===` per-account (never includes, never prefix) — real userId from carecanvas_active_user.
+ * CANONICAL_PATIENT_ID retained only as legacy migration constant re-export (see seed.ts), not as default activeProfile.
  * Offline graceful: missing URL or Supabase down => {hydrated:0, skipped:true} without throw, no throw to bootstrap
  * EventBus relevance matrix: hydration does NOT emit added/updated events; only optional silent meta, no spurious rerender
+ * Empty vault guarantee: fresh account starts 0 facts/meds/labs until FileReader upload (M2 gate)
  *
- * Ownership: ws-02-01 (src/core/vault/supabaseSync.ts)
- * DependsOn: ws-01-01 (src/core/supabase/client.ts)
+ * Ownership: ws-m2-auth-gate (src/core/vault/supabaseSync.ts)
+ * DependsOn: ws-m1-mock-removal
  */
 
 import type { LocalVaultManager } from './LocalVault.ts';

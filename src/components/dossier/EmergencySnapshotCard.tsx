@@ -33,10 +33,10 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  // Fallback defaults if snapshot is loading or empty — canonical patient patient-s-devi (unified)
+  // Fallback defaults if snapshot is loading or empty — canonical patient  (unified)
   const data: EmergencySnapshot = snapshot || {
-    patientId: 'patient-s-devi',
-    patientName: 'Smt. Shanti Devi',
+    patientId: '',
+    patientName: 'Patient',
     mrn: 'MRN-984210',
     dob: '1948-03-14',
     age: 78,
@@ -46,7 +46,7 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
     verifiedAllergies: [
       {
         id: 'allergy_1',
-        patientId: 'patient-s-devi',
+        patientId: '',
         allergen: 'Penicillin',
         reaction: 'Anaphylaxis',
         severity: 'severe',
@@ -56,7 +56,7 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
     activeMedications: [
       {
         id: 'm1',
-        patientId: 'patient-s-devi',
+        patientId: '',
         genericName: 'Apixaban',
         brandName: 'Eliquis',
         dosage: '5mg',
@@ -67,7 +67,7 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
       },
       {
         id: 'm2',
-        patientId: 'patient-s-devi',
+        patientId: '',
         genericName: 'Metformin',
         brandName: 'Glucophage',
         dosage: '1000mg',
@@ -78,7 +78,7 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
       },
       {
         id: 'm3',
-        patientId: 'patient-s-devi',
+        patientId: '',
         genericName: 'Atorvastatin',
         brandName: 'Lipitor',
         dosage: '40mg',
@@ -90,7 +90,7 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
       },
       {
         id: 'm4',
-        patientId: 'patient-s-devi',
+        patientId: '',
         genericName: 'Levothyroxine',
         brandName: 'Synthroid',
         dosage: '75mcg',

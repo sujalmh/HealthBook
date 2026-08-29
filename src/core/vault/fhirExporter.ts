@@ -7,10 +7,10 @@ import type { FHIRR4Bundle, CompiledHealthRecord } from '../../types/dossier.ts'
 import type { LabRecord, MedicationRecord, AllergyRecord, ConditionRecord, Fact } from '../../types/vault.ts';
 
 export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR4Bundle {
-  const patientId = dossier.patientId || 'patient-s-devi';
+  const patientId = dossier.patientId || '';
   const profile = dossier.patientProfile || {
     id: patientId,
-    name: 'Smt. Shanti Devi',
+    name: 'Patient',
     mrn: 'MRN-984210',
     dob: '1948-03-14',
     age: 78,

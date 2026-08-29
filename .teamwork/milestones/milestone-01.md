@@ -1,7 +1,8 @@
-# Milestone milestone-01: Slop Removal & Direct Voice Rewrite
+# Milestone 01 — Mock Removal & Fixtures Cleanup
 
-Remove AI slop pills (DocumentDropzone 84 Private on your device, PrivacyBadge 93 Local Vault pill + 102 aria + 114 heading + 128 paragraph 100% Client-Side, PillMap 460 Weekly pill box, LabStory 364 100% Private badge) + rewrite all we pronouns to direct functional (DocumentDropzone 79 to "Drop a PDF or photo to extract details" + 125, QuestionBank 186, FactStream 68/71/141) across 6 files. No gaps, grep slop 0, grep we word-boundary 0, screenshots 1280/375/768 clean, build 1663 intact.
-
-- Workstreams: ws-vault-direct, ws-common-badge, ws-pillmap-labstory
-- DependsOn: none
-- Status: pending
+Status: pending
+DependsOn: []
+Workstreams: ws-m1-mock-removal (worker_mock_removal)
+Goal: Remove mock fixtures, seed defaults, sampleDocuments, tools mock branching per PROJECT.md
+Acceptance: grep mockShanti etc 0, sampleDocuments 0, patient-s-devi not hardcoded in App/components, fixtures deleted/emptied, tools no mock import/branch, build 1663 lint 0 test 141 runner 231
+Gate: critic→challenger→auditor

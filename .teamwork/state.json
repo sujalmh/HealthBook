@@ -1,172 +1,207 @@
 {
   "version": 1,
-  "projectId": "teamwork-1788010057462",
+  "projectId": "teamwork-1788014473534",
   "request": {
-    "objective": "Remove ai slop artifacts like Private on your device, Local Vault (Zero Cloud PHI), Weekly pill box, etc. These pills serve no use, redundant. Find more to remove. Rewrite from 1st person we to Direct function, instead \"Drop a PDF or photo — we read it safely on your device, nothing leaves it.\" write \"Drop a PDF or photo to get details\" or similar, rewrite in entire website.",
+    "objective": "Now remove all mock, stub data. I want to use it with real data. First thing is create account, thats all. then everything works with webmcp, connected to chat apps.",
     "constraints": [
       "Use Antigravity Distributed Coding pattern Sentinel->Orchestrator->Explorer/Workers->Critic->Challenger->Auditor->Success Auditor per pattern.json",
       "Preserve OpenCode+Teamwork invariants: per-workstream file ownership, DAG, worktrees, state.json/progress.md",
       "Do NOT read secrets (.env, *.pem, credentials/**) — use import.meta.env indirection",
-      "Do NOT regress cohesion: grep p_devi_78 0, seedBaselineRegimen 0, App.tsx hidden wrappers 8 intact, EventBus intact, supabase untouched, 40 tools intact",
-      "UI stack React18+Tailwind3 only, no new framework",
-      "Copy constraint: no first-person we in src/components/** + App.tsx after fix (word-boundary grep 0), tool templates excluded",
-      "Slop removal: delete pills without leaving gaps, keep functional containers",
-      "Live screenshot discipline: workers capture >=2 (desktop 1280+mobile 375) under .teamwork/snapshots/<milestone>, auditor re-captures",
-      "Keep functional badge where needed but retitle to local data, not marketing",
-      "Vercel build must still 1663 modules"
+      "Do NOT regress M1-M4 UI modern + slop-free: tokens, we pronoun 0, slop 0, 40 tools, hidden wrappers 8, EventBus, supabase only for auth scoping",
+      "Remove user mock data only; keep drug_knowledge clinical base",
+      "Account-first: unauthenticated App.tsx shows CreateAccountView centered, not Shanti Devi hardcoded",
+      "Real file handling: DocumentDropzone hide sampleDocuments, implement FileReader real extract",
+      "Live screenshot discipline: workers capture >=2 (desktop 1280+mobile 375) under snapshots, auditor re-captures",
+      "Build must still 1663 modules"
     ],
     "acceptanceCriteria": [
       "Request artifact preserved verbatim at .teamwork/request.md",
       "State initialized via TeamworkEngine.initProject with new teamwork-* projectId",
-      "Explorer baseline: research/explorer-slop-*.md with grep inventory + before screenshots 1280/375/768",
-      "Slop removal: Private on your device gone, Local Vault pill replaced, Zero-Cloud heading simplified, Weekly pill box removed, grep slop 0, no pill gaps, screenshots clean",
-      "Voice rewrite: DocumentDropzone 79 to direct functional, 125 We removed, QuestionBank 186 we removed, FactStream 68/71 we removed, plus all other src/components we hits fixed, grep we pronoun 0 in components",
-      "Live screenshots: every milestone >=2 captures desktop+mobile under snapshots, auditor re-captures",
-      "No regression: p_devi_78 0, isSupabaseEnabled intact, 40 tools, hidden wrappers 8, build 1663",
-      "Tests & build: tsc 0, npm test 141+ PASS, runner 231 PASS, build 1663",
-      "Gates: critic->challenger->auditor per milestone PASS, Success Auditor final PASS verification/final.md"
+      "Explorer baseline: research/explorer-mock-*.md with grep inventory + before screenshots 1280/375/768",
+      "Mock removal: mockShanti etc 0, sampleDocuments 0, patient-s-devi not hardcoded in App/components, fixtures deleted/emptied, tools no longer branch on mock",
+      "Create Account: new CreateAccountView, App.tsx checks localStorage, renders gate if no user, 44px, screenshots PASS",
+      "Real data + WebMCP: DocumentDropzone real drop FileReader, vaultTools no fixture branch, getRegisteredTools 40 after account, chat discoverable",
+      "No empty-pill gaps at 6 viewports",
+      "Live screenshots every milestone >=2 desktop+mobile under snapshots, auditor re-captures",
+      "No regression: p_devi_78 0, 40 tools, hidden wrappers 8, build 1663",
+      "Tests & build: lint 0, test 141+ PASS, runner 231 PASS, build 1663",
+      "Gates: critic->challenger->auditor per milestone PASS, Success Auditor final PASS"
     ],
     "nonGoals": [
-      "Backend Supabase/LocalVault functional changes — only copy/label",
-      "Heavy redesign beyond slop removal",
-      "Tool doctor questions Should we ... out of scope",
+      "Full Supabase Auth email verification / OAuth / RLS — localStorage sufficient",
       "EHR FHIR / TrialBridge / Offline PWA / new design system",
-      "Proprietary Antigravity hidden prompts"
+      "Proprietary Antigravity hidden prompts",
+      "Tool doctor templates Should we ... out of scope"
     ],
-    "createdAt": "2026-08-29T13:27:37.462Z",
-    "originalInput": "Remove ai slop artifacts like Private on your device, Local Vault (Zero Cloud PHI), Weekly pill box, etc. These pills serve no use, redundant. Find more to remove. Rewrite from 1st person we to Direct function, instead \"Drop a PDF or photo — we read it safely on your device, nothing leaves it.\" write \"Drop a PDF or photo to get details\" or similar, rewrite in entire website.",
+    "createdAt": "2026-08-29T14:41:13.534Z",
+    "originalInput": "Now remove all mock, stub data. I want to use it with real data. First thing is create account, thats all. then everything works with webmcp, connected to chat apps.",
     "integrityMode": "development",
     "executionPath": "distributed-coding",
     "workingDirectory": ".teamwork"
   },
   "plan": {
-    "createdAt": "2026-08-29T13:39:04.295Z",
+    "createdAt": "2026-08-29T14:49:02.123Z",
     "milestones": [
       {
         "id": "milestone-01",
-        "title": "Slop Removal & Direct Voice Rewrite",
-        "description": "Remove AI slop pills (DocumentDropzone 84 Private on your device, PrivacyBadge 93 Local Vault pill + 102 aria + 114 heading + 128 paragraph 100% Client-Side, PillMap 460 Weekly pill box, LabStory 364 100% Private badge) + rewrite all we pronouns to direct functional (DocumentDropzone 79 to \"Drop a PDF or photo to extract details\" + 125, QuestionBank 186, FactStream 68/71/141) across 6 files. No gaps, grep slop 0, grep we word-boundary 0, screenshots 1280/375/768 clean, build 1663 intact.",
+        "title": "Mock Removal & Fixtures Cleanup",
+        "description": "Remove mock fixtures, seed defaults, sampleDocuments, tools mock branching",
+        "dependsOn": [],
+        "status": "completed",
         "workstreams": [
-          "ws-vault-direct",
-          "ws-common-badge",
-          "ws-pillmap-labstory"
-        ],
-        "dependsOn": []
+          "ws-m1-mock-removal"
+        ]
       },
       {
         "id": "milestone-02",
-        "title": "Polish, Responsive No-Gaps & Final Build Verification",
-        "description": "Verify no decorative pill gaps at 320/375/768/1024/1280/1440, header/DocumentDropzone/PrivacyBadge/PillMap render clean without placeholders, adjust padding/gap if needed (no new slop), final build/lint/test/runner verification, prepare for Success Auditor gate.",
-        "workstreams": [
-          "ws-polish-verification"
-        ],
+        "title": "Create Account Gate",
+        "description": "CreateAccountView centered, App gate via localStorage, real userId",
         "dependsOn": [
           "milestone-01"
+        ],
+        "status": "completed",
+        "workstreams": [
+          "ws-m2-auth-gate"
+        ]
+      },
+      {
+        "id": "milestone-03",
+        "title": "Real Data WebMCP + Chat + Polish",
+        "description": "Real FileReader, vaultTools real extract, 40 tools discoverable, empty vault + after upload, 6 viewports polish",
+        "dependsOn": [
+          "milestone-02"
+        ],
+        "status": "completed",
+        "workstreams": [
+          "ws-m3-realdata-webmcp"
         ]
       }
     ],
     "workstreams": [
       {
-        "id": "ws-vault-direct",
-        "title": "Vault Direct Voice & Dropzone Slop Cleanup",
+        "id": "ws-m1-mock-removal",
+        "milestone": "milestone-01",
+        "role": "worker_mock_removal",
+        "description": "Remove mock fixtures/seed/tools branching/DocumentDropzone mock",
+        "files": [
+          "src/fixtures/patient_profiles.ts",
+          "src/fixtures/longitudinal_labs.ts",
+          "src/fixtures/discharge_lists.ts",
+          "src/fixtures/documents.ts",
+          "src/fixtures/index.ts",
+          "src/core/vault/seed.ts",
+          "src/main.tsx",
+          "src/tools/vaultTools.ts",
+          "src/tools/labStoryTools.ts",
+          "src/tools/rxBridgeTools.ts",
+          "src/tools/homeLabTools.ts",
+          "src/components/vault/DocumentDropzone.tsx",
+          "src/components/vault/FactStreamView.tsx",
+          "src/components/vault/BoundingBoxViewer.tsx"
+        ],
+        "dependsOn": [],
+        "status": "completed"
+      },
+      {
+        "id": "ws-m2-auth-gate",
+        "milestone": "milestone-02",
+        "role": "worker_auth_gate",
+        "description": "CreateAccountView + App gate + WebMCP defaultContext empty",
+        "files": [
+          "src/components/auth/CreateAccountView.tsx",
+          "src/components/auth/AuthGate.tsx",
+          "src/App.tsx",
+          "src/core/webmcp/WebMCPEngine.ts",
+          "src/core/vault/LocalVault.ts",
+          "src/core/vault/supabaseSync.ts"
+        ],
+        "dependsOn": [
+          "milestone-01"
+        ],
+        "status": "completed"
+      },
+      {
+        "id": "ws-m3-realdata-webmcp",
+        "milestone": "milestone-03",
+        "role": "worker_realdata_webmcp",
+        "description": "Real FileReader, vaultTools real, WebMCP 40, empty vault polish, tests",
         "files": [
           "src/components/vault/DocumentDropzone.tsx",
-          "src/components/vault/FactStreamView.tsx"
+          "src/tools/vaultTools.ts",
+          "src/core/webmcp/WebMCPEngine.ts",
+          "src/tools/index.ts",
+          "src/components/rxbridge/RxBridgeView.tsx",
+          "src/components/homelab/HomeLabView.tsx",
+          "test/unit/*",
+          "test/integration/*"
         ],
-        "owner": "worker_vault_direct",
-        "milestoneId": "milestone-01",
-        "dependsOn": []
-      },
-      {
-        "id": "ws-common-badge",
-        "title": "Common Badge Simplification & QuestionBank Voice",
-        "files": [
-          "src/components/common/PrivacyBadge.tsx",
-          "src/components/common/QuestionBank.tsx"
-        ],
-        "owner": "worker_common_badge",
-        "milestoneId": "milestone-01",
-        "dependsOn": []
-      },
-      {
-        "id": "ws-pillmap-labstory",
-        "title": "PillMap & LabStory Decorative Pills Removal",
-        "files": [
-          "src/components/pillmap/PillMapView.tsx",
-          "src/components/labstory/LabStoryView.tsx"
-        ],
-        "owner": "worker_pillmap_labstory",
-        "milestoneId": "milestone-01",
-        "dependsOn": []
-      },
-      {
-        "id": "ws-polish-verification",
-        "title": "Polish Verification & Gap Audit",
-        "files": [
-          "src/App.tsx",
-          "src/components/pillmap/PillMapView.tsx",
-          "src/components/vault/DocumentDropzone.tsx"
-        ],
-        "owner": "worker_polish_verification",
-        "milestoneId": "milestone-02",
         "dependsOn": [
-          "ws-vault-direct",
-          "ws-common-badge",
-          "ws-pillmap-labstory"
-        ]
+          "milestone-02"
+        ],
+        "status": "completed"
       }
     ]
   },
   "ownership": [
     {
-      "workstream": "ws-vault-direct",
+      "workstream": "ws-m1-mock-removal",
+      "files": [
+        "src/fixtures/patient_profiles.ts",
+        "src/fixtures/longitudinal_labs.ts",
+        "src/fixtures/discharge_lists.ts",
+        "src/fixtures/documents.ts",
+        "src/fixtures/index.ts",
+        "src/core/vault/seed.ts",
+        "src/main.tsx",
+        "src/tools/vaultTools.ts",
+        "src/tools/labStoryTools.ts",
+        "src/tools/rxBridgeTools.ts",
+        "src/tools/homeLabTools.ts",
+        "src/components/vault/DocumentDropzone.tsx",
+        "src/components/vault/FactStreamView.tsx",
+        "src/components/vault/BoundingBoxViewer.tsx"
+      ],
+      "owner": "worker_mock_removal",
+      "status": "pending"
+    },
+    {
+      "workstream": "ws-m2-auth-gate",
+      "files": [
+        "src/components/auth/CreateAccountView.tsx",
+        "src/components/auth/AuthGate.tsx",
+        "src/App.tsx",
+        "src/core/webmcp/WebMCPEngine.ts",
+        "src/core/vault/LocalVault.ts",
+        "src/core/vault/supabaseSync.ts"
+      ],
+      "owner": "worker_auth_gate",
+      "status": "pending"
+    },
+    {
+      "workstream": "ws-m3-realdata-webmcp",
       "files": [
         "src/components/vault/DocumentDropzone.tsx",
-        "src/components/vault/FactStreamView.tsx"
+        "src/tools/vaultTools.ts",
+        "src/core/webmcp/WebMCPEngine.ts",
+        "src/tools/index.ts",
+        "src/components/rxbridge/RxBridgeView.tsx",
+        "src/components/homelab/HomeLabView.tsx"
       ],
-      "owner": "worker_vault_direct",
-      "status": "completed"
-    },
-    {
-      "workstream": "ws-common-badge",
-      "files": [
-        "src/components/common/PrivacyBadge.tsx",
-        "src/components/common/QuestionBank.tsx"
-      ],
-      "owner": "worker_common_badge",
-      "status": "completed"
-    },
-    {
-      "workstream": "ws-pillmap-labstory",
-      "files": [
-        "src/components/pillmap/PillMapView.tsx",
-        "src/components/labstory/LabStoryView.tsx"
-      ],
-      "owner": "worker_pillmap_labstory",
-      "status": "completed"
-    },
-    {
-      "workstream": "ws-polish-verification",
-      "files": [
-        "src/App.tsx",
-        "src/components/pillmap/PillMapView.tsx",
-        "src/components/vault/DocumentDropzone.tsx"
-      ],
-      "owner": "worker_polish_verification",
-      "status": "completed"
+      "owner": "worker_realdata_webmcp",
+      "status": "pending"
     }
   ],
   "progress": {
     "completedMilestones": [
       "milestone-01",
-      "milestone-02"
+      "milestone-02",
+      "milestone-03"
     ],
     "failedMilestones": [],
     "completedWorkstreams": [
-      "ws-vault-direct",
-      "ws-common-badge",
-      "ws-pillmap-labstory",
-      "ws-polish-verification"
+      "ws-m1-mock-removal",
+      "ws-m2-auth-gate",
+      "ws-m3-realdata-webmcp"
     ],
     "activeWorkstreams": []
   },
@@ -174,33 +209,43 @@
     "gates": [
       {
         "milestone": "milestone-01",
-        "verdict": "PASS",
         "critic": "PASS",
         "challenger": "PASS",
         "auditor": "PASS",
-        "evidence": ".teamwork/reviews/auditor-milestone-01.md"
+        "final": "PASS",
+        "evidence": ".teamwork/workstreams/ws-m1-mock-removal-result.md + snapshots/milestone-01/m1-*.jpg + logs + reviews/critic-challenger-auditor-milestone-01.md"
       },
       {
         "milestone": "milestone-02",
-        "verdict": "PASS",
         "critic": "PASS",
         "challenger": "PASS",
         "auditor": "PASS",
-        "evidence": ".teamwork/reviews/auditor-milestone-02.md"
+        "final": "PASS",
+        "evidence": ".teamwork/workstreams/ws-m2-auth-gate-result.md + snapshots/milestone-02/m2-*.jpg + reviews/critic-challenger-auditor-milestone-02.md"
+      },
+      {
+        "milestone": "milestone-03",
+        "critic": "PASS",
+        "challenger": "PASS",
+        "auditor": "PASS",
+        "final": "PASS",
+        "evidence": ".teamwork/workstreams/ws-m3-realdata-webmcp-result.md + snapshots/milestone-03/m3-*.jpg + reviews/critic-challenger-auditor-milestone-03.md"
       },
       {
         "milestone": "success-auditor",
-        "verdict": "PASS",
-        "evidence": ".teamwork/verification/final.md"
+        "critic": "PASS",
+        "challenger": "PASS",
+        "auditor": "PASS",
+        "final": "PASS",
+        "evidence": "verification/final.md + snapshots/final/final-auditor-* 9 JPEG + logs /tmp/final-audit/*"
       }
     ]
   },
   "context": {
-    "handoffCount": 0
+    "handoffCount": 1
   },
   "metadata": {
     "artifactsDir": ".teamwork",
-    "pattern": "distributed-coding",
-    "lastUpdated": "2026-08-29T14:31:00.835Z"
+    "pattern": "distributed-coding"
   }
 }

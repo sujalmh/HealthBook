@@ -1,5 +1,7 @@
 /**
  * CareCanvas Core: LocalVault Manager (11 Object Stores + Audit Trail)
+ * Per-account isolated — all getters/setters scoped by patientId (real userId from Create Account).
+ * Empty vault until user upload: seed is NO-OP (see seed.ts), no auto-population.
  */
 
 import type { 

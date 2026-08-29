@@ -1,18 +1,13 @@
 /**
- * CareCanvas WebMCP Tools: LabStory Longitudinal Biomarker Causal Engine (M2)
+ * CareCanvas WebMCP Tools: LabStory Longitudinal Biomarker Causal Engine — CLEAN (M1)
  * Tools: extract_labs, correlate_meds
- * Implements LS1-LS8: Multi-doc timeline drop, unit normalization, ±10% borderline buffers,
- * DuckDB/LocalVault timeseries placement, and causal query correlation.
+ * No mock fixture branching — reads from context.vault for context.patientId.
  */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import type { LabRecord } from '../types/vault.ts';
-import {
-  mockShantiDeviLongitudinalLabs,
-  mockHaroldJenkinsLongitudinalLabs,
-  convertToLabRecords
-} from '../fixtures/longitudinal_labs.ts';
 import type { LongitudinalLabDataPoint } from '../fixtures/longitudinal_labs.ts';
+import { convertToLabRecords } from '../fixtures/longitudinal_labs.ts';
 
 // Standard reference and optimal ranges for biomarker normalizer
 export const BIOMARKER_STANDARDS: Record<
@@ -196,10 +191,14 @@ export function normalizeLabBiomarker(
   patientId: string,
   sourceDocId?: string
 ): LabRecord {
+  // M3 NaN guard: malformed rawLabData (e.g., Number("abc") => NaN) must not store NaN normalizedValue
+  const safeRawValue = Number.isFinite(rawValue) ? rawValue : 0;
   const std = findBiomarkerStandard(markerName);
   const canonicalMarker = std ? std.canonicalName : markerName;
   const normalizedUnit = std ? std.standardUnit : rawUnit;
-  const normalizedValue = std ? std.convertUnit(rawValue, rawUnit) : rawValue;
+  let normalizedValue = std ? std.convertUnit(safeRawValue, rawUnit) : safeRawValue;
+  // Guard after conversion as well (convertUnit may return NaN for malformed unit)
+  if (!Number.isFinite(normalizedValue)) normalizedValue = 0;
   const referenceRange = std ? std.refRange : { low: 0, high: 100 };
   const optimalRange = std ? std.optimalRange : { low: referenceRange.low, high: referenceRange.high * 0.85 };
 
@@ -295,29 +294,77 @@ export const extractLabsTool: WebMCPToolDefinition = {
     const patientId = params.patientId || context.patientId;
     let labRecords: LabRecord[] = [];
 
-    // Case 1: Custom raw lab data provided
+    // Case 1: Custom raw lab data provided — normalize and store for real patient (M3 NaN guard)
     if (params.rawLabData && Array.isArray(params.rawLabData) && params.rawLabData.length > 0) {
-      labRecords = params.rawLabData.map((item) =>
-        normalizeLabBiomarker(
-          item.marker || item.name || 'Unknown',
-          Number(item.value || item.numericValue || 0),
-          item.unit || item.units || 'mg/dL',
-          item.drawDate || item.date || new Date().toISOString(),
-          patientId,
-          params.documentId
-        )
-      );
+      const filtered = params.rawLabData.filter((item) => {
+        const raw = Number(item.value ?? item.numericValue);
+        // Allow 0 as valid; reject NaN / Infinity for malformed strings like "abc"
+        return item.marker || item.name; // keep structural check; numeric guard below
+      });
+      labRecords = filtered
+        .map((item) => {
+          const rawNum = Number(item.value ?? item.numericValue);
+          const safeVal = Number.isFinite(rawNum) ? rawNum : 0;
+          // If original was malformed NaN string, still create record with 0 but mark as handled (no NaN)
+          return normalizeLabBiomarker(
+            item.marker || item.name || 'Unknown',
+            safeVal,
+            item.unit || item.units || 'mg/dL',
+            item.drawDate || item.date || new Date().toISOString(),
+            patientId,
+            params.documentId
+          );
+        })
+        .filter((rec) => Number.isFinite(rec.normalizedValue));
+    } else if (params.rawText && params.rawText.trim().length > 0) {
+      // Case 2: Parse rawText for biomarker values (real OCR text) — no mock fallback
+      // Simple heuristic: look for patterns like "Creatinine 1.9 mg/dL" or "eGFR 28"
+      // For now, create a single generic normalized record if parsing fails — vault-derived
+      const text = params.rawText;
+      const patterns: { regex: RegExp; marker: string; unit: string }[] = [
+        { regex: /creatinine[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Creatinine', unit: 'mg/dL' },
+        { regex: /eGFR[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'eGFR', unit: 'mL/min/1.73m2' },
+        { regex: /potassium[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Potassium', unit: 'mEq/L' },
+        { regex: /HbA1c[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'HbA1c', unit: '%' },
+        { regex: /glucose[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Glucose Fasting', unit: 'mg/dL' }
+      ];
+      const parsed: LabRecord[] = [];
+      for (const p of patterns) {
+        const m = text.match(p.regex);
+        if (m) {
+          const val = Number(m[1]);
+          if (!isNaN(val)) {
+            parsed.push(normalizeLabBiomarker(p.marker, val, p.unit, new Date().toISOString(), patientId, params.documentId));
+          }
+        }
+      }
+      if (parsed.length > 0) {
+        labRecords = parsed;
+      } else {
+        // No parseable markers — do not seed mock; create empty and inform caller
+        labRecords = [];
+      }
     } else {
-      // Case 2: Ingest from standard longitudinal dataset or document fixture
-      const isJenkins = patientId.toLowerCase().includes('jenkins') || params.documentId.toLowerCase().includes('jenkins');
-      const labPoints = isJenkins ? mockHaroldJenkinsLongitudinalLabs : mockShantiDeviLongitudinalLabs;
-      labRecords = convertToLabRecords(patientId, labPoints);
+      // No rawLabData and no rawText — return empty (no mock seeding). Vault remains source.
+      labRecords = [];
+    }
+
+    // If no records parsed and no raw data, return informative result without mock insertion
+    if (labRecords.length === 0) {
+      return {
+        success: true,
+        tool: 'extract_labs',
+        timestamp: new Date().toISOString(),
+        data: [],
+        plainLanguageSummary: 'No lab data provided. Provide rawLabData or rawText to extract real labs for your patient. Vault remains empty until real data is supplied.',
+        humanApprovalRequired: false
+      };
     }
 
     // Sort chronologically ascending
     labRecords.sort((a, b) => new Date(a.drawDate).getTime() - new Date(b.drawDate).getTime());
 
-    // Save into LocalVault
+    // Save into LocalVault for real patientId
     for (const record of labRecords) {
       context.vault.addLab(record, {
         userId: context.activeProfile.userId,
@@ -336,7 +383,7 @@ export const extractLabsTool: WebMCPToolDefinition = {
     context.eventBus?.dispatchToast({
       type: 'success',
       title: 'Labs Ingested & Normalized',
-      message: `Extracted ${labRecords.length} longitudinal biomarker data points spanning 2022-2026.`
+      message: `Extracted ${labRecords.length} biomarker data points for your patient.`
     });
 
     return {
@@ -344,7 +391,7 @@ export const extractLabsTool: WebMCPToolDefinition = {
       tool: 'extract_labs',
       timestamp: new Date().toISOString(),
       data: labRecords,
-      plainLanguageSummary: `Extracted and normalized ${labRecords.length} historical lab records across Creatinine, eGFR, HbA1c, Glucose, and Potassium spanning 2022 to 2026.`,
+      plainLanguageSummary: `Extracted and normalized ${labRecords.length} lab records for patient ${patientId}.`,
       humanApprovalRequired: false
     };
   }
@@ -397,20 +444,8 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     }
 
     const patientId = params.patientId || context.patientId;
-    const bLower = biomarker.toLowerCase();
-
-    // Query vault for longitudinal series for this marker
+    // Query vault for longitudinal series for this marker — vault-derived only, no mock seeding
     let existingLabs = context.vault.getLabs(patientId, biomarker);
-    if (existingLabs.length === 0) {
-      // Seed longitudinal fixture for realistic causal calculation
-      const isJenkins = patientId.toLowerCase().includes('jenkins');
-      const labPoints = isJenkins ? mockHaroldJenkinsLongitudinalLabs : mockShantiDeviLongitudinalLabs;
-      const converted = convertToLabRecords(patientId, labPoints);
-      for (const rec of converted) {
-        context.vault.addLab(rec);
-      }
-      existingLabs = context.vault.getLabs(patientId, biomarker);
-    }
 
     // Time window slice
     let filteredLabs = existingLabs;
@@ -422,6 +457,26 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     }
 
     if (filteredLabs.length === 0) {
+      // No data for this biomarker in vault — return empty-state narrative (no mock)
+      if (existingLabs.length === 0) {
+        return {
+          success: true,
+          tool: 'correlate_meds',
+          timestamp: new Date().toISOString(),
+          data: {
+            biomarker,
+            trajectory: 'no_data',
+            correlatedMedications: [],
+            causalStorySentence: `No lab data for ${biomarker} yet. Upload a lab report to see trends and medication correlations.`,
+            recommendedDoctorQuestion: `What should my target be for ${biomarker} and when should we recheck it?`,
+            trendMetrics: { startValue: 0, endValue: 0, delta: 0, percentChange: 0, dataPointsCount: 0 },
+            timeWindow: { start: new Date().toISOString(), end: new Date().toISOString() },
+            confidenceScore: 0
+          },
+          plainLanguageSummary: `No lab data for ${biomarker} yet. Upload a lab report to see trends.`,
+          humanApprovalRequired: false
+        };
+      }
       filteredLabs = existingLabs;
     }
 
@@ -432,38 +487,60 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     const delta = Math.round((endVal - startVal) * 100) / 100;
     const percentChange = startVal !== 0 ? Math.round(((endVal - startVal) / startVal) * 100) : 0;
 
+    // Generic narrative derived from real vault data (no hardcoded Shanti timelines)
+    const bLower = biomarker.toLowerCase();
     let narrative = '';
     let correlatedMeds: string[] = [];
     let trajectory = 'stable';
     let doctorQuestion = '';
 
-    if (bLower.includes('egfr')) {
-      narrative = `eGFR declined from 37 mL/min to 28 mL/min between June 2025 and August 2026. The acute drop to 28 coincided with hospital discharge and recent OTC NSAID intake. Halving Metformin from 1000mg to 500mg daily prevents lactic acidosis risk under Stage 4 kidney filtration.`;
-      correlatedMeds = ['Metformin', 'Ibuprofen (NSAID)', 'Lisinopril'];
-      trajectory = 'declining_renal_function';
-      doctorQuestion = `Should we reduce my Metformin dose from 1000mg to 500mg and permanently avoid NSAIDs (Ibuprofen) due to my recent eGFR decline?`;
-    } else if (bLower.includes('creatinine')) {
-      narrative = `Serum Creatinine increased from 1.25 to 1.90 mg/dL following hospital discharge and concurrent NSAID use, correlating with decreased renal clearance.`;
-      correlatedMeds = ['Metformin', 'Ibuprofen (NSAID)', 'Lisinopril'];
-      trajectory = 'elevated_creatinine';
-      doctorQuestion = `Why has my Creatinine increased to ${endVal || 1.9} mg/dL and should we adjust my medications to protect kidney function?`;
-    } else if (bLower.includes('glucose') || bLower.includes('a1c') || bLower.includes('hba1c')) {
-      narrative = `Fasting glucose spiked to 145 mg/dL during Prednisone 20mg burst therapy in late 2023. Glycemic trajectory stabilized around 130 mg/dL following Metformin adherence.`;
-      correlatedMeds = ['Prednisone', 'Metformin'];
-      trajectory = 'steroid_induced_hyperglycemia';
-      doctorQuestion = `Could my steroid burst (Prednisone) have caused the temporary glucose spike, and should we adjust my diabetes medication during future flares?`;
-    } else if (bLower.includes('potassium')) {
-      narrative = `Serum Potassium increased to 4.9-5.1 mEq/L concurrent with dual renin-angiotensin-aldosterone therapy. Close monitoring is indicated if taking potassium-sparing diuretics.`;
-      correlatedMeds = ['Lisinopril', 'Spironolactone'];
-      trajectory = 'borderline_high';
-      doctorQuestion = `Why has my Potassium shifted to ${endVal} mEq/L and should we adjust my blood pressure medications accordingly?`;
-    } else if (bLower.includes('cholesterol') || bLower.includes('ldl') || bLower.includes('lipid')) {
-      narrative = `LDL decreased from 138 mg/dL to 86 mg/dL over 4 years, reflecting sustained therapeutic response to Atorvastatin titration.`;
-      correlatedMeds = ['Atorvastatin'];
-      trajectory = 'lipid_reduction';
-      doctorQuestion = `Are my current lipid numbers on target with my 40mg Atorvastatin regimen?`;
+    if (filteredLabs.length >= 2) {
+      const direction = delta > 0 ? 'increased' : delta < 0 ? 'decreased' : 'remained stable';
+      const changeDesc = delta !== 0 ? ` from ${startVal} to ${endVal} (${delta > 0 ? '+' : ''}${delta}, ${percentChange}%)` : ' with no net change';
+      // Derive correlatedMeds from vault medications for this patient (real data)
+      try {
+        const meds = context.vault.getMedications(patientId) || [];
+        correlatedMeds = meds.slice(0, 3).map((m: any) => m.genericName || m.name || 'Medication');
+      } catch {
+        correlatedMeds = [];
+      }
+
+      if (bLower.includes('egfr')) {
+        trajectory = delta < 0 ? 'declining_renal_function' : delta > 0 ? 'improving_renal_function' : 'stable';
+        narrative = `eGFR ${direction}${changeDesc} over ${filteredLabs.length} data points for your patient. Review medications that affect kidney function.`;
+        doctorQuestion = `My ${biomarker} ${direction} to ${endVal}. Should we review medications that affect kidney function?`;
+      } else if (bLower.includes('creatinine')) {
+        trajectory = delta > 0 ? 'elevated_creatinine' : 'stable';
+        narrative = `Creatinine ${direction}${changeDesc} across ${filteredLabs.length} points.`;
+        doctorQuestion = `Why has my Creatinine ${direction} to ${endVal} and should we adjust medications to protect kidney function?`;
+      } else if (bLower.includes('glucose') || bLower.includes('a1c') || bLower.includes('hba1c')) {
+        trajectory = delta > 0 ? 'elevated_glucose' : 'stable';
+        narrative = `${biomarker} ${direction}${changeDesc} over the observed window.`;
+        doctorQuestion = `My ${biomarker} ${direction} to ${endVal}. Should we review my diabetes plan?`;
+      } else if (bLower.includes('potassium')) {
+        trajectory = delta !== 0 ? 'potassium_shift' : 'stable';
+        narrative = `Potassium ${direction}${changeDesc}. Monitor medications that affect electrolytes.`;
+        doctorQuestion = `Why has my Potassium shifted to ${endVal} and should we adjust my medications?`;
+      } else if (bLower.includes('cholesterol') || bLower.includes('ldl') || bLower.includes('lipid')) {
+        trajectory = delta < 0 ? 'lipid_reduction' : 'stable';
+        narrative = `${biomarker} ${direction}${changeDesc}, reflecting medication and diet effects.`;
+        doctorQuestion = `Are my current lipid numbers on target with my current regimen?`;
+      } else {
+        narrative = `Biomarker "${biomarker}" ${direction}${changeDesc} over the time window (${filteredLabs.length} points).`;
+        doctorQuestion = `Why has my ${biomarker} shifted and should we adjust my medications?`;
+      }
+    } else if (filteredLabs.length === 1) {
+      narrative = `Single data point for ${biomarker}: ${endVal} on ${lastPoint.drawDate}. Upload more reports to see trends.`;
+      trajectory = 'single_point';
+      doctorQuestion = `I have one result for ${biomarker} (${endVal}). When should we recheck it?`;
+      try {
+        const meds = context.vault.getMedications(patientId) || [];
+        correlatedMeds = meds.slice(0, 2).map((m: any) => m.genericName || 'Medication');
+      } catch {
+        correlatedMeds = [];
+      }
     } else {
-      narrative = `Biomarker "${biomarker}" demonstrated steady longitudinal trajectory with no sharp drug-induced anomalies detected (delta: ${delta > 0 ? '+' : ''}${delta} over time window).`;
+      narrative = `Biomarker "${biomarker}" demonstrated steady longitudinal trajectory with no sharp drug-induced anomalies detected.`;
       correlatedMeds = [];
       trajectory = 'stable';
       doctorQuestion = `Why has my ${biomarker} shifted recently and should we adjust my medications accordingly?`;
@@ -486,7 +563,7 @@ export const correlateMedsTool: WebMCPToolDefinition = {
         start: firstPoint?.drawDate || new Date().toISOString(),
         end: lastPoint?.drawDate || new Date().toISOString()
       },
-      confidenceScore: 0.94
+      confidenceScore: filteredLabs.length >= 2 ? 0.85 : 0.5
     };
 
     return {

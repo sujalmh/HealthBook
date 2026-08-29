@@ -34,7 +34,7 @@ interface ProposalCardProps {
 
 export const ProposalCard: React.FC<ProposalCardProps> = ({
   proposal,
-  activeProfile = { userId: 'patient-s-devi', name: 'Shanti Devi', role: 'patient' },
+  activeProfile = { userId: '', name: 'Patient', role: 'patient' },
   onDecision
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -55,7 +55,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           action: 'approve',
           approvedBy: activeProfile.name,
           role: activeProfile.role,
-          onBehalfOf: activeProfile.isProxy ? (activeProfile.onBehalfOf || 'Shanti Devi') : undefined
+          onBehalfOf: activeProfile.isProxy ? (activeProfile.onBehalfOf || 'Patient') : undefined
         },
         {
           patientId: proposal.patientId,

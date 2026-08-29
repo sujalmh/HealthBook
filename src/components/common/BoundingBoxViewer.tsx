@@ -11,8 +11,8 @@ interface BoundingBoxViewerProps {
 }
 
 export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
-  documentId = 'doc-discharge-001',
-  documentTitle = 'St. Jude Medical Center — Discharge Summary & Lab Slip',
+  documentId,
+  documentTitle = 'Document Viewer — Select a record to inspect',
   boundingBox: propBox,
   onClose,
 }) => {
@@ -57,8 +57,8 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
             <FileText className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-slate-900 truncate">{documentTitle}</h3>
-            <p className="text-caption text-muted font-mono">ID: {documentId} • Page 1 of 1</p>
+            <h3 className="text-sm font-bold text-slate-900 truncate">{documentId ? documentTitle : 'No Document Selected'}</h3>
+            <p className="text-caption text-muted font-mono">ID: {documentId || '—'} • Page 1 of 1</p>
           </div>
         </div>
 
@@ -125,54 +125,51 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-caption bg-canvas-muted p-2.5 rounded-xl mb-4 font-sans border border-canvas-border">
-            <div><strong>Patient:</strong> Shanti Devi (72 F)</div>
-            <div><strong>Attending:</strong> Dr. Sarah Patel, MD</div>
-            <div><strong>Admission:</strong> Aug 22, 2026</div>
-            <div><strong>Discharge:</strong> Aug 28, 2026</div>
+            <div><strong>Patient:</strong> —</div>
+            <div><strong>Attending:</strong> —</div>
+            <div><strong>Admission:</strong> —</div>
+            <div><strong>Discharge:</strong> —</div>
           </div>
 
-          <div className="space-y-3">
-            <div>
-              <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
-                Discharge Diagnoses
-              </h4>
-              <p className="text-slate-700">1. Chronic Kidney Disease (Stage 3b), baseline eGFR ~32.</p>
-              <p className="text-slate-700">2. Type 2 Diabetes Mellitus, suboptimally controlled.</p>
-              <p className="text-slate-700">3. Non-valvular Atrial Fibrillation (CHA2DS2-VASc = 4).</p>
-            </div>
+          {documentId ? (
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
+                  Document Content
+                </h4>
+                <p className="text-slate-700 text-caption">Source text will appear here after extraction. Verified facts are staged for your review.</p>
+              </div>
 
-            <div>
-              <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
-                Discharge Laboratory Biomarkers
-              </h4>
-              <div className="font-mono text-caption space-y-0.5 text-slate-800">
-                <p>• Serum Creatinine: 1.9 mg/dL (Ref: 0.6 - 1.2 mg/dL) [HIGH]</p>
-                <p>• eGFR: 32 mL/min/1.73m2 (Ref: &gt;60 mL/min/1.73m2) [LOW]</p>
-                <p>• Serum Potassium (K+): 4.8 mEq/L (Ref: 3.5 - 5.0 mEq/L) [NORMAL]</p>
+              <div>
+                <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
+                  Laboratory Biomarkers
+                </h4>
+                <p className="text-muted text-caption">No lab results yet — extracted values appear after you drop a file.</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
+                  Medications
+                </h4>
+                <p className="text-muted text-caption">No medications yet — extracted details appear after review.</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
+                  Allergies & Warnings
+                </h4>
+                <p className="text-muted text-caption">No allergies recorded yet.</p>
               </div>
             </div>
-
-            <div>
-              <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
-                Reconciled Discharge Medications
-              </h4>
-              <div className="font-sans text-caption space-y-1 text-slate-800">
-                <p>1. <strong>Apixaban (Eliquis)</strong> 5 mg PO BID (Stroke prophylaxis) - <span className="text-primary-text font-semibold">[NEW]</span></p>
-                <p>2. <strong>Metformin HCl</strong> 1000 mg PO BID with meals - <span className="text-amber-700 font-semibold">[DOSE INCREASED]</span></p>
-                <p>3. <strong>Atorvastatin</strong> 40 mg PO QHS - <span className="text-muted font-semibold">[CONTINUED]</span> (Avoid Grapefruit)</p>
-                <p>4. <strong>Lisinopril</strong> 20 mg PO Daily - <span className="text-rose-700 font-semibold">[STOPPED / HELD DUE TO AKI]</span></p>
+          ) : (
+            <div className="py-8 text-center space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-canvas-muted border border-canvas-border flex items-center justify-center mx-auto">
+                <FileText className="w-5 h-5 text-muted" />
               </div>
+              <p className="text-body-sm font-semibold text-slate-900">No document selected</p>
+              <p className="text-caption text-muted max-w-xs mx-auto">Drop a PDF or photo above. Your file is processed locally and source highlights appear here.</p>
             </div>
-
-            <div>
-              <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
-                Allergies & Warnings
-              </h4>
-              <p className="text-rose-700 font-semibold text-caption">
-                • Penicillin (Severe Anaphylaxis) • Avoid NSAIDs (Ibuprofen/Naproxen)
-              </p>
-            </div>
-          </div>
+          )}
 
           {/* Render Vector Bounding Box Overlay if coordinates present */}
           {activeBox && (

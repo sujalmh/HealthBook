@@ -5,14 +5,31 @@ import { eventBus } from '@/core/events/eventBus';
 import { FactApprovalCard } from './FactApprovalCard';
 import { CheckCircle, ShieldAlert, Eye, FileText, Sparkles } from 'lucide-react';
 
-export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = 'patient-s-devi' }) => {
+export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) => {
   const [facts, setFacts] = useState<FactEntity[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Resolve real patientId from prop or authenticated session (no hardcoded fallback)
+  const effectivePatientId = patientId || (() => {
+    try {
+      const raw = localStorage.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return parsed?.userId || parsed?.id || '';
+      }
+    } catch {}
+    return '';
+  })();
+
   const loadFacts = async () => {
     setIsLoading(true);
-    const all = await localVault.getFacts(patientId);
+    if (!effectivePatientId) {
+      setFacts([]);
+      setIsLoading(false);
+      return;
+    }
+    const all = await localVault.getFacts(effectivePatientId);
     setFacts(all);
     setIsLoading(false);
   };
@@ -25,7 +42,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
       u1();
       u2();
     };
-  }, [patientId]);
+  }, [effectivePatientId]);
 
   const pendingFacts = facts.filter((f) => f.status === 'unconfirmed' || (f as any).approvalStatus === 'pending' || (f as any).approvalStatus === 'unconfirmed');
   const approvedFacts = facts.filter((f) => f.status === 'confirmed' || (f as any).approvalStatus === 'approved' || (f as any).approvalStatus === 'confirmed');

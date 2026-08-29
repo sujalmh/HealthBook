@@ -3,7 +3,7 @@ import { ShieldCheck, Lock, Download, Database } from 'lucide-react';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
-export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'patient-s-devi' }) => {
+export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = '' }) => {
   const [stats, setStats] = useState({ facts: 0, meds: 0, labs: 0 });
   const [showModal, setShowModal] = useState(false);
 

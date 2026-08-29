@@ -10,6 +10,7 @@ import {
   Users,
   FolderLock,
   AlertTriangle,
+  LogOut,
 } from 'lucide-react';
 import { PrivacyBadge } from '@/components/common/PrivacyBadge';
 import { QuestionBank } from '@/components/common/QuestionBank';
@@ -25,31 +26,65 @@ import { HomeLabView } from '@/components/homelab/HomeLabView';
 import { SafetyView } from '@/components/safety/SafetyView';
 import { CareCircleView } from '@/components/carecircle/CareCircleView';
 import { DossierView } from '@/components/dossier/DossierView';
-import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
+import { CreateAccountView } from '@/components/auth/CreateAccountView';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
 export type ActiveModule = 'vault' | 'labstory' | 'pillmap' | 'rxbridge' | 'homelab' | 'safety' | 'carecircle' | 'dossier';
 
+export interface ActiveProfile {
+  userId: string;
+  name: string;
+  role: string;
+  isProxy: boolean;
+  relationship?: string;
+  onBehalfOf?: string;
+  permissionLevel: 'view_only' | 'manage' | 'full';
+  email?: string;
+  createdAt?: string;
+}
+
 export const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<ActiveModule>('vault');
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isQuestionBankOpen, setIsQuestionBankOpen] = useState(false);
-  const [activeProfile, setActiveProfile] = useState({
-    userId: 'patient-s-devi',
-    name: 'Shanti Devi',
-    role: 'patient',
-    isProxy: false,
-    relationship: undefined as string | undefined,
-    onBehalfOf: undefined as string | undefined,
-    permissionLevel: 'manage' as 'view_only' | 'manage' | 'full'
-  });
+  const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
 
+  // Restore session from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.userId) {
+          const normalized: ActiveProfile = {
+            userId: String(parsed.userId),
+            name: String(parsed.name || 'Anonymous').slice(0, 64) || 'Anonymous',
+            role: parsed.role || 'patient',
+            isProxy: !!parsed.isProxy,
+            relationship: parsed.relationship,
+            onBehalfOf: parsed.onBehalfOf,
+            permissionLevel: parsed.permissionLevel || 'manage',
+            email: parsed.email,
+            createdAt: parsed.createdAt,
+          };
+          setActiveProfile(normalized);
+        }
+      }
+    } catch {}
+    setIsHydrated(true);
+  }, []);
+
   // Unified pending/question counts — single source of truth for header badges.
-  // Listens to canonical events; alias groups in eventBus ensure proposal_created/ question_added are covered.
   const refreshCounts = async () => {
+    if (!activeProfile?.userId) {
+      setPendingCount(0);
+      setQuestionCount(0);
+      return;
+    }
     const pendingFacts = await localVault.getPendingFacts(activeProfile.userId);
     const pendingProps = await localVault.getPendingProposals(activeProfile.userId);
     const questions = await localVault.getQuestionBankItems(activeProfile.userId);
@@ -59,7 +94,6 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     refreshCounts();
-    // Unified header counts — subscribed to relevant-only subset (vault pending + question bank)
     const u1 = eventBus.on('fact_extracted', refreshCounts);
     const u2 = eventBus.on('fact_confirmed', refreshCounts);
     const u3 = eventBus.on('proposal_submitted', refreshCounts);
@@ -73,53 +107,111 @@ export const App: React.FC = () => {
       u4();
       u5();
     };
-  }, [activeProfile.userId]);
+  }, [activeProfile?.userId]);
+
+  const handleCreated = (profile: any) => {
+    const normalized: ActiveProfile = {
+      userId: String(profile.userId),
+      name: String(profile.name || 'Anonymous').slice(0, 64) || 'Anonymous',
+      role: profile.role || 'patient',
+      isProxy: !!profile.isProxy,
+      relationship: profile.relationship,
+      onBehalfOf: profile.onBehalfOf,
+      permissionLevel: profile.permissionLevel || 'manage',
+      email: profile.email,
+      createdAt: profile.createdAt,
+    };
+    setActiveProfile(normalized);
+  };
+
+  const handleSignOut = () => {
+    try {
+      localStorage.removeItem('carecanvas_active_user');
+    } catch {}
+    setActiveProfile(null);
+    setPendingCount(0);
+    setQuestionCount(0);
+    eventBus.dispatchToast({
+      type: 'info',
+      title: 'Signed out',
+      message: 'Session cleared. Create an account or sign in again.',
+    });
+  };
 
   const handleSwitchProfile = (role: 'patient' | 'caregiver' | 'self' | 'mother' | 'child') => {
+    if (!activeProfile) return;
     if (role === 'caregiver' || role === 'mother') {
-      setActiveProfile({
-        userId: 'patient-s-devi',
+      const baseName = activeProfile.isProxy ? activeProfile.onBehalfOf || activeProfile.name : activeProfile.name;
+      const next: ActiveProfile = {
+        ...activeProfile,
         name: 'Raj Devi',
         role: 'caregiver',
         isProxy: true,
         relationship: 'son',
-        onBehalfOf: 'Shanti Devi',
-        permissionLevel: 'manage'
-      });
+        onBehalfOf: baseName,
+        permissionLevel: 'manage',
+      };
+      setActiveProfile(next);
       eventBus.dispatchToast({
         type: 'info',
         title: 'Proxy Mode Active',
-        message: 'Switched to Raj Devi (son) acting on behalf of Shanti Devi.',
+        message: `Switched to Raj Devi (son) acting on behalf of ${baseName}.`,
       });
     } else if (role === 'child') {
-      setActiveProfile({
-        userId: 'patient-child-003',
+      const next: ActiveProfile = {
+        ...activeProfile,
         name: 'Raj Devi',
         role: 'caregiver',
         isProxy: true,
         relationship: 'father',
         onBehalfOf: 'Aarav Sharma',
-        permissionLevel: 'manage'
-      });
+        permissionLevel: 'manage',
+      };
+      setActiveProfile(next);
       eventBus.dispatchToast({
         type: 'info',
         title: 'Proxy Mode Active',
         message: 'Switched to Raj Devi acting on behalf of Aarav Sharma (child).',
       });
     } else {
-      setActiveProfile({
-        userId: 'patient-s-devi',
-        name: 'Shanti Devi',
+      // Back to patient — restore from stored original
+      try {
+        const raw = localStorage.getItem('carecanvas_active_user');
+        if (raw) {
+          const stored = JSON.parse(raw);
+          const restored: ActiveProfile = {
+            userId: String(stored.userId),
+            name: String(stored.name || 'Anonymous').slice(0, 64) || 'Anonymous',
+            role: 'patient',
+            isProxy: false,
+            relationship: undefined,
+            onBehalfOf: undefined,
+            permissionLevel: 'manage',
+            email: stored.email,
+            createdAt: stored.createdAt,
+          };
+          setActiveProfile(restored);
+          eventBus.dispatchToast({
+            type: 'info',
+            title: 'Patient Profile',
+            message: `Active profile: ${restored.name} (Primary Patient).`,
+          });
+          return;
+        }
+      } catch {}
+      const fallback: ActiveProfile = {
+        ...activeProfile,
         role: 'patient',
         isProxy: false,
         relationship: undefined,
         onBehalfOf: undefined,
-        permissionLevel: 'manage'
-      });
+        permissionLevel: 'manage',
+      };
+      setActiveProfile(fallback);
       eventBus.dispatchToast({
         type: 'info',
         title: 'Patient Profile',
-        message: 'Active profile: Shanti Devi (Primary Patient).',
+        message: `Active profile: ${fallback.name} (Primary Patient).`,
       });
     }
   };
@@ -139,6 +231,35 @@ export const App: React.FC = () => {
   const pastelActive = 'bg-primary-light text-primary-text border-primary-border shadow-sm';
   const pastelIconActive = 'text-primary-text';
   const pastelIconIdle = 'text-muted';
+
+  // Loading / hydration gate
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-canvas-bg">
+        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" aria-label="Loading" />
+      </div>
+    );
+  }
+
+  // Create Account Gate — cold start with no user must show centered Create Account view, not vault grids
+  if (!activeProfile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-canvas-bg">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <CreateAccountView onCreated={handleCreated} />
+        </div>
+        <ToastContainer />
+      </div>
+    );
+  }
+
+  // Derive display initials for proxy switcher (generic, no hardcode)
+  const patientInitial = activeProfile.isProxy && activeProfile.onBehalfOf
+    ? activeProfile.onBehalfOf.slice(0, 1).toUpperCase()
+    : activeProfile.name.slice(0, 1).toUpperCase();
+  const patientShort = activeProfile.isProxy && activeProfile.onBehalfOf
+    ? activeProfile.onBehalfOf.split(' ')[0].slice(0, 6) || 'Patient'
+    : activeProfile.name.split(' ')[0].slice(0, 8) || 'Patient';
 
   return (
     <div className="min-h-screen bg-canvas-bg text-slate-900 flex flex-col antialiased overflow-x-hidden">
@@ -166,18 +287,18 @@ export const App: React.FC = () => {
             <PrivacyBadge patientId={activeProfile.userId} />
           </div>
 
-          {/* Right Action Bar: Profile Switcher, Question Bank, Inspector */}
+          {/* Right Action Bar: Profile Switcher, Question Bank, Inspector, Sign Out */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {/* Caregiver Proxy Switcher — refined tokenized */}
+            {/* Caregiver Proxy Switcher — generic, no hardcoded patient id */}
             <div className="flex items-center bg-white rounded-xl p-1 border border-canvas-border shadow-sm text-xs">
               <button
                 onClick={() => handleSwitchProfile('patient')}
                 className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] sm:min-h-[36px] flex items-center justify-center ${
                   !activeProfile.isProxy ? 'bg-primary-light text-primary-text font-bold border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
-                aria-label="Switch to Shanti Devi"
+                aria-label={`Switch to ${patientShort}`}
               >
-                <span className="hidden sm:inline">S. Devi</span><span className="sm:hidden">S.D</span>
+                <span className="hidden sm:inline truncate max-w-[80px]">{patientShort}</span><span className="sm:hidden">{patientInitial}</span>
               </button>
               <button
                 onClick={() => handleSwitchProfile('caregiver')}
@@ -205,7 +326,7 @@ export const App: React.FC = () => {
               )}
             </button>
 
-            {/* Activity Log Toggle — semantic primary light, no indigo leakage */}
+            {/* Activity Log Toggle */}
             <button
               onClick={() => setIsInspectorOpen(true)}
               className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-primary-light hover:brightness-95 text-primary-text text-xs font-bold border border-primary-border transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
@@ -219,6 +340,17 @@ export const App: React.FC = () => {
                   {pendingCount > 99 ? '99+' : pendingCount}
                 </span>
               )}
+            </button>
+
+            {/* Sign Out — clears localStorage and shows gate */}
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold border border-canvas-border hover:border-rose-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-rose-500 min-h-[36px]"
+              aria-label="Sign out"
+              title={`Signed in as ${activeProfile.name} — click to sign out`}
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span className="hidden md:inline">Sign Out</span>
             </button>
           </div>
         </div>
@@ -254,7 +386,7 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Area — max-w-7xl, cohesive spacing, subtle transitions */}
+      {/* Main Content Area — empty vault until upload (0 facts/meds/labs) */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 transition-all duration-200 overflow-x-hidden">
         {/* MODULE 0: APPROVED FACT VAULT */}
         <div className={activeModule === 'vault' ? 'block space-y-6' : 'hidden'}>
@@ -265,10 +397,10 @@ export const App: React.FC = () => {
               <FactStreamView patientId={activeProfile.userId} />
             </div>
 
-            {/* Right Column: Source Document Highlight Viewer */}
+            {/* Right Column: Source Document Highlight Viewer — dynamic, no hardcoded doc id */}
             <div className="lg:col-span-5">
               <div className="sticky top-24">
-                <BoundingBoxViewer documentId="doc-discharge-001" />
+                <BoundingBoxViewer documentId={undefined} />
               </div>
             </div>
           </div>

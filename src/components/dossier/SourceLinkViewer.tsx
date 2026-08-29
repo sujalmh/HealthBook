@@ -230,7 +230,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[10px] bg-slate-100 p-2.5 rounded font-sans">
-                <div><strong>Patient:</strong> Smt. Shanti Devi (78F)</div>
+                <div><strong>Patient:</strong> Patient (78F)</div>
                 <div><strong>MRN:</strong> MRN-984210</div>
                 <div><strong>Primary Diagnosis:</strong> Chronic Kidney Disease</div>
                 <div><strong>Stage:</strong> Stage 3b (eGFR 38-42)</div>
@@ -273,7 +273,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[10px] bg-slate-100 p-2.5 rounded font-sans">
-                <div><strong>Patient:</strong> Smt. Shanti Devi (78F)</div>
+                <div><strong>Patient:</strong> Patient (78F)</div>
                 <div><strong>Collection Type:</strong> Home Phlebotomy Kit</div>
               </div>
 
@@ -331,7 +331,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[10px] bg-slate-100 p-2.5 rounded font-sans">
-                <div><strong>Patient:</strong> Smt. Shanti Devi (78F)</div>
+                <div><strong>Patient:</strong> Patient (78F)</div>
                 <div><strong>Attending:</strong> Dr. A. Patel, MD, FACC</div>
                 <div><strong>Admission:</strong> 2026-08-20</div>
                 <div><strong>Discharge:</strong> 2026-08-25</div>

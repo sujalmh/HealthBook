@@ -466,7 +466,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               >
                 <div>
                   <div className="text-body-sm font-bold text-slate-900 group-hover:text-primary">
-                    Shanti Devi 5-Year Longitudinal History (2022–2026)
+                    Longitudinal History (2022–2026)
                   </div>
                   <div className="text-caption text-muted leading-relaxed">
                     Includes CKD 3b, Metformin initiation, Prednisone burst spike, and Atorvastatin titration.
@@ -482,7 +482,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               >
                 <div>
                   <div className="text-body-sm font-bold text-slate-900 group-hover:text-primary">
-                    Harold Jenkins Renal AKI & Diabetes Panel
+                    Patient Renal AKI & Diabetes Panel
                   </div>
                   <div className="text-caption text-muted leading-relaxed">
                     Features acute eGFR decline to 28 mL/min post-discharge and Ketorolac gout course.

@@ -1,7 +1,5 @@
 /**
- * Acceptance Flow E: Family Care Circle Proxy Switch & Time-Bound Doctor Handover
- * (Caregiver Proxy Switch -> Audited Action on Behalf -> Time-Bound Doctor Grant -> Dossier Bounding Highlights)
- * Automated Step-by-Step E2E Verification
+ * Acceptance Flow E: Family Care Circle Proxy Switch & Time-Bound Doctor Handover — REAL DATA (M3)
  */
 
 import { createTestHarness, assert, assertEquals, assertContains } from '../harness/webmcp-test-shim.ts';
@@ -24,15 +22,15 @@ export async function runFlowETests(): Promise<{ passed: number; failed: number;
   await test('Flow E E2E: Caregiver Proxy Switch & Specialist Handover Workflow', async () => {
     const { engine, context, vault } = createTestHarness('user_raj_son', 'caregiver');
 
-    // Step E.1: Caregiver logs in and switches profile to Mother (S. Devi)
+    // Step E.1: Caregiver logs in and switches profile to linked patient (generic test-patient-001)
     const switchRes = await engine.execute('switch_profile', {
-      targetPatientId: 'patient-s-devi'
+      targetPatientId: 'test-patient-001'
     }, context);
     assert(switchRes.success, 'Step E.1: Profile switch must succeed');
     assertEquals(switchRes.data.isProxyActive, true, 'Step E.1: Proxy banner must be active');
-    assertEquals(context.patientId, 'patient-s-devi', 'Step E.1: Active patient ID updated to mother');
+    assertEquals(context.patientId, 'test-patient-001', 'Step E.1: Active patient ID updated');
 
-    // Step E.2: Caregiver reviews pending dosage proposal and approves on behalf
+    // Step E.2: Caregiver reviews pending dosage proposal and approves on behalf — generic Patient
     const propRes = await engine.execute('propose_dosage_change', {
       medName: 'Metformin',
       currentDose: '1000mg BID',
@@ -45,11 +43,13 @@ export async function runFlowETests(): Promise<{ passed: number; failed: number;
       actionPayload: { proposalId: propRes.data.id }
     }, context);
     assert(actRes.success, 'Step E.2: Act on behalf must succeed');
-    assertContains(actRes.data.performedBy, 'Raj Devi on behalf of Smt. Shanti Devi', 'Step E.2: Records proxy audit signature');
+    // M3 generic: onBehalfOf is Patient/Test Patient, not hardcoded Shanti
+    assertContains(actRes.data.performedBy, 'Raj Devi on behalf of', 'Step E.2: Records proxy audit signature');
+    assert(actRes.data.performedBy.includes('Patient') || actRes.data.performedBy.includes('Test Patient'), 'Should be on behalf of Patient');
 
     // Step E.3: Prepares for new Nephrologist consult -> compiles Continuity Dossier
     const dossierRes = await engine.execute('compile_health_record', {
-      patientId: 'patient-s-devi',
+      patientId: 'test-patient-001',
       sections: ['all']
     }, context);
     assert(dossierRes.success, 'Step E.3: Continuity Dossier compilation must succeed');
