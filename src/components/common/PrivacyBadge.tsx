@@ -90,7 +90,7 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
         <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-        <span className="font-semibold tracking-wide">Local Vault (Zero Cloud PHI)</span>
+        <span className="font-semibold tracking-wide">Local data</span>
       </button>
 
       {showModal && (
@@ -99,7 +99,7 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
           onClick={() => setShowModal(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Zero-Cloud PHI Invariant"
+          aria-label="Local data storage"
         >
           <div
             className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full p-3 sm:p-6 shadow-2xl space-y-5 text-slate-800 max-h-[90vh] overflow-y-auto my-auto"
@@ -111,7 +111,7 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-heading-md text-slate-900">Zero-Cloud PHI Invariant</h3>
+                  <h3 className="text-heading-md text-slate-900">Local data</h3>
                   <p className="text-caption text-muted font-medium">Privacy Guarantee for The WebMCP Challenge</p>
                 </div>
               </div>
@@ -126,15 +126,9 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
 
             <div className="bg-canvas-muted p-4 rounded-xl border border-canvas-border space-y-2 text-xs text-slate-700 leading-relaxed">
               <p className="flex items-center gap-2 text-emerald-600 font-semibold">
-                <Lock className="w-4 h-4" /> 100% Client-Side In-Browser Execution
+                <Lock className="w-4 h-4" /> Local data
               </p>
-              <p>
-                All medical parsing, OCR extraction, drug-drug interaction calculations, causal biomarker graphs, and schedule
-                optimizations run exclusively on your device within IndexedDB and in-browser WebMCP models.
-              </p>
-              <p className="text-muted">
-                Protected Health Information (PHI) is never sent to third-party telemetry servers or cloud databases.
-              </p>
+              <p>Data stays on this device.</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">

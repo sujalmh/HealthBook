@@ -1,0 +1,203 @@
+[
+  {
+    "vp": "auditor-m02-desktop-1280",
+    "file": "auditor-m02-desktop-1280.jpg",
+    "size": 419252,
+    "checks": {
+      "Drop to extract details": true,
+      "CareCanvas": true,
+      "Private & Secure": true,
+      "Local data button": true,
+      "Stored locally": false,
+      "no Weekly pill box": true,
+      "no Private on your device": true,
+      "no Local Vault": true,
+      "no Zero Cloud": true,
+      "no 100% Client-Side": true,
+      "weCount": 0
+    },
+    "truncateCheck": {
+      "truncateCount": 84,
+      "hasTruncateFix": true,
+      "sample": [
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1",
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1"
+      ]
+    }
+  },
+  {
+    "vp": "auditor-m02-mobile-375",
+    "file": "auditor-m02-mobile-375.jpg",
+    "size": 341174,
+    "checks": {
+      "Drop to extract details": true,
+      "CareCanvas": true,
+      "Private & Secure": false,
+      "Local data button": false,
+      "Stored locally": false,
+      "no Weekly pill box": true,
+      "no Private on your device": true,
+      "no Local Vault": true,
+      "no Zero Cloud": true,
+      "no 100% Client-Side": true,
+      "weCount": 0
+    },
+    "truncateCheck": {
+      "truncateCount": 84,
+      "hasTruncateFix": true,
+      "sample": [
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1",
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1"
+      ]
+    }
+  },
+  {
+    "vp": "auditor-m02-tablet-768",
+    "file": "auditor-m02-tablet-768.jpg",
+    "size": 415706,
+    "checks": {
+      "Drop to extract details": true,
+      "CareCanvas": true,
+      "Private & Secure": true,
+      "Local data button": false,
+      "Stored locally": false,
+      "no Weekly pill box": true,
+      "no Private on your device": true,
+      "no Local Vault": true,
+      "no Zero Cloud": true,
+      "no 100% Client-Side": true,
+      "weCount": 0
+    },
+    "truncateCheck": {
+      "truncateCount": 84,
+      "hasTruncateFix": true,
+      "sample": [
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1",
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1"
+      ]
+    }
+  },
+  {
+    "vp": "auditor-m02-mobile-320",
+    "file": "auditor-m02-mobile-320.jpg",
+    "size": 342109,
+    "checks": {
+      "Drop to extract details": true,
+      "CareCanvas": true,
+      "Private & Secure": false,
+      "Local data button": false,
+      "Stored locally": false,
+      "no Weekly pill box": true,
+      "no Private on your device": true,
+      "no Local Vault": true,
+      "no Zero Cloud": true,
+      "no 100% Client-Side": true,
+      "weCount": 0
+    },
+    "truncateCheck": {
+      "truncateCount": 84,
+      "hasTruncateFix": true,
+      "sample": [
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1",
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1"
+      ]
+    }
+  },
+  {
+    "vp": "auditor-m02-desktop-1024",
+    "file": "auditor-m02-desktop-1024.jpg",
+    "size": 385878,
+    "checks": {
+      "Drop to extract details": true,
+      "CareCanvas": true,
+      "Private & Secure": true,
+      "Local data button": true,
+      "Stored locally": false,
+      "no Weekly pill box": true,
+      "no Private on your device": true,
+      "no Local Vault": true,
+      "no Zero Cloud": true,
+      "no 100% Client-Side": true,
+      "weCount": 0
+    },
+    "truncateCheck": {
+      "truncateCount": 84,
+      "hasTruncateFix": true,
+      "sample": [
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1",
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1"
+      ]
+    }
+  },
+  {
+    "vp": "auditor-m02-desktop-1440",
+    "file": "auditor-m02-desktop-1440.jpg",
+    "size": 425541,
+    "checks": {
+      "Drop to extract details": true,
+      "CareCanvas": true,
+      "Private & Secure": true,
+      "Local data button": true,
+      "Stored locally": false,
+      "no Weekly pill box": true,
+      "no Private on your device": true,
+      "no Local Vault": true,
+      "no Zero Cloud": true,
+      "no 100% Client-Side": true,
+      "weCount": 0
+    },
+    "truncateCheck": {
+      "truncateCount": 84,
+      "hasTruncateFix": true,
+      "sample": [
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1",
+        "text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1"
+      ]
+    }
+  },
+  {
+    "vp": "auditor-m02-pillmap-1280",
+    "file": "auditor-m02-pillmap-1280.jpg",
+    "size": 587911,
+    "checks": {
+      "hasMyMeds": true,
+      "hasYourMedsWeek": true,
+      "noWeeklyPillBox": true
+    }
+  },
+  {
+    "vp": "auditor-m02-labstory-1280",
+    "file": "auditor-m02-labstory-1280.jpg",
+    "size": 690547,
+    "checks": {
+      "hasLabResults": true,
+      "hasStoredLocally": true,
+      "no100Private": true
+    }
+  },
+  {
+    "vp": "auditor-m02-privacy-modal-1280",
+    "file": "auditor-m02-privacy-modal-1280.jpg",
+    "size": 421919,
+    "checks": {
+      "clicked": true,
+      "hasLocalData": true,
+      "hasDataStays": true,
+      "hasExportFHIR": true,
+      "noZero": true,
+      "no100": true
+    }
+  },
+  {
+    "vp": "truncate-stress-320",
+    "truncateStress": {
+      "origLen": 41,
+      "truncWidth": 188,
+      "parentWidth": 212,
+      "overflow": false,
+      "textOverflow": "ellipsis",
+      "whiteSpace": "nowrap",
+      "overflowS": "hidden"
+    }
+  }
+]

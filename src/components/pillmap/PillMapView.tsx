@@ -452,14 +452,9 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
               <Pill className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-heading-lg tracking-tight text-slate-900">
-                  My Medicines
-                </h2>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-caption border border-emerald-200">
-                  Weekly pill box
-                </span>
-              </div>
+              <h2 className="text-heading-lg tracking-tight text-slate-900">
+                My Medicines
+              </h2>
               <p className="text-body-sm text-muted">
                 Your medicines for the week — drag to change times, see warnings, and check food rules.
               </p>
@@ -632,7 +627,6 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         />
       ) : activeMedsCount === 0 ? null : (
         <div className="space-y-6">
-          {/* Interactive 7x4 Weekly Pillbox Grid */}
           <PillboxGrid
             grid={grid}
             chronotype={chronotype}

@@ -76,13 +76,10 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
           <div>
             <h3 className="text-heading-md font-bold text-slate-900 tracking-tight">Add Your Health Papers</h3>
             <p className="text-body-sm text-muted leading-relaxed">
-              Drop a PDF or photo — we read it safely on your device, nothing leaves it.
+              Drop a PDF or photo to extract details
             </p>
           </div>
         </div>
-        <span className="hidden sm:inline-flex text-caption font-semibold text-clinical-emerald bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full whitespace-nowrap">
-          🔒 Private on your device
-        </span>
       </div>
 
       {/* Sample Document Selectors for Fast Verification & Live Demo */}
@@ -107,9 +104,9 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
               }`}
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <FileText className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-body-sm font-semibold text-slate-900">{doc.title}</span>
+                  <span className="text-body-sm font-semibold text-slate-900 truncate min-w-0 flex-1">{doc.title}</span>
                 </div>
                 {selectedSample === doc.id && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
               </div>
@@ -122,7 +119,7 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
       {/* Trigger Extraction Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-canvas-border">
         <p className="text-body-sm text-muted">
-          We'll pull out the important details for you to review
+          Important details appear for review
         </p>
         <button
           onClick={() => {

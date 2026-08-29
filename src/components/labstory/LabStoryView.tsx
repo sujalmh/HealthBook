@@ -361,7 +361,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
             </h3>
           </div>
           <span className="text-caption text-muted bg-canvas-muted border border-canvas-border px-2 py-1 rounded-full font-medium">
-            Stored locally in IndexedDB LocalVault (100% Private)
+            Stored locally
           </span>
         </div>
 

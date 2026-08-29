@@ -65,10 +65,10 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
               </div>
               <div>
                 <h3 className="text-heading-md font-bold text-amber-900 tracking-tight">
-                  Review what we found ({pendingFacts.length})
+                  Review extracted details ({pendingFacts.length})
                 </h3>
                 <p className="text-body-sm text-amber-800/80 leading-relaxed">
-                  We pulled these details from your document. Check them before they update your medicines and labs.
+                  Details extracted from your document. Check before they update medicines and labs.
                 </p>
               </div>
             </div>
@@ -138,7 +138,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
             </div>
             <h4 className="text-heading-md font-bold text-slate-900">No records here yet</h4>
             <p className="text-body-sm text-muted max-w-sm mx-auto leading-relaxed">
-              Add a document above and review what we find. Approved facts will appear here as cards and sync to your other modules.
+              Add a document above. Approved facts appear here as cards and sync to other modules.
             </p>
             <div className="flex items-center justify-center gap-2 pt-1">
               <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-primary bg-primary-light border border-primary-border px-3 py-1 rounded-full">

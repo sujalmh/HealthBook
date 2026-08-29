@@ -183,7 +183,7 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
               <HelpCircle className="w-5 h-5" />
             </div>
             <p className="text-xs font-bold text-slate-700">No questions yet</p>
-            <p className="text-xs text-muted">Add one above for your next visit — we'll keep it safe here.</p>
+            <p className="text-xs text-muted">Add one above for your next visit.</p>
           </div>
         ) : (
           filteredQuestions.map((q) => (

@@ -1,292 +1,197 @@
 {
   "version": 1,
-  "projectId": "teamwork-1787989591222",
+  "projectId": "teamwork-1788010057462",
   "request": {
-    "objective": "Make the UI modern professional and intuitive. Always use live screenshots to verify, you have image input.",
+    "objective": "Remove ai slop artifacts like Private on your device, Local Vault (Zero Cloud PHI), Weekly pill box, etc. These pills serve no use, redundant. Find more to remove. Rewrite from 1st person we to Direct function, instead \"Drop a PDF or photo — we read it safely on your device, nothing leaves it.\" write \"Drop a PDF or photo to get details\" or similar, rewrite in entire website.",
     "constraints": [
-      "Use Antigravity Distributed Coding pattern Sentinel\u2192Orchestrator\u2192Explorer/Workers\u2192Critic\u2192Challenger\u2192Auditor\u2192Success Auditor per pattern.json",
+      "Use Antigravity Distributed Coding pattern Sentinel->Orchestrator->Explorer/Workers->Critic->Challenger->Auditor->Success Auditor per pattern.json",
       "Preserve OpenCode+Teamwork invariants: per-workstream file ownership, DAG, worktrees, state.json/progress.md",
-      "Do NOT read secrets (.env, *.pem, credentials/**) \u2014 use import.meta.env indirection",
-      "Do NOT regress cohesion: grep p_devi_78 0, seedBaselineRegimen 0, App.tsx hidden wrappers intact, EventBus typed matrix preserved, supabase layer untouched",
-      "UI stack React18+Tailwind3 only; extend tailwind.config.js + index.css tokens, no heavy framework",
-      "Accessibility WCAG AA, focus-visible rings, 44px touch, keyboard nav, aria-labels",
-      "Responsive 320/375/768/1024/1280/1440 \u2014 bottom nav <768, top tabs >=768",
-      "Performance: no jank, vite build 1660+ modules, CSS <50KB gzipped",
-      "Live screenshot discipline: workers capture browser.capture per milestone (desktop+mobile) under .teamwork/snapshots/, reviewers re-open browser to verify",
-      "Centralized design tokens \u2014 no ad-hoc hex sprawl",
-      "Keep PHI PrivacyBadge visible"
+      "Do NOT read secrets (.env, *.pem, credentials/**) — use import.meta.env indirection",
+      "Do NOT regress cohesion: grep p_devi_78 0, seedBaselineRegimen 0, App.tsx hidden wrappers 8 intact, EventBus intact, supabase untouched, 40 tools intact",
+      "UI stack React18+Tailwind3 only, no new framework",
+      "Copy constraint: no first-person we in src/components/** + App.tsx after fix (word-boundary grep 0), tool templates excluded",
+      "Slop removal: delete pills without leaving gaps, keep functional containers",
+      "Live screenshot discipline: workers capture >=2 (desktop 1280+mobile 375) under .teamwork/snapshots/<milestone>, auditor re-captures",
+      "Keep functional badge where needed but retitle to local data, not marketing",
+      "Vercel build must still 1663 modules"
     ],
     "acceptanceCriteria": [
       "Request artifact preserved verbatim at .teamwork/request.md",
       "State initialized via TeamworkEngine.initProject with new teamwork-* projectId",
-      "Explorer baseline: research/explorer-*.md with screenshots at 3 viewports + token audit",
-      "Design system M1: tailwind.config.js semantic tokens, typography scale, spacing 4/8, rounded xl/2xl, shadow sm/md/lg, refined index.css, no scattered #EEF2FF",
-      "Shell & Navigation M2: App.tsx modern header, desktop pill tabs, mobile bottom nav, profile switcher, Question/Activity badges, 8 nav routes intact, screenshots PASS desktop+mobile",
-      "Module polish M3: vault/labstory/pillmap/homelab/safety/carecircle views polished with card elevation, padding, empty/loading states, typography; rxbridge/dossier token-aligned",
-      "Responsive/Polish M4: index.css responsive refinements, max-w-7xl, overflow fixes, modals cohesive, common components token-aligned",
-      "Live screenshot verification: every milestone result references >=2 browser.capture outputs (desktop 1280 + mobile 375) under .teamwork/snapshots/, auditor re-captures",
-      "No regression: grep p_devi_78 0, isSupabaseEnabled in main.tsx intact, wireLocalVaultToEventBus intact, 40 tools registered, seedIfEmpty canonical",
-      "Tests & build: tsc --noEmit 0, npm test 149+ PASS, test-runner 231 PASS, build 1660+ modules, dist built, 40 tools intact",
-      "Gates: each milestone critic->challenger->auditor PASS with visual review, Success Auditor final PASS verification/final.md with screenshot audit",
-      "Docs: progress/DELIVERABLES updated with tokens table + snapshot paths"
+      "Explorer baseline: research/explorer-slop-*.md with grep inventory + before screenshots 1280/375/768",
+      "Slop removal: Private on your device gone, Local Vault pill replaced, Zero-Cloud heading simplified, Weekly pill box removed, grep slop 0, no pill gaps, screenshots clean",
+      "Voice rewrite: DocumentDropzone 79 to direct functional, 125 We removed, QuestionBank 186 we removed, FactStream 68/71 we removed, plus all other src/components we hits fixed, grep we pronoun 0 in components",
+      "Live screenshots: every milestone >=2 captures desktop+mobile under snapshots, auditor re-captures",
+      "No regression: p_devi_78 0, isSupabaseEnabled intact, 40 tools, hidden wrappers 8, build 1663",
+      "Tests & build: tsc 0, npm test 141+ PASS, runner 231 PASS, build 1663",
+      "Gates: critic->challenger->auditor per milestone PASS, Success Auditor final PASS verification/final.md"
     ],
     "nonGoals": [
-      "Backend Supabase/LocalVault functional changes \u2014 only styling hooks",
-      "EHR FHIR auto-pull / TrialBridge / Offline PWA / new feature logic",
-      "Heavy component libs MUI/Ant/Chakra \u2014 Tailwind only",
-      "Proprietary Antigravity hidden prompts",
-      "Long Proof / Self Verification patterns"
+      "Backend Supabase/LocalVault functional changes — only copy/label",
+      "Heavy redesign beyond slop removal",
+      "Tool doctor questions Should we ... out of scope",
+      "EHR FHIR / TrialBridge / Offline PWA / new design system",
+      "Proprietary Antigravity hidden prompts"
     ],
-    "createdAt": "2026-08-29T07:46:31.221Z",
-    "originalInput": "Make the UI modern professional and intuitive. Always use live screenshots to verify, you have image input.",
+    "createdAt": "2026-08-29T13:27:37.462Z",
+    "originalInput": "Remove ai slop artifacts like Private on your device, Local Vault (Zero Cloud PHI), Weekly pill box, etc. These pills serve no use, redundant. Find more to remove. Rewrite from 1st person we to Direct function, instead \"Drop a PDF or photo — we read it safely on your device, nothing leaves it.\" write \"Drop a PDF or photo to get details\" or similar, rewrite in entire website.",
     "integrityMode": "development",
     "executionPath": "distributed-coding",
     "workingDirectory": ".teamwork"
   },
   "plan": {
-    "createdAt": "2026-08-29T13:30:00Z",
+    "createdAt": "2026-08-29T13:39:04.295Z",
     "milestones": [
       {
-        "id": "M1",
-        "title": "Design System",
-        "dependsOn": [],
+        "id": "milestone-01",
+        "title": "Slop Removal & Direct Voice Rewrite",
+        "description": "Remove AI slop pills (DocumentDropzone 84 Private on your device, PrivacyBadge 93 Local Vault pill + 102 aria + 114 heading + 128 paragraph 100% Client-Side, PillMap 460 Weekly pill box, LabStory 364 100% Private badge) + rewrite all we pronouns to direct functional (DocumentDropzone 79 to \"Drop a PDF or photo to extract details\" + 125, QuestionBank 186, FactStream 68/71/141) across 6 files. No gaps, grep slop 0, grep we word-boundary 0, screenshots 1280/375/768 clean, build 1663 intact.",
         "workstreams": [
-          "ws-m1-01"
+          "ws-vault-direct",
+          "ws-common-badge",
+          "ws-pillmap-labstory"
         ],
-        "status": "completed"
+        "dependsOn": []
       },
       {
-        "id": "M2",
-        "title": "Shell & Navigation",
-        "dependsOn": [
-          "M1"
-        ],
+        "id": "milestone-02",
+        "title": "Polish, Responsive No-Gaps & Final Build Verification",
+        "description": "Verify no decorative pill gaps at 320/375/768/1024/1280/1440, header/DocumentDropzone/PrivacyBadge/PillMap render clean without placeholders, adjust padding/gap if needed (no new slop), final build/lint/test/runner verification, prepare for Success Auditor gate.",
         "workstreams": [
-          "ws-m2-01"
+          "ws-polish-verification"
         ],
-        "status": "completed"
-      },
-      {
-        "id": "M3",
-        "title": "Module Polish",
         "dependsOn": [
-          "M2"
-        ],
-        "workstreams": [
-          "ws-m3-01",
-          "ws-m3-02",
-          "ws-m3-03"
-        ],
-        "status": "completed"
-      },
-      {
-        "id": "M4",
-        "title": "Responsive & Final Hardening",
-        "dependsOn": [
-          "M3"
-        ],
-        "workstreams": [
-          "ws-m4-01",
-          "ws-m4-02"
-        ],
-        "status": "completed"
+          "milestone-01"
+        ]
       }
     ],
     "workstreams": [
       {
-        "id": "ws-m1-01",
-        "milestone": "M1",
+        "id": "ws-vault-direct",
+        "title": "Vault Direct Voice & Dropzone Slop Cleanup",
         "files": [
-          "tailwind.config.js",
-          "src/index.css",
-          "src/App.tsx"
+          "src/components/vault/DocumentDropzone.tsx",
+          "src/components/vault/FactStreamView.tsx"
         ],
-        "owner": "worker-m1-01",
-        "status": "completed",
-        "isolation": ".teamwork/worktrees/ws-m1-01"
+        "owner": "worker_vault_direct",
+        "milestoneId": "milestone-01",
+        "dependsOn": []
       },
       {
-        "id": "ws-m2-01",
-        "milestone": "M2",
+        "id": "ws-common-badge",
+        "title": "Common Badge Simplification & QuestionBank Voice",
         "files": [
-          "src/App.tsx"
+          "src/components/common/PrivacyBadge.tsx",
+          "src/components/common/QuestionBank.tsx"
         ],
-        "owner": "worker-m2-01",
-        "status": "completed",
-        "isolation": ".teamwork/worktrees/ws-m2-01"
+        "owner": "worker_common_badge",
+        "milestoneId": "milestone-01",
+        "dependsOn": []
       },
       {
-        "id": "ws-m3-01",
-        "milestone": "M3",
+        "id": "ws-pillmap-labstory",
+        "title": "PillMap & LabStory Decorative Pills Removal",
         "files": [
-          "src/components/vault/*",
-          "src/components/labstory/*"
+          "src/components/pillmap/PillMapView.tsx",
+          "src/components/labstory/LabStoryView.tsx"
         ],
-        "owner": "worker-m3-01",
-        "status": "completed",
-        "isolation": ".teamwork/worktrees/ws-m3-01"
+        "owner": "worker_pillmap_labstory",
+        "milestoneId": "milestone-01",
+        "dependsOn": []
       },
       {
-        "id": "ws-m3-02",
-        "milestone": "M3",
+        "id": "ws-polish-verification",
+        "title": "Polish Verification & Gap Audit",
         "files": [
-          "src/components/pillmap/*",
-          "src/components/homelab/*"
+          "src/App.tsx",
+          "src/components/pillmap/PillMapView.tsx",
+          "src/components/vault/DocumentDropzone.tsx"
         ],
-        "owner": "worker-m3-02",
-        "status": "completed",
-        "isolation": ".teamwork/worktrees/ws-m3-02"
-      },
-      {
-        "id": "ws-m3-03",
-        "milestone": "M3",
-        "files": [
-          "src/components/safety/*",
-          "src/components/carecircle/*",
-          "src/components/rxbridge/*",
-          "src/components/dossier/*"
-        ],
-        "owner": "worker-m3-03",
-        "status": "completed",
-        "isolation": ".teamwork/worktrees/ws-m3-03"
-      },
-      {
-        "id": "ws-m4-01",
-        "milestone": "M4",
-        "files": [
-          "src/index.css",
-          "src/App.tsx"
-        ],
-        "owner": "worker-m4-01",
-        "status": "completed",
-        "isolation": ".teamwork/worktrees/ws-m4-01"
-      },
-      {
-        "id": "ws-m4-02",
-        "milestone": "M4",
-        "files": [
-          "src/components/common/*"
-        ],
-        "owner": "worker-m4-02",
-        "status": "completed",
-        "isolation": ".teamwork/worktrees/ws-m4-02"
+        "owner": "worker_polish_verification",
+        "milestoneId": "milestone-02",
+        "dependsOn": [
+          "ws-vault-direct",
+          "ws-common-badge",
+          "ws-pillmap-labstory"
+        ]
       }
     ]
   },
   "ownership": [
     {
-      "workstream": "ws-m1-01",
+      "workstream": "ws-vault-direct",
       "files": [
-        "tailwind.config.js",
-        "src/index.css",
-        "src/App.tsx"
+        "src/components/vault/DocumentDropzone.tsx",
+        "src/components/vault/FactStreamView.tsx"
       ],
-      "owner": "worker-m1-01",
+      "owner": "worker_vault_direct",
       "status": "completed"
     },
     {
-      "workstream": "ws-m2-01",
+      "workstream": "ws-common-badge",
       "files": [
-        "src/App.tsx"
+        "src/components/common/PrivacyBadge.tsx",
+        "src/components/common/QuestionBank.tsx"
       ],
-      "owner": "worker-m2-01",
+      "owner": "worker_common_badge",
       "status": "completed"
     },
     {
-      "workstream": "ws-m3-01",
+      "workstream": "ws-pillmap-labstory",
       "files": [
-        "src/components/vault/*",
-        "src/components/labstory/*"
+        "src/components/pillmap/PillMapView.tsx",
+        "src/components/labstory/LabStoryView.tsx"
       ],
-      "owner": "worker-m3-01",
+      "owner": "worker_pillmap_labstory",
       "status": "completed"
     },
     {
-      "workstream": "ws-m3-02",
+      "workstream": "ws-polish-verification",
       "files": [
-        "src/components/pillmap/*",
-        "src/components/homelab/*"
+        "src/App.tsx",
+        "src/components/pillmap/PillMapView.tsx",
+        "src/components/vault/DocumentDropzone.tsx"
       ],
-      "owner": "worker-m3-02",
-      "status": "completed"
-    },
-    {
-      "workstream": "ws-m3-03",
-      "files": [
-        "src/components/safety/*",
-        "src/components/carecircle/*",
-        "src/components/rxbridge/*",
-        "src/components/dossier/*"
-      ],
-      "owner": "worker-m3-03",
-      "status": "completed"
-    },
-    {
-      "workstream": "ws-m4-01",
-      "files": [
-        "src/index.css",
-        "src/App.tsx"
-      ],
-      "owner": "worker-m4-01",
-      "status": "completed"
-    },
-    {
-      "workstream": "ws-m4-02",
-      "files": [
-        "src/components/common/*"
-      ],
-      "owner": "worker-m4-02",
+      "owner": "worker_polish_verification",
       "status": "completed"
     }
   ],
   "progress": {
     "completedMilestones": [
-      "M1",
-      "M2",
-      "M3",
-      "M4"
+      "milestone-01",
+      "milestone-02"
     ],
     "failedMilestones": [],
     "completedWorkstreams": [
-      "ws-m1-01",
-      "ws-m2-01",
-      "ws-m3-01",
-      "ws-m3-02",
-      "ws-m3-03",
-      "ws-m4-01",
-      "ws-m4-02"
+      "ws-vault-direct",
+      "ws-common-badge",
+      "ws-pillmap-labstory",
+      "ws-polish-verification"
     ],
     "activeWorkstreams": []
   },
   "verification": {
     "gates": [
       {
-        "milestone": "M1",
+        "milestone": "milestone-01",
+        "verdict": "PASS",
         "critic": "PASS",
         "challenger": "PASS",
         "auditor": "PASS",
-        "verdict": "PASS"
+        "evidence": ".teamwork/reviews/auditor-milestone-01.md"
       },
       {
-        "milestone": "M2",
+        "milestone": "milestone-02",
+        "verdict": "PASS",
         "critic": "PASS",
         "challenger": "PASS",
         "auditor": "PASS",
-        "verdict": "PASS"
+        "evidence": ".teamwork/reviews/auditor-milestone-02.md"
       },
       {
-        "milestone": "M3",
-        "critic": "PASS",
-        "challenger": "PASS",
-        "auditor": "PASS",
-        "verdict": "PASS"
-      },
-      {
-        "milestone": "M4",
-        "critic": "PASS",
-        "challenger": "PASS",
-        "auditor": "PASS",
-        "verdict": "PASS"
+        "milestone": "success-auditor",
+        "verdict": "PASS",
+        "evidence": ".teamwork/verification/final.md"
       }
     ]
   },
@@ -295,6 +200,7 @@
   },
   "metadata": {
     "artifactsDir": ".teamwork",
-    "pattern": "distributed-coding"
+    "pattern": "distributed-coding",
+    "lastUpdated": "2026-08-29T14:31:00.835Z"
   }
 }
