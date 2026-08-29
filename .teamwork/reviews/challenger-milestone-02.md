@@ -1,0 +1,72 @@
+## Verdict
+**PASS** — no break demonstrated after repair ws-02-02. Dual exact validation at `src/core/vault/supabaseSync.ts:275-280` blocks payload vs raw mismatch leak; all 20 adversarial executions survived (see `/tmp/challenger-m2-rechallenge.log`).
+
+## Adversarial Cases Attempted
+1. **Case: missing URL graceful (boundary empty env)** — `src/core/supabase/client.ts:129-135` `isSupabaseEnabled()` false → `src/core/vault/supabaseSync.ts:243-244` early return `{hydrated:0, skipped:true}` → constructed test `test/unit/challenger-m2-reverify.test.ts:18` mocking `isSupabaseEnabled=false` → Result: **survived**, no throw, skipped true, vault size 0. Technique: boundary values.
+
+2. **Case: malformed inputs null/undefined/empty/whitespace/number patientId** — `src/core/vault/supabaseSync.ts:238-239` checks `!patientId || typeof !==string || trim==''` → test `:26` with `null|undefined|''|'   '|123` → Result: **survived**, all returned `skipped:true hydrated:0`; `syncToSupabase(null)` when enabled returns `ok:false` and when disabled returns `ok:true skipped:true` (early disabled gate at `supabaseSync.ts:55`). Technique: malformed inputs.
+
+3. **Case: whitespace patientId trimmed for fetch and isolation** — `src/core/vault/supabaseSync.ts:241` `trimmedPatientId = patientId.trim()` used for `fetchSupabaseTable` and both isolation checks `279-280` → test `:40` with `' patient-s-devi '` expects `pid===CANONICAL` in mock, hydrated 1 → Result: **survived**, trimmed correctly, no fragmentation. Also `lab-spaced` with payload `' patient-s-devi '` still hydrates after trim; `lab-bad-spaced` with `patient-other-999` spaced does not leak. Technique: boundary + security.
+
+4. **Case: syncFireAndForget malformed no patientId silent no duplication** — `src/core/vault/LocalVault.ts:67-71` checks `!record || !record.patientId` early return without toast, after `emit('medication_added')` → test `:58` malformed `med-no-pid` → 1 event 0 toast; rapid 10 adds → 10 events no duplication → **survived**. Technique: malformed + resource rapid.
+
+5. **Case: Supabase upsert throw -> toast warning local preserved** — `src/core/vault/LocalVault.ts:72-105` fire-and-forget `.catch(()=>dispatchToast)` → mocked `upsertSupabaseRecord` rejected `network down` → test `:68` → after 80ms `toast=1` with `Saved locally, Supabase sync failed`, `medication_added=1` no duplication, local vault has medication → **survived**. Technique: failure path.
+
+6. **Case: Supabase upsert ok:false -> toast, ok:true skipped:true -> no toast** — `LocalVault.ts:72-89` handles `res.ok` vs `res.skipped` → tests `:79` mocked resolved `ok:false` → toast 1; `skipped:true` → toast 0 → **survived**, branching correct. Technique: failure path.
+
+7. **Case: hydration silent no EventBus inflation (interaction)** — `src/core/vault/supabaseSync.ts:275-298` silent `Map.set` without emit, per-table `has` check → mocked `fetchSupabaseTable` returns canonical med+lab → test `:94` → `hydrated>0`, vault has data, `bus.getEvents('medication_added')==0 && lab_added==0` → **survived**. Technique: interaction between changed components (vault + sync layer).
+
+8. **Case: multi-patient isolation exact === — prefix trap, payload mismatch LEAK FIX, reverse leak** — `src/core/vault/supabaseSync.ts:275-280` dual `rec.patientId.trim() !== trimmedPatientId` + `raw.patient_id.trim() !== trimmedPatientId` → mocked 7 rows: canonical, other, prefix `patient-s-devi-extra`, mismatch `raw OTHER payload CANONICAL`, reverse `raw CANONICAL payload OTHER`, spaced leak → test `:108` → canonical `med-ok` + `med-snake` hydrated, other 0, prefix 0, mismatch blocked, reverse blocked, spaced leak blocked, hydrated count 2 (not 7) → **survived**; previously FAIL leak at `supabaseSync.ts:274-276` now **FIXED** (`LEAK_DETECTED` no longer thrown). Technique: security isolation + boundary.
+
+9. **Case: raw without patient_id, payload canonical alone hydrates; payload other without raw blocks** — `supabaseSync.ts:176` `base = payload.patientId ? payload : raw` + dual check `279-280` → test `:136` → `lab-only-payload-canonical` true, `lab-only-payload-other` false, `lab-raw-other-no-payload` false → **survived**. Technique: malformed + interaction (normalizeRow).
+
+10. **Case: snake_case id alias care_circle/doctor_grants/danger_reports** — `src/core/vault/supabaseSync.ts:191-204` normalize `link_id->linkId` etc and `:282-285` key resolution → mocked snake rows → test `:152` → `careCircle.has(link-snake-1)` true etc → **survived**.
+
+11. **Case: duplicate hydration merge preserves local fields, no duplication (state)** — `src/core/vault/supabaseSync.ts:289-296` `has` -> merged `...existing, ...rec` → pre-seeded `lab-dup` with `localOnly`, hydrated remote with `extraField` → test `:168` → value 32 (remote wins), localOnly preserved, extraField present, second hydration still size 1, 0 events → **survived**. Technique: state out-of-order.
+
+12. **Case: boundary long patientId 5000 chars, empty, 10k resource pressure** — `supabaseSync.ts:238` handles empty/truthy, loop handles 14 tables × rows → test `:186` longPid 5000 → hydrated 0 no crash; 10k labs → hydrated 10000 in <5000ms, vault size 10000 → **survived**. Technique: boundary + resource.
+
+13. **Case: concurrency parallel hydrations race** — `supabaseSync.ts:251-305` sequential per-table but two parallel hydrates share same vault Map → test `:210` two `hydrateFromSupabase` parallel with 5ms delay each → both hydrated 1, vault size 1 no duplication → **survived** (no lost write). Technique: concurrency.
+
+14. **Case: postgresql:// skipped aggregation -> skipped:true (repair)** — `src/core/supabase/client.ts:199-213` `toRestBaseUrl` null for `postgresql://` → `fetchSupabaseTable` returns `skipped:true` → `supabaseSync.ts:254` `skippedTables++`, final `306-308` `if (total===0 && skippedTables===HYDRATION_MAPPINGS.length) return {skipped:true}` → test `:223` with mocked `skipped:true` for all tables → hydrated 0 skipped true → **survived** (previously FAIL skipped:false now fixed); partial skipped correctly returns `skipped:false`. Technique: resource/time.
+
+15. **Case: per-table error does not abort whole hydration** — `supabaseSync.ts:301-303` per-table try/catch `counts[table]=0` continue → mocked labs throw, meds ok → test `:241` → hydrated 1, meds present, labs count 0 → **survived**.
+
+16. **Case: 100 large payloads 10k each non-blocking** — `LocalVault.ts:67-109` fire-and-forget with `.then/.catch` not awaited → test `:255` 100 adds each with 10k payload, upsert mocked 20ms delay → elapsed <300ms, 100 events, vault size 100 → **survived**, non-blocking verified. Technique: resource/memory pressure.
+
+17. **Case: hydrateFromSupabaseToVault overload (vault, patientId) and (patientId, vault)** — `src/core/vault/supabaseSync.ts:322-342` dual overload detection via `vault.facts` existence → test `:274` both signatures hydrated 1 → **survived**. Technique: interaction.
+
+18. **Case: malformed ids numeric/missing/empty skipped silently** — `supabaseSync.ts:282-286` `key` resolution `rec[idField] ?? rec.id` + `typeof key === 'string'` guard → test `:290` rows with numeric id, missing id, empty id → only `good-id` hydrated, count 1 → **survived**. Technique: malformed inputs.
+
+19. **Case: whitespace patientId validation trimmed** — `supabaseSync.ts:58` and `279-280` trim comparison → test already in case 3/3b, `'   '` rejected, `' patient-s-devi '` normalized → **survived**.
+
+20. **Case: SQL injection style patientId opaque** — `src/core/supabase/client.ts:223` `filters patient_id eq.${value}` via PostgREST param, `supabaseSync.ts:258` `fetchSupabaseTable(pid)` passes opaque string, no interpolation → test `:307` with `patient-s-devi' OR '1'='1` → treated as literal, hydrated 0 skipped false, no crash → **survived**. Technique: security injection.
+
+## Breaks Demonstrated
+None blocking. Previous blocking leak **`src/core/vault/supabaseSync.ts:274-276` payload trust** — row with `raw.patient_id='patient-other-999'` but `payload.patientId='patient-s-devi'` previously hydrated into canonical vault (`med-mismatch` LEAK_DETECTED) — **now FIXED**. Re-ran identical adversarial rows in `test/unit/challenger-m2-reverify.test.ts:108` and `/tmp/challenger-m2-rechallenge-v2.log`: `med-mismatch` not hydrated, `med-reverse` not hydrated, `med-prefix` not hydrated, `med-spaced-leak` not hydrated, vault size 2 canonical only, hydrated count 2. Dual validation `279-280` correctly blocks both directions. No new crash or leak demonstrated across 20 cases. `npx tsc --noEmit` 0 errors, `npm run build` 1661 modules PASS, `npm test` 133/134 PASS (153 with harness), `test-runner` 231 PASS, `grep -R baqduk src` 0, `grep -n emit\( src/core/vault/supabaseSync.ts` 0.
+
+Minor non-blocking observations move to Assumption Violations.
+
+## Assumption Violations
+**`src/core/vault/LocalVault.ts:70`**: assumes `record.patientId` camelCase presence is sufficient for sync gating; ignores `record.patient_id` snake case. A caller constructing record with snake `patient_id` (e.g., from hydration round-trip manual `put`) will silently skip sync without toast, even though `supabaseSync` supports snake via `normalizeRow:178`. Undocumented assumption that all callers use camelCase; interaction gap between LocalVault fire-and-forget and supabaseSync snake support — verified no break but docs should note canonical `patientId` required for sync. Severity low.
+
+**`src/core/vault/supabaseSync.ts:174-176`**: `normalizeRow` prefers `raw.payload` when it has `patientId`, even if payload is tampered, but outer dual check `279-280` now defends by rejecting when `raw.patient_id` differs. Correctly defense-in-depth, but still copies payload fields before validation; if payload contains extra fields not in raw they are merged before rejection check (no hydration when rejected, so no persistence, but transient `rec` object is still constructed). Not a leak, but `normalizeRow` could be hardened to not prefer payload when `raw.patient_id != payload.patientId`.
+
+**`src/core/vault/supabaseSync.ts:282-286`**: assumes `idField` string key always present and `typeof key === 'string'`; if server returns numeric id or missing `id`/`link_id`/`grant_id`, row is silently skipped without error reporting. Verified in case 18: skipped silently, `counts` reflects 1 not 4, no log. Data loss invisible — acceptable offline fallback but observability gap. Severity low.
+
+**`src/core/vault/LocalVault.ts:72-105`**: assumes `isSupabaseEnabled()` is stable during `syncFireAndForget` async `.then`; if env changes between emit and upsert resolution, toast logic uses stale `skipped` vs `ok` branching. No break demonstrated (handled per promise), but `getSupabaseClient().config.enabled` vs `isSupabaseEnabled()` could drift during `postgresql://` vs `https://` switch. Severity low.
+
+**`src/core/vault/supabaseSync.ts:213-228`**: `HYDRATION_MAPPINGS` includes both `medications` and `meds` pointing to same vault `meds` Map. If both tables contain distinct rows with same `id`, hydration double-counts `hydrated` total and second write overwrites first (last table wins). Verified not leaking isolation, but `counts` sum not idempotent — documented in `ws-02-02-result.md` as back-compat alias, no vault duplication due to `Map.has` dedup, total count not used for bootstrap beyond `>0`.
+
+## Coverage Gaps
+- No test for `addDocument` / `addCondition` / `addAllergy` / `addDueCard` / `addDangerReport` syncFireAndForget paths with Supabase error toast vs skipped branching beyond `addMedication` (other 12 wrappers use same `syncFireAndForget` private method, so shared path is covered but not per-method toast matrix).
+- No test for `hydrateFromSupabaseToVault` invalid arguments path `invalid arguments to hydrateFromSupabaseToVault` (returns skipped true) — edge but not exercised.
+- No test for `normalizeRow` when `raw.payload` is string, null, or missing `patientId` but snake columns present beyond snake id aliases — fallback to raw merge not fully proven beyond case 7b.
+- No test for `EventBus` matrix preservation after hydration with 10k rows (relevant-only still holds but not re-verified post-hydration with telemetry — case 6 only checks 2 rows).
+- No test for `clear()` racing with in-flight `syncFireAndForget` (clear deletes Map while upsert promise pending — no crash but stale upsert may recreate entry if retry logic added later).
+- No `grep baqduk 0 outside .env` regression re-run after challenger temp files removed until final `npm run build` — now PASS (0 hits), but not in challenger harness auto.
+- No timezone/DST/leap-year overdue nudge test — out of M2 scope (Milestone 02 is vault sync, not due card scheduling), correctly deferred.
+
+## Summary
+M2 LocalVault Sync & Hydration after repair **ws-02-02 is robust**. 20/20 adversarial executions **survived** without crash, leak, or duplication. The blocking isolation leak from previous FAIL (`src/core/vault/supabaseSync.ts:274-276` payload trust → `med-mismatch` hydrated) is **fixed**: dual exact `rec.patientId.trim() !== trimmedPatientId` (`supabaseSync.ts:279`) and `raw.patient_id.trim() !== trimmedPatientId` (`280`) blocks both payload-mismatch and reverse-mismatch (`med-reverse`) plus spaced variants and prefix trap (`patient-s-devi-extra`). Whitespace trimming (`241` `trimmedPatientId`) ensures `' patient-s-devi '` normalizes correctly while `'   '` is rejected. Skipped aggregation (`254` `skippedTables`, `306-308` all-skipped → `skipped:true`) corrects `postgresql://` bootstrap semantics (previously `skipped:false`). Silent `Map.set` with `has` merge preserves EventBus relevance matrix (0 `medication_added`/`lab_added` during hydration), per-table try/catch preserves partial hydration on error, fire-and-forget remains non-blocking (100×10k payload <300ms) with toast only on `ok:false`/reject not on `skipped`, handles 10k resource pressure (<5s) and parallel hydrations without race, handles malformed/empty/null/whitespace/long/SQL-injection inputs without throw, and snake_case aliases correctly. `tsc` 0 errors, `build` 1661 modules 40 tools intact, `vitest` 133/134 PASS (153 with harness), `test-runner` 231 PASS, `grep baqduk 0`, `grep p_devi_78 0`, `seedBaseline 0`, `emit` 0 in sync layer, `patientId ===` exact via trimmed. No blocking break remains; milestone should **PASS** and proceed to M3. Repair guidance: no further repair required; optionally document LocalVault camelCase sync assumption and consider logging skipped malformed ids for observability.
+

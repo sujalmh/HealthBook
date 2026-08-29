@@ -1,0 +1,69 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "build",
+  "snapshot": false,
+  "compaction": {
+    "auto": false
+  },
+  "subagent_depth": 3,
+  "permission": {
+    "external_directory": {
+      "*": "allow",
+      "/tmp/*": "allow",
+      ".teamwork/*": "allow"
+    },
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.pem": "deny",
+      "*.key": "deny",
+      "secrets/**": "deny",
+      "credentials/**": "deny",
+      ".aws/**": "deny",
+      ".ssh/**": "deny",
+      "docker-compose*.yml": "deny",
+      "**/.env*": "deny",
+      "**/*.pem": "deny",
+      "**/*.key": "deny",
+      "**/secrets/**": "deny",
+      "**/credentials/**": "deny",
+      "**/.aws/**": "deny",
+      "**/.ssh/**": "deny"
+    }
+  },
+  "provider": {
+    "commandcode": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Command Code",
+      "options": {
+        "baseURL": "https://api.commandcode.ai/provider/v1",
+        "apiKey": "{env:CMD_API_KEY}"
+      },
+      "models": {
+        "zai-org/GLM-5.2": {},
+        "deepseek/deepseek-v4-flash": {},
+        "moonshotai/Kimi-K2.7-code": {}
+      }
+    }
+  },
+  "agent": {
+    "build": {
+      "description": "Build — default primary agent for general tasks. For Teamwork distributed coding use /teamwork.",
+      "mode": "primary",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "plan": {
+      "description": "Plan — Restricted analysis mode (read-only).",
+      "mode": "primary",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    }
+  },
+  "model": "opencode/muse-spark-1.2-contributor-free"
+}

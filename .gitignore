@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+*.pem
+*.key
+.opencode/cache
+.opencode/logs
+
+# Teamwork scratch — keep artifacts for audit, ignore transient worktrees
+.teamwork/worktrees/
+.teamwork/handoff/
+.teamwork/**/*.log
+/tmp/

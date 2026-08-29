@@ -1,0 +1,191 @@
+/**
+ * CareCanvas Component: PillCard
+ * Accessible, high-contrast draggable pill card displaying dosage, shape icon, meal badges, and conflict indicators.
+ */
+
+import React from 'react';
+import { Trash2, HelpCircle, GripVertical, AlertTriangle, ArrowRight } from 'lucide-react';
+import type { PillSlotItem, DietBadge } from '../../types/pillmap.ts';
+import { MealBadges } from './MealBadges.tsx';
+
+export interface PillCardProps {
+  pill: PillSlotItem;
+  day?: string;
+  slot?: string;
+  dietBadges?: DietBadge[];
+  isDuplicate?: boolean;
+  onRemove?: (pillId: string) => void;
+  onSimulate?: (pill: PillSlotItem, day?: string, slot?: string) => void;
+  isGhostPreview?: boolean;
+  isDragging?: boolean;
+}
+
+export const PillCard: React.FC<PillCardProps> = ({
+  pill,
+  day = 'monday',
+  slot = 'morning',
+  dietBadges = [],
+  isDuplicate = false,
+  onRemove,
+  onSimulate,
+  isGhostPreview = false,
+  isDragging = false
+}) => {
+  // Shape rendering
+  const renderShapeIcon = () => {
+    switch (pill.shape) {
+      case 'capsule':
+        return (
+          <div
+            className="w-5 h-2.5 rounded-full border border-white/40 shadow-sm flex items-center justify-center overflow-hidden"
+            style={{ backgroundColor: pill.color || '#3B82F6' }}
+            title="Capsule"
+          >
+            <div className="w-1/2 h-full bg-white/30 border-r border-black/20" />
+          </div>
+        );
+      case 'oval':
+        return (
+          <div
+            className="w-4 h-3 rounded-full border border-white/40 shadow-sm"
+            style={{ backgroundColor: pill.color || '#10B981' }}
+            title="Oval tablet"
+          />
+        );
+      case 'round':
+      default:
+        return (
+          <div
+            className="w-3.5 h-3.5 rounded-full border border-white/40 shadow-sm"
+            style={{ backgroundColor: pill.color || '#F59E0B' }}
+            title="Round tablet"
+          />
+        );
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData(
+      'application/json',
+      JSON.stringify({
+        pillId: pill.id,
+        medId: pill.medId,
+        name: pill.name,
+        dosage: pill.dosage,
+        fromDay: day,
+        fromSlot: slot
+      })
+    );
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const isGhost = isGhostPreview || pill.status === 'ghost_preview';
+
+  return (
+    <div
+      draggable={!isGhost}
+      onDragStart={handleDragStart}
+      data-med-id={pill.medId || pill.id}
+      data-med-name={pill.name}
+      className={`group relative rounded-xl p-2.5 transition-all select-none ${
+        isGhost
+          ? 'bg-emerald-950/40 border-2 border-dashed border-emerald-500/80 text-emerald-200 animate-pulse shadow-lg shadow-emerald-900/20'
+          : isDuplicate
+          ? 'bg-slate-900 border-2 border-amber-500 shadow-md shadow-amber-500/10 text-white'
+          : 'bg-slate-900/95 hover:bg-slate-850 border border-slate-750 hover:border-slate-600 shadow-md text-white'
+      } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'}`}
+      role="article"
+      aria-label={`${pill.name} ${pill.dosage}`}
+    >
+      {/* Ghost Preview Header Badge */}
+      {isGhost && (
+        <div className="flex items-center gap-1 mb-1.5 px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+          <ArrowRight className="w-2.5 h-2.5" /> Proposed Timing Shift
+        </div>
+      )}
+
+      {/* Duplicate Ingredient Warning Tag */}
+      {isDuplicate && !isGhost && (
+        <div className="flex items-center gap-1 mb-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-[9px]">
+          <AlertTriangle className="w-2.5 h-2.5" /> Duplicate Ingredient
+        </div>
+      )}
+
+      {/* Top Row: Shape Icon, Brand/Generic Name, Drag Handle, Actions */}
+      <div className="flex items-start justify-between gap-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="shrink-0">{renderShapeIcon()}</span>
+          <div className="min-w-0">
+            <h4 className="font-bold text-xs leading-tight truncate text-slate-100 tracking-tight">
+              {pill.name}
+            </h4>
+            {pill.genericName && pill.genericName.toLowerCase() !== pill.name.toLowerCase() && (
+              <p className="text-[10px] text-slate-400 truncate leading-none mt-0.5">
+                ({pill.genericName})
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Action icons */}
+        {!isGhost && (
+          <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+            {onSimulate && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSimulate(pill, day, slot);
+                }}
+                className="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition-colors"
+                title="Simulate missed dose clinical risk"
+                aria-label={`Simulate missing ${pill.name}`}
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onRemove && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(pill.id);
+                }}
+                className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                title="Remove from pillbox"
+                aria-label={`Remove ${pill.name}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <div className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300 p-0.5">
+              <GripVertical className="w-3 h-3" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Middle Row: Strength / Dosage */}
+      <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-300 font-semibold">
+        <span className="px-1.5 py-0.2 rounded bg-slate-800/80 border border-slate-700/50">
+          {pill.dosage}
+        </span>
+        {pill.frequency && (
+          <span className="text-[10px] text-slate-400 font-normal truncate max-w-[80px]">
+            {pill.frequency}
+          </span>
+        )}
+      </div>
+
+      {/* Bottom Row: Meal & Food Badges */}
+      <MealBadges
+        withFood={pill.withFood}
+        emptyStomach={pill.emptyStomach}
+        avoidGrapefruit={pill.avoidGrapefruit}
+        avoidAlcohol={pill.avoidAlcohol}
+        avoidDairy={pill.avoidDairy}
+        dietBadges={dietBadges.filter(d => d.drugName.toLowerCase().includes(pill.name.toLowerCase()) || (pill.genericName && d.drugName.toLowerCase().includes(pill.genericName.toLowerCase())))}
+      />
+    </div>
+  );
+};

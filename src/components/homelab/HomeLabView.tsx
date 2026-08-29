@@ -1,0 +1,225 @@
+import React, { useState, useEffect } from 'react';
+import {
+  HeartPulse,
+  Calendar,
+  UploadCloud,
+  FileText,
+  Clock,
+  Sparkles,
+  Shield,
+  UserCheck,
+  Stethoscope,
+  Activity,
+  AlertTriangle,
+  RefreshCw,
+  Plus
+} from 'lucide-react';
+import { DueCardList } from './DueCardList';
+import { UploadLabModal } from './UploadLabModal';
+import { ProposalCard } from './ProposalCard';
+import { DoctorInbox } from './DoctorInbox';
+import { localVault } from '@/core/vault/LocalVault';
+import { eventBus } from '@/core/events/eventBus';
+import type { DueCardRecord, ProposalRecord, LabRecord } from '@/types/vault';
+
+interface HomeLabViewProps {
+  patientId: string;
+  activeProfile?: {
+    userId: string;
+    name: string;
+    role: string;
+    isProxy?: boolean;
+    relationship?: string;
+    onBehalfOf?: string;
+  };
+}
+
+export const HomeLabView: React.FC<HomeLabViewProps> = ({
+  patientId,
+  activeProfile = { userId: patientId, name: 'Patient', role: 'patient' }
+}) => {
+  const [activeTab, setActiveTab] = useState<'patient_loop' | 'doctor_inbox'>('patient_loop');
+  const [dueCards, setDueCards] = useState<DueCardRecord[]>([]);
+  const [proposals, setProposals] = useState<ProposalRecord[]>([]);
+  const [labs, setLabs] = useState<LabRecord[]>([]);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedDueCardId, setSelectedDueCardId] = useState<string | undefined>(undefined);
+
+  const loadData = () => {
+    // Read-only vault loads — no per-view seeding (centralized src/core/vault/seed.ts owns baseline via main.tsx bootstrap).
+    const cards = localVault.getDueCards(patientId);
+    setDueCards(cards);
+
+    const props = localVault.getProposals(patientId);
+    setProposals(props);
+
+    const patientLabs = localVault.getLabs(patientId);
+    setLabs(patientLabs);
+  };
+
+  // M2 Relevant-only: HomeLab listens to due_card_* , proposal_created/status_changed (alias proposal_submitted), lab_added (alias lab_extracted), fact_confirmed
+  // medication_* / danger_* / calendar_* are irrelevant — spurious guard
+  // Alias dispatch covers legacy proposal_submitted / lab_extracted without double subscription.
+  useEffect(() => {
+    loadData();
+
+    const guard = (p: any) => !p || !p.patientId || p.patientId === patientId;
+    const mk = (h: () => void) => (payload: any) => { if (guard(payload)) h(); };
+
+    const u1 = eventBus.on('due_card_added', mk(loadData));
+    const u2 = eventBus.on('due_card_updated', mk(loadData));
+    const u3 = eventBus.on('proposal_created', mk(loadData));
+    const u4 = eventBus.on('proposal_status_changed', mk(loadData));
+    const u5 = eventBus.on('lab_added', mk(loadData));
+    const u6 = eventBus.on('fact_confirmed', mk(loadData));
+
+    return () => {
+      u1();
+      u2();
+      u3();
+      u4();
+      u5();
+      u6();
+    };
+  }, [patientId]);
+
+  const handleOpenUpload = (cardId?: string) => {
+    setSelectedDueCardId(cardId);
+    setIsUploadModalOpen(true);
+  };
+
+  const handleCompleteCard = (cardId: string) => {
+    localVault.updateDueCard(cardId, { status: 'completed' });
+    loadData();
+    eventBus.dispatchToast({
+      type: 'success',
+      title: 'Lab Card Completed',
+      message: 'Prescribed due card marked as completed.'
+    });
+  };
+
+  const pendingProposals = proposals.filter((p) => p.status === 'pending');
+  const activeDueCards = dueCards.filter((c) => c.status !== 'completed');
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Top Banner & Mode Toggle */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 shadow-inner">
+            <HeartPulse className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black text-slate-100 tracking-tight">HomeLab Remote Loop</h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                Doctor-Prescribed Cadence
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              Closed-loop remote laboratory monitoring, photo extraction, and doctor dosage adjustments.
+            </p>
+          </div>
+        </div>
+
+        {/* View Mode Tabs: Patient Remote Loop vs Doctor Review */}
+        <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 self-start md:self-auto">
+          <button
+            onClick={() => setActiveTab('patient_loop')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'patient_loop'
+                ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>Patient Loop</span>
+            {activeDueCards.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-sky-400/30 text-sky-200 text-[10px] font-mono">
+                {activeDueCards.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('doctor_inbox')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'doctor_inbox'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Stethoscope className="w-4 h-4" />
+            <span>Doctor Review Queue</span>
+            {pendingProposals.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-400/30 text-amber-200 text-[10px] font-mono">
+                {pendingProposals.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Tab Content */}
+      {activeTab === 'patient_loop' ? (
+        <div className="space-y-6">
+          {/* Section 1: Prescribed Due Cards */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <DueCardList
+              dueCards={dueCards}
+              onUploadClick={handleOpenUpload}
+              onCompleteCard={handleCompleteCard}
+            />
+          </div>
+
+          {/* Section 2: Active Doctor Dosage Proposals */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <HeartPulse className="w-5 h-5 text-rose-400" />
+                <h3 className="text-base font-bold text-slate-100">Doctor Dosage Adjustment Proposals</h3>
+              </div>
+              <span className="text-xs text-slate-400">
+                {pendingProposals.length} pending patient approval
+              </span>
+            </div>
+
+            {proposals.length === 0 ? (
+              <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 text-center text-xs text-slate-400">
+                No active dosage proposals on file.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {proposals.map((proposal) => (
+                  <ProposalCard
+                    key={proposal.id}
+                    proposal={proposal}
+                    activeProfile={activeProfile}
+                    onDecision={() => loadData()}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Doctor Review Inbox Tab */
+        <DoctorInbox
+          patientId={patientId}
+          labs={labs}
+          onProposalCreated={() => loadData()}
+          onCommentPinned={() => loadData()}
+        />
+      )}
+
+      {/* Upload Lab Modal */}
+      <UploadLabModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        linkedDueCardId={selectedDueCardId}
+        patientId={patientId}
+        onSuccess={() => loadData()}
+      />
+    </div>
+  );
+};

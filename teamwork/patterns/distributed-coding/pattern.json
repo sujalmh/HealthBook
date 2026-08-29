@@ -1,0 +1,246 @@
+{
+  "$schema": "https://teamwork.opencode.ai/pattern.json",
+  "pattern": "distributed-coding",
+  "version": "1.0.0",
+  "description": "Antigravity-inspired Distributed Coding — linear orchestration with parallel workers, explicit ownership, and independent verification gates. Observable architecture only; no proprietary prompts.",
+  "source": "https://antigravity.google/blog/teamwork-when-ai-becomes-a-research-partner and https://antigravity.google/assets/image/blog/teamwork-distributed-coding-flow.svg",
+  "roles": [
+    {
+      "id": "sentinel",
+      "name": "Sentinel / Team Lead",
+      "agent": "sentinel",
+      "depth": 0,
+      "mode": "primary",
+      "responsibilities": [
+        "own the user's original objective",
+        "preserve the original requirements",
+        "create request artifact",
+        "initialize project state",
+        "start Project Orchestrator",
+        "report progress to user",
+        "launch or request final verification",
+        "receive final result and present to user"
+      ],
+      "constraints": [
+        "should not perform the main implementation itself",
+        "should not absorb all worker context unnecessarily",
+        "should maintain high-level project state only"
+      ],
+      "artifacts": ["request.md", "state.json"],
+      "transitions": ["orchestrator"]
+    },
+    {
+      "id": "orchestrator",
+      "name": "Project Orchestrator",
+      "agent": "team-orchestrator",
+      "depth": 1,
+      "mode": "subagent",
+      "responsibilities": [
+        "decompose the request into milestones",
+        "identify independent workstreams",
+        "build dependency relationships",
+        "decide which work can run in parallel",
+        "assign tasks to workers",
+        "prevent overlapping file ownership",
+        "maintain project plan",
+        "collect worker results",
+        "initiate review",
+        "handle failures",
+        "replan when required",
+        "start the next milestone",
+        "hand off/restart orchestrator state when context becomes too large"
+      ],
+      "constraints": ["dispatch-only where possible; should NOT directly edit source code unless no practical alternative"],
+      "artifacts": ["plan.md", "progress.md", "state.json", "milestones/*", "workstreams/*"],
+      "transitions": ["explorer", "worker", "critic", "challenger", "auditor", "success-auditor"]
+    },
+    {
+      "id": "explorer",
+      "name": "Explorer",
+      "agent": "explorer",
+      "depth": 2,
+      "mode": "subagent",
+      "responsibilities": [
+        "inspect repository",
+        "trace entry points",
+        "understand architecture",
+        "identify dependencies",
+        "investigate implementation options",
+        "identify affected files",
+        "report findings"
+      ],
+      "constraints": ["no source modifications", "no implementation", "no destructive shell actions"],
+      "artifacts": ["research/explorer-*.md"],
+      "transitions": []
+    },
+    {
+      "id": "worker",
+      "name": "Worker",
+      "agent": "worker",
+      "depth": 2,
+      "mode": "subagent",
+      "responsibilities": [
+        "implement one focused workstream",
+        "modify only assigned files/scope",
+        "write tests",
+        "run relevant tests/builds",
+        "report exact changes, commands executed, failures and unresolved issues"
+      ],
+      "constraints": ["non-overlapping ownership; if two tasks want same file, orchestrator must serialize"],
+      "artifacts": ["workstreams/ws-*-result.md", "worktrees/*"],
+      "transitions": []
+    },
+    {
+      "id": "critic",
+      "name": "Critic",
+      "agent": "critic",
+      "depth": 2,
+      "mode": "subagent",
+      "responsibilities": [
+        "review milestone changes against requirements",
+        "inspect correctness, architecture, missing behavior, edge cases, interface contracts, regressions"
+      ],
+      "constraints": ["must not automatically fix the work", "must return explicit findings", "should not merely trust worker reports"],
+      "artifacts": ["reviews/critic-*.md"],
+      "transitions": []
+    },
+    {
+      "id": "challenger",
+      "name": "Challenger",
+      "agent": "challenger",
+      "depth": 2,
+      "mode": "subagent",
+      "responsibilities": [
+        "construct edge-case tests",
+        "test failure paths",
+        "attempt to break the implementation",
+        "look for incorrect assumptions",
+        "test resource/runtime concerns, malformed inputs, interactions between changed components"
+      ],
+      "constraints": ["actively attempt to demonstrate solution is wrong"],
+      "artifacts": ["reviews/challenger-*.md"],
+      "transitions": []
+    },
+    {
+      "id": "auditor",
+      "name": "Auditor",
+      "agent": "auditor",
+      "depth": 2,
+      "mode": "subagent",
+      "responsibilities": [
+        "validate acceptance criteria",
+        "inspect real command output",
+        "verify tests actually ran",
+        "verify implementation matches project requirements",
+        "detect fake/skipped/misleading evidence",
+        "produce PASS/FAIL decision"
+      ],
+      "constraints": ["must not simply trust another agent's summary", "requires evidence"],
+      "artifacts": ["reviews/auditor-*.md", "verification/milestone-*.md"],
+      "transitions": []
+    },
+    {
+      "id": "success-auditor",
+      "name": "Success Auditor",
+      "agent": "success-auditor",
+      "depth": 1,
+      "mode": "subagent",
+      "responsibilities": [
+        "inspect the completed project",
+        "run the important verification commands",
+        "validate final result against original request",
+        "confirm all milestones completed",
+        "confirm no unresolved critical findings remain",
+        "provide final PASS/FAIL"
+      ],
+      "constraints": ["Sentinel must not declare success until this stage succeeds"],
+      "artifacts": ["verification/final.md"],
+      "transitions": []
+    }
+  ],
+  "gates": [
+    {
+      "id": "milestone-gate",
+      "description": "Every major milestone must have verification gate",
+      "sequence": ["critic", "challenger", "auditor"],
+      "required": ["critic: PASS", "challenger: PASS", "auditor: PASS"],
+      "onFail": "identify cause → create repair task → assign worker → re-run verification with fresh instances",
+      "onPass": "continue to next milestone"
+    },
+    {
+      "id": "success-gate",
+      "description": "Project cannot be reported as complete unless Success Auditor passes",
+      "sequence": ["success-auditor"],
+      "required": ["success-auditor: PASS"],
+      "onFail": "back to Sentinel → Orchestrator replan (Ralph Loop / Result Rejected)",
+      "onPass": "Done"
+    }
+  ],
+  "artifacts": {
+    "dir": ".teamwork",
+    "required": ["request.md", "plan.md", "progress.md", "state.json"],
+    "structure": {
+      "request.md": "Original user goal, constraints, acceptance criteria",
+      "plan.md": "Milestones, dependencies, workstreams, ownership",
+      "progress.md": "Current state and completed work",
+      "state.json": "Machine-readable orchestration state",
+      "milestones/milestone-*.md": "Per-milestone spec",
+      "workstreams/ws-*.md": "Per-workstream assignment",
+      "workstreams/ws-*-result.md": "Worker result summaries",
+      "research/explorer-*.md": "Explorer findings",
+      "reviews/critic-*.md": "Critic report",
+      "reviews/challenger-*.md": "Challenger report",
+      "reviews/auditor-*.md": "Auditor report",
+      "verification/milestone-*.md": "Gate verdict",
+      "verification/final.md": "Success Auditor final verdict",
+      "worktrees/*": "Isolated scratch space"
+    }
+  },
+  "ownership": {
+    "model": "explicit per-workstream file globs with owner",
+    "example": {
+      "workstream": "auth-refactor",
+      "files": ["src/auth/*", "tests/auth/*"],
+      "owner": "worker-1",
+      "status": "active"
+    },
+    "rule": "Never allow Worker A and Worker B to edit same file simultaneously; serialize or split into dependency phases"
+  },
+  "isolation": {
+    "preference": ["separate worktrees if supported", "isolated working directories", "strict ownership + shared project workspace"],
+    "reviewers": "inspect without modifying"
+  },
+  "contextManagement": {
+    "principle": "prevent context degradation; do not continually pass every worker conversation to next worker",
+    "mechanism": "workers communicate through structured artifacts/summaries; orchestrator carries current goal, milestone, dependency state, summarized results, review findings, unresolved issues; fresh orchestrator session between major milestones restoring from artifacts"
+  },
+  "executionModel": {
+    "type": "dynamic milestone loop",
+    "steps": [
+      "receive request",
+      "create request artifact",
+      "analyze task",
+      "create project plan",
+      "create milestones",
+      "identify dependencies",
+      "create parallel workstreams",
+      "launch explorers if needed",
+      "launch workers for independent workstreams",
+      "collect results",
+      "run critic",
+      "run challenger",
+      "run auditor",
+      "milestone PASS? no->repair/replan/re-run, yes->continue",
+      "next milestone",
+      "final Success Auditor",
+      "final result"
+    ],
+    "workerCount": "orchestrator decides from task complexity, independent components, dependency graph, affected files, verification requirements, expected context size; trivial tasks remain small, large refactors fan out",
+    "not": "prompt → model A/B/C → merge answers (generic swarm)"
+  },
+  "extensibility": {
+    "note": "This is distributed-coding only; other patterns (Long Proof, Self Verification, Document Review, Iterative Coding, auto-selection) will be added later as separate patterns under teamwork/patterns/",
+    "current": "distributed-coding",
+    "future": ["long-proof", "self-verification", "document-review", "iterative-coding"]
+  }
+}
