@@ -29,6 +29,25 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
 
   const handleCreate = async () => {
     if (isCreating) return;
+    // Required validation: email + password must be present
+    const emailTrim = email.trim();
+    const passwordTrim = password.trim();
+    if (!emailTrim) {
+      eventBus.dispatchToast({ type: 'error', title: 'Email required', message: 'Please enter your email address.' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      eventBus.dispatchToast({ type: 'error', title: 'Invalid email', message: 'Please enter a valid email address.' });
+      return;
+    }
+    if (!passwordTrim) {
+      eventBus.dispatchToast({ type: 'error', title: 'Password required', message: 'Please enter a password.' });
+      return;
+    }
+    if (passwordTrim.length < 6) {
+      eventBus.dispatchToast({ type: 'error', title: 'Password too short', message: 'Password must be at least 6 characters.' });
+      return;
+    }
     setIsCreating(true);
     try {
       // Validation: name optional -> default Anonymous, truncate long name
@@ -42,14 +61,14 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
       // Try Supabase Auth if configured (graceful fallback to local)
       const supabaseUrl = (import.meta as any)?.env?.VITE_SUPABASE_URL;
       const supabaseAnon = (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
-      if (supabaseUrl && supabaseAnon && email.trim() && password.trim()) {
+      if (supabaseUrl && supabaseAnon && emailTrim && passwordTrim) {
         try {
           const { getSupabaseClient } = await import('@/core/supabase/client');
           const client: any = getSupabaseClient();
           if (client?.auth?.signUp) {
             const res = await client.auth.signUp({
-              email: email.trim(),
-              password: password.trim(),
+              email: emailTrim,
+              password: passwordTrim,
               options: { data: { display_name: displayName } },
             });
             if (res?.data?.user?.id) {
@@ -77,25 +96,33 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
       const profile: CreatedProfile = {
         userId: userId!,
         name: displayName,
-        email: email.trim() || undefined,
+        email: emailTrim,
         role: 'patient',
         isProxy: false,
         createdAt: new Date().toISOString(),
       };
 
-      // Persist active user
+      // Persist active user (auth token)
       try {
         localStorage.setItem('carecanvas_active_user', JSON.stringify(profile));
+        // Also persist password for local sign-in verification (stored separately, not in active token display)
+        localStorage.setItem(`carecanvas_cred_${profile.userId}`, passwordTrim);
+        if (profile.email) localStorage.setItem(`carecanvas_cred_email_${profile.email.toLowerCase()}`, JSON.stringify({ userId: profile.userId, password: passwordTrim }));
       } catch {}
 
       // Maintain users array for future sign-in
       try {
         const raw = localStorage.getItem('carecanvas_users');
-        const arr: CreatedProfile[] = raw ? JSON.parse(raw) : [];
+        const arr: any[] = raw ? JSON.parse(raw) : [];
         // Avoid duplicates by userId or email
         const exists = arr.find((u) => u.userId === profile.userId || (profile.email && u.email === profile.email));
         if (!exists) {
-          arr.push(profile);
+          arr.push({ ...profile, password: passwordTrim });
+          localStorage.setItem('carecanvas_users', JSON.stringify(arr));
+        } else if (profile.email) {
+          // Update password if account recreated
+          const idx = arr.findIndex((u) => u.email === profile.email);
+          if (idx !== -1) arr[idx].password = passwordTrim;
           localStorage.setItem('carecanvas_users', JSON.stringify(arr));
         }
       } catch {}
@@ -149,7 +176,7 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
 
         <div className="space-y-1.5">
           <label htmlFor="cc-email" className="text-body-sm font-semibold text-slate-800">
-            Email <span className="text-muted font-normal">(optional)</span>
+            Email <span className="text-rose-500">*</span>
           </label>
           <input
             id="cc-email"
@@ -158,14 +185,16 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="you@example.com"
+            required
             className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px]"
             aria-label="Email"
+            aria-required="true"
           />
         </div>
 
         <div className="space-y-1.5">
           <label htmlFor="cc-password" className="text-body-sm font-semibold text-slate-800">
-            Password <span className="text-muted font-normal">(optional)</span>
+            Password <span className="text-rose-500">*</span>
           </label>
           <input
             id="cc-password"
@@ -174,9 +203,13 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="••••••••"
+            required
+            minLength={6}
             className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px]"
             aria-label="Password"
+            aria-required="true"
           />
+          <p className="text-caption text-muted">At least 6 characters</p>
         </div>
 
         <button

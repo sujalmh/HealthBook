@@ -27,6 +27,7 @@ import { SafetyView } from '@/components/safety/SafetyView';
 import { CareCircleView } from '@/components/carecircle/CareCircleView';
 import { DossierView } from '@/components/dossier/DossierView';
 import { CreateAccountView } from '@/components/auth/CreateAccountView';
+import { SignInView } from '@/components/auth/SignInView';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
@@ -50,6 +51,7 @@ export const App: React.FC = () => {
   const [isQuestionBankOpen, setIsQuestionBankOpen] = useState(false);
   const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [authMode, setAuthMode] = useState<'create' | 'signin'>('create');
   const [pendingCount, setPendingCount] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
 
@@ -241,12 +243,17 @@ export const App: React.FC = () => {
     );
   }
 
-  // Create Account Gate — cold start with no user must show centered Create Account view, not vault grids
+  // Create Account / Sign In Gate — cold start with no user must show centered auth view, not vault grids
+  // Automatically signs in if auth token (carecanvas_active_user) was saved — handled by restore useEffect above
   if (!activeProfile) {
     return (
       <div className="min-h-screen flex flex-col bg-canvas-bg">
         <div className="flex-1 flex items-center justify-center p-4">
-          <CreateAccountView onCreated={handleCreated} />
+          {authMode === 'create' ? (
+            <CreateAccountView onCreated={handleCreated} onSwitchToSignIn={() => setAuthMode('signin')} />
+          ) : (
+            <SignInView onSignedIn={handleCreated} onSwitchToCreate={() => setAuthMode('create')} />
+          )}
         </div>
         <ToastContainer />
       </div>
