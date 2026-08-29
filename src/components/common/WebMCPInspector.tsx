@@ -17,6 +17,18 @@ import {
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { WebMCPToolDefinition, TelemetryLogEntry, PendingApprovalItem } from '@/types/webmcp';
 import { eventBus } from '@/core/events/eventBus';
+import { localVault } from '@/core/vault/LocalVault';
+
+const MODULE_DISPLAY: Record<string, string> = {
+  vault: 'My Records',
+  labstory: 'Lab Results',
+  pillmap: 'My Medicines',
+  rxbridge: 'Medicine Review',
+  homelab: 'Tests to Do',
+  safety: 'Get Help',
+  carecircle: 'Family',
+  dossier: 'For My Doctor',
+};
 
 export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'catalog' | 'telemetry' | 'playground' | 'approvals'>('catalog');
@@ -24,7 +36,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
   const [telemetryLogs, setTelemetryLogs] = useState<TelemetryLogEntry[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<PendingApprovalItem[]>([]);
   const [selectedToolName, setSelectedToolName] = useState<string>('extract_fact');
-  const [playgroundParams, setPlaygroundParams] = useState<string>('{\n  "documentId": "doc-discharge-001"\n}');
+  const [playgroundParams, setPlaygroundParams] = useState<string>('{\n  "documentId": "doc-example-001"\n}');
   const [playgroundResult, setPlaygroundResult] = useState<any>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [catalogFilterModule, setCatalogFilterModule] = useState<string>('all');
@@ -33,7 +45,31 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
   const refreshData = () => {
     setTools(webMCPEngine.getRegisteredTools());
     setTelemetryLogs(webMCPEngine.getTelemetryLogs());
-    setPendingApprovals(webMCPEngine.getPendingApprovals());
+    // Real pending approvals — combine engine queue with vault pending facts/proposals (no mock).
+    let pending = webMCPEngine.getPendingApprovals();
+    try {
+      let pid = '';
+      try {
+        const raw = localStorage.getItem('carecanvas_active_user');
+        if (raw) pid = JSON.parse(raw)?.userId || '';
+      } catch {}
+      if (pid) {
+        const vaultFacts = localVault.getPendingFacts(pid);
+        const vaultFactApprovals = vaultFacts.map((f: any) => ({
+          id: f.id,
+          toolName: 'confirm_fact',
+          title: f.name || f.factKey || 'Pending fact',
+          description: f.plainExplanation || f.plainNarration || 'Awaiting review in My Records',
+          timestamp: f.timestamp || f.createdAt || new Date().toISOString(),
+        }));
+        // Deduplicate by id and merge
+        const existingIds = new Set(pending.map((p: any) => p.id || p.invocationId));
+        for (const v of vaultFactApprovals) {
+          if (!existingIds.has(v.id)) pending = [...pending, v as any];
+        }
+      }
+    } catch {}
+    setPendingApprovals(pending);
   };
 
   useEffect(() => {
@@ -69,22 +105,33 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     setSelectedToolName(toolName);
     setPlaygroundResult(null);
 
+    // Playground payloads are vault-derived templates, not mock patient fixtures.
+    // All IDs are generic placeholders; real execution uses context.patientId from session.
+    const activeUserId = (() => {
+      try {
+        const raw = localStorage.getItem('carecanvas_active_user');
+        if (raw) return JSON.parse(raw)?.userId || 'current-patient';
+      } catch {}
+      return 'current-patient';
+    })();
     const samplePayloads: Record<string, object> = {
       extract_fact: {
-        documentId: 'doc-discharge-001',
-        rawText: 'Discharge Summary: Metformin 1000mg BID, Apixaban 5mg BID, eGFR 32 mL/min, Penicillin allergy.',
-        documentType: 'discharge_summary',
+        documentId: `doc-example-${activeUserId.slice(0, 6)}`,
+        rawText: 'Example discharge text — replace with your document content.',
+        documentType: 'general_pdf',
       },
       confirm_fact: {
-        factId: 'fact-egfr-demo',
+        factId: `fact-${activeUserId.slice(0, 6)}-001`,
         action: 'approve',
       },
       compile_health_record: {
-        format: 'json_bundle',
+        patientId: activeUserId,
+        format: 'json_dossier',
         includeAuditTrail: true,
       },
       extract_labs: {
-        documentId: 'doc-lab-homelab-001',
+        documentId: `doc-lab-${activeUserId.slice(0, 6)}`,
+        patientId: activeUserId,
         normalizeUnits: true,
       },
       correlate_meds: {
@@ -92,73 +139,71 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
         timeframeDays: 90,
       },
       add_medication: {
-        name: 'Metformin HCl',
-        genericName: 'metformin',
-        dosage: '1000 mg',
-        timeSlots: ['morning', 'evening'],
+        name: 'Example Medication',
+        genericName: 'example-generic',
+        dosage: '10 mg',
+        timeSlots: ['morning'],
         category: 'rx',
-        withFood: true,
+        withFood: false,
       },
       check_interactions: {},
       check_diet_interactions: {},
       check_duplicate_ingredient: {},
       suggest_schedule: {
-        chronotype: 'night_owl',
-        separateCalcium: true,
+        chronotype: 'standard',
+        separateCalcium: false,
       },
       simulate_adherence: {
-        medicationName: 'Apixaban 5mg',
+        medicationName: 'Example Medication 10mg',
         timeSlot: 'morning',
-        day: 'tue',
+        day: 'mon',
       },
       export_for_pharmacist: {
         format: 'pdf_map',
       },
       explain_med_change: {
-        medicationName: 'Apixaban',
-        dischargeDose: '5 mg twice daily',
+        medicationName: 'Example Medication',
+        dischargeDose: '10 mg once daily',
         changeCategory: 'new',
-        reason: 'Atrial fibrillation stroke prevention',
+        reason: 'Clinician prescribed',
       },
       flag_interaction: {},
       flag_diet_interaction: {},
       suggest_question_for_doctor: {
-        context: 'Lisinopril held at discharge',
+        context: 'Medication change at discharge — please clarify',
       },
       export_patient_summary: {
         format: 'one_page_pdf',
       },
       upload_lab_image: {
-        imageData: 'data:image/jpeg;base64,sample...',
-        prescribedDueCardId: 'cal-creat-due-001',
+        imageData: 'data:image/jpeg;base64,REPLACE_WITH_REAL_IMAGE',
+        prescribedDueCardId: `due-${activeUserId.slice(0, 6)}-001`,
       },
       doctor_review_comment: {
-        labId: 'lab-creat-20260828',
-        comment: 'Serum Creatinine jumped to 1.9; reducing metformin and rechecking in 2 weeks.',
+        labId: `lab-${activeUserId.slice(0, 6)}-001`,
+        comment: 'Clinician comment — replace with real assessment.',
       },
       propose_dosage_change: {
-        targetMedicationName: 'Metformin HCl',
-        proposedDosage: '500 mg morning only',
-        clinicalRationale: 'Reduced renal clearance (eGFR 28).',
+        targetMedicationName: 'Example Medication',
+        proposedDosage: '5 mg morning only',
+        clinicalRationale: 'Clinician rationale — replace with real reason.',
       },
       report_danger_sign: {
-        symptom: 'Bilateral pedal edema + shortness of breath',
+        symptom: 'Describe symptom in plain language',
         severity: 'urgent_doctor_same_day',
       },
       schedule_followup: {
-        title: 'Clinic Review',
-        dueDate: '2026-09-11',
+        title: 'Follow-up Appointment',
+        dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
         location: 'clinic',
       },
       switch_profile: {
-        targetUserId: 'user-family-member',
-        role: 'caregiver',
-        onBehalfOfPatientId: '',
+        targetPatientId: 'self',
       },
       grant_doctor_access: {
-        doctorName: 'Your doctor',
-        doctorClinic: 'Clinic',
+        doctorEmail: 'doctor@clinic.example',
         durationDays: 7,
+        scope: 'full_dossier',
       },
     };
 
@@ -218,11 +263,11 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-heading-md sm:text-lg font-bold text-slate-900">CareCanvas WebMCP Inspector</h2>
                 <span className="text-caption px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                  {webMCPEngine.isNative ? 'Native WebMCP' : 'Polyfill Mock Adapter'}
+                  {webMCPEngine.isNative ? 'Native WebMCP' : 'Polyfill Adapter'}
                 </span>
               </div>
               <p className="text-xs text-muted hidden sm:block">
-                Live tool registry ({tools.length} Registered Tools across 7 Modules) • W3C WebML Compliant
+                Live tool registry ({tools.length} Registered Tools across {new Set(tools.map((t) => t.moduleOwner)).size} Modules) • W3C WebML Compliant
               </p>
             </div>
           </div>
@@ -297,18 +342,18 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
                   <Filter className="w-3.5 h-3.5 text-muted shrink-0" />
                   <span className="text-muted whitespace-nowrap">Filter by Module:</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {['all', 'vault', 'labstory', 'pillmap', 'rxbridge', 'homelab', 'safety', 'carecircle', 'dossier'].map(
+                    {(['all', 'vault', 'labstory', 'pillmap', 'rxbridge', 'homelab', 'safety', 'carecircle', 'dossier'] as const).map(
                       (mod) => (
                         <button
                           key={mod}
                           onClick={() => setCatalogFilterModule(mod)}
-                          className={`px-2.5 py-1 rounded-lg capitalize font-medium transition-colors min-h-[32px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                          className={`px-2.5 py-1 rounded-lg font-medium transition-colors min-h-[32px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                             catalogFilterModule === mod
                               ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm'
                               : 'bg-canvas-muted text-muted hover:bg-canvas-border border border-transparent'
                           }`}
                         >
-                          {mod}
+                          {mod === 'all' ? 'All' : MODULE_DISPLAY[mod] || mod}
                         </button>
                       )
                     )}
@@ -328,7 +373,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
                         <div className="font-mono text-sm font-bold text-primary-text break-all">{tool.name}</div>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-caption uppercase font-bold px-2 py-0.5 rounded bg-white text-muted border border-canvas-border">
-                            {tool.moduleOwner}
+                            {MODULE_DISPLAY[tool.moduleOwner] || tool.moduleOwner}
                           </span>
                           <span className="text-caption font-mono text-muted">{tool.category}</span>
                         </div>
@@ -469,7 +514,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
                   >
                     {tools.map((t) => (
                       <option key={t.name} value={t.name}>
-                        {t.name} ({t.moduleOwner})
+                        {t.name} — {MODULE_DISPLAY[t.moduleOwner] || t.moduleOwner}
                       </option>
                     ))}
                   </select>

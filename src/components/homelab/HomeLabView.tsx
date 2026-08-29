@@ -104,8 +104,8 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Banner & Mode Toggle */}
-      <div className="bg-white border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Banner & Mode Toggle — consistent card style */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
             <HeartPulse className="w-6 h-6" />
@@ -165,7 +165,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
       {activeTab === 'patient_loop' ? (
         <div className="space-y-6">
           {/* Section 1: Prescribed Due Cards */}
-          <div className="bg-white border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
             <DueCardList
               dueCards={dueCards}
               onUploadClick={handleOpenUpload}

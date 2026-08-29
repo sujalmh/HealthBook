@@ -184,7 +184,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
               </span>
             </div>
             <h3 className="text-heading-md text-slate-900">
-              Remote Patient Monitoring: Patient (78F)
+              Remote Patient Monitoring: Patient
             </h3>
           </div>
         </div>

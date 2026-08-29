@@ -111,7 +111,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
               onClick={() => setActiveTab('patient_safety')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
                 activeTab === 'patient_safety'
-                  ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-slate-600 hover:text-slate-800'
               }`}
             >
@@ -121,7 +121,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
               onClick={() => setActiveTab('doctor_triage')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
                 activeTab === 'doctor_triage'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-slate-600 hover:text-slate-800'
               }`}
             >
@@ -131,7 +131,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
               onClick={() => setActiveTab('calendar')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
                 activeTab === 'calendar'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'text-slate-600 hover:text-slate-800'
               }`}
             >

@@ -100,7 +100,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsPermissionsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-md shadow-primary/20"
           >
             <KeyRound className="w-4 h-4" />
             <span>Manage Access</span>
@@ -120,7 +120,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'overview'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
@@ -131,7 +131,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           onClick={() => setActiveTab('multi_patient')}
           className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'multi_patient'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
@@ -142,7 +142,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           onClick={() => setActiveTab('audit_log')}
           className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'audit_log'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
@@ -257,9 +257,13 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
       ) : activeTab === 'multi_patient' ? (
         <MultiPatientDashboard
           onSelectPatient={(pid) => {
-            if (pid === '') onProfileChange('mother');
-            else if (pid === 'patient-child-003') onProfileChange('child');
-            else onProfileChange('self');
+            if (!pid) { onProfileChange('self'); return; }
+            try {
+              const links = localVault.getCaregiverLinks(patientId);
+              const found = links.find((l) => l.linkId === pid);
+              if (found?.relationship?.toLowerCase().includes('child')) onProfileChange('child');
+              else onProfileChange('mother');
+            } catch { onProfileChange('mother'); }
           }}
         />
       ) : (

@@ -11,10 +11,12 @@ import {
   FolderLock,
   AlertTriangle,
   LogOut,
+  Plug,
 } from 'lucide-react';
 import { PrivacyBadge } from '@/components/common/PrivacyBadge';
 import { QuestionBank } from '@/components/common/QuestionBank';
 import { WebMCPInspector } from '@/components/common/WebMCPInspector';
+import { ConnectWebMCPModal } from '@/components/common/ConnectWebMCPModal';
 import { ToastContainer } from '@/components/common/ToastContainer';
 import { BoundingBoxViewer } from '@/components/common/BoundingBoxViewer';
 import { DocumentDropzone } from '@/components/vault/DocumentDropzone';
@@ -49,6 +51,7 @@ export const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<ActiveModule>('vault');
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isQuestionBankOpen, setIsQuestionBankOpen] = useState(false);
+  const [isConnectOpen, setIsConnectOpen] = useState(false);
   const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [authMode, setAuthMode] = useState<'create' | 'signin'>('create');
@@ -183,6 +186,17 @@ export const App: React.FC = () => {
   const handleSwitchProfile = (role: 'patient' | 'caregiver' | 'self' | 'mother' | 'child') => {
     if (!activeProfile) return;
     if (role === 'caregiver' || role === 'mother') {
+      const links = (() => {
+        try { return localVault.getCaregiverLinks(activeProfile.userId); } catch { return []; }
+      })();
+      if (links.length === 0) {
+        eventBus.dispatchToast({
+          type: 'info',
+          title: 'No family helpers linked',
+          message: 'Add a family member in Family → Manage Access before switching to proxy mode. No mock profile shown.',
+        });
+        return;
+      }
       const baseName = activeProfile.isProxy ? activeProfile.onBehalfOf || activeProfile.name : activeProfile.name;
       const next: ActiveProfile = {
         ...activeProfile,
@@ -200,6 +214,17 @@ export const App: React.FC = () => {
         message: `Switched to ${next.name} (son) acting on behalf of ${baseName}.`,
       });
     } else if (role === 'child') {
+      const links = (() => {
+        try { return localVault.getCaregiverLinks(activeProfile.userId); } catch { return []; }
+      })();
+      if (links.length === 0) {
+        eventBus.dispatchToast({
+          type: 'info',
+          title: 'No family helpers linked',
+          message: 'Add a family member in Family → Manage Access before switching to proxy mode. No mock profile shown.',
+        });
+        return;
+      }
       const next: ActiveProfile = {
         ...activeProfile,
         name: 'Family member',
@@ -387,6 +412,17 @@ export const App: React.FC = () => {
                   {questionCount > 99 ? '99+' : questionCount}
                 </span>
               )}
+            </button>
+
+            {/* Connect WebMCP Button */}
+            <button
+              onClick={() => setIsConnectOpen(true)}
+              className="relative flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500"
+              title="Connect to WebMCP — get link & code"
+              aria-label="Connect WebMCP"
+            >
+              <Plug className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="hidden md:inline">Connect</span>
             </button>
 
             {/* Activity Log Toggle */}
@@ -584,6 +620,7 @@ export const App: React.FC = () => {
       )}
 
       <WebMCPInspector isOpen={isInspectorOpen} onClose={() => setIsInspectorOpen(false)} />
+      <ConnectWebMCPModal isOpen={isConnectOpen} onClose={() => setIsConnectOpen(false)} />
       <ToastContainer />
     </div>
   );

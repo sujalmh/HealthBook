@@ -35,26 +35,64 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
   const isProxy = !!activeProfile.isProxy;
   const permission = activeProfile.permissionLevel || 'manage';
 
-  const handleSwitch = async (target: 'self' | 'mother' | 'child') => {
-    const targetPatientId =
-      target === 'self'
-        ? 'self'
-        : target === 'mother'
-        ? ''
-        : 'patient-child-003';
+  // Derive linked family members from vault — vault-derived, no hardcoded Mother/Child mocks.
+  const linkedFamily = (() => {
+    try {
+      const all = localVault.getCaregiverLinks(activeProfile.userId);
+      return all;
+    } catch { return []; }
+  })();
 
+  const handleSwitch = async (target: 'self' | string) => {
+    // target 'self' or linkId for dynamic family member
+    if (target === 'self') {
+      try {
+        await webMCPEngine.execute(
+          'switch_profile',
+          { targetPatientId: 'self' },
+          {
+            patientId: activeProfile.userId,
+            activeProfile: {
+              userId: activeProfile.userId,
+              name: activeProfile.name,
+              role: activeProfile.role as any,
+              isProxy: false,
+              onBehalfOf: undefined
+            },
+            vault: localVault,
+            eventBus
+          }
+        );
+      } catch (err) {
+        console.error('Error switching profile:', err);
+      }
+      onProfileChange('self');
+      return;
+    }
+    // dynamic family target — find the linked profile by linkId
+    const link = linkedFamily.find((l) => l.linkId === target);
+    if (!link) {
+      // No linked family yet — show guidance instead of mock (fixes #3).
+      eventBus.dispatchToast({
+        type: 'info',
+        title: 'No family member',
+        message: 'No linked family member found. Add one in Family → Manage Access.',
+      });
+      return;
+    }
+    const onBehalf = link.caregiverName || link.patientName || 'Family member';
     try {
       await webMCPEngine.execute(
         'switch_profile',
-        { targetPatientId },
+        { targetPatientId: link.linkId },
         {
-          patientId: target === 'self' ? 'user-family-member' : targetPatientId,
+          patientId: link.linkId,
           activeProfile: {
             userId: activeProfile.userId,
             name: activeProfile.name,
             role: activeProfile.role as any,
-            isProxy: target !== 'self',
-            onBehalfOf: target === 'mother' ? 'Patient (Mother)' : target === 'child' ? 'Child (Child)' : undefined
+            isProxy: true,
+            onBehalfOf: onBehalf
           },
           vault: localVault,
           eventBus
@@ -63,13 +101,14 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
     } catch (err) {
       console.error('Error switching profile:', err);
     }
-
-    onProfileChange(target);
+    // Map to legacy mother/child callbacks for compatibility — use first link as 'mother' if needed
+    const legacyTarget = (link.relationship === 'child' ? 'child' : 'mother') as 'mother' | 'child';
+    onProfileChange(legacyTarget);
   };
 
   return (
     <div className="space-y-3">
-      {/* Profile Switcher Tabs — tokenized */}
+      {/* Profile Switcher Tabs — vault-derived, tokenized */}
       <div className="bg-canvas-card border border-canvas-border rounded-xl p-2 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary-light text-primary flex items-center justify-center border border-primary-border">
@@ -83,34 +122,35 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
             onClick={() => handleSwitch('self')}
             className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] ${
               !isProxy
-                ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
+                ? 'bg-primary text-white shadow-md shadow-primary/20'
                 : 'text-slate-600 hover:text-slate-800'
             }`}
           >
             Self (Personal Vault)
           </button>
 
-          <button
-            onClick={() => handleSwitch('mother')}
-            className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] ${
-              isProxy && activeProfile.onBehalfOf?.includes('Patient')
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-600 hover:text-slate-800'
-            }`}
-          >
-            Mother (Patient, 78)
-          </button>
-
-          <button
-            onClick={() => handleSwitch('child')}
-            className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] ${
-              isProxy && activeProfile.onBehalfOf?.includes('Child')
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-600 hover:text-slate-800'
-            }`}
-          >
-            Child (Child, 8)
-          </button>
+          {linkedFamily.length === 0 ? (
+            <span className="px-3 py-2 text-caption text-muted">No linked family — add via Manage Access</span>
+          ) : (
+            linkedFamily.map((link) => {
+              const label = link.caregiverName || link.patientName || 'Family member';
+              const rel = link.relationship ? ` (${link.relationship})` : '';
+              const isActive = isProxy && activeProfile.onBehalfOf === label;
+              return (
+                <button
+                  key={link.linkId}
+                  onClick={() => handleSwitch(link.linkId)}
+                  className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] ${
+                    isActive
+                      ? 'bg-primary text-white shadow-md shadow-primary/20'
+                      : 'text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  {label}{rel}
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 

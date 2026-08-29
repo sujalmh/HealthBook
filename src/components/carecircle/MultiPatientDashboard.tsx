@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Users,
   AlertTriangle,
@@ -11,6 +11,7 @@ import {
   Clock,
   Pill
 } from 'lucide-react';
+import { localVault } from '@/core/vault/LocalVault';
 
 interface MultiPatientDashboardProps {
   onSelectPatient: (patientId: string) => void;
@@ -20,7 +21,7 @@ interface PatientSummaryCard {
   id: string;
   name: string;
   relationship: string;
-  age: number;
+  age: number | string;
   conditions: string[];
   dueLabsCount: number;
   pendingProposalsCount: number;
@@ -29,62 +30,74 @@ interface PatientSummaryCard {
   status: 'critical' | 'attention_needed' | 'stable';
 }
 
-const PATIENTS: PatientSummaryCard[] = [
-  {
-    id: '',
-    name: 'Patient',
-    relationship: 'Mother',
-    age: 78,
-    conditions: ['CKD Stage 3b', 'Hypertension', 'Type 2 Diabetes'],
-    dueLabsCount: 1,
-    pendingProposalsCount: 1,
-    activeDangerAlertsCount: 1,
-    nextEvent: 'Clinic Follow-Up (In 3 Days)',
-    status: 'critical'
-  },
-  {
-    id: 'patient-h-jenkins',
-    name: 'Patient',
-    relationship: 'Father-in-law',
-    age: 80,
-    conditions: ['Heart Failure', 'Osteoarthritis', 'Hypertension'],
-    dueLabsCount: 1,
-    pendingProposalsCount: 0,
-    activeDangerAlertsCount: 0,
-    nextEvent: 'Creatinine & Potassium Lab (In 14 Days)',
-    status: 'attention_needed'
-  },
-  {
-    id: 'patient-child-003',
-    name: 'Child Patient',
-    relationship: 'Child / Dependent',
-    age: 8,
-    conditions: ['Mild Pediatric Asthma'],
-    dueLabsCount: 0,
-    pendingProposalsCount: 0,
-    activeDangerAlertsCount: 0,
-    nextEvent: 'Annual Pediatric Checkup (In 4 Months)',
-    status: 'stable'
-  }
-];
-
 export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
   onSelectPatient
 }) => {
+  const patients: PatientSummaryCard[] = useMemo(() => {
+    // Vault-derived family patients — no hardcoded Mother/Father/Child mocks.
+    let primaryId = '';
+    try {
+      const raw = localStorage.getItem('carecanvas_active_user');
+      if (raw) primaryId = JSON.parse(raw)?.userId || '';
+    } catch {}
+    if (!primaryId) return [];
+    const links = localVault.getCaregiverLinks(primaryId);
+    if (links.length === 0) return [];
+    return links.map((link) => {
+      const pid = link.patientId || link.linkId;
+      const conditions = localVault.getConditions(pid).map((c: any) => c.name || c.code || 'Condition').slice(0, 3);
+      const dueCards = localVault.getDueCards(pid).filter((c: any) => c.status !== 'completed');
+      const pending = localVault.getPendingProposals(pid);
+      const dangers = localVault.getDangerReports(pid).filter((r: any) => r.triagePriority === 'URGENT' || r.triagePriority === 'EMERGENCY');
+      const events = localVault.getCalendarEvents(pid);
+      const nextEv = events.length > 0 ? events[0].title : 'No upcoming events';
+      const hasDanger = dangers.length > 0;
+      const hasDue = dueCards.length > 0;
+      return {
+        id: link.linkId,
+        name: link.caregiverName || link.patientName || 'Family member',
+        relationship: link.relationship || 'Family',
+        age: '—' as any,
+        conditions: conditions.length ? conditions : ['No conditions recorded'],
+        dueLabsCount: dueCards.length,
+        pendingProposalsCount: pending.length,
+        activeDangerAlertsCount: dangers.length,
+        nextEvent: nextEv,
+        status: hasDanger ? 'critical' : hasDue ? 'attention_needed' : 'stable',
+      } as PatientSummaryCard;
+    });
+  }, []);
+
+  if (patients.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-bold text-slate-900">Everyone I Care For</h3>
+        </div>
+        <div className="bg-canvas-muted rounded-xl p-8 text-center border border-dashed border-canvas-border">
+          <Users className="w-8 h-8 text-muted-light mx-auto mb-2" />
+          <p className="text-body-sm font-semibold text-slate-900">No linked family profiles yet</p>
+          <p className="text-body-sm text-muted">Add a family member in Family List → Manage Access. Vault-derived — no mock profiles shown.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-indigo-400" />
+          <Users className="w-5 h-5 text-primary" />
           <h3 className="text-sm font-bold text-slate-900">
-            Multi-Patient Caregiver Command Center (G6)
+            Everyone I Care For
           </h3>
         </div>
-        <span className="text-xs text-slate-600">3 Linked Family Profiles</span>
+        <span className="text-xs text-slate-600">{patients.length} Linked Family Profile{patients.length === 1 ? '' : 's'}</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {PATIENTS.map((p) => {
+        {patients.map((p) => {
           const isCritical = p.status === 'critical';
           const isAttention = p.status === 'attention_needed';
 

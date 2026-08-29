@@ -60,7 +60,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Loading skeletons */}
       {isLoading && (
         <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 shadow-sm space-y-4">

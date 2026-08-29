@@ -303,7 +303,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Top Controls & Module Banner — tokenized */}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

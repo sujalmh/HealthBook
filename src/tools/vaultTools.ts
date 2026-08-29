@@ -85,23 +85,8 @@ export const extractFactTool: WebMCPToolDefinition = {
         ];
       }
     } else {
-      // No rawText provided — create a single generic fact from documentId for the authenticated patient.
-      extractedFacts = [
-        {
-          id: `fact_${Date.now()}_1`,
-          patientId: context.patientId,
-          category: 'medication',
-          name: 'Extracted Medication',
-          value: { dose: '10mg', frequency: 'QD' },
-          unit: 'mg',
-          status: 'unconfirmed',
-          sourceDocId: documentId,
-          boundingBox: { pageIndex: 1, x: 100, y: 100, width: 200, height: 30 },
-          plainExplanation: 'Medication extracted from document.',
-          author: 'system_ocr',
-          timestamp: new Date().toISOString()
-        }
-      ];
+      // No rawText provided — no extractable content; return empty (no mock fact).
+      extractedFacts = [];
     }
 
     // Save to Vault with status 'unconfirmed' for the authenticated patientId

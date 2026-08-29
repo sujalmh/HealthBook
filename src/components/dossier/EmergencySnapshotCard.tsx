@@ -33,128 +33,29 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  // Fallback defaults if snapshot is loading or empty — canonical patient  (unified)
+  // Fallback defaults if snapshot is loading or empty — vault-derived empty (no mock).
   const data: EmergencySnapshot = snapshot || {
     patientId: '',
     patientName: 'Patient',
-    mrn: 'MRN-984210',
-    dob: '1948-03-14',
-    age: 78,
-    gender: 'F',
-    bloodType: 'O+',
-    codeStatus: 'Full Code',
-    verifiedAllergies: [
-      {
-        id: 'allergy_1',
-        patientId: '',
-        allergen: 'Penicillin',
-        reaction: 'Anaphylaxis',
-        severity: 'severe',
-        recordedDate: '2018-05-10'
-      }
-    ],
-    activeMedications: [
-      {
-        id: 'm1',
-        patientId: '',
-        genericName: 'Apixaban',
-        brandName: 'Eliquis',
-        dosage: '5mg',
-        frequency: 'Twice daily (BID)',
-        timingSlots: ['morning', 'evening'],
-        withFood: false,
-        status: 'active'
-      },
-      {
-        id: 'm2',
-        patientId: '',
-        genericName: 'Metformin',
-        brandName: 'Glucophage',
-        dosage: '1000mg',
-        frequency: 'Twice daily (BID)',
-        timingSlots: ['morning', 'evening'],
-        withFood: true,
-        status: 'active'
-      },
-      {
-        id: 'm3',
-        patientId: '',
-        genericName: 'Atorvastatin',
-        brandName: 'Lipitor',
-        dosage: '40mg',
-        frequency: 'Bedtime (QHS)',
-        timingSlots: ['bedtime'],
-        withFood: false,
-        avoidGrapefruit: true,
-        status: 'active'
-      },
-      {
-        id: 'm4',
-        patientId: '',
-        genericName: 'Levothyroxine',
-        brandName: 'Synthroid',
-        dosage: '75mcg',
-        frequency: 'Morning (QAM)',
-        timingSlots: ['morning'],
-        withFood: false,
-        emptyStomach: true,
-        avoidDairy: true,
-        status: 'active'
-      }
-    ],
+    mrn: 'MRN-000000',
+    dob: '—',
+    age: '—' as any,
+    gender: '—',
+    bloodType: '—',
+    codeStatus: '—',
+    verifiedAllergies: [],
+    activeMedications: [],
     baselineVitals: {
-      systolicBP: 128,
-      diastolicBP: 78,
-      heartRate: 72,
-      respiratoryRate: 16,
-      oxygenSaturation: 98,
-      weightLbs: 148,
-      temperatureF: 98.6,
-      lastUpdated: '2026-08-28T09:15:00Z'
+      systolicBP: 0,
+      diastolicBP: 0,
+      heartRate: 0,
+      respiratoryRate: 0,
+      oxygenSaturation: 0,
+      weightLbs: 0,
+      temperatureF: 0,
+      lastUpdated: new Date().toISOString()
     },
-    mostRecentCriticalLabs: [
-      {
-        marker: 'eGFR',
-        value: 28,
-        unit: 'mL/min/1.73m2',
-        drawDate: '2026-08-28',
-        flag: 'CRITICAL_LOW',
-        referenceRange: { low: 60, high: 120 },
-        isCritical: true
-      },
-      {
-        marker: 'Creatinine',
-        value: 1.90,
-        unit: 'mg/dL',
-        drawDate: '2026-08-28',
-        flag: 'HIGH',
-        referenceRange: { low: 0.6, high: 1.2 }
-      },
-      {
-        marker: 'Potassium (K+)',
-        value: 4.8,
-        unit: 'mEq/L',
-        drawDate: '2026-08-28',
-        flag: 'NORMAL',
-        referenceRange: { low: 3.5, high: 5.1 }
-      },
-      {
-        marker: 'HbA1c',
-        value: 7.8,
-        unit: '%',
-        drawDate: '2026-08-25',
-        flag: 'HIGH',
-        referenceRange: { low: 4.0, high: 5.6 }
-      },
-      {
-        marker: 'Fasting Glucose',
-        value: 140,
-        unit: 'mg/dL',
-        drawDate: '2026-08-28',
-        flag: 'HIGH',
-        referenceRange: { low: 70, high: 99 }
-      }
-    ],
+    mostRecentCriticalLabs: [],
     emergencyContacts: [
       {
         name: 'Family member',
@@ -308,20 +209,24 @@ SECURITY VALIDATION:
             </div>
 
             <div className="space-y-2">
-              {data.verifiedAllergies.map((allergy, idx) => (
-                <div
-                  key={allergy.id || idx}
-                  className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <h4 className="text-sm font-black text-rose-700">{allergy.allergen}</h4>
-                    <p className="text-[11px] text-rose-700/80 font-medium">Reaction: {allergy.reaction}</p>
+              {data.verifiedAllergies.length === 0 ? (
+                <p className="text-body-sm text-muted text-center py-2">No allergies recorded — add in My Records</p>
+              ) : (
+                data.verifiedAllergies.map((allergy, idx) => (
+                  <div
+                    key={allergy.id || idx}
+                    className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <h4 className="text-sm font-black text-rose-700">{allergy.allergen}</h4>
+                      <p className="text-[11px] text-rose-700/80 font-medium">Reaction: {allergy.reaction}</p>
+                    </div>
+                    <span className="px-2 py-1 rounded-lg bg-rose-600 text-white font-black text-[10px] uppercase shadow-sm">
+                      {allergy.severity.replace(/_/g, ' ')}
+                    </span>
                   </div>
-                  <span className="px-2 py-1 rounded-lg bg-rose-600 text-white font-black text-[10px] uppercase shadow-sm">
-                    {allergy.severity.replace(/_/g, ' ')}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -340,50 +245,54 @@ SECURITY VALIDATION:
             </div>
 
             <div className="space-y-2">
-              {data.mostRecentCriticalLabs.map((lab, idx) => {
-                const isCritical = lab.flag?.includes('CRITICAL');
-                const isAbnormal = lab.flag?.includes('HIGH') || lab.flag?.includes('LOW');
+              {data.mostRecentCriticalLabs.length === 0 ? (
+                <p className="text-body-sm text-muted text-center py-2">No labs yet — add in Lab Results</p>
+              ) : (
+                data.mostRecentCriticalLabs.map((lab, idx) => {
+                  const isCritical = lab.flag?.includes('CRITICAL');
+                  const isAbnormal = lab.flag?.includes('HIGH') || lab.flag?.includes('LOW');
 
-                return (
-                  <div
-                    key={idx}
-                    className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-colors ${
-                      isCritical
-                        ? 'bg-rose-50 border-rose-200 text-rose-700'
-                        : isAbnormal
-                        ? 'bg-amber-50 border-amber-200 text-amber-700'
-                        : 'bg-canvas-card border-canvas-border text-slate-900'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold">{lab.marker}</span>
-                        <span className="text-[10px] font-mono text-slate-600">
-                          (Ref: {lab.referenceRange?.low}-{lab.referenceRange?.high})
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-colors ${
+                        isCritical
+                          ? 'bg-rose-50 border-rose-200 text-rose-700'
+                          : isAbnormal
+                          ? 'bg-amber-50 border-amber-200 text-amber-700'
+                          : 'bg-canvas-card border-canvas-border text-slate-900'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{lab.marker}</span>
+                          <span className="text-[10px] font-mono text-slate-600">
+                            (Ref: {lab.referenceRange?.low}-{lab.referenceRange?.high})
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-600 font-mono">{lab.drawDate}</span>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="font-mono font-black text-sm">
+                          {lab.value} <span className="text-[10px] font-sans font-medium">{lab.unit}</span>
+                        </div>
+                        <span
+                          className={`inline-block px-1.5 py-0.5 rounded text-caption font-bold uppercase border ${
+                            isCritical
+                              ? 'bg-rose-600 text-white border-rose-600'
+                              : isAbnormal
+                              ? 'bg-amber-100 text-clinical-amber border-amber-200'
+                              : 'bg-emerald-50 text-clinical-emerald border-emerald-200'
+                          }`}
+                        >
+                          {lab.flag}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-600 font-mono">{lab.drawDate}</span>
                     </div>
-
-                    <div className="text-right">
-                      <div className="font-mono font-black text-sm">
-                        {lab.value} <span className="text-[10px] font-sans font-medium">{lab.unit}</span>
-                      </div>
-                      <span
-                        className={`inline-block px-1.5 py-0.5 rounded text-caption font-bold uppercase border ${
-                          isCritical
-                            ? 'bg-rose-600 text-white border-rose-600'
-                            : isAbnormal
-                            ? 'bg-amber-100 text-clinical-amber border-amber-200'
-                            : 'bg-emerald-50 text-clinical-emerald border-emerald-200'
-                        }`}
-                      >
-                        {lab.flag}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -441,53 +350,57 @@ SECURITY VALIDATION:
             </div>
 
             <div className="space-y-2.5">
-              {data.activeMedications.map((med, idx) => (
-                <div
-                  key={med.id || idx}
-                  className="bg-canvas-card rounded-xl p-3.5 border border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-slate-900 text-sm">
-                        {med.genericName}
-                        {med.brandName && (
-                          <span className="text-slate-600 font-normal text-xs ml-1.5">
-                            ({med.brandName})
-                          </span>
+              {data.activeMedications.length === 0 ? (
+                <p className="text-body-sm text-muted text-center py-2">No medicines yet — add in My Medicines or Medicine Review</p>
+              ) : (
+                data.activeMedications.map((med, idx) => (
+                  <div
+                    key={med.id || idx}
+                    className="bg-canvas-card rounded-xl p-3.5 border border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-slate-900 text-sm">
+                          {med.genericName}
+                          {med.brandName && (
+                            <span className="text-slate-600 font-normal text-xs ml-1.5">
+                              ({med.brandName})
+                            </span>
+                          )}
+                        </h4>
+                        <span className="px-2 py-0.2 rounded bg-sky-500/20 text-sky-700 font-mono font-bold text-[10px]">
+                          {med.dosage}
+                        </span>
+                      </div>
+
+                      <p className="text-slate-600 text-[11px]">
+                        Frequency: <span className="text-slate-700 font-medium">{med.frequency}</span>
+                        {med.timingSlots && (
+                          <span className="ml-2 text-indigo-700">[{med.timingSlots.join(', ')}]</span>
                         )}
-                      </h4>
-                      <span className="px-2 py-0.2 rounded bg-sky-500/20 text-sky-700 font-mono font-bold text-[10px]">
-                        {med.dosage}
-                      </span>
+                      </p>
                     </div>
 
-                    <p className="text-slate-600 text-[11px]">
-                      Frequency: <span className="text-slate-700 font-medium">{med.frequency}</span>
-                      {med.timingSlots && (
-                        <span className="ml-2 text-indigo-700">[{med.timingSlots.join(', ')}]</span>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      {med.withFood && (
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                          🍽️ With Food
+                        </span>
                       )}
-                    </p>
+                      {med.avoidGrapefruit && (
+                        <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold">
+                          🚫 No Grapefruit
+                        </span>
+                      )}
+                      {med.emptyStomach && (
+                        <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px] font-bold">
+                          🥣 Empty Stomach
+                        </span>
+                      )}
+                    </div>
                   </div>
-
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    {med.withFood && (
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
-                        🍽️ With Food
-                      </span>
-                    )}
-                    {med.avoidGrapefruit && (
-                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold">
-                        🚫 No Grapefruit
-                      </span>
-                    )}
-                    {med.emptyStomach && (
-                      <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px] font-bold">
-                        🥣 Empty Stomach
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 

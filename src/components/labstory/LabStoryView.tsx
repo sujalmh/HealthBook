@@ -213,7 +213,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   };
 
   return (
-    <div className={`space-y-6 max-w-7xl mx-auto ${className}`}>
+    <div className={`space-y-6 max-w-7xl mx-auto animate-fade-in ${className}`}>
       {/* Top Header & Quick Actions */}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">

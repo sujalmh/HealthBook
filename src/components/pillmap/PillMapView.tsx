@@ -442,9 +442,9 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const activeMedsCount = localVault.getMedications(patientId, 'active').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Top Controls Bar */}
-      <div className="bg-white border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Module Title & Badge */}
           <div className="flex items-center gap-3">
@@ -606,7 +606,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
 
       {/* Friendly empty when no medicines */}
       {activeMedsCount === 0 && viewMode !== 'elder' ? (
-        <div className="bg-white border border-dashed border-canvas-border rounded-2xl p-10 text-center space-y-4 shadow-sm">
+        <div className="bg-canvas-card border border-dashed border-canvas-border rounded-2xl p-10 text-center space-y-4 shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
             <Pill className="w-6 h-6" />
           </div>
@@ -644,7 +644,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           />
 
           {/* Interactive OTC & Supplement Drag Palette */}
-          <div className="bg-white border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <GripVertical className="w-4 h-4 text-muted" />

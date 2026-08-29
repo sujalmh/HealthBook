@@ -260,7 +260,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           onClick={() => setActiveTab('timeline')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'timeline'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
@@ -272,7 +272,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           onClick={() => setActiveTab('snapshot')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'snapshot'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
@@ -284,7 +284,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           onClick={() => setActiveTab('source_inspector')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
             activeTab === 'source_inspector'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              ? 'bg-primary text-white shadow-md shadow-primary/20'
               : 'text-slate-600 hover:text-slate-800'
           }`}
         >
