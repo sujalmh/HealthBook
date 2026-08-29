@@ -50,7 +50,7 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
         return {
           label: customLabel || 'DOSE CHANGED',
           icon: ArrowUpDown,
-          bgClass: 'bg-sky-500/20 text-sky-300 border-sky-500/40 hover:bg-sky-500/30',
+          bgClass: 'bg-sky-500/20 text-sky-700 border-sky-500/40 hover:bg-sky-500/30',
           dotClass: 'bg-sky-400 shadow-sky-400/50',
           defaultTooltip: 'Dose, frequency, or administration route was modified.'
         };
@@ -58,7 +58,7 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
         return {
           label: customLabel || 'STOPPED',
           icon: XOctagon,
-          bgClass: 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30',
+          bgClass: 'bg-rose-500/20 text-rose-700 border-rose-200 hover:bg-rose-500/30',
           dotClass: 'bg-rose-400 shadow-rose-400/50',
           defaultTooltip: 'Medication discontinued in hospital. Do NOT take old supply.'
         };
@@ -66,7 +66,7 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
         return {
           label: customLabel || 'HELD & RESUMED',
           icon: RotateCcw,
-          bgClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30',
+          bgClass: 'bg-amber-500/20 text-amber-700 border-amber-200 hover:bg-amber-500/30',
           dotClass: 'bg-amber-400 shadow-amber-400/50',
           defaultTooltip: 'Temporarily paused during inpatient stay, now resumed at home dose.'
         };
@@ -75,7 +75,7 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
         return {
           label: customLabel || 'CONTINUED',
           icon: CheckCircle2,
-          bgClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30',
+          bgClass: 'bg-emerald-500/20 text-emerald-700 border-emerald-200 hover:bg-emerald-500/30',
           dotClass: 'bg-emerald-400 shadow-emerald-400/50',
           defaultTooltip: 'Unchanged from regular home baseline regimen.'
         };

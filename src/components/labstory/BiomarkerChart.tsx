@@ -199,21 +199,21 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
   };
 
   return (
-    <div className={`bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4 ${className}`}>
+    <div className={`bg-white border border-slate-200 rounded-3xl p-5 shadow-xl space-y-4 ${className}`}>
       {/* Top Chart Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-3">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-black text-slate-100 flex items-center gap-2">
+            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
               <span>{markerName}</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                 {unit}
               </span>
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600">
               Interactive longitudinal time series with reference / optimal range polygons and clinician pins.
             </p>
           </div>
@@ -222,11 +222,11 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
         {/* Right Controls: Range Toggles & Zoom Selectors */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Dual Range Toggles (LS5) */}
-          <div className="flex items-center bg-slate-950/80 border border-slate-800 rounded-xl p-1 text-xs">
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs">
             <button
               onClick={() => onToggleReferenceRange(!showReferenceRange)}
               className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-colors ${
-                showReferenceRange ? 'bg-slate-800 text-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                showReferenceRange ? 'bg-slate-100 text-slate-800 shadow-sm' : 'text-slate-600 hover:text-slate-700'
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />
@@ -236,7 +236,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             <button
               onClick={() => onToggleOptimalRange(!showOptimalRange)}
               className={`px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-colors ${
-                showOptimalRange ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                showOptimalRange ? 'bg-emerald-600/30 text-emerald-700 border border-emerald-200 shadow-sm' : 'text-slate-600 hover:text-slate-700'
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
@@ -245,13 +245,13 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
           </div>
 
           {/* Zoom Window Filter (LS2) */}
-          <div className="flex items-center bg-slate-950/80 border border-slate-800 rounded-xl p-1 text-xs">
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs">
             {(['30D', '90D', '1Y', '5Y', 'MAX'] as ZoomWindow[]).map((z) => (
               <button
                 key={z}
                 onClick={() => onZoomChange(z)}
                 className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${
-                  activeZoom === z ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                  activeZoom === z ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
                 {z}
@@ -262,7 +262,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
       </div>
 
       {/* SVG Canvas Area */}
-      <div className="relative w-full overflow-hidden rounded-2xl bg-slate-950/90 border border-slate-800/80">
+      <div className="relative w-full overflow-hidden rounded-2xl bg-slate-50/90 border border-slate-200">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
@@ -525,7 +525,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
 
         {/* Floating Tooltip Card (Hover or Selected Point) */}
         {(hoveredPoint || selectedPoint) && (
-          <div className="absolute top-3 right-3 z-20 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3.5 shadow-2xl max-w-xs space-y-1.5 animate-fade-in text-xs">
+          <div className="absolute top-3 right-3 z-20 bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-2xl p-3.5 shadow-2xl max-w-xs space-y-1.5 animate-fade-in text-xs">
             {(() => {
               const p = hoveredPoint || selectedPoint!;
               const hasComment = p.doctorComment || (p.doctorComments && p.doctorComments.length > 0);
@@ -533,8 +533,8 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
 
               return (
                 <>
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5">
-                    <span className="font-bold text-slate-200">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1.5">
+                    <span className="font-bold text-slate-800">
                       {new Date(p.drawDate).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -544,10 +544,10 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
                         p.isCritical
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                          ? 'bg-rose-500/20 text-rose-700 border border-rose-200'
                           : p.isBorderline
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          ? 'bg-amber-500/20 text-amber-700 border border-amber-200'
+                          : 'bg-emerald-500/20 text-emerald-700 border border-emerald-200'
                       }`}
                     >
                       {p.flag || (p.isBorderline ? 'BORDERLINE' : 'NORMAL')}
@@ -555,26 +555,26 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                   </div>
 
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-slate-400">Measured Value:</span>
+                    <span className="text-slate-600">Measured Value:</span>
                     <span className="text-sm font-black text-white">
                       {p.normalizedValue} {p.normalizedUnit}
                     </span>
                   </div>
 
                   <div className="flex items-baseline justify-between gap-4 text-[11px]">
-                    <span className="text-slate-500">Ref Range:</span>
-                    <span className="text-slate-300">
+                    <span className="text-slate-600">Ref Range:</span>
+                    <span className="text-slate-700">
                       {p.referenceRange.low}–{p.referenceRange.high} {p.normalizedUnit}
                     </span>
                   </div>
 
                   {hasComment && (
-                    <div className="mt-2 pt-2 border-t border-slate-800 text-[11px] space-y-1 bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
+                    <div className="mt-2 pt-2 border-t border-slate-200 text-[11px] space-y-1 bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
                       <div className="flex items-center gap-1 text-amber-400 font-bold">
                         <Pin className="w-3.5 h-3.5" />
                         <span>Dr. Review Note ({commentObj?.doctorName || 'Clinician'})</span>
                       </div>
-                      <p className="text-slate-200 leading-snug">{commentObj?.comment}</p>
+                      <p className="text-slate-800 leading-snug">{commentObj?.comment}</p>
                     </div>
                   )}
 
@@ -584,7 +584,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                         setSelectedPoint(p);
                         setIsAddingComment(true);
                       }}
-                      className="text-[10px] text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1 bg-sky-500/10 hover:bg-sky-500/20 px-2 py-1 rounded-lg border border-sky-500/30 transition-colors"
+                      className="text-[10px] text-sky-400 hover:text-sky-700 font-bold flex items-center gap-1 bg-sky-500/10 hover:bg-sky-500/20 px-2 py-1 rounded-lg border border-sky-200 transition-colors"
                     >
                       <PlusCircle className="w-3 h-3" />
                       <span>Pin Doctor Note</span>
@@ -597,7 +597,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                           setHoveredPoint(null);
                           setIsAddingComment(false);
                         }}
-                        className="text-[10px] text-slate-500 hover:text-slate-300"
+                        className="text-[10px] text-slate-600 hover:text-slate-700"
                       >
                         Close
                       </button>
@@ -612,7 +612,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
 
       {/* Doctor Comment Pinning Modal / Inline Form */}
       {isAddingComment && selectedPoint && (
-        <div className="bg-slate-950 border border-sky-500/40 rounded-2xl p-4 space-y-3 animate-fade-in text-xs">
+        <div className="bg-slate-50 border border-sky-500/40 rounded-2xl p-4 space-y-3 animate-fade-in text-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sky-400 font-bold">
               <Pin className="w-4 h-4" />
@@ -620,13 +620,13 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             </div>
             <button
               onClick={() => setIsAddingComment(false)}
-              className="text-slate-400 hover:text-slate-200"
+              className="text-slate-600 hover:text-slate-800"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <p className="text-slate-300">
+          <p className="text-slate-700">
             Attaching authenticated clinical comment to <strong className="text-white">{markerName} ({selectedPoint.normalizedValue} {selectedPoint.normalizedUnit})</strong> drawn on{' '}
             <strong>{new Date(selectedPoint.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>.
           </p>
@@ -636,13 +636,13 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             onChange={(e) => setNewCommentText(e.target.value)}
             placeholder="e.g. eGFR dropped to 28 mL/min; reducing Metformin to 500mg daily and holding NSAIDs..."
             rows={2}
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500 text-xs resize-none"
+            className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 placeholder-slate-500 focus:outline-none focus:border-sky-500 text-xs resize-none"
           />
 
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setIsAddingComment(false)}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 font-semibold"
             >
               Cancel
             </button>

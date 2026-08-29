@@ -124,42 +124,42 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col h-full text-slate-100 space-y-4">
+    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl flex flex-col h-full text-slate-900 space-y-4">
       {/* Header with document title and zoom controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-200 flex items-center justify-center text-amber-400">
             <FileText className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-black text-slate-100 tracking-tight">{activeFileName}</h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1">
+              <h3 className="text-sm font-black text-slate-900 tracking-tight">{activeFileName}</h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 font-bold border border-emerald-200 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" />
                 Verified Ground Truth
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-mono">Doc ID: {activeDocId} • Page {currentPage} of 2</p>
+            <p className="text-[11px] text-slate-600 font-mono">Doc ID: {activeDocId} • Page {currentPage} of 2</p>
           </div>
         </div>
 
         {/* Action Buttons: Page Nav, Zoom Controls, Close */}
         <div className="flex items-center gap-2 self-end sm:self-auto">
           {/* Page Switcher */}
-          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 text-xs">
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-200 disabled:opacity-30 transition-colors"
+              className="p-1 rounded-lg text-slate-600 hover:text-slate-800 disabled:opacity-30 transition-colors"
               title="Previous Page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-2 font-mono text-[11px] text-slate-300">P.{currentPage}</span>
+            <span className="px-2 font-mono text-[11px] text-slate-700">P.{currentPage}</span>
             <button
               onClick={() => setCurrentPage(p => Math.min(2, p + 1))}
               disabled={currentPage >= 2}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-200 disabled:opacity-30 transition-colors"
+              className="p-1 rounded-lg text-slate-600 hover:text-slate-800 disabled:opacity-30 transition-colors"
               title="Next Page"
             >
               <ChevronRight className="w-4 h-4" />
@@ -167,27 +167,27 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
           </div>
 
           {/* Zoom Controls */}
-          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-1 text-xs">
+          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs">
             <button
               onClick={handleZoomOut}
-              className="p-1 hover:bg-slate-800 rounded text-slate-300 transition-colors"
+              className="p-1 hover:bg-slate-100 rounded text-slate-700 transition-colors"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="px-2 font-mono text-[11px] text-slate-300 min-w-[40px] text-center">
+            <span className="px-2 font-mono text-[11px] text-slate-700 min-w-[40px] text-center">
               {Math.round(zoom * 100)}%
             </span>
             <button
               onClick={handleZoomIn}
-              className="p-1 hover:bg-slate-800 rounded text-slate-300 transition-colors"
+              className="p-1 hover:bg-slate-100 rounded text-slate-700 transition-colors"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleResetZoom}
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors ml-1 border-l border-slate-800"
+              className="p-1 hover:bg-slate-100 rounded text-slate-600 hover:text-slate-800 transition-colors ml-1 border-l border-slate-200"
               title="Reset Zoom & Center"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -197,7 +197,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors"
             >
               ✕
             </button>
@@ -208,7 +208,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
       {/* Document Viewport */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto bg-slate-950/90 rounded-2xl border border-slate-800/90 p-6 min-h-[440px] max-h-[560px] relative flex justify-center items-start shadow-inner"
+        className="flex-1 overflow-auto bg-slate-50/90 rounded-2xl border border-slate-200/90 p-6 min-h-[440px] max-h-[560px] relative flex justify-center items-start shadow-inner"
       >
         <div
           ref={docWrapperRef}
@@ -397,21 +397,21 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
       </div>
 
       {/* Footer: Verbatim text span and Bounding Box Citation */}
-      <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
             <Crosshair className="w-4 h-4" />
           </div>
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-semibold">Verbatim Citation:</span>
+              <span className="text-slate-600 font-semibold">Verbatim Citation:</span>
               {activeBox && (
-                <span className="font-mono text-[10px] text-slate-500">
+                <span className="font-mono text-[10px] text-slate-600">
                   [P.{currentPage} x:{activeBox.x}, y:{activeBox.y}, w:{activeBox.width}, h:{activeBox.height}]
                 </span>
               )}
             </div>
-            <p className="font-mono text-sky-300 font-medium text-[11px] line-clamp-2">
+            <p className="font-mono text-sky-700 font-medium text-[11px] line-clamp-2">
               "{snippet || activeBox?.textSnippet || 'Clinical fact grounded in verified source document.'}"
             </p>
           </div>
@@ -419,7 +419,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
 
         <button
           onClick={handleCopyCitation}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors shrink-0"
         >
           {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
           <span>{copied ? 'Copied' : 'Copy Citation'}</span>

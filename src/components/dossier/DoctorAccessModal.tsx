@@ -116,21 +116,21 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 text-slate-100 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shadow-inner">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-200 flex items-center justify-center shadow-inner">
               <KeyRound className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black text-white tracking-tight">Clinician Handover Delegation</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30 uppercase">
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Clinician Handover Delegation</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 font-bold border border-indigo-200 uppercase">
                   CD4 Secure Access
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600">
                 Grant time-bound access tokens to new physicians with zero cloud storage and instant 1-click revocation.
               </p>
             </div>
@@ -138,37 +138,37 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors"
           >
             ✕
           </button>
         </div>
 
         {/* Create Grant Form */}
-        <form onSubmit={handleGenerateGrant} className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-4">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-300">
+        <form onSubmit={handleGenerateGrant} className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
+          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
             Generate Time-Bound Access Passkey
           </h4>
 
           {/* Clinician Email */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Clinician Email Address</label>
+            <label className="text-xs font-semibold text-slate-700">Clinician Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-slate-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 value={doctorEmail}
                 onChange={(e) => setDoctorEmail(e.target.value)}
                 placeholder="e.g. dr.chen@nephrology.org or dr.sharma@clinic.com"
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
               />
             </div>
           </div>
 
           {/* Duration Presets */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Access Duration Window</label>
+            <label className="text-xs font-semibold text-slate-700">Access Duration Window</label>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { days: 7, label: '7 Days (Standard)' },
@@ -182,7 +182,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                   className={`py-2 rounded-xl text-xs font-bold transition-all ${
                     durationDays === preset.days
                       ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-500/50'
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                      : 'bg-white text-slate-600 hover:text-slate-800 border border-slate-200'
                   }`}
                 >
                   {preset.label}
@@ -193,11 +193,11 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
 
           {/* Scope Selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Access Scope Tier</label>
+            <label className="text-xs font-semibold text-slate-700">Access Scope Tier</label>
             <select
               value={scope}
               onChange={(e) => setScope(e.target.value as any)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 transition-colors"
             >
               <option value="full_dossier">Full Continuity Dossier (Labs, Meds, Notes, BBoxes)</option>
               <option value="snapshot_only">Emergency Snapshot Only (Vitals, Allergies, Active Meds)</option>
@@ -218,19 +218,19 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
         {/* Active Grants List */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-300">
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
               Active Clinician Grants ({grants.length})
             </h4>
-            <span className="text-[10px] text-slate-500">Subject to Immediate Patient Revocation</span>
+            <span className="text-[10px] text-slate-600">Subject to Immediate Patient Revocation</span>
           </div>
 
           {grants.length === 0 ? (
-            <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 text-center space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 text-center space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center mx-auto">
                 <KeyRound className="w-5 h-5" />
               </div>
-              <p className="text-xs font-bold text-slate-200">No doctors shared with yet</p>
-              <p className="text-xs text-slate-400">When you want to share, add a doctor above — you can remove access anytime.</p>
+              <p className="text-xs font-bold text-slate-800">No doctors shared with yet</p>
+              <p className="text-xs text-slate-600">When you want to share, add a doctor above — you can remove access anytime.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -244,33 +244,33 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                     key={grant.grantId}
                     className={`rounded-2xl p-4 border text-xs space-y-3 transition-colors ${
                       isRevoked || isExpired
-                        ? 'bg-slate-950/50 border-slate-800/60 opacity-60'
-                        : 'bg-slate-950 border-slate-800 shadow-sm'
+                        ? 'bg-slate-50/50 border-slate-200/60 opacity-60'
+                        : 'bg-slate-50 border-slate-200 shadow-sm'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h5 className="font-bold text-slate-100 text-sm">{grant.doctorName || grant.doctorEmail}</h5>
+                          <h5 className="font-bold text-slate-900 text-sm">{grant.doctorName || grant.doctorEmail}</h5>
                           <span
                             className={`px-2 py-0.2 rounded text-[9px] font-bold uppercase ${
                               isRevoked
-                                ? 'bg-rose-500/20 text-rose-300'
+                                ? 'bg-rose-500/20 text-rose-700'
                                 : isExpired
-                                ? 'bg-amber-500/20 text-amber-300'
-                                : 'bg-emerald-500/20 text-emerald-300'
+                                ? 'bg-amber-500/20 text-amber-700'
+                                : 'bg-emerald-500/20 text-emerald-700'
                             }`}
                           >
                             {grant.status.toUpperCase()}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 font-mono">{grant.doctorEmail}</p>
+                        <p className="text-[11px] text-slate-600 font-mono">{grant.doctorEmail}</p>
                       </div>
 
                       {!isRevoked && !isExpired && (
                         <button
                           onClick={() => handleRevokeGrant(grant.grantId)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs border border-rose-500/30 transition-colors"
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 font-bold text-xs border border-rose-500/30 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           <span>Revoke Access</span>
@@ -279,25 +279,25 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                     </div>
 
                     {/* Token Display & Expiration Details */}
-                    <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800 flex items-center justify-between gap-3">
+                    <div className="bg-white rounded-xl p-2.5 border border-slate-200 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 truncate">
                         <Lock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span className="text-[11px] text-slate-400 font-mono truncate">
-                          Passkey: <strong className="text-slate-200">{grant.token || `cc_tok_${grant.grantId.slice(0, 8)}`}</strong>
+                        <span className="text-[11px] text-slate-600 font-mono truncate">
+                          Passkey: <strong className="text-slate-800">{grant.token || `cc_tok_${grant.grantId.slice(0, 8)}`}</strong>
                         </span>
                       </div>
 
                       <button
                         onClick={() => handleCopyToken(grant.grantId, grant.token || `cc_tok_${grant.grantId}`)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold shrink-0"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-semibold shrink-0"
                       >
                         {isCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                         <span>{isCopied ? 'Copied' : 'Copy'}</span>
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
-                      <span>Scope: <strong className="text-indigo-300 uppercase">{grant.scope}</strong></span>
+                    <div className="flex items-center justify-between text-[10px] text-slate-600 font-mono pt-1">
+                      <span>Scope: <strong className="text-indigo-700 uppercase">{grant.scope}</strong></span>
                       <span>Expires: {new Date(grant.expiresAt).toLocaleDateString()} ({grant.durationDays} days)</span>
                     </div>
                   </div>

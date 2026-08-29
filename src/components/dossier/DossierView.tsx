@@ -164,19 +164,19 @@ export const DossierView: React.FC<DossierViewProps> = ({
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shadow-inner">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-200 flex items-center justify-center shadow-inner">
             <FolderLock className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-white tracking-tight">For My Doctor</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30 uppercase">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">For My Doctor</h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 font-bold border border-indigo-200 uppercase">
                 Share all at once
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600">
               Everything your doctor needs — medicines, lab results, and notes — ready to share.
             </p>
           </div>
@@ -187,7 +187,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           <button
             onClick={loadCompiledDossier}
             disabled={isLoading}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 transition-colors"
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
             title="Refresh Dossier"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -195,7 +195,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
           <button
             onClick={() => setIsDoctorAccessModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200 transition-colors shadow-sm"
           >
             <KeyRound className="w-4 h-4 text-indigo-400" />
             <span>Share with Doctor ({activeGrantsCount})</span>
@@ -213,55 +213,55 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
       {/* Metric Quick Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
           <div className="p-3 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
             <Pill className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Medicines Now</span>
-            <p className="text-base font-black text-white">{activeMedsCount} medicines</p>
+            <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Medicines Now</span>
+            <p className="text-base font-black text-slate-900">{activeMedsCount} medicines</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
           <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Lab Results</span>
-            <p className="text-base font-black text-white">{labsCount} results</p>
+            <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Lab Results</span>
+            <p className="text-base font-black text-slate-900">{labsCount} results</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
           <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Proof</span>
-            <p className="text-base font-black text-white">{citationsCount} linked pages</p>
+            <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Proof</span>
+            <p className="text-base font-black text-slate-900">{citationsCount} linked pages</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
           <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Privacy</span>
+            <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Privacy</span>
             <p className="text-base font-black text-emerald-400">Private & secure</p>
           </div>
         </div>
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs w-fit">
+      <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 text-xs w-fit">
         <button
           onClick={() => setActiveTab('timeline')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
             activeTab === 'timeline'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-600 hover:text-slate-800'
           }`}
         >
           <Clock className="w-4 h-4" />
@@ -273,7 +273,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
             activeTab === 'snapshot'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-600 hover:text-slate-800'
           }`}
         >
           <AlertOctagon className="w-4 h-4" />
@@ -285,7 +285,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
             activeTab === 'source_inspector'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-600 hover:text-slate-800'
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -296,7 +296,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           onClick={() => {
             setIsDoctorAccessModalOpen(true);
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all text-slate-400 hover:text-slate-200`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all text-slate-600 hover:text-slate-800`}
         >
           <KeyRound className="w-4 h-4" />
           <span>Share Settings</span>
@@ -334,15 +334,15 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
           {/* Right Column: Citation List Navigator */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
                     Document Citations ({citationsCount})
                   </h3>
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono">Grounded Facts</span>
+                <span className="text-[10px] text-slate-600 font-mono">Grounded Facts</span>
               </div>
 
               <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
@@ -359,15 +359,15 @@ export const DossierView: React.FC<DossierViewProps> = ({
                     className={`w-full text-left p-3 rounded-xl border text-xs transition-all space-y-1 ${
                       activeCitationBox === cite.boundingBox
                         ? 'bg-amber-500/10 border-amber-500/50 shadow-sm'
-                        : 'bg-slate-950 border-slate-800/80 hover:bg-slate-800/60'
+                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-100">{cite.factName}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">P.{cite.boundingBox.pageIndex || 1}</span>
+                      <span className="font-bold text-slate-900">{cite.factName}</span>
+                      <span className="text-[10px] text-slate-600 font-mono">P.{cite.boundingBox.pageIndex || 1}</span>
                     </div>
-                    <p className="text-[11px] text-slate-400 truncate">{cite.fileName}</p>
-                    <p className="text-[10px] text-sky-300 font-mono line-clamp-1 italic">
+                    <p className="text-[11px] text-slate-600 truncate">{cite.fileName}</p>
+                    <p className="text-[10px] text-sky-700 font-mono line-clamp-1 italic">
                       "{cite.snippetText}"
                     </p>
                   </button>

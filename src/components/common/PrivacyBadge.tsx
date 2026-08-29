@@ -71,7 +71,7 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60 transition-all text-xs font-medium shadow-sm hover:shadow-emerald-950/50"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 hover:bg-emerald-900/60 transition-all text-xs font-medium shadow-sm hover:shadow-emerald-950/50"
         title="Click to view local privacy guarantees and vault stats"
       >
         <span className="relative flex h-2 w-2">
@@ -84,26 +84,26 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-slate-200">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-slate-800">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-200 rounded-xl text-emerald-400">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-100">Zero-Cloud PHI Invariant</h3>
-                  <p className="text-xs text-slate-400">Privacy Guarantee for The WebMCP Challenge</p>
+                  <h3 className="text-lg font-bold text-slate-900">Zero-Cloud PHI Invariant</h3>
+                  <p className="text-xs text-slate-600">Privacy Guarantee for The WebMCP Challenge</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800"
+                className="text-slate-600 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-100"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2 text-xs text-slate-300 leading-relaxed">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-xs text-slate-700 leading-relaxed">
               <p className="flex items-center gap-2 text-emerald-400 font-semibold">
                 <Lock className="w-4 h-4" /> 100% Client-Side In-Browser Execution
               </p>
@@ -111,29 +111,29 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
                 All medical parsing, OCR extraction, drug-drug interaction calculations, causal biomarker graphs, and schedule
                 optimizations run exclusively on your device within IndexedDB and in-browser WebMCP models.
               </p>
-              <p className="text-slate-400">
+              <p className="text-slate-600">
                 Protected Health Information (PHI) is never sent to third-party telemetry servers or cloud databases.
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/60 text-center">
+              <div className="p-3 bg-slate-100 rounded-xl border border-slate-200/60 text-center">
                 <div className="text-2xl font-bold text-sky-400">{stats.facts}</div>
-                <div className="text-[11px] text-slate-400 uppercase tracking-wider mt-0.5">Approved Facts</div>
+                <div className="text-[11px] text-slate-600 uppercase tracking-wider mt-0.5">Approved Facts</div>
               </div>
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/60 text-center">
+              <div className="p-3 bg-slate-100 rounded-xl border border-slate-200/60 text-center">
                 <div className="text-2xl font-bold text-emerald-400">{stats.meds}</div>
-                <div className="text-[11px] text-slate-400 uppercase tracking-wider mt-0.5">Active Meds</div>
+                <div className="text-[11px] text-slate-600 uppercase tracking-wider mt-0.5">Active Meds</div>
               </div>
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/60 text-center">
+              <div className="p-3 bg-slate-100 rounded-xl border border-slate-200/60 text-center">
                 <div className="text-2xl font-bold text-purple-400">{stats.labs}</div>
-                <div className="text-[11px] text-slate-400 uppercase tracking-wider mt-0.5">Tracked Labs</div>
+                <div className="text-[11px] text-slate-600 uppercase tracking-wider mt-0.5">Tracked Labs</div>
               </div>
             </div>
 
-            <div className="pt-2 flex justify-between items-center border-t border-slate-800">
-              <div className="text-xs text-slate-400 flex items-center gap-2">
-                <Database className="w-3.5 h-3.5 text-slate-400" />
+            <div className="pt-2 flex justify-between items-center border-t border-slate-200">
+              <div className="text-xs text-slate-600 flex items-center gap-2">
+                <Database className="w-3.5 h-3.5 text-slate-600" />
                 <span>Store: IndexedDB (LocalVault v1)</span>
               </div>
               <button

@@ -89,10 +89,10 @@ export const PillCard: React.FC<PillCardProps> = ({
       data-med-name={pill.name}
       className={`group relative rounded-xl p-2.5 transition-all select-none ${
         isGhost
-          ? 'bg-emerald-950/40 border-2 border-dashed border-emerald-500/80 text-emerald-200 animate-pulse shadow-lg shadow-emerald-900/20'
+          ? 'bg-emerald-50 border-2 border-dashed border-emerald-500/80 text-emerald-700 animate-pulse shadow-lg shadow-emerald-900/20'
           : isDuplicate
-          ? 'bg-slate-900 border-2 border-amber-500 shadow-md shadow-amber-500/10 text-white'
-          : 'bg-slate-900/95 hover:bg-slate-850 border border-slate-750 hover:border-slate-600 shadow-md text-white'
+          ? 'bg-white border-2 border-amber-500 shadow-md shadow-amber-500/10 text-amber-800'
+          : 'bg-white/95 hover:bg-slate-850 border border-slate-750 hover:border-slate-600 shadow-md text-slate-900'
       } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'}`}
       role="article"
       aria-label={`${pill.name} ${pill.dosage}`}
@@ -106,7 +106,7 @@ export const PillCard: React.FC<PillCardProps> = ({
 
       {/* Duplicate Ingredient Warning Tag */}
       {isDuplicate && !isGhost && (
-        <div className="flex items-center gap-1 mb-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-[9px]">
+        <div className="flex items-center gap-1 mb-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 border border-amber-200 font-bold text-[9px]">
           <AlertTriangle className="w-2.5 h-2.5" /> Duplicate Ingredient
         </div>
       )}
@@ -116,11 +116,11 @@ export const PillCard: React.FC<PillCardProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           <span className="shrink-0">{renderShapeIcon()}</span>
           <div className="min-w-0">
-            <h4 className="font-bold text-xs leading-tight truncate text-slate-100 tracking-tight">
+            <h4 className="font-bold text-xs leading-tight truncate text-slate-900 tracking-tight">
               {pill.name}
             </h4>
             {pill.genericName && pill.genericName.toLowerCase() !== pill.name.toLowerCase() && (
-              <p className="text-[10px] text-slate-400 truncate leading-none mt-0.5">
+              <p className="text-[10px] text-slate-600 truncate leading-none mt-0.5">
                 ({pill.genericName})
               </p>
             )}
@@ -137,7 +137,7 @@ export const PillCard: React.FC<PillCardProps> = ({
                   e.stopPropagation();
                   onSimulate(pill, day, slot);
                 }}
-                className="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition-colors"
+                className="p-1 rounded text-slate-600 hover:text-amber-700 hover:bg-slate-100 transition-colors"
                 title="Simulate missed dose clinical risk"
                 aria-label={`Simulate missing ${pill.name}`}
               >
@@ -151,14 +151,14 @@ export const PillCard: React.FC<PillCardProps> = ({
                   e.stopPropagation();
                   onRemove(pill.id);
                 }}
-                className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                className="p-1 rounded text-slate-600 hover:text-rose-400 hover:bg-slate-100 transition-colors"
                 title="Remove from pillbox"
                 aria-label={`Remove ${pill.name}`}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             )}
-            <div className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300 p-0.5">
+            <div className="cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-700 p-0.5">
               <GripVertical className="w-3 h-3" />
             </div>
           </div>
@@ -166,12 +166,12 @@ export const PillCard: React.FC<PillCardProps> = ({
       </div>
 
       {/* Middle Row: Strength / Dosage */}
-      <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-300 font-semibold">
-        <span className="px-1.5 py-0.2 rounded bg-slate-800/80 border border-slate-700/50">
+      <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-700 font-semibold">
+        <span className="px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200/50">
           {pill.dosage}
         </span>
         {pill.frequency && (
-          <span className="text-[10px] text-slate-400 font-normal truncate max-w-[80px]">
+          <span className="text-[10px] text-slate-600 font-normal truncate max-w-[80px]">
             {pill.frequency}
           </span>
         )}

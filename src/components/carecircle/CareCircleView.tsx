@@ -78,19 +78,19 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-inner">
             <Users className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-100 tracking-tight">Family</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">Family</h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 font-bold border border-indigo-200">
                 Trusted helpers
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600">
               Family and caregivers who can help — see who has access and what they did.
             </p>
           </div>
@@ -115,13 +115,13 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
       />
 
       {/* Sub-Navigation Tabs */}
-      <div className="flex items-center bg-slate-900 p-1 rounded-2xl border border-slate-800 text-xs w-fit">
+      <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 text-xs w-fit">
         <button
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2 rounded-xl font-bold transition-all ${
             activeTab === 'overview'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-600 hover:text-slate-800'
           }`}
         >
           Family List
@@ -132,7 +132,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           className={`px-4 py-2 rounded-xl font-bold transition-all ${
             activeTab === 'multi_patient'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-600 hover:text-slate-800'
           }`}
         >
           Everyone I Care For
@@ -143,7 +143,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           className={`px-4 py-2 rounded-xl font-bold transition-all ${
             activeTab === 'audit_log'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-600 hover:text-slate-800'
           }`}
         >
           History
@@ -155,13 +155,13 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Active Linked Caregivers */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2">
                   <UserCheck className="w-5 h-5 text-indigo-400" />
-                  <h3 className="text-sm font-bold text-slate-100">People Who Can Help</h3>
+                  <h3 className="text-sm font-bold text-slate-900">People Who Can Help</h3>
                 </div>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-slate-600">
                   {caregiverLinks.length} helper{caregiverLinks.length === 1 ? '' : 's'}
                 </span>
               </div>
@@ -170,7 +170,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
                 {caregiverLinks.map((link) => (
                   <div
                     key={link.linkId}
-                    className="bg-slate-950 rounded-2xl p-4 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                    className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-sm">
@@ -178,10 +178,10 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
                       </div>
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-slate-100">{link.caregiverName}</h4>
-                          <span className="text-slate-400 text-[11px]">({link.relationship})</span>
+                          <h4 className="font-bold text-slate-900">{link.caregiverName}</h4>
+                          <span className="text-slate-600 text-[11px]">({link.relationship})</span>
                         </div>
-                        <span className="inline-block px-2 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30 uppercase">
+                        <span className="inline-block px-2 py-0.2 rounded-full bg-indigo-500/20 text-indigo-700 text-[10px] font-bold border border-indigo-200 uppercase">
                           Tier: {link.permissionLevel || 'MANAGE'}
                         </span>
                       </div>
@@ -189,7 +189,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
                     <button
                       onClick={() => setIsPermissionsModalOpen(true)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-800 transition-colors"
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors"
                     >
                       Edit Scopes
                     </button>
@@ -201,11 +201,11 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
           {/* Right Column: Proxy Audit Trail Snippet */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2">
                   <FileCheck2 className="w-5 h-5 text-emerald-400" />
-                  <h3 className="text-sm font-bold text-slate-100">Recent Activity</h3>
+                  <h3 className="text-sm font-bold text-slate-900">Recent Activity</h3>
                 </div>
                 <button
                   onClick={() => setActiveTab('audit_log')}
@@ -219,17 +219,17 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
                 {auditLogs.slice(0, 4).map((entry) => (
                   <div
                     key={entry.id}
-                    className="bg-slate-950 rounded-2xl p-3 border border-slate-800/80 text-xs space-y-1"
+                    className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-xs space-y-1"
                   >
-                    <div className="flex items-center justify-between text-slate-300 font-medium">
+                    <div className="flex items-center justify-between text-slate-700 font-medium">
                       <span className="text-sky-400 font-mono text-[10px] uppercase">
                         {entry.action.replace(/_/g, ' ')}
                       </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
+                      <span className="text-[10px] text-slate-600 font-mono">
                         {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="text-slate-400 text-[11px]">
+                    <p className="text-slate-600 text-[11px]">
                       By {entry.performedBy?.userName}
                       {entry.performedBy?.onBehalfOf ? ` on behalf of ${entry.performedBy.onBehalfOf}` : ''}
                     </p>
@@ -248,7 +248,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           }}
         />
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl">
           <AuditLogViewer logs={auditLogs} />
         </div>
       )}

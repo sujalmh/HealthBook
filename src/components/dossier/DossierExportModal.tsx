@@ -126,21 +126,21 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 text-slate-100 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/30 flex items-center justify-center shadow-inner">
+            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-200 flex items-center justify-center shadow-inner">
               <Download className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black text-white tracking-tight">Export Clinical Dossier Package</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30 uppercase">
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">Export Clinical Dossier Package</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 font-bold border border-sky-200 uppercase">
                   CD6 Interoperability
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600">
                 Generate standards-compliant FHIR R4 JSON bundles, printable PDF summaries, and tabular CSV clinical archives.
               </p>
             </div>
@@ -148,7 +148,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors"
           >
             ✕
           </button>
@@ -171,22 +171,22 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
                 className={`p-4 rounded-2xl text-left border transition-all space-y-1.5 ${
                   isSelected
                     ? 'bg-sky-600/20 border-sky-500/60 shadow-md shadow-sky-500/10 text-white'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-800'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Icon className={`w-5 h-5 ${isSelected ? 'text-sky-400' : 'text-slate-400'}`} />
+                  <Icon className={`w-5 h-5 ${isSelected ? 'text-sky-400' : 'text-slate-600'}`} />
                   <span className="text-xs font-bold">{fmt.label}</span>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-tight">{fmt.desc}</p>
+                <p className="text-[11px] text-slate-600 leading-tight">{fmt.desc}</p>
               </button>
             );
           })}
         </div>
 
         {/* Section Inclusion Checkboxes */}
-        <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-300">
+        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
+          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
             Include Clinical Sections
           </h4>
 
@@ -207,7 +207,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
                   key={sec.key}
                   type="button"
                   onClick={() => toggleSection(sec.key as any)}
-                  className="flex items-center gap-2 text-left py-1 text-slate-300 hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-left py-1 text-slate-700 hover:text-slate-900 transition-colors"
                 >
                   {checked ? (
                     <CheckSquare className="w-4 h-4 text-sky-400 shrink-0" />
@@ -224,12 +224,12 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
         {/* Preview & Download Panel Based on Selected Format */}
         {activeFormat === 'pdf' ? (
           <div className="space-y-4">
-            <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-3 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-                <span className="font-bold text-slate-300">Print Preview Format</span>
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                <span className="font-bold text-slate-700">Print Preview Format</span>
                 <span className="text-[10px] text-emerald-400 font-mono">Verified High-Contrast Layout</span>
               </div>
-              <p className="text-slate-400 text-xs leading-relaxed">
+              <p className="text-slate-600 text-xs leading-relaxed">
                 The Doctor Consultation Print View prepares a consolidated, printer-friendly summary containing the patient's Emergency Snapshot, Active Medication Regimen, 5-Year Longitudinal Lab Trajectories, and Doctor Review Comments.
               </p>
             </div>
@@ -248,14 +248,14 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
         ) : activeFormat === 'fhir' ? (
           <div className="space-y-4">
             {/* JSON Code Viewer */}
-            <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 max-h-60 overflow-y-auto font-mono text-[11px] text-emerald-300/90 leading-normal">
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 max-h-60 overflow-y-auto font-mono text-[11px] text-emerald-700/90 leading-normal">
               <pre>{JSON.stringify(dossier?.fhirBundle || {}, null, 2)}</pre>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={handleCopyFHIR}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200 transition-colors flex items-center justify-center gap-2"
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 <span>{copied ? 'Copied to Clipboard' : 'Copy FHIR JSON'}</span>
@@ -272,7 +272,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 max-h-48 overflow-y-auto font-mono text-[10px] text-slate-300 leading-tight">
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 max-h-48 overflow-y-auto font-mono text-[10px] text-slate-700 leading-tight">
               <pre>{generateCSV()}</pre>
             </div>
 

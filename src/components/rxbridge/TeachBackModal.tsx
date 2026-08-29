@@ -72,30 +72,30 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
               <Bot className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-white">Teach-Back Comprehension Verification</h3>
-              <p className="text-xs text-slate-400">Validate medication understanding before discharge finalization</p>
+              <h3 className="text-base font-black text-slate-900">Teach-Back Comprehension Verification</h3>
+              <p className="text-xs text-slate-600">Validate medication understanding before discharge finalization</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Prompt Card */}
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-purple-950/60 border border-indigo-800/50 space-y-3">
-          <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs">
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-50 to-purple-950/60 border border-indigo-800/50 space-y-3">
+          <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs">
             <Sparkles className="w-4 h-4 text-indigo-400" />
             <span>CLINICAL AGENT TEACH-BACK PROMPT</span>
           </div>
@@ -106,7 +106,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
 
         {/* Interactive Speech & Sample Chips */}
         <div className="space-y-2">
-          <label className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-bold">
+          <label className="text-[11px] font-mono text-slate-600 uppercase tracking-wider font-bold">
             Quick-Select Simulated Response (or type below):
           </label>
           <div className="flex flex-wrap gap-2">
@@ -114,7 +114,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
               <button
                 key={idx}
                 onClick={() => setPatientResponse(chip.text)}
-                className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-medium transition-all text-left"
+                className="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-200 text-slate-700 text-xs font-medium transition-all text-left"
               >
                 {chip.label}
               </button>
@@ -125,10 +125,10 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
         {/* Response Input Area */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-slate-200">
+            <label className="text-xs font-bold text-slate-800">
               Patient / Caregiver Verbal Explanation:
             </label>
-            <span className="text-[10px] text-slate-500 font-mono">
+            <span className="text-[10px] text-slate-600 font-mono">
               {patientResponse.length} characters
             </span>
           </div>
@@ -137,7 +137,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
             onChange={(e) => setPatientResponse(e.target.value)}
             placeholder="Type or dictate what you understand about your morning medications, food instructions, and stopped medicines..."
             rows={4}
-            className="w-full p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 leading-relaxed"
+            className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 leading-relaxed"
           />
         </div>
 
@@ -148,7 +148,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
             disabled={!patientResponse.trim() || isEvaluating}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs shadow-lg transition-all ${
               !patientResponse.trim() || isEvaluating
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                ? 'bg-slate-100 text-slate-600 cursor-not-allowed'
                 : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-900/40 hover:scale-102'
             }`}
           >
@@ -162,10 +162,10 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
           <div
             className={`p-5 rounded-2xl border space-y-3 transition-all animate-fade-in ${
               checkResult.comprehensionScore === 'accurate'
-                ? 'bg-emerald-950/40 border-emerald-800/80 text-emerald-200'
+                ? 'bg-emerald-50 border-emerald-800/80 text-emerald-700'
                 : checkResult.comprehensionScore === 'minor_confusion'
-                ? 'bg-amber-950/40 border-amber-800/80 text-amber-200'
-                : 'bg-rose-950/40 border-rose-800/80 text-rose-200'
+                ? 'bg-amber-50 border-amber-200 text-amber-700'
+                : 'bg-rose-50 border-rose-200 text-rose-700'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -191,17 +191,17 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
               <span
                 className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full border ${
                   checkResult.comprehensionScore === 'accurate'
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    ? 'bg-emerald-500/20 text-emerald-700 border-emerald-200'
                     : checkResult.comprehensionScore === 'minor_confusion'
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                    ? 'bg-amber-500/20 text-amber-700 border-amber-200'
+                    : 'bg-rose-500/20 text-rose-700 border-rose-200'
                 }`}
               >
                 Score: {checkResult.comprehensionScore.replace('_', ' ')}
               </span>
             </div>
 
-            <p className="text-xs leading-relaxed font-medium bg-slate-950/50 p-3 rounded-xl">
+            <p className="text-xs leading-relaxed font-medium bg-slate-50/50 p-3 rounded-xl">
               {checkResult.feedbackNarration}
             </p>
 
@@ -211,7 +211,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs shadow-md transition-all ${
                   checkResult.comprehensionScore === 'accurate'
                     ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/40'
-                    : 'bg-slate-800 hover:bg-slate-700 text-white'
+                    : 'bg-slate-100 hover:bg-slate-100 text-white'
                 }`}
               >
                 <ShieldCheck className="w-4 h-4" />

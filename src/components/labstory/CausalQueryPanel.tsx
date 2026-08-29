@@ -141,21 +141,21 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
   };
 
   return (
-    <div className={`bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4 ${className}`}>
+    <div className={`bg-gradient-to-br from-white via-slate-50 to-indigo-50 border border-slate-200 rounded-3xl p-5 shadow-xl space-y-4 ${className}`}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
             <HelpCircle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-100 flex items-center gap-2">
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
               <span>"Ask Why" Causal Biomarker Engine (LS3)</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 font-bold border border-amber-200">
                 correlate_meds
               </span>
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600">
               Correlate biomarker fluctuations with medication timing, dosage titrations, and discharge events.
             </p>
           </div>
@@ -164,7 +164,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
 
       {/* Preset Query Chips */}
       <div className="space-y-1.5">
-        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Suggested Causal Queries</div>
+        <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Suggested Causal Queries</div>
         <div className="flex items-center gap-1.5 flex-wrap">
           {presetQueries.map((preset, idx) => (
             <button
@@ -173,7 +173,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
                 setQueryText(preset.query);
                 handleExecuteQuery(preset.query, preset.marker);
               }}
-              className="text-[11px] px-2.5 py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 font-medium flex items-center gap-1.5 transition-all text-left"
+              className="text-[11px] px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-200 font-medium flex items-center gap-1.5 transition-all text-left"
             >
               <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
               <span>{preset.label}</span>
@@ -191,7 +191,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
             onChange={(e) => setQueryText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleExecuteQuery()}
             placeholder={`Ask why ${activeMarker} changed or how medications affect your trajectory...`}
-            className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-2.5 pl-3.5 pr-10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 shadow-inner"
+            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-2.5 pl-3.5 pr-10 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 shadow-inner"
           />
         </div>
         <button
@@ -210,36 +210,36 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
 
       {/* Causal Insight Result Card */}
       {causalResult && (
-        <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-4 space-y-3 animate-fade-in text-xs">
+        <div className="bg-slate-50/90 border border-amber-200 rounded-2xl p-4 space-y-3 animate-fade-in text-xs">
           {/* Header & Trajectory Badge */}
-          <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-2 flex-wrap">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2 flex-wrap">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="font-black text-slate-100 text-sm">
+              <span className="font-black text-slate-900 text-sm">
                 Causal Synthesis: {causalResult.biomarker}
               </span>
             </div>
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-500/20 text-amber-700 border border-amber-200">
               {causalResult.trajectory?.replace(/_/g, ' ') || 'ANALYZED'}
             </span>
           </div>
 
           {/* Plain Language Narrative */}
-          <p className="text-slate-200 leading-relaxed font-medium">
+          <p className="text-slate-800 leading-relaxed font-medium">
             {causalResult.causalStorySentence}
           </p>
 
           {/* Correlated Medications Callout */}
           {causalResult.correlatedMedications && causalResult.correlatedMedications.length > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+            <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
                 <Pill className="w-3.5 h-3.5 text-indigo-400" />
                 Correlated Medications:
               </span>
               {causalResult.correlatedMedications.map((med: string, i: number) => (
                 <span
                   key={i}
-                  className="text-[10px] px-2 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30"
+                  className="text-[10px] px-2 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-700 font-bold border border-indigo-200"
                 >
                   {med}
                 </span>
@@ -249,13 +249,13 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
 
           {/* Doctor Question Generator (LS7) */}
           {causalResult.recommendedDoctorQuestion && (
-            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-0.5">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
                   <BookmarkPlus className="w-3.5 h-3.5" />
                   <span>Targeted Doctor Question (LS7)</span>
                 </div>
-                <p className="text-xs text-slate-100 font-medium italic">
+                <p className="text-xs text-slate-900 font-medium italic">
                   "{causalResult.recommendedDoctorQuestion}"
                 </p>
               </div>

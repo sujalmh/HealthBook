@@ -61,34 +61,34 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     morning: {
       label: 'Morning',
       time: times.morning,
-      icon: <Sun className="w-4 h-4 text-amber-400" />,
+      icon: <Sun className="w-4 h-4 text-amber-600" />,
       mealIcon: '🍳',
       mealLabel: 'Breakfast',
-      headerBg: 'bg-amber-950/30 border-amber-900/50'
+      headerBg: 'bg-amber-50 border-amber-200'
     },
     noon: {
       label: 'Noon',
       time: times.noon,
-      icon: <CloudSun className="w-4 h-4 text-sky-400" />,
+      icon: <CloudSun className="w-4 h-4 text-sky-600" />,
       mealIcon: '🥗',
       mealLabel: 'Lunch',
-      headerBg: 'bg-sky-950/30 border-sky-900/50'
+      headerBg: 'bg-sky-50 border-sky-200'
     },
     evening: {
       label: 'Evening',
       time: times.evening,
-      icon: <Sunset className="w-4 h-4 text-orange-400" />,
+      icon: <Sunset className="w-4 h-4 text-orange-600" />,
       mealIcon: '🍲',
       mealLabel: 'Dinner',
-      headerBg: 'bg-orange-950/30 border-orange-900/50'
+      headerBg: 'bg-orange-50 border-orange-200'
     },
     bedtime: {
       label: 'Bedtime',
       time: times.bedtime,
-      icon: <Moon className="w-4 h-4 text-indigo-400" />,
+      icon: <Moon className="w-4 h-4 text-indigo-600" />,
       mealIcon: '🌙',
       mealLabel: 'Snack / Rest',
-      headerBg: 'bg-indigo-950/30 border-indigo-900/50'
+      headerBg: 'bg-indigo-50 border-indigo-200'
     }
   };
 
@@ -219,37 +219,40 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative bg-slate-950/80 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-4 select-none"
+      className="relative bg-white border border-slate-200 rounded-2xl shadow-sm p-2 sm:p-4 select-none overflow-hidden"
     >
-      {/* SVG Conflict Arc Overlay */}
-      <SVGArcOverlay
-        arcs={interactionArcs}
-        gridCoordinates={arcCoordinates}
-        width={dimensions.width}
-        height={dimensions.height}
-      />
+      {/* SVG Conflict Arc Overlay — hidden on mobile to avoid clutter */}
+      <div className="hidden sm:block">
+        <SVGArcOverlay
+          arcs={interactionArcs}
+          gridCoordinates={arcCoordinates}
+          width={dimensions.width}
+          height={dimensions.height}
+        />
+      </div>
 
-      {/* Main Responsive Grid Container */}
-      <div className="overflow-x-auto min-w-[960px]">
+      {/* Main Responsive Grid Container — horizontal scroll on mobile, no page overflow */}
+      <div className="overflow-x-auto -mx-2 sm:mx-0 px-2 sm:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="min-w-[720px] sm:min-w-[960px]">
         {/* Table Structure */}
         <table className="w-full border-collapse">
           {/* Day Column Headers */}
           <thead>
             <tr>
               {/* Time Slot column title */}
-              <th className="p-3 w-40 text-left bg-slate-900 border-b border-r border-slate-800 text-xs font-black tracking-wider text-slate-400 uppercase rounded-tl-xl">
+              <th className="p-3 w-40 text-left bg-white border-b border-r border-slate-200 text-xs font-black tracking-wider text-slate-600 uppercase rounded-tl-xl">
                 Time Slot
               </th>
               {DAYS_OF_WEEK.map((day) => (
                 <th
                   key={day}
-                  className="p-3 text-center bg-slate-900 border-b border-r border-slate-800 last:border-r-0 text-xs font-bold text-slate-200"
+                  className="p-3 text-center bg-slate-50 border-b border-r border-slate-200 last:border-r-0 text-xs font-bold"
                 >
                   <div className="flex flex-col items-center">
-                    <span className="font-extrabold text-sm tracking-tight text-white">
+                    <span className="font-extrabold text-sm tracking-tight text-slate-900">
                       {dayLabels[day].short}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium capitalize">
+                    <span className="text-[10px] text-slate-600 font-medium capitalize">
                       {dayLabels[day].full}
                     </span>
                   </div>
@@ -264,18 +267,18 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
               const meta = slotMeta[slot];
 
               return (
-                <tr key={slot} className="border-b border-slate-800/80 last:border-b-0">
-                  {/* Row Header: Slot Label, Chronotype Time, Meal Icon */}
-                  <td className={`p-3 align-top border-r border-slate-800 ${meta.headerBg}`}>
+                <tr key={slot} className="border-b border-slate-200 last:border-b-0">
+                  {/* Row Header: Slot Label, Chronotype Time, Meal Icon — high contrast light */}
+                  <td className={`p-3 align-top border-r border-slate-200 ${meta.headerBg}`}>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 font-black text-xs text-white">
+                      <div className="flex items-center gap-1.5 font-black text-xs text-slate-900">
                         {meta.icon}
                         <span>{meta.label}</span>
                       </div>
-                      <div className="text-xs font-mono font-bold text-sky-400 bg-slate-950/60 px-2 py-0.5 rounded-lg border border-slate-800 inline-block">
+                      <div className="text-xs font-mono font-bold text-sky-700 bg-white px-2 py-0.5 rounded-lg border border-slate-200 inline-block shadow-sm">
                         {meta.time}
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] text-slate-400 pt-1 font-medium">
+                      <div className="flex items-center gap-1 text-[10px] text-slate-700 pt-1 font-medium">
                         <span>{meta.mealIcon}</span>
                         <span>{meta.mealLabel}</span>
                       </div>
@@ -301,10 +304,10 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                         onDragOver={(e) => handleDragOver(e, cellKey)}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, day, slot)}
-                        className={`p-2 align-top border-r border-slate-800/80 last:border-r-0 transition-colors min-w-[130px] ${
+                        className={`p-2 align-top border-r border-slate-200 last:border-r-0 transition-colors min-w-[130px] ${
                           isDragOver
                             ? 'bg-sky-950/50 ring-2 ring-inset ring-sky-500/80'
-                            : 'bg-slate-900/30 hover:bg-slate-900/50'
+                            : 'bg-white/30 hover:bg-white/50'
                         }`}
                       >
                         <div className="min-h-[110px] flex flex-col gap-2">
@@ -349,10 +352,10 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                             <button
                               type="button"
                               onClick={() => onQuickAdd?.(day, slot)}
-                              className="flex-1 flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-slate-800 hover:border-slate-600 text-slate-600 hover:text-slate-300 transition-all group/btn"
+                              className="flex-1 flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-slate-200 hover:border-slate-600 text-slate-600 hover:text-slate-700 transition-all group/btn"
                               title={`Add medication to ${dayLabels[day].full} ${meta.label}`}
                             >
-                              <Plus className="w-4 h-4 group-hover/btn:scale-125 transition-transform text-slate-500" />
+                              <Plus className="w-4 h-4 group-hover/btn:scale-125 transition-transform text-slate-600" />
                               <span className="text-[10px] font-medium mt-1 opacity-60">Empty Slot</span>
                             </button>
                           )}
@@ -365,6 +368,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

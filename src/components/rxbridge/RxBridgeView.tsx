@@ -298,7 +298,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Controls & Module Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Module Title */}
           <div className="flex items-center gap-3.5">
@@ -307,28 +307,28 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-black tracking-tight text-white">
+                <h2 className="text-xl font-black tracking-tight text-slate-900">
                   Medicine Review
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono font-bold text-xs border border-purple-500/40">
                   Before / Hospital / Now
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600">
                 Check what changed after your hospital stay — approve each medicine in plain language before it goes to your weekly box.
               </p>
             </div>
           </div>
 
           {/* Quick-Fill Sample Dataset Switcher */}
-          <div className="flex flex-wrap items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
-            <span className="text-[11px] font-mono text-slate-400 px-2 font-bold">Example:</span>
+          <div className="flex flex-wrap items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 text-xs">
+            <span className="text-[11px] font-mono text-slate-600 px-2 font-bold">Example:</span>
             <button
               onClick={() => setSelectedCaseId('shanti')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
                 selectedCaseId === 'shanti'
                   ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 hover:text-slate-800'
               }`}
             >
               Shanti Devi — heart
@@ -338,7 +338,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
                 selectedCaseId === 'jenkins'
                   ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 hover:text-slate-800'
               }`}
             >
               Harold Jenkins — heart
@@ -347,9 +347,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         </div>
 
         {/* Statistical Overview Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-800/80">
-          <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800/80">
-            <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">Total Meds</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-200">
+          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
+            <div className="text-[10px] font-mono text-slate-600 uppercase font-bold">Total Meds</div>
             <div className="text-xl font-black text-white mt-0.5">{reconciledItems.length}</div>
           </div>
 
@@ -358,37 +358,37 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             <div className="text-xl font-black text-purple-200 mt-0.5">{newCount}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-sky-950/30 border border-sky-800/50">
-            <div className="text-[10px] font-mono text-sky-300 uppercase font-bold">Dose Changed</div>
-            <div className="text-xl font-black text-sky-200 mt-0.5">{changedCount}</div>
+          <div className="p-3 rounded-2xl bg-sky-50 border border-sky-800/50">
+            <div className="text-[10px] font-mono text-sky-700 uppercase font-bold">Dose Changed</div>
+            <div className="text-xl font-black text-sky-700 mt-0.5">{changedCount}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-rose-950/30 border border-rose-800/50">
-            <div className="text-[10px] font-mono text-rose-300 uppercase font-bold">Stopped / Omitted</div>
-            <div className="text-xl font-black text-rose-200 mt-0.5">{stoppedCount}</div>
+          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200">
+            <div className="text-[10px] font-mono text-rose-700 uppercase font-bold">Stopped / Omitted</div>
+            <div className="text-xl font-black text-rose-700 mt-0.5">{stoppedCount}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-amber-950/30 border border-amber-800/50">
-            <div className="text-[10px] font-mono text-amber-300 uppercase font-bold">Conflicts Flagged</div>
-            <div className="text-xl font-black text-amber-200 mt-0.5">{interactionsCount}</div>
+          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-800/50">
+            <div className="text-[10px] font-mono text-amber-700 uppercase font-bold">Conflicts Flagged</div>
+            <div className="text-xl font-black text-amber-700 mt-0.5">{interactionsCount}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-800/50">
-            <div className="text-[10px] font-mono text-emerald-300 uppercase font-bold">Approved Status</div>
-            <div className="text-base font-black text-emerald-200 mt-1">
+          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-800/50">
+            <div className="text-[10px] font-mono text-emerald-700 uppercase font-bold">Approved Status</div>
+            <div className="text-base font-black text-emerald-700 mt-1">
               {totalApproved}/{reconciledItems.length} ({progressPercent}%)
             </div>
           </div>
         </div>
 
         {/* Action & View Mode Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200">
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs">
+          <div className="flex items-center bg-slate-50 p-1 rounded-2xl border border-slate-200 text-xs">
             <button
               onClick={() => setViewMode('table')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all ${
-                viewMode === 'table' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                viewMode === 'table' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <TableIcon className="w-3.5 h-3.5" />
@@ -397,7 +397,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             <button
               onClick={() => setViewMode('walk')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all ${
-                viewMode === 'walk' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                viewMode === 'walk' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Bot className="w-3.5 h-3.5" />
@@ -412,8 +412,8 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               onClick={() => setIsTeachBackOpen(true)}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
                 teachBackRecord?.comprehensionScore === 'accurate'
-                  ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/50'
-                  : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border-indigo-500/40'
+                  ? 'bg-emerald-600/30 text-emerald-700 border-emerald-500/50'
+                  : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-700 border-indigo-500/40'
               }`}
             >
               <ShieldCheck className="w-4 h-4 text-indigo-400" />
@@ -423,7 +423,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             {/* 1-Page Summary Export */}
             <button
               onClick={handleOpenExportSummary}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold transition-all"
             >
               <Printer className="w-4 h-4 text-sky-400" />
               <span>Print Summary</span>
@@ -436,7 +436,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               title={totalApproved !== reconciledItems.length ? `Approve all ${reconciledItems.length} medicines first (${totalApproved}/${reconciledItems.length})` : 'Add to my weekly medicines'}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold shadow-lg transition-all ${
                 totalApproved !== reconciledItems.length
-                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed border border-slate-600'
+                  ? 'bg-slate-700 text-slate-600 cursor-not-allowed border border-slate-600'
                   : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-900/30 hover:scale-102'
               }`}
             >

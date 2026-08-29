@@ -212,23 +212,23 @@ SECURITY VALIDATION:
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 text-slate-100 print:bg-white print:text-black print:border-none print:shadow-none animate-fade-in">
+    <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 text-slate-900 print:bg-white print:text-black print:border-none print:shadow-none animate-fade-in">
       {/* Top Banner: Emergency Priority Header & Action Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6 print:border-black">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 print:border-black">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/20">
             <AlertOctagon className="w-7 h-7" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white print:text-black">
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 print:text-black">
                 Emergency Clinical Snapshot
               </h2>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 uppercase tracking-wider">
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-700 font-bold border border-rose-500/30 uppercase tracking-wider">
                 High Priority Quick-Card
               </span>
             </div>
-            <p className="text-xs text-slate-400 print:text-gray-600">
+            <p className="text-xs text-slate-600 print:text-gray-600">
               One-page high-yield clinical overview for emergency physicians, paramedics, and specialist consults.
             </p>
           </div>
@@ -238,7 +238,7 @@ SECURITY VALIDATION:
         <div className="flex items-center gap-2.5 self-end md:self-auto print:hidden">
           <button
             onClick={handleCopySummary}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200 transition-colors shadow-sm"
           >
             {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             <span>{copied ? 'Copied Text' : 'Copy Text'}</span>
@@ -258,32 +258,32 @@ SECURITY VALIDATION:
       </div>
 
       {/* Patient Demographics Bar */}
-      <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-xs">
+      <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-xs">
         <div>
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Patient Name</span>
+          <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Patient Name</span>
           <p className="text-sm font-black text-white">{data.patientName}</p>
         </div>
         <div>
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">DOB / Age</span>
-          <p className="text-sm font-bold text-slate-200">{data.dob} ({data.age}y / {data.gender})</p>
+          <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">DOB / Age</span>
+          <p className="text-sm font-bold text-slate-800">{data.dob} ({data.age}y / {data.gender})</p>
         </div>
         <div>
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">MRN / ID</span>
+          <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">MRN / ID</span>
           <p className="text-sm font-mono font-bold text-sky-400">{data.mrn}</p>
         </div>
         <div>
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Blood Type</span>
+          <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Blood Type</span>
           <p className="text-sm font-black text-rose-400">{data.bloodType}</p>
         </div>
         <div>
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Code Status</span>
-          <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-black text-[11px] border border-emerald-500/30">
+          <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Code Status</span>
+          <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 font-black text-[11px] border border-emerald-200">
             {data.codeStatus}
           </span>
         </div>
         <div>
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Last Certified</span>
-          <p className="text-xs text-slate-400 font-mono">
+          <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Last Certified</span>
+          <p className="text-xs text-slate-600 font-mono">
             {new Date(data.baselineVitals.lastUpdated || Date.now()).toLocaleDateString()}
           </p>
         </div>
@@ -294,7 +294,7 @@ SECURITY VALIDATION:
         {/* Left Column (5 Cols): Severe Allergies & Critical Labs */}
         <div className="lg:col-span-5 space-y-6">
           {/* Severe Allergies Card */}
-          <div className="bg-slate-950 rounded-2xl p-5 border border-rose-900/40 shadow-inner space-y-3">
+          <div className="bg-slate-50 rounded-2xl p-5 border border-rose-900/40 shadow-inner space-y-3">
             <div className="flex items-center justify-between border-b border-rose-900/30 pb-2.5">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-rose-500" />
@@ -302,7 +302,7 @@ SECURITY VALIDATION:
                   Verified Severe Allergies
                 </h3>
               </div>
-              <span className="text-[10px] px-2 py-0.2 rounded-full bg-rose-500/20 text-rose-300 font-bold">
+              <span className="text-[10px] px-2 py-0.2 rounded-full bg-rose-500/20 text-rose-700 font-bold">
                 {data.verifiedAllergies.length} Critical Alert(s)
               </span>
             </div>
@@ -311,11 +311,11 @@ SECURITY VALIDATION:
               {data.verifiedAllergies.map((allergy, idx) => (
                 <div
                   key={allergy.id || idx}
-                  className="bg-rose-950/30 border border-rose-800/50 rounded-xl p-3 flex items-center justify-between gap-3"
+                  className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-center justify-between gap-3"
                 >
                   <div>
-                    <h4 className="text-sm font-black text-rose-200">{allergy.allergen}</h4>
-                    <p className="text-[11px] text-rose-300/80 font-medium">Reaction: {allergy.reaction}</p>
+                    <h4 className="text-sm font-black text-rose-700">{allergy.allergen}</h4>
+                    <p className="text-[11px] text-rose-700/80 font-medium">Reaction: {allergy.reaction}</p>
                   </div>
                   <span className="px-2 py-1 rounded-lg bg-rose-600 text-white font-black text-[10px] uppercase shadow-sm">
                     {allergy.severity.replace(/_/g, ' ')}
@@ -326,15 +326,15 @@ SECURITY VALIDATION:
           </div>
 
           {/* Critical Recent Labs */}
-          <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-sky-400" />
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
                   Most Recent Key Labs
                 </h3>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">
+              <span className="text-[10px] text-slate-600 font-mono">
                 {data.mostRecentCriticalLabs[0]?.drawDate}
               </span>
             </div>
@@ -349,20 +349,20 @@ SECURITY VALIDATION:
                     key={idx}
                     className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-colors ${
                       isCritical
-                        ? 'bg-rose-950/40 border-rose-700/60 text-rose-200'
+                        ? 'bg-rose-50 border-rose-200 text-rose-700'
                         : isAbnormal
-                        ? 'bg-amber-950/30 border-amber-700/40 text-amber-200'
-                        : 'bg-slate-900 border-slate-800 text-slate-200'
+                        ? 'bg-amber-50 border-amber-200 text-amber-700'
+                        : 'bg-white border-slate-200 text-slate-800'
                     }`}
                   >
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold">{lab.marker}</span>
-                        <span className="text-[10px] font-mono text-slate-400">
+                        <span className="text-[10px] font-mono text-slate-600">
                           (Ref: {lab.referenceRange?.low}-{lab.referenceRange?.high})
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono">{lab.drawDate}</span>
+                      <span className="text-[10px] text-slate-600 font-mono">{lab.drawDate}</span>
                     </div>
 
                     <div className="text-right">
@@ -375,7 +375,7 @@ SECURITY VALIDATION:
                             ? 'bg-rose-600 text-white'
                             : isAbnormal
                             ? 'bg-amber-600 text-slate-950'
-                            : 'bg-emerald-500/20 text-emerald-300'
+                            : 'bg-emerald-500/20 text-emerald-700'
                         }`}
                       >
                         {lab.flag}
@@ -388,37 +388,37 @@ SECURITY VALIDATION:
           </div>
 
           {/* Baseline Vitals Card */}
-          <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
+          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-2.5">
               <Heart className="w-4 h-4 text-rose-400" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
                 Baseline Vital Signs
               </h3>
             </div>
 
             <div className="grid grid-cols-3 gap-2.5 text-center">
-              <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 block font-semibold">Blood Pressure</span>
+              <div className="bg-white rounded-xl p-2.5 border border-slate-200">
+                <span className="text-[10px] text-slate-600 block font-semibold">Blood Pressure</span>
                 <span className="text-sm font-black font-mono text-white">
                   {data.baselineVitals.systolicBP}/{data.baselineVitals.diastolicBP}
                 </span>
-                <span className="text-[9px] text-slate-500 block">mmHg</span>
+                <span className="text-[9px] text-slate-600 block">mmHg</span>
               </div>
 
-              <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 block font-semibold">Heart Rate</span>
+              <div className="bg-white rounded-xl p-2.5 border border-slate-200">
+                <span className="text-[10px] text-slate-600 block font-semibold">Heart Rate</span>
                 <span className="text-sm font-black font-mono text-emerald-400">
                   {data.baselineVitals.heartRate}
                 </span>
-                <span className="text-[9px] text-slate-500 block">bpm (Sinus)</span>
+                <span className="text-[9px] text-slate-600 block">bpm (Sinus)</span>
               </div>
 
-              <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 block font-semibold">Oxygen (SpO2)</span>
+              <div className="bg-white rounded-xl p-2.5 border border-slate-200">
+                <span className="text-[10px] text-slate-600 block font-semibold">Oxygen (SpO2)</span>
                 <span className="text-sm font-black font-mono text-sky-400">
                   {data.baselineVitals.oxygenSaturation}%
                 </span>
-                <span className="text-[9px] text-slate-500 block">Room Air</span>
+                <span className="text-[9px] text-slate-600 block">Room Air</span>
               </div>
             </div>
           </div>
@@ -427,15 +427,15 @@ SECURITY VALIDATION:
         {/* Right Column (7 Cols): Active Medication Regimen & Handover Contacts */}
         <div className="lg:col-span-7 space-y-6">
           {/* Active Medications List */}
-          <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
               <div className="flex items-center gap-2">
                 <Pill className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
                   Current Active Medications ({data.activeMedications.length})
                 </h3>
               </div>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-700 font-bold border border-indigo-200">
                 Reconciled Regimen
               </span>
             </div>
@@ -444,27 +444,27 @@ SECURITY VALIDATION:
               {data.activeMedications.map((med, idx) => (
                 <div
                   key={med.id || idx}
-                  className="bg-slate-900 rounded-xl p-3.5 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  className="bg-white rounded-xl p-3.5 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-slate-100 text-sm">
+                      <h4 className="font-bold text-slate-900 text-sm">
                         {med.genericName}
                         {med.brandName && (
-                          <span className="text-slate-400 font-normal text-xs ml-1.5">
+                          <span className="text-slate-600 font-normal text-xs ml-1.5">
                             ({med.brandName})
                           </span>
                         )}
                       </h4>
-                      <span className="px-2 py-0.2 rounded bg-sky-500/20 text-sky-300 font-mono font-bold text-[10px]">
+                      <span className="px-2 py-0.2 rounded bg-sky-500/20 text-sky-700 font-mono font-bold text-[10px]">
                         {med.dosage}
                       </span>
                     </div>
 
-                    <p className="text-slate-400 text-[11px]">
-                      Frequency: <span className="text-slate-300 font-medium">{med.frequency}</span>
+                    <p className="text-slate-600 text-[11px]">
+                      Frequency: <span className="text-slate-700 font-medium">{med.frequency}</span>
                       {med.timingSlots && (
-                        <span className="ml-2 text-indigo-300">[{med.timingSlots.join(', ')}]</span>
+                        <span className="ml-2 text-indigo-700">[{med.timingSlots.join(', ')}]</span>
                       )}
                     </p>
                   </div>
@@ -492,10 +492,10 @@ SECURITY VALIDATION:
           </div>
 
           {/* Emergency Contacts & Physician Handover */}
-          <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
+          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-2.5">
               <Phone className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
                 Designated Emergency Contacts & Clinicians
               </h3>
             </div>
@@ -504,18 +504,18 @@ SECURITY VALIDATION:
               {data.emergencyContacts.map((contact, idx) => (
                 <div
                   key={idx}
-                  className="bg-slate-900 rounded-xl p-3.5 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                  className="bg-white rounded-xl p-3.5 border border-slate-200 flex items-center justify-between gap-3 text-xs"
                 >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-slate-100">{contact.name}</span>
+                      <span className="font-bold text-slate-900">{contact.name}</span>
                       {contact.isPrimary && (
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-700 font-bold">
                           Primary
                         </span>
                       )}
                     </div>
-                    <p className="text-slate-400 text-[11px]">{contact.relationship}</p>
+                    <p className="text-slate-600 text-[11px]">{contact.relationship}</p>
                     <a
                       href={`tel:${contact.phone}`}
                       className="font-mono text-sky-400 font-bold hover:underline block pt-1"
@@ -526,7 +526,7 @@ SECURITY VALIDATION:
 
                   <a
                     href={`tel:${contact.phone}`}
-                    className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors"
+                    className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-200 hover:bg-emerald-500/20 transition-colors"
                     title="Call Contact"
                   >
                     <Phone className="w-4 h-4" />
@@ -537,7 +537,7 @@ SECURITY VALIDATION:
           </div>
 
           {/* QR Validation Seal & Tamper-Evident Attestation */}
-          <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/40 rounded-2xl p-5 border border-indigo-900/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-slate-50 via-slate-50 to-indigo-50 rounded-2xl p-5 border border-indigo-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               {/* Simulated High-Res QR Seal */}
               <div className="w-16 h-16 rounded-xl bg-white p-1.5 flex items-center justify-center shrink-0 shadow-md">
@@ -546,18 +546,18 @@ SECURITY VALIDATION:
               <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span className="font-black text-slate-100">Cryptographically Certified Snapshot</span>
+                  <span className="font-black text-slate-900">Cryptographically Certified Snapshot</span>
                 </div>
-                <p className="text-[11px] text-slate-400 font-mono">
-                  Verification Code: <strong className="text-indigo-300 font-bold">{data.qrValidationStamp.verificationCode}</strong>
+                <p className="text-[11px] text-slate-600 font-mono">
+                  Verification Code: <strong className="text-indigo-700 font-bold">{data.qrValidationStamp.verificationCode}</strong>
                 </p>
-                <p className="text-[10px] text-slate-500 font-mono truncate max-w-xs">
+                <p className="text-[10px] text-slate-600 font-mono truncate max-w-xs">
                   Hash: {data.qrValidationStamp.hash}
                 </p>
               </div>
             </div>
 
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider shrink-0">
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider shrink-0">
               ✓ LocalVault Attested
             </span>
           </div>

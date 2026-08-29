@@ -103,20 +103,20 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-scale-up">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-scale-up">
         {/* Header */}
-        <div className="p-5 bg-gradient-to-r from-sky-950/80 to-indigo-950/80 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-5 bg-gradient-to-r from-sky-950/80 to-indigo-950/80 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400">
               <Pill className="w-4 h-4" />
             </div>
-            <h2 className="text-base font-bold text-white tracking-tight">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">
               Add Medication to Pillbox
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+            className="p-1 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -124,11 +124,11 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs text-slate-200">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs text-slate-800">
           {/* Name & Dosage */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
                 Medication / Brand Name *
               </label>
               <input
@@ -137,12 +137,12 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="e.g. Lipitor, Metformin"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-sky-500"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
                 Dose Strength *
               </label>
               <input
@@ -151,14 +151,14 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                 value={dosage}
                 onChange={(e) => setDosage(e.target.value)}
                 placeholder="e.g. 500mg, 40mg, 10mcg"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-sky-500"
               />
             </div>
           </div>
 
           {/* Frequency */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
               Prescribed Frequency
             </label>
             <input
@@ -166,13 +166,13 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
               value={frequency}
               onChange={(e) => setFrequency(e.target.value)}
               placeholder="e.g. Once daily, Twice daily, As needed"
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:outline-none focus:border-sky-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-medium focus:outline-none focus:border-sky-500"
             />
           </div>
 
           {/* Timing Slots Checkboxes */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
               Daily Time Slots
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -186,7 +186,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                     className={`py-2 px-2 rounded-xl text-center capitalize font-bold transition-all border ${
                       isSelected
                         ? 'bg-sky-600/90 text-white border-sky-400 shadow-md shadow-sky-600/20'
-                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {slot}
@@ -197,12 +197,12 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
           </div>
 
           {/* Food & Dietary Instructions */}
-          <div className="space-y-2 pt-2 border-t border-slate-800">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="space-y-2 pt-2 border-t border-slate-200">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600">
               Food & Dietary Instructions
             </label>
             <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer hover:bg-slate-850">
+              <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-850">
                 <input
                   type="checkbox"
                   checked={withFood}
@@ -210,12 +210,12 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                     setWithFood(e.target.checked);
                     if (e.target.checked) setEmptyStomach(false);
                   }}
-                  className="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0"
+                  className="rounded bg-slate-100 border-slate-200 text-sky-500 focus:ring-0"
                 />
                 <span>🍽️ Take with Food</span>
               </label>
 
-              <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer hover:bg-slate-850">
+              <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-850">
                 <input
                   type="checkbox"
                   checked={emptyStomach}
@@ -223,27 +223,27 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                     setEmptyStomach(e.target.checked);
                     if (e.target.checked) setWithFood(false);
                   }}
-                  className="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0"
+                  className="rounded bg-slate-100 border-slate-200 text-sky-500 focus:ring-0"
                 />
                 <span>🥣 Empty Stomach</span>
               </label>
 
-              <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer hover:bg-slate-850">
+              <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-850">
                 <input
                   type="checkbox"
                   checked={avoidGrapefruit}
                   onChange={(e) => setAvoidGrapefruit(e.target.checked)}
-                  className="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0"
+                  className="rounded bg-slate-100 border-slate-200 text-sky-500 focus:ring-0"
                 />
                 <span>🍊 Avoid Grapefruit</span>
               </label>
 
-              <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer hover:bg-slate-850">
+              <label className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-850">
                 <input
                   type="checkbox"
                   checked={avoidAlcohol}
                   onChange={(e) => setAvoidAlcohol(e.target.checked)}
-                  className="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0"
+                  className="rounded bg-slate-100 border-slate-200 text-sky-500 focus:ring-0"
                 />
                 <span>🚫 Avoid Alcohol</span>
               </label>
@@ -251,11 +251,11 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 font-semibold text-xs"
+              className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-xs"
             >
               Cancel
             </button>

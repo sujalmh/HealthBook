@@ -39,28 +39,28 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
       time: times.morning,
       icon: <Sun className="w-8 h-8 text-amber-400" />,
       mealNote: 'Take with breakfast and a full glass of water.',
-      bg: 'from-amber-950/40 via-slate-900 to-slate-950'
+      bg: 'from-amber-50 via-slate-50 to-white'
     },
     noon: {
       label: 'Afternoon Dose',
       time: times.noon,
       icon: <CloudSun className="w-8 h-8 text-sky-400" />,
       mealNote: 'Take with lunch.',
-      bg: 'from-sky-950/40 via-slate-900 to-slate-950'
+      bg: 'from-sky-50 via-slate-50 to-white'
     },
     evening: {
       label: 'Evening Dose',
       time: times.evening,
       icon: <Sunset className="w-8 h-8 text-orange-400" />,
       mealNote: 'Take with dinner.',
-      bg: 'from-orange-950/40 via-slate-900 to-slate-950'
+      bg: 'from-orange-50 via-slate-50 to-white'
     },
     bedtime: {
       label: 'Bedtime Dose',
       time: times.bedtime,
       icon: <Moon className="w-8 h-8 text-indigo-400" />,
       mealNote: 'Take before sleep.',
-      bg: 'from-indigo-950/40 via-slate-900 to-slate-950'
+      bg: 'from-indigo-50 via-slate-50 to-white'
     }
   };
 
@@ -99,7 +99,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
       {/* Top Selector Bar for Slots */}
-      <div className="grid grid-cols-4 gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
+      <div className="grid grid-cols-4 gap-2 bg-white/90 p-1.5 rounded-2xl border border-slate-200">
         {(['morning', 'noon', 'evening', 'bedtime'] as TimeSlot[]).map((slot) => {
           const isActive = activeSlot === slot;
           return (
@@ -112,7 +112,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
               className={`py-3 px-2 rounded-xl text-center transition-all ${
                 isActive
                   ? 'bg-sky-600 text-white font-black shadow-lg shadow-sky-600/30 scale-102'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <div className="text-sm font-bold capitalize">{slot}</div>
@@ -124,22 +124,22 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
 
       {/* Main Focus Card */}
       <div
-        className={`rounded-3xl border border-slate-750 bg-gradient-to-b ${meta.bg} p-8 shadow-2xl space-y-6 text-slate-100`}
+        className={`rounded-3xl border border-slate-750 bg-gradient-to-b ${meta.bg} p-8 shadow-2xl space-y-6 text-slate-900`}
       >
         {/* Header with Slot, Time & Voice Read-Aloud */}
-        <div className="flex items-start justify-between gap-4 border-b border-slate-800/80 pb-6">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-6">
           <div className="flex items-center gap-4">
-            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-inner">
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 shadow-inner">
               {meta.icon}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-black tracking-tight text-white">{meta.label}</h2>
-                <span className="px-3 py-1 rounded-xl bg-sky-500/20 text-sky-300 font-mono font-bold text-sm border border-sky-500/40">
+                <h2 className="text-2xl font-black tracking-tight text-slate-900">{meta.label}</h2>
+                <span className="px-3 py-1 rounded-xl bg-sky-500/20 text-sky-700 font-mono font-bold text-sm border border-sky-500/40">
                   {meta.time}
                 </span>
               </div>
-              <p className="text-sm text-slate-300 font-medium mt-1">{meta.mealNote}</p>
+              <p className="text-sm text-slate-700 font-medium mt-1">{meta.mealNote}</p>
             </div>
           </div>
 
@@ -150,7 +150,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
             className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs border transition-all ${
               isPlayingAudio
                 ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                : 'bg-slate-100 hover:bg-slate-100 text-slate-800 border-slate-200'
             }`}
             title="Read instructions out loud"
             aria-label="Read instructions out loud"
@@ -162,22 +162,22 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
 
         {/* Big Medication List */}
         <div className="space-y-4">
-          <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">
+          <h3 className="text-xs font-black uppercase tracking-wider text-slate-600">
             Medications for this time ({pillsInSlot.length})
           </h3>
 
           {pillsInSlot.length === 0 ? (
-            <div className="p-8 text-center bg-slate-950/60 rounded-2xl border border-slate-800 text-slate-400">
+            <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-600">
               <Sparkles className="w-8 h-8 text-sky-400 mx-auto mb-2 opacity-60" />
-              <p className="text-base font-bold text-slate-200">No pills scheduled for this slot.</p>
-              <p className="text-xs text-slate-400 mt-1">Enjoy your rest!</p>
+              <p className="text-base font-bold text-slate-800">No pills scheduled for this slot.</p>
+              <p className="text-xs text-slate-600 mt-1">Enjoy your rest!</p>
             </div>
           ) : (
             <div className="space-y-3">
               {pillsInSlot.map((pill) => (
                 <div
                   key={pill.id}
-                  className="p-5 rounded-2xl bg-slate-950/90 border border-slate-750 flex items-center justify-between gap-4 shadow-md"
+                  className="p-5 rounded-2xl bg-slate-50/90 border border-slate-750 flex items-center justify-between gap-4 shadow-md"
                 >
                   <div className="flex items-center gap-4">
                     <div
@@ -189,17 +189,17 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
                     <div>
                       <h4 className="text-lg font-black text-white">{pill.name}</h4>
                       {pill.genericName && (
-                        <p className="text-xs text-slate-400">({pill.genericName})</p>
+                        <p className="text-xs text-slate-600">({pill.genericName})</p>
                       )}
                       <div className="mt-1 flex items-center gap-2 text-xs">
-                        <span className="font-mono font-bold text-sky-300 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800/60">
+                        <span className="font-mono font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
                           {pill.dosage}
                         </span>
                         {pill.withFood && (
-                          <span className="text-emerald-300 font-semibold">🍽️ With food</span>
+                          <span className="text-emerald-700 font-semibold">🍽️ With food</span>
                         )}
                         {pill.emptyStomach && (
-                          <span className="text-amber-300 font-semibold">🥣 On empty stomach</span>
+                          <span className="text-amber-700 font-semibold">🥣 On empty stomach</span>
                         )}
                       </div>
                     </div>
@@ -242,7 +242,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
       <div className="text-center">
         <button
           onClick={onSwitchToFullView}
-          className="text-xs text-slate-400 hover:text-sky-300 font-semibold transition-colors underline underline-offset-4"
+          className="text-xs text-slate-600 hover:text-sky-700 font-semibold transition-colors underline underline-offset-4"
         >
           Switch to Full 7x4 Interactive Pillbox Grid
         </button>

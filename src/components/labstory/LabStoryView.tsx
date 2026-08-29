@@ -215,19 +215,19 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   return (
     <div className={`space-y-6 max-w-7xl mx-auto ${className}`}>
       {/* Top Header & Quick Actions */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
             <Activity className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-white tracking-tight">Lab Results</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">Lab Results</h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 font-bold border border-sky-200">
                 Trends over time
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600">
               See your blood tests over time — what’s normal, what’s changed, and how your medicines affect them.
             </p>
           </div>
@@ -245,7 +245,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
           <button
             onClick={() => setIsManualAddOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors"
           >
             <Plus className="w-4 h-4 text-sky-400" />
             <span>Add Result Manually</span>
@@ -253,7 +253,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
           <button
             onClick={loadLabs}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-600 hover:text-slate-800 border border-slate-200 transition-colors"
             title="Refresh Timeline"
           >
             <RefreshCw className="w-4 h-4" />
@@ -262,7 +262,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       </div>
 
       {/* Biomarker Selector Scrollbar / Pills */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 shadow-md">
+      <div className="bg-white/90 border border-slate-200 rounded-2xl p-2.5 shadow-md">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
           {availableMarkers.map((m) => {
             const isSelected = selectedMarker.toLowerCase() === m.marker.toLowerCase();
@@ -275,8 +275,8 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                 }}
                 className={`flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
                   isSelected
-                    ? 'bg-sky-500/20 text-sky-300 border-sky-500/50 shadow-sm'
-                    : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-slate-800/80'
+                    ? 'bg-sky-500/20 text-sky-700 border-sky-500/50 shadow-sm'
+                    : 'bg-white text-slate-600 hover:text-slate-800 hover:bg-slate-100 border-slate-200'
                 }`}
               >
                 <span
@@ -292,7 +292,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                 />
                 <span>{m.marker}</span>
                 {m.latestValue !== null && (
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-black/40 text-slate-300">
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-black/40 text-slate-700">
                     {m.latestValue} {m.unit}
                   </span>
                 )}
@@ -304,15 +304,15 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
       {/* Friendly empty when no labs yet */}
       {labs.length === 0 ? (
-        <div className="bg-slate-900/60 border border-dashed border-slate-700 rounded-3xl p-10 text-center space-y-3">
+        <div className="bg-white border border-dashed border-slate-200 rounded-3xl p-10 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center mx-auto">
             <Activity className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-100">No lab results yet</h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">Upload past results or add one manually — your chart will appear here and update your other sections automatically.</p>
+          <h3 className="text-base font-bold text-slate-900">No lab results yet</h3>
+          <p className="text-xs text-slate-600 max-w-md mx-auto">Upload past results or add one manually — your chart will appear here and update your other sections automatically.</p>
           <div className="flex items-center justify-center gap-2">
             <button onClick={() => setIsDropzoneOpen(true)} className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold">Add Past Results</button>
-            <button onClick={() => setIsManualAddOpen(true)} className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold">Add Manually</button>
+            <button onClick={() => setIsManualAddOpen(true)} className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold">Add Manually</button>
           </div>
         </div>
       ) : null}
@@ -349,15 +349,15 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       )}
 
       {/* Tabular Longitudinal Results History */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <div className="flex items-center gap-2">
             <Database className="w-4 h-4 text-sky-400" />
-            <h3 className="text-sm font-bold text-slate-100">
+            <h3 className="text-sm font-bold text-slate-900">
               Longitudinal Lab History: {selectedMarker} ({activeMarkerLabs.length} records)
             </h3>
           </div>
-          <span className="text-[11px] text-slate-400">
+          <span className="text-[11px] text-slate-600">
             Stored locally in IndexedDB LocalVault (100% Private)
           </span>
         </div>
@@ -365,7 +365,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400">
+              <tr className="border-b border-slate-200 text-slate-600">
                 <th className="py-2.5 px-3 font-semibold">Draw Date</th>
                 <th className="py-2.5 px-3 font-semibold">Measured Value</th>
                 <th className="py-2.5 px-3 font-semibold">Normalized Value</th>
@@ -374,14 +374,14 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                 <th className="py-2.5 px-3 font-semibold">Doctor Pinned Note</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300 font-medium">
+            <tbody className="divide-y divide-slate-800/60 text-slate-700 font-medium">
               {[...activeMarkerLabs]
                 .sort((a, b) => new Date(b.drawDate).getTime() - new Date(a.drawDate).getTime())
                 .map((r) => {
                   const docComment = r.doctorComment || r.doctorComments?.[0];
                   return (
-                    <tr key={r.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-2.5 px-3 whitespace-nowrap text-slate-200">
+                    <tr key={r.id} className="hover:bg-slate-100/30 transition-colors">
+                      <td className="py-2.5 px-3 whitespace-nowrap text-slate-800">
                         {new Date(r.drawDate).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -391,20 +391,20 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                       <td className="py-2.5 px-3 font-mono">
                         {r.value} {r.unit}
                       </td>
-                      <td className="py-2.5 px-3 font-mono font-bold text-white">
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
                         {r.normalizedValue} {r.normalizedUnit}
                       </td>
-                      <td className="py-2.5 px-3 text-slate-400">
+                      <td className="py-2.5 px-3 text-slate-600">
                         {r.referenceRange.low} – {r.referenceRange.high} {r.normalizedUnit}
                       </td>
                       <td className="py-2.5 px-3">
                         <span
                           className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
                             r.isCritical
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                              ? 'bg-rose-500/20 text-rose-700 border border-rose-200'
                               : r.isBorderline
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              ? 'bg-amber-500/20 text-amber-700 border border-amber-200'
+                              : 'bg-emerald-500/20 text-emerald-700 border border-emerald-200'
                           }`}
                         >
                           {r.flag || (r.isBorderline ? 'BORDERLINE' : 'NORMAL')}
@@ -431,21 +431,21 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       {/* Modal: Multi-Doc Timeline Ingestion (LS1) */}
       {isDropzoneOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2 text-sky-400 font-bold text-base">
                 <UploadCloud className="w-5 h-5" />
                 <span>Multi-Year Lab Drop & Ingestion (LS1)</span>
               </div>
               <button
                 onClick={() => setIsDropzoneOpen(false)}
-                className="text-slate-400 hover:text-slate-200"
+                className="text-slate-600 hover:text-slate-800"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 leading-relaxed">
               Upload multi-year laboratory PDF packets, smartphone photo result slips, or select a pre-verified longitudinal cohort to auto-normalize units and place points on the timeline.
             </p>
 
@@ -453,40 +453,40 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               <button
                 onClick={() => handleIngestDataset('shanti')}
                 disabled={isLoading}
-                className="w-full text-left p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-sky-500/40 transition-all flex items-center justify-between group"
+                className="w-full text-left p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-sky-500/40 transition-all flex items-center justify-between group"
               >
                 <div>
-                  <div className="text-xs font-bold text-white group-hover:text-sky-300">
+                  <div className="text-xs font-bold text-white group-hover:text-sky-700">
                     Shanti Devi 5-Year Longitudinal History (2022–2026)
                   </div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-[11px] text-slate-600">
                     Includes CKD 3b, Metformin initiation, Prednisone burst spike, and Atorvastatin titration.
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-sky-400" />
+                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-sky-400" />
               </button>
 
               <button
                 onClick={() => handleIngestDataset('jenkins')}
                 disabled={isLoading}
-                className="w-full text-left p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-sky-500/40 transition-all flex items-center justify-between group"
+                className="w-full text-left p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-sky-500/40 transition-all flex items-center justify-between group"
               >
                 <div>
-                  <div className="text-xs font-bold text-white group-hover:text-sky-300">
+                  <div className="text-xs font-bold text-white group-hover:text-sky-700">
                     Harold Jenkins Renal AKI & Diabetes Panel
                   </div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-[11px] text-slate-600">
                     Features acute eGFR decline to 28 mL/min post-discharge and Ketorolac gout course.
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-sky-400" />
+                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-sky-400" />
               </button>
             </div>
 
-            <div className="border-t border-slate-800 pt-3 flex justify-end gap-2 text-xs">
+            <div className="border-t border-slate-200 pt-3 flex justify-end gap-2 text-xs">
               <button
                 onClick={() => setIsDropzoneOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 font-semibold"
               >
                 Cancel
               </button>
@@ -500,9 +500,9 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <form
             onSubmit={handleManualAddSubmit}
-            className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl text-xs"
+            className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl text-xs"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">
                 <Plus className="w-4 h-4" />
                 <span>Add Lab Result Point</span>
@@ -510,7 +510,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsManualAddOpen(false)}
-                className="text-slate-400 hover:text-slate-200"
+                className="text-slate-600 hover:text-slate-800"
               >
                 ✕
               </button>
@@ -518,11 +518,11 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
             <div className="space-y-3">
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Biomarker Name</label>
+                <label className="block text-slate-600 mb-1 font-semibold">Biomarker Name</label>
                 <select
                   value={manualMarker}
                   onChange={(e) => setManualMarker(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
                 >
                   <option value="Creatinine">Creatinine (mg/dL)</option>
                   <option value="eGFR">eGFR (mL/min/1.73m2)</option>
@@ -538,45 +538,45 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">Numeric Value</label>
+                  <label className="block text-slate-600 mb-1 font-semibold">Numeric Value</label>
                   <input
                     type="number"
                     step="any"
                     value={manualValue}
                     onChange={(e) => setManualValue(e.target.value)}
                     required
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">Units</label>
+                  <label className="block text-slate-600 mb-1 font-semibold">Units</label>
                   <input
                     type="text"
                     value={manualUnit}
                     onChange={(e) => setManualUnit(e.target.value)}
                     required
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Draw Date</label>
+                <label className="block text-slate-600 mb-1 font-semibold">Draw Date</label>
                 <input
                   type="date"
                   value={manualDate}
                   onChange={(e) => setManualDate(e.target.value)}
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
                 />
               </div>
             </div>
 
-            <div className="border-t border-slate-800 pt-3 flex justify-end gap-2">
+            <div className="border-t border-slate-200 pt-3 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsManualAddOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 font-semibold"
               >
                 Cancel
               </button>

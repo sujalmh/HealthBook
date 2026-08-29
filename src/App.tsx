@@ -136,62 +136,63 @@ export const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased">
-      {/* Top Application Bar */}
-      <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased overflow-x-hidden">
+      {/* Top Application Bar — light, high contrast, mobile-safe */}
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-6 py-3 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo & Subtitle */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-600 to-indigo-600 flex items-center justify-center shadow-md shadow-sky-500/20 shrink-0">
               <HeartPulse className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-black tracking-tight text-white">CareCanvas</h1>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base font-black tracking-tight text-slate-900">CareCanvas</h1>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 hidden sm:inline-flex">
                   Private & Secure
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">Your health, all in one place — everything connects</p>
+              <p className="text-[11px] text-slate-600 hidden sm:block">Your health, all in one place — everything connects</p>
             </div>
           </div>
 
-          {/* Center Privacy Badge */}
-          <div className="hidden md:flex items-center">
+          {/* Center Privacy Badge — hidden on mobile to save space */}
+          <div className="hidden lg:flex items-center shrink-0">
             <PrivacyBadge patientId={activeProfile.userId} />
           </div>
 
           {/* Right Action Bar: Profile Switcher, Question Bank, Inspector */}
-          <div className="flex items-center gap-3">
-            {/* Caregiver Proxy Switcher */}
-            <div className="flex items-center bg-slate-950 rounded-xl p-1 border border-slate-800 text-xs">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Caregiver Proxy Switcher — collapses to icons on tiny screens */}
+            <div className="flex items-center bg-white rounded-xl p-1 border border-slate-200 shadow-sm text-xs">
               <button
                 onClick={() => handleSwitchProfile('patient')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                  !activeProfile.isProxy ? 'bg-sky-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'
+                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                  !activeProfile.isProxy ? 'bg-sky-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                S. Devi (Patient)
+                <span className="hidden sm:inline">S. Devi</span><span className="sm:hidden">S.D</span>
               </button>
               <button
                 onClick={() => handleSwitchProfile('caregiver')}
-                className={`px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                  activeProfile.isProxy ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-slate-200'
+                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                  activeProfile.isProxy ? 'bg-indigo-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                Raj (Caregiver)
+                <span className="hidden sm:inline">Raj</span><span className="sm:hidden">Raj</span>
               </button>
             </div>
 
             {/* Question Bank Button */}
             <button
               onClick={() => setIsQuestionBankOpen(true)}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
+              className="relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 shadow-sm transition-colors"
+              aria-label="Questions"
             >
-              <HelpCircle className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">Questions</span>
+              <HelpCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="hidden md:inline">Questions</span>
               {questionCount > 0 && (
-                <span className="bg-amber-500 text-slate-950 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="bg-amber-500 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shrink-0">
                   {questionCount}
                 </span>
               )}
@@ -200,13 +201,14 @@ export const App: React.FC = () => {
             {/* Activity Log Toggle */}
             <button
               onClick={() => setIsInspectorOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-xs font-bold border border-sky-500/40 transition-colors shadow-sm"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold border border-sky-200 transition-colors shadow-sm"
               title="See what's happening behind the scenes"
+              aria-label="Activity"
             >
-              <Terminal className="w-4 h-4 text-sky-400" />
-              <span className="hidden sm:inline">Activity</span>
+              <Terminal className="w-4 h-4 text-sky-600 shrink-0" />
+              <span className="hidden md:inline">Activity</span>
               {pendingCount > 0 && (
-                <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold animate-pulse">
+                <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-pulse shrink-0">
                   {pendingCount}
                 </span>
               )}
@@ -215,9 +217,9 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Module Navigation Tabs */}
-      <div className="bg-slate-900/60 border-b border-slate-800/80 px-6">
-        <div className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto py-2">
+      {/* Module Navigation Tabs — light, scrollable on mobile with edge fades, no overflow */}
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 shadow-sm overflow-hidden">
+        <div className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto py-2 scrollbar-none -mx-1 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeModule === item.id;
@@ -225,16 +227,16 @@ export const App: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveModule(item.id as ActiveModule)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
+                    ? 'bg-sky-50 text-sky-700 border border-sky-200 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-sky-400' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-sky-600' : 'text-slate-500'}`} />
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="bg-amber-500/90 text-slate-950 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                  <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0">
                     {item.badge}
                   </span>
                 )}
@@ -244,8 +246,8 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Area — cohesive shell: all 8 modules mounted, hidden via CSS to preserve per-module state & scroll */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+      {/* Main Content Area — light, max-w, mobile padding, no horizontal overflow */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 overflow-x-hidden">
         {/* MODULE 0: APPROVED FACT VAULT */}
         <div className={activeModule === 'vault' ? 'block space-y-6' : 'hidden'}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

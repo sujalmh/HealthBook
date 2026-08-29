@@ -158,21 +158,21 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
               <Camera className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-100">Upload Remote Lab Slip</h3>
-              <p className="text-xs text-slate-400">On-device OCR extraction with human verification</p>
+              <h3 className="text-base font-bold text-slate-900">Upload Remote Lab Slip</h3>
+              <p className="text-xs text-slate-600">On-device OCR extraction with human verification</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-600 hover:text-slate-800 flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -183,15 +183,15 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           {!isExtracted ? (
             <div className="space-y-4">
               {/* Dropzone Area */}
-              <div className="border-2 border-dashed border-slate-700 hover:border-sky-500/60 rounded-3xl p-8 text-center bg-slate-950/40 transition-all space-y-4">
-                <div className="w-16 h-16 rounded-3xl bg-slate-800 text-sky-400 flex items-center justify-center mx-auto shadow-inner">
+              <div className="border-2 border-dashed border-slate-200 hover:border-sky-500/60 rounded-3xl p-8 text-center bg-slate-50 transition-all space-y-4">
+                <div className="w-16 h-16 rounded-3xl bg-slate-100 text-sky-400 flex items-center justify-center mx-auto shadow-inner">
                   <UploadCloud className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-slate-200">
+                  <h4 className="text-sm font-bold text-slate-800">
                     Capture Smartphone Photo or Select Slip PDF
                   </h4>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  <p className="text-xs text-slate-600 max-w-sm mx-auto">
                     Supported formats: Smartphone JPG, PNG, or Clinic Portal PDF slip.
                   </p>
                 </div>
@@ -209,7 +209,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                   <button
                     onClick={() => handleSimulateUpload('pdf_report')}
                     disabled={isProcessing}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-bold border border-slate-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 disabled:opacity-50 text-slate-800 text-xs font-bold border border-slate-200 transition-colors"
                   >
                     <FileText className="w-4 h-4" />
                     <span>Standard PDF Slip</span>
@@ -218,10 +218,10 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
               </div>
 
               {/* Privacy Notice */}
-              <div className="flex items-start gap-2.5 bg-slate-950/60 rounded-2xl p-4 border border-slate-800/80 text-xs text-slate-400">
+              <div className="flex items-start gap-2.5 bg-white rounded-2xl p-4 border border-slate-200 text-xs text-slate-600">
                 <Shield className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                 <span>
-                  <strong className="text-slate-200">🔒 100% On-Device OCR:</strong> Image processing and text parsing
+                  <strong className="text-slate-800">🔒 100% On-Device OCR:</strong> Image processing and text parsing
                   occur entirely within your local browser sandbox. No protected health information (PHI) is ever
                   transmitted to the cloud.
                 </span>
@@ -230,29 +230,29 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           ) : (
             <div className="space-y-6">
               {/* Slip Source Document Bounding Box Snippet */}
-              <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 space-y-3">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <span className="font-bold text-slate-700 flex items-center gap-1.5">
                     <FileText className="w-4 h-4 text-sky-400" />
                     Source: Metropolis Healthcare Remote Collection Slip
                   </span>
                   <span className="text-emerald-400 font-mono text-[11px]">OCR Confidence: 96%</span>
                 </div>
 
-                <div className="bg-slate-900 rounded-xl p-3 text-xs font-mono text-slate-300 border border-slate-800 space-y-1">
-                  <div className="text-slate-400">SERUM CREATININE: 1.90 mg/dL (Ref: 0.60 - 1.20) [HIGH]</div>
+                <div className="bg-white rounded-xl p-3 text-xs font-mono text-slate-700 border border-slate-200 space-y-1">
+                  <div className="text-slate-600">SERUM CREATININE: 1.90 mg/dL (Ref: 0.60 - 1.20) [HIGH]</div>
                   <div className="text-rose-400 font-bold">eGFR (CKD-EPI 2021): 28 mL/min/1.73m2 (Ref: &gt; 60) [CRITICAL LOW]</div>
-                  <div className="text-slate-400">SERUM POTASSIUM: 4.8 mEq/L (Ref: 3.5 - 5.1) [NORMAL]</div>
+                  <div className="text-slate-600">SERUM POTASSIUM: 4.8 mEq/L (Ref: 3.5 - 5.1) [NORMAL]</div>
                 </div>
               </div>
 
               {/* Plain Language Narration Triad (F0.1) */}
-              <div className="bg-sky-950/30 border border-sky-500/30 rounded-2xl p-4 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-sky-300">
+              <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-sky-700">
                   <Sparkles className="w-4 h-4 text-sky-400" />
                   Plain-Language Narrative Synthesis
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-700 leading-relaxed">
                   {plainNarration}
                 </p>
               </div>
@@ -260,12 +260,12 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
               {/* Extracted Markers Breakdown */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                     Extracted Biomarkers
                   </h4>
                   <button
                     onClick={() => setIsEditing(!isEditing)}
-                    className="flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 font-semibold"
+                    className="flex items-center gap-1 text-xs text-sky-400 hover:text-sky-700 font-semibold"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>{isEditing ? 'Cancel Edit' : 'Edit Values'}</span>
@@ -274,18 +274,18 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
 
                 {!isEditing ? (
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-slate-950 rounded-2xl p-3 border border-slate-800 space-y-1">
-                      <span className="text-[11px] text-slate-400">Creatinine</span>
+                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 space-y-1">
+                      <span className="text-[11px] text-slate-600">Creatinine</span>
                       <div className="text-base font-black text-amber-400">{editForm.creatinine} mg/dL</div>
                       <span className="text-[10px] font-bold text-amber-500">HIGH</span>
                     </div>
-                    <div className="bg-slate-950 rounded-2xl p-3 border border-rose-500/30 space-y-1">
-                      <span className="text-[11px] text-slate-400">eGFR</span>
+                    <div className="bg-slate-50 rounded-2xl p-3 border border-rose-500/30 space-y-1">
+                      <span className="text-[11px] text-slate-600">eGFR</span>
                       <div className="text-base font-black text-rose-400">{editForm.egfr} mL/min</div>
                       <span className="text-[10px] font-bold text-rose-500">STAGE 4 STRAIN</span>
                     </div>
-                    <div className="bg-slate-950 rounded-2xl p-3 border border-slate-800 space-y-1">
-                      <span className="text-[11px] text-slate-400">Potassium</span>
+                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200 space-y-1">
+                      <span className="text-[11px] text-slate-600">Potassium</span>
                       <div className="text-base font-black text-emerald-400">{editForm.potassium} mEq/L</div>
                       <span className="text-[10px] font-bold text-emerald-500">NORMAL</span>
                     </div>
@@ -293,30 +293,30 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                 ) : (
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[11px] text-slate-400">Creatinine (mg/dL)</label>
+                      <label className="text-[11px] text-slate-600">Creatinine (mg/dL)</label>
                       <input
                         type="text"
                         value={editForm.creatinine}
                         onChange={(e) => setEditForm({ ...editForm, creatinine: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-bold"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] text-slate-400">eGFR (mL/min)</label>
+                      <label className="text-[11px] text-slate-600">eGFR (mL/min)</label>
                       <input
                         type="text"
                         value={editForm.egfr}
                         onChange={(e) => setEditForm({ ...editForm, egfr: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-bold"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[11px] text-slate-400">Potassium (mEq/L)</label>
+                      <label className="text-[11px] text-slate-600">Potassium (mEq/L)</label>
                       <input
                         type="text"
                         value={editForm.potassium}
                         onChange={(e) => setEditForm({ ...editForm, potassium: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-100 font-bold"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-bold"
                       />
                     </div>
                   </div>
@@ -327,10 +327,10 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
         </div>
 
         {/* Modal Footer / Action Gate */}
-        <div className="px-6 py-4 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3">
+        <div className="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors"
           >
             Cancel
           </button>

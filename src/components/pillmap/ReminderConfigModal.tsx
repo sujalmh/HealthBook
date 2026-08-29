@@ -42,15 +42,15 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden animate-scale-up">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden animate-scale-up">
         {/* Header */}
-        <div className="p-5 bg-gradient-to-r from-sky-950/80 to-indigo-950/80 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-5 bg-gradient-to-r from-sky-950/80 to-indigo-950/80 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400">
               <Bell className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white tracking-tight">
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">
                 Daily Medication Reminders
               </h2>
               <p className="text-[11px] text-sky-400">Time-Slot Batch Notifications</p>
@@ -58,7 +58,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+            className="p-1 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900"
             aria-label="Close modal"
           >
             <X className="w-4 h-4" />
@@ -66,83 +66,83 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSave} className="p-6 space-y-4 text-xs text-slate-200">
-          <p className="text-slate-400 text-xs">
+        <form onSubmit={handleSave} className="p-6 space-y-4 text-xs text-slate-800">
+          <p className="text-slate-600 text-xs">
             Batch reminders send a single consolidated alert for all medications in each time window, avoiding alert fatigue.
           </p>
 
           <div className="space-y-3">
             {/* Morning */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950/80 border border-slate-800">
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
               <div className="flex items-center gap-2.5">
                 <Sun className="w-4 h-4 text-amber-400" />
-                <span className="font-bold text-slate-200">Morning Dose</span>
+                <span className="font-bold text-slate-800">Morning Dose</span>
               </div>
               <input
                 type="time"
                 value={morningTime}
                 onChange={(e) => setMorningTime(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 font-mono text-xs text-white focus:outline-none focus:border-sky-500"
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-mono text-xs text-slate-900 focus:outline-none focus:border-sky-500"
               />
             </div>
 
             {/* Noon */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950/80 border border-slate-800">
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
               <div className="flex items-center gap-2.5">
                 <CloudSun className="w-4 h-4 text-sky-400" />
-                <span className="font-bold text-slate-200">Noon Dose</span>
+                <span className="font-bold text-slate-800">Noon Dose</span>
               </div>
               <input
                 type="time"
                 value={noonTime}
                 onChange={(e) => setNoonTime(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 font-mono text-xs text-white focus:outline-none focus:border-sky-500"
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-mono text-xs text-slate-900 focus:outline-none focus:border-sky-500"
               />
             </div>
 
             {/* Evening */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950/80 border border-slate-800">
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
               <div className="flex items-center gap-2.5">
                 <Sunset className="w-4 h-4 text-orange-400" />
-                <span className="font-bold text-slate-200">Evening Dose</span>
+                <span className="font-bold text-slate-800">Evening Dose</span>
               </div>
               <input
                 type="time"
                 value={eveningTime}
                 onChange={(e) => setEveningTime(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 font-mono text-xs text-white focus:outline-none focus:border-sky-500"
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-mono text-xs text-slate-900 focus:outline-none focus:border-sky-500"
               />
             </div>
 
             {/* Bedtime */}
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-950/80 border border-slate-800">
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
               <div className="flex items-center gap-2.5">
                 <Moon className="w-4 h-4 text-indigo-400" />
-                <span className="font-bold text-slate-200">Bedtime Dose</span>
+                <span className="font-bold text-slate-800">Bedtime Dose</span>
               </div>
               <input
                 type="time"
                 value={bedtimeTime}
                 onChange={(e) => setBedtimeTime(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 font-mono text-xs text-white focus:outline-none focus:border-sky-500"
+                className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 font-mono text-xs text-slate-900 focus:outline-none focus:border-sky-500"
               />
             </div>
           </div>
 
           {/* Success Banner */}
           {isSaved && (
-            <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-700 text-emerald-200 flex items-center gap-2 text-xs font-bold animate-fade-in">
+            <div className="p-3 rounded-xl bg-emerald-100 border border-emerald-700 text-emerald-700 flex items-center gap-2 text-xs font-bold animate-fade-in">
               <Check className="w-4 h-4 text-emerald-400" />
               <span>Reminders Saved to Calendar & Vault!</span>
             </div>
           )}
 
           {/* Actions */}
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+          <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 font-semibold text-xs"
+              className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold text-xs"
             >
               Cancel
             </button>

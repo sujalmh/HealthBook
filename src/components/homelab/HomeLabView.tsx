@@ -105,38 +105,38 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Top Banner & Mode Toggle */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 shadow-inner">
             <HeartPulse className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-100 tracking-tight">Tests to Do</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">Tests to Do</h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-700 font-bold border border-rose-500/30">
                 From your doctor
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600">
               Tests your doctor asked you to do at home — upload a photo and see dose changes.
             </p>
           </div>
         </div>
 
         {/* View Mode Tabs: Patient Remote Loop vs Doctor Review */}
-        <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800 self-start md:self-auto">
+        <div className="flex items-center bg-slate-50 p-1 rounded-2xl border border-slate-200 self-start md:self-auto">
           <button
             onClick={() => setActiveTab('patient_loop')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'patient_loop'
                 ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-600 hover:text-slate-800'
             }`}
           >
             <Calendar className="w-4 h-4" />
             <span>My Tasks</span>
             {activeDueCards.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-sky-400/30 text-sky-200 text-[10px] font-mono">
+              <span className="px-1.5 py-0.2 rounded-full bg-sky-400/30 text-sky-700 text-[10px] font-mono">
                 {activeDueCards.length}
               </span>
             )}
@@ -147,13 +147,13 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeTab === 'doctor_inbox'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-600 hover:text-slate-800'
             }`}
           >
             <Stethoscope className="w-4 h-4" />
             <span>Doctor's View</span>
             {pendingProposals.length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-400/30 text-amber-200 text-[10px] font-mono">
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-400/30 text-amber-700 text-[10px] font-mono">
                 {pendingProposals.length}
               </span>
             )}
@@ -165,7 +165,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
       {activeTab === 'patient_loop' ? (
         <div className="space-y-6">
           {/* Section 1: Prescribed Due Cards */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
             <DueCardList
               dueCards={dueCards}
               onUploadClick={handleOpenUpload}
@@ -178,20 +178,20 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <HeartPulse className="w-5 h-5 text-rose-400" />
-                <h3 className="text-base font-bold text-slate-100">Dose Changes From Your Doctor</h3>
+                <h3 className="text-base font-bold text-slate-900">Dose Changes From Your Doctor</h3>
               </div>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-600">
                 {pendingProposals.length} waiting for your okay
               </span>
             </div>
 
             {proposals.length === 0 ? (
-              <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8 text-center space-y-2">
+              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 text-center space-y-2">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
-                <p className="text-xs font-bold text-slate-200">You're all caught up!</p>
-                <p className="text-xs text-slate-400">No dose changes right now.</p>
+                <p className="text-xs font-bold text-slate-800">You're all caught up!</p>
+                <p className="text-xs text-slate-600">No dose changes right now.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">

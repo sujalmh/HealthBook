@@ -76,11 +76,11 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-indigo-400" />
-          <h3 className="text-sm font-bold text-slate-100">
+          <h3 className="text-sm font-bold text-slate-900">
             Multi-Patient Caregiver Command Center (G6)
           </h3>
         </div>
-        <span className="text-xs text-slate-400">3 Linked Family Profiles</span>
+        <span className="text-xs text-slate-600">3 Linked Family Profiles</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -94,24 +94,24 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
               onClick={() => onSelectPatient(p.id)}
               className={`cursor-pointer rounded-3xl border p-5 transition-all shadow-xl hover:scale-[1.01] space-y-4 ${
                 isCritical
-                  ? 'bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 border-rose-500/40 shadow-rose-500/5'
+                  ? 'bg-gradient-to-br from-rose-950/40 via-slate-50 to-white border-rose-200 shadow-rose-100'
                   : isAttention
-                  ? 'bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900 border-amber-500/40 shadow-amber-500/5'
-                  : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                  ? 'bg-gradient-to-br from-amber-50 via-slate-50 to-white border-amber-200 shadow-amber-100'
+                  : 'bg-white border-slate-200 hover:border-slate-200'
               }`}
             >
               {/* Card Header */}
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-base font-bold text-slate-100">{p.name}</h4>
-                    <span className="text-xs text-slate-400">({p.relationship}, {p.age})</span>
+                    <h4 className="text-base font-bold text-slate-900">{p.name}</h4>
+                    <span className="text-xs text-slate-600">({p.relationship}, {p.age})</span>
                   </div>
                   <div className="flex flex-wrap gap-1 pt-1">
                     {p.conditions.map((c) => (
                       <span
                         key={c}
-                        className="text-[10px] font-medium px-2 py-0.2 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60"
+                        className="text-[10px] font-medium px-2 py-0.2 rounded-md bg-slate-100 text-slate-700 border border-slate-200/60"
                       >
                         {c}
                       </span>
@@ -122,10 +122,10 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase ${
                     isCritical
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                      ? 'bg-rose-500/20 text-rose-700 border-rose-200 animate-pulse'
                       : isAttention
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                      ? 'bg-amber-500/20 text-amber-700 border-amber-200'
+                      : 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
                   }`}
                 >
                   {p.status.replace('_', ' ')}
@@ -134,33 +134,33 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
 
               {/* Status Grid */}
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
-                  <div className="text-[10px] text-slate-500 font-semibold">Danger Alerts</div>
+                <div className="bg-slate-50 rounded-xl p-2 border border-slate-200">
+                  <div className="text-[10px] text-slate-600 font-semibold">Danger Alerts</div>
                   <div
                     className={`text-sm font-bold ${
-                      p.activeDangerAlertsCount > 0 ? 'text-rose-400 font-black' : 'text-slate-400'
+                      p.activeDangerAlertsCount > 0 ? 'text-rose-400 font-black' : 'text-slate-600'
                     }`}
                   >
                     {p.activeDangerAlertsCount}
                   </div>
                 </div>
 
-                <div className="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
-                  <div className="text-[10px] text-slate-500 font-semibold">Due Labs</div>
+                <div className="bg-slate-50 rounded-xl p-2 border border-slate-200">
+                  <div className="text-[10px] text-slate-600 font-semibold">Due Labs</div>
                   <div
                     className={`text-sm font-bold ${
-                      p.dueLabsCount > 0 ? 'text-amber-400 font-black' : 'text-slate-400'
+                      p.dueLabsCount > 0 ? 'text-amber-400 font-black' : 'text-slate-600'
                     }`}
                   >
                     {p.dueLabsCount}
                   </div>
                 </div>
 
-                <div className="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
-                  <div className="text-[10px] text-slate-500 font-semibold">Proposals</div>
+                <div className="bg-slate-50 rounded-xl p-2 border border-slate-200">
+                  <div className="text-[10px] text-slate-600 font-semibold">Proposals</div>
                   <div
                     className={`text-sm font-bold ${
-                      p.pendingProposalsCount > 0 ? 'text-sky-400 font-black' : 'text-slate-400'
+                      p.pendingProposalsCount > 0 ? 'text-sky-400 font-black' : 'text-slate-600'
                     }`}
                   >
                     {p.pendingProposalsCount}
@@ -169,12 +169,12 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
               </div>
 
               {/* Next Scheduled Milestone */}
-              <div className="bg-slate-950/50 rounded-xl p-2.5 border border-slate-800/80 flex items-center justify-between text-xs text-slate-300">
+              <div className="bg-slate-50/50 rounded-xl p-2.5 border border-slate-200 flex items-center justify-between text-xs text-slate-700">
                 <span className="flex items-center gap-1.5 truncate">
                   <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                   <span className="truncate">{p.nextEvent}</span>
                 </span>
-                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-slate-600 shrink-0" />
               </div>
             </div>
           );

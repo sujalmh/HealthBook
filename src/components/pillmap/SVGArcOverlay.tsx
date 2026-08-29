@@ -246,15 +246,15 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
       {/* Slide-over / Modal Clinical Mechanism Sheet */}
       {selectedArc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scale-up">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scale-up">
             {/* Header */}
             <div
               className={`p-4 border-b flex items-center justify-between ${
                 selectedArc.severity === 'CONTRAINDICATED'
-                  ? 'bg-rose-950/60 border-rose-800/80 text-rose-200'
+                  ? 'bg-rose-100 border-rose-200 text-rose-700'
                   : selectedArc.severity === 'MAJOR'
-                  ? 'bg-amber-950/60 border-amber-800/80 text-amber-200'
-                  : 'bg-yellow-950/60 border-yellow-800/80 text-yellow-200'
+                  ? 'bg-amber-100 border-amber-200 text-amber-700'
+                  : 'bg-yellow-50 border-yellow-800/80 text-yellow-700'
               }`}
             >
               <div className="flex items-center gap-2.5">
@@ -286,17 +286,17 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4 text-slate-200 text-sm">
-              <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-1">
-                <span className="text-[11px] font-bold tracking-wide uppercase text-slate-400">
+            <div className="p-6 space-y-4 text-slate-800 text-sm">
+              <div className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200 space-y-1">
+                <span className="text-[11px] font-bold tracking-wide uppercase text-slate-600">
                   Clinical Mechanism
                 </span>
-                <p className="text-slate-100 leading-relaxed font-medium">
+                <p className="text-slate-900 leading-relaxed font-medium">
                   {selectedArc.mechanism}
                 </p>
               </div>
 
-              <div className="bg-sky-950/40 p-3.5 rounded-xl border border-sky-800/60 space-y-1">
+              <div className="bg-sky-50 p-3.5 rounded-xl border border-sky-200 space-y-1">
                 <span className="text-[11px] font-bold tracking-wide uppercase text-sky-400 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" /> Recommended Clinical Action
                 </span>
@@ -305,8 +305,8 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
                 </p>
               </div>
 
-              <div className="text-xs text-slate-400 flex items-center gap-2 pt-2 border-t border-slate-800">
-                <Info className="w-4 h-4 text-slate-500 shrink-0" />
+              <div className="text-xs text-slate-600 flex items-center gap-2 pt-2 border-t border-slate-200">
+                <Info className="w-4 h-4 text-slate-600 shrink-0" />
                 <span>
                   Consult your prescribing physician or pharmacist before discontinuing or changing medication timing.
                 </span>
@@ -314,10 +314,10 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setSelectedArc(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-100 text-white rounded-xl text-xs font-semibold transition-colors"
               >
                 Close Explanation
               </button>
