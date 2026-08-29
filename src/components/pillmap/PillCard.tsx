@@ -117,13 +117,8 @@ export const PillCard: React.FC<PillCardProps> = ({
           <span className="shrink-0">{renderShapeIcon()}</span>
           <div className="min-w-0">
             <h4 className="font-bold text-xs leading-tight truncate text-slate-900 tracking-tight">
-              {pill.name}
+              {pill.name} <span className="font-normal text-[10px] text-slate-600">{pill.dosage}</span>
             </h4>
-            {pill.genericName && pill.genericName.toLowerCase() !== pill.name.toLowerCase() && (
-              <p className="text-[10px] text-slate-600 truncate leading-none mt-0.5">
-                ({pill.genericName})
-              </p>
-            )}
           </div>
         </div>
 
@@ -165,17 +160,7 @@ export const PillCard: React.FC<PillCardProps> = ({
         )}
       </div>
 
-      {/* Middle Row: Strength / Dosage */}
-      <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate-700 font-semibold">
-        <span className="px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200/50">
-          {pill.dosage}
-        </span>
-        {pill.frequency && (
-          <span className="text-[10px] text-slate-600 font-normal truncate max-w-[80px]">
-            {pill.frequency}
-          </span>
-        )}
-      </div>
+      {/* Dosage already shown with name — no redundant middle row */}
 
       {/* Bottom Row: Meal & Food Badges */}
       <MealBadges

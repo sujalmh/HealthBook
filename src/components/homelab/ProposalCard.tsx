@@ -275,12 +275,10 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
         <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-200 space-y-2">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
             <Sparkles className="w-4 h-4 text-sky-400" />
-            Clinician Rationale & Explanation
+            Why
           </div>
           <p className="text-xs text-slate-700 leading-relaxed">
-            {proposal.reason ||
-              proposal.plainNarration ||
-              "Kidney filtration marker decreased on today's lab slip. Reducing dose protects renal function while maintaining glycemic stability."}
+            {proposal.reason?.split('.')[0] ? proposal.reason.split('.')[0] + '.' : proposal.plainNarration?.split('.')[0] ? proposal.plainNarration.split('.')[0] + '.' : "Kidneys at 28. Lower dose safer."}
           </p>
         </div>
       </div>

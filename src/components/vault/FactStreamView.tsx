@@ -138,7 +138,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
                   <div className="text-xs font-semibold text-slate-900 font-mono">
                     {fact.name || fact.factKey}: <span className="text-emerald-400 font-bold">{typeof fact.value === 'object' ? JSON.stringify(fact.value) : (fact.value || fact.factValue)}</span> {fact.unit}
                   </div>
-                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{fact.plainExplanation || fact.plainNarration}</p>
+                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{(fact.plainExplanation || fact.plainNarration || '').split('.')[0] ? (fact.plainExplanation || fact.plainNarration || '').split('.')[0] + '.' : ''}</p>
                 </div>
 
                 <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-600">

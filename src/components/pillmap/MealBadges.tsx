@@ -64,13 +64,13 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
   if (withFood) {
     badgesToRender.push({
       key: 'with_food',
-      label: 'With Meal',
+      label: 'With food',
       icon: '🍽️',
       bgColor: 'bg-emerald-100',
       textColor: 'text-emerald-700',
-      borderColor: 'border-emerald-700/60',
-      mechanism: 'Taking this medication with meals protects stomach lining and optimizes oral absorption.',
-      guidance: 'Take during or immediately following breakfast, lunch, or dinner with a full glass of water.',
+      borderColor: 'border-emerald-200',
+      mechanism: 'Food helps.',
+      guidance: 'Take with food.',
       severity: 'INFO'
     });
   }
@@ -78,13 +78,13 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
   if (emptyStomach) {
     badgesToRender.push({
       key: 'empty_stomach',
-      label: 'Empty Stomach',
+      label: 'Empty stomach',
       icon: '🥣',
       bgColor: 'bg-amber-100',
       textColor: 'text-amber-700',
-      borderColor: 'border-amber-700/60',
-      mechanism: 'Food, coffee, or calcium binds the active molecule and significantly impedes gastrointestinal absorption.',
-      guidance: 'Take first thing in the morning with plain water, 30 to 60 minutes before breakfast or coffee.',
+      borderColor: 'border-amber-200',
+      mechanism: 'Food blocks it.',
+      guidance: 'Take before breakfast.',
       severity: 'MAJOR'
     });
   }
@@ -92,13 +92,13 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
   if (avoidGrapefruit) {
     badgesToRender.push({
       key: 'no_grapefruit',
-      label: 'No Grapefruit',
+      label: 'No grapefruit',
       icon: '🍊',
       bgColor: 'bg-rose-100',
       textColor: 'text-rose-700',
       borderColor: 'border-rose-200',
-      mechanism: 'Grapefruit furanocoumarins inhibit CYP3A4 metabolism in the gut, dangerously spiking blood levels.',
-      guidance: 'Completely avoid grapefruit, Seville oranges, and pomelos while taking this medication.',
+      mechanism: 'Grapefruit raises levels.',
+      guidance: 'Avoid grapefruit.',
       severity: 'MAJOR'
     });
   }
@@ -106,13 +106,13 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
   if (avoidAlcohol) {
     badgesToRender.push({
       key: 'no_alcohol',
-      label: 'Avoid Alcohol',
+      label: 'No alcohol',
       icon: '🚫',
       bgColor: 'bg-rose-100',
       textColor: 'text-rose-700',
       borderColor: 'border-rose-200',
-      mechanism: 'Alcohol enhances CNS depression and may trigger acute disulfiram-like acetaldehyde toxicity.',
-      guidance: 'Do not consume alcoholic beverages during active course of treatment.',
+      mechanism: 'Alcohol is risky.',
+      guidance: 'No alcohol.',
       severity: 'CONTRAINDICATED'
     });
   }
@@ -120,13 +120,13 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
   if (avoidDairy) {
     badgesToRender.push({
       key: 'no_dairy',
-      label: 'Separate Dairy 2h',
+      label: 'No dairy 2h',
       icon: '🥛',
       bgColor: 'bg-amber-100',
       textColor: 'text-amber-700',
-      borderColor: 'border-amber-700/60',
-      mechanism: 'Calcium ions chelate with the medication forming insoluble complexes that fail to absorb.',
-      guidance: 'Take this medication at least 2 hours before or 4 hours after consuming milk, yogurt, cheese, or antacids.',
+      borderColor: 'border-amber-200',
+      mechanism: 'Calcium blocks it.',
+      guidance: 'No milk 2h before/after.',
       severity: 'MAJOR'
     });
   }
@@ -199,19 +199,9 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
               </button>
             </div>
 
-            <div className="p-5 space-y-3.5 text-xs text-slate-800">
-              <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-1">
-                <span className="font-bold uppercase tracking-wider text-[10px] text-slate-600">
-                  Why is this required?
-                </span>
-                <p className="text-slate-800 leading-relaxed">{selectedBadge.mechanism}</p>
-              </div>
-
-              <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-800/50 space-y-1">
-                <span className="font-bold uppercase tracking-wider text-[10px] text-emerald-400 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" /> What you should do
-                </span>
-                <p className="text-emerald-100 leading-relaxed">{selectedBadge.guidance}</p>
+            <div className="p-5 space-y-3 text-xs text-slate-800">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <p className="text-slate-800 leading-relaxed text-sm font-medium">{selectedBadge.guidance}</p>
               </div>
             </div>
 

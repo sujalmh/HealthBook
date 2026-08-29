@@ -50,60 +50,60 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
 
   if (marker.toLowerCase().includes('egfr')) {
     if (last.normalizedValue < 30) {
-      storySentence = `eGFR dropped from ${first.normalizedValue} to ${last.normalizedValue} ${last.normalizedUnit} between ${firstDate} and ${lastDate} (${pctChange}% change) — indicating Stage 4 kidney filtration and requiring medication dosage adjustment (e.g. Metformin halving).`;
+      storySentence = `eGFR ${last.normalizedValue} — low. Was ${first.normalizedValue}.`;
       trendIcon = <TrendingDown className="w-4 h-4 text-rose-400" />;
       badgeColor = 'bg-rose-500/20 text-rose-700 border-rose-500/30';
     } else if (delta < 0) {
-      storySentence = `eGFR declined steadily from ${first.normalizedValue} to ${last.normalizedValue} ${last.normalizedUnit} across ${count} lab draws (${firstDate}–${lastDate}), remaining closely monitored post-discharge.`;
+      storySentence = `eGFR down to ${last.normalizedValue}.`;
       trendIcon = <TrendingDown className="w-4 h-4 text-amber-400" />;
       badgeColor = 'bg-amber-500/20 text-amber-700 border-amber-200';
     } else {
-      storySentence = `eGFR maintained stable renal clearance at ${last.normalizedValue} ${last.normalizedUnit} across ${firstDate}–${lastDate}.`;
+      storySentence = `eGFR stable at ${last.normalizedValue}.`;
       trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
       badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
     }
   } else if (marker.toLowerCase().includes('creat')) {
     if (last.normalizedValue > 1.5) {
-      storySentence = `Creatinine rose from ${first.normalizedValue} to ${last.normalizedValue} ${last.normalizedUnit} (${delta > 0 ? '+' : ''}${delta}) between ${firstDate} and ${lastDate} — reflecting decreased glomerular filtration rate and potential drug interactions.`;
+      storySentence = `Creatinine high at ${last.normalizedValue}.`;
       trendIcon = <TrendingUp className="w-4 h-4 text-rose-400" />;
       badgeColor = 'bg-rose-500/20 text-rose-700 border-rose-500/30';
     } else {
-      storySentence = `Creatinine levels stable around ${last.normalizedValue} ${last.normalizedUnit} (reference: ${last.referenceRange.low}–${last.referenceRange.high} ${last.normalizedUnit}).`;
+      storySentence = `Creatinine ok at ${last.normalizedValue}.`;
       trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
       badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
     }
   } else if (marker.toLowerCase().includes('glucose') || marker.toLowerCase().includes('a1c')) {
     if (delta > 10) {
-      storySentence = `${marker} shifted from ${first.normalizedValue} to ${last.normalizedValue} ${last.normalizedUnit} (+${pctChange}%) between ${firstDate} and ${lastDate}, with spikes observed during steroid burst therapy.`;
+      storySentence = `${marker} up to ${last.normalizedValue}.`;
       trendIcon = <TrendingUp className="w-4 h-4 text-amber-400" />;
       badgeColor = 'bg-amber-500/20 text-amber-700 border-amber-200';
     } else {
-      storySentence = `${marker} remained under glycemic control at ${last.normalizedValue} ${last.normalizedUnit} following regular medication adherence.`;
+      storySentence = `${marker} steady at ${last.normalizedValue}.`;
       trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
       badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
     }
   } else if (marker.toLowerCase().includes('potassium')) {
     if (last.normalizedValue > 5.0) {
-      storySentence = `Serum Potassium elevated to ${last.normalizedValue} ${last.normalizedUnit} in ${lastDate} — borderline high; monitoring indicated with current ACE-inhibitor / diuretic regimen.`;
+      storySentence = `Potassium high at ${last.normalizedValue}.`;
       trendIcon = <AlertTriangle className="w-4 h-4 text-amber-400" />;
       badgeColor = 'bg-amber-500/20 text-amber-700 border-amber-200';
     } else {
-      storySentence = `Potassium maintained in safe physiological range at ${last.normalizedValue} ${last.normalizedUnit} (3.5–5.0 ${last.normalizedUnit}).`;
+      storySentence = `Potassium ok at ${last.normalizedValue}.`;
       trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
       badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
     }
   } else if (marker.toLowerCase().includes('ldl') || marker.toLowerCase().includes('cholesterol')) {
     if (delta < 0) {
-      storySentence = `${marker} decreased from ${first.normalizedValue} to ${last.normalizedValue} ${last.normalizedUnit} (-${Math.abs(pctChange)}%) — demonstrating effective lipid lowering on Atorvastatin therapy.`;
+      storySentence = `${marker} down to ${last.normalizedValue}.`;
       trendIcon = <TrendingDown className="w-4 h-4 text-emerald-400" />;
       badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
     } else {
-      storySentence = `${marker} evaluated at ${last.normalizedValue} ${last.normalizedUnit} over ${count} longitudinal records.`;
+      storySentence = `${marker} ${last.normalizedValue}.`;
       trendIcon = <Minus className="w-4 h-4 text-slate-600" />;
       badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
     }
   } else {
-    storySentence = `${marker} recorded at ${last.normalizedValue} ${last.normalizedUnit} on ${lastDate} (trajectory delta: ${delta > 0 ? '+' : ''}${delta} ${last.normalizedUnit} since ${firstDate}).`;
+    storySentence = `${marker} ${last.normalizedValue} ${last.normalizedUnit}.`;
     trendIcon = <Minus className="w-4 h-4 text-slate-600" />;
     badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
   }
