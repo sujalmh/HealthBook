@@ -135,54 +135,56 @@ export const App: React.FC = () => {
     { id: 'dossier', label: 'For My Doctor', icon: FolderLock },
   ];
 
-  // One pastel accent — soft indigo/lavender for light mode
-  const pastelActive = 'bg-[#EEF2FF] text-[#3B5BDB] border-[#C7D2FE] shadow-sm';
-  const pastelIconActive = 'text-[#3B5BDB]';
-  const pastelIconIdle = 'text-slate-500';
+  // Semantic primary tokens — indigo light palette (tokenized, no hard hex)
+  const pastelActive = 'bg-primary-light text-primary-text border-primary-border shadow-sm';
+  const pastelIconActive = 'text-primary-text';
+  const pastelIconIdle = 'text-muted';
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] text-slate-900 flex flex-col antialiased overflow-x-hidden">
-      {/* Top Application Bar — light gray bg, white cards, one pastel accent */}
-      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-6 py-3 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
-          {/* Logo & Subtitle */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-600 to-indigo-600 flex items-center justify-center shadow-md shadow-sky-500/20 shrink-0">
+    <div className="min-h-screen bg-canvas-bg text-slate-900 flex flex-col antialiased overflow-x-hidden">
+      {/* Top Application Bar — glass, soft shadow, tokenized */}
+      <header className="border-b border-canvas-border bg-white/95 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 py-3 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4">
+          {/* Logo & Subtitle — refined typography, token gradient */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-none">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 shrink-0 ring-1 ring-primary/10">
               <HeartPulse className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-base font-black tracking-tight text-slate-900">CareCanvas</h1>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 hidden sm:inline-flex">
+                <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border hidden sm:inline-flex items-center leading-none">
                   Private & Secure
                 </span>
               </div>
-              <p className="text-[11px] text-slate-600 hidden sm:block">Your health, all in one place — everything connects</p>
+              <p className="text-caption font-medium text-muted hidden sm:block leading-none mt-0.5">Your health, all in one place</p>
             </div>
           </div>
 
-          {/* Center Privacy Badge — hidden on mobile to save space */}
+          {/* Center Privacy Badge — hidden on mobile to save space, visible lg */}
           <div className="hidden lg:flex items-center shrink-0">
             <PrivacyBadge patientId={activeProfile.userId} />
           </div>
 
           {/* Right Action Bar: Profile Switcher, Question Bank, Inspector */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Caregiver Proxy Switcher — pastel accent for active */}
-            <div className="flex items-center bg-white rounded-xl p-1 border border-slate-200 shadow-sm text-xs">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Caregiver Proxy Switcher — refined tokenized */}
+            <div className="flex items-center bg-white rounded-xl p-1 border border-canvas-border shadow-sm text-xs">
               <button
                 onClick={() => handleSwitchProfile('patient')}
-                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                  !activeProfile.isProxy ? 'bg-[#EEF2FF] text-[#3B5BDB] font-bold border border-[#C7D2FE] shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] sm:min-h-[36px] flex items-center justify-center ${
+                  !activeProfile.isProxy ? 'bg-primary-light text-primary-text font-bold border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
+                aria-label="Switch to Shanti Devi"
               >
                 <span className="hidden sm:inline">S. Devi</span><span className="sm:hidden">S.D</span>
               </button>
               <button
                 onClick={() => handleSwitchProfile('caregiver')}
-                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                  activeProfile.isProxy ? 'bg-[#EEF2FF] text-[#3B5BDB] font-bold border border-[#C7D2FE] shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] sm:min-h-[36px] flex items-center justify-center ${
+                  activeProfile.isProxy ? 'bg-primary-light text-primary-text font-bold border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
+                aria-label="Switch to Raj proxy"
               >
                 <span className="hidden sm:inline">Raj</span><span className="sm:hidden">Raj</span>
               </button>
@@ -191,30 +193,30 @@ export const App: React.FC = () => {
             {/* Question Bank Button */}
             <button
               onClick={() => setIsQuestionBankOpen(true)}
-              className="relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 shadow-sm transition-colors"
+              className="relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-xs font-semibold border border-canvas-border shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Questions"
             >
               <HelpCircle className="w-4 h-4 text-amber-600 shrink-0" />
               <span className="hidden md:inline">Questions</span>
               {questionCount > 0 && (
-                <span className="bg-amber-500 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shrink-0">
-                  {questionCount}
+                <span className="bg-amber-500 text-white font-bold text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center shrink-0 leading-none">
+                  {questionCount > 99 ? '99+' : questionCount}
                 </span>
               )}
             </button>
 
-            {/* Activity Log Toggle — pastel */}
+            {/* Activity Log Toggle — semantic primary light, no indigo leakage */}
             <button
               onClick={() => setIsInspectorOpen(true)}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-[#EEF2FF] hover:bg-[#E0E7FF] text-[#3B5BDB] text-xs font-bold border border-[#C7D2FE] transition-colors shadow-sm"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-primary-light hover:brightness-95 text-primary-text text-xs font-bold border border-primary-border transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
               title="See what's happening behind the scenes"
               aria-label="Activity"
             >
-              <Terminal className="w-4 h-4 text-[#3B5BDB] shrink-0" />
+              <Terminal className="w-4 h-4 text-primary-text shrink-0" />
               <span className="hidden md:inline">Activity</span>
               {pendingCount > 0 && (
-                <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-pulse shrink-0">
-                  {pendingCount}
+                <span className="bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1.5 rounded-full font-bold animate-pulse shrink-0 flex items-center justify-center leading-none">
+                  {pendingCount > 99 ? '99+' : pendingCount}
                 </span>
               )}
             </button>
@@ -222,9 +224,9 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Module Navigation Tabs — desktop only (bottom nav on mobile), one pastel accent */}
-      <div className="hidden md:block bg-white border-b border-slate-200 px-4 sm:px-6 shadow-sm overflow-hidden">
-        <div className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto py-2 scrollbar-none -mx-1 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* Module Navigation Tabs — desktop only (bottom nav on mobile), pill active */}
+      <div className="hidden md:block bg-white border-b border-canvas-border px-3 sm:px-6 shadow-sm overflow-hidden">
+        <div className="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto py-2.5 scrollbar-none -mx-1 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeModule === item.id;
@@ -232,17 +234,18 @@ export const App: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveModule(item.id as ActiveModule)}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0 min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary ${
                   isActive
                     ? `${pastelActive}`
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
+                aria-current={isActive ? 'page' : undefined}
               >
                 <Icon className={`w-4 h-4 shrink-0 ${isActive ? pastelIconActive : pastelIconIdle}`} />
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0">
-                    {item.badge}
+                  <span className="bg-amber-500 text-white text-[10px] min-w-[20px] h-5 px-1.5 rounded-full font-bold shrink-0 flex items-center justify-center leading-none">
+                    {Number(item.badge) > 99 ? '99+' : item.badge}
                   </span>
                 )}
               </button>
@@ -251,8 +254,8 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Area — light gray bg, white cards, text sections */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 overflow-x-hidden pb-24 md:pb-6">
+      {/* Main Content Area — max-w-7xl, cohesive spacing, subtle transitions */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 transition-all duration-200 overflow-x-hidden">
         {/* MODULE 0: APPROVED FACT VAULT */}
         <div className={activeModule === 'vault' ? 'block space-y-6' : 'hidden'}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -309,8 +312,8 @@ export const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Bottom Navbar — mobile easy navigation, one pastel accent, light gray bg, white cards */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] z-40 safe-area-pb" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      {/* Bottom Navbar — mobile polished, safe-area, 44px targets, tokenized */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-canvas-border shadow-[0_-4px_12px_rgba(0,0,0,0.04)] z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           <div className="flex items-center gap-1 px-2 py-2 min-w-max mx-auto w-max">
             {navItems.map((item) => {
@@ -323,17 +326,18 @@ export const App: React.FC = () => {
                     setActiveModule(item.id as ActiveModule);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl text-[10px] font-bold leading-none transition-all min-w-[64px] shrink-0 ${
+                  className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl text-[10px] font-bold leading-none transition-all duration-200 min-w-[64px] min-h-[44px] shrink-0 focus-visible:ring-2 focus-visible:ring-primary ${
                     isActive
-                      ? 'bg-[#EEF2FF] text-[#3B5BDB] border border-[#C7D2FE] shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                      ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm'
+                      : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                   }`}
+                  aria-current={isActive ? 'page' : undefined}
                 >
                   <div className="relative">
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-[#3B5BDB]' : 'text-slate-500'}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-primary-text' : 'text-muted'}`} />
                     {item.badge && (
-                      <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-black border-2 border-white">
-                        {item.badge}
+                      <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-black border-2 border-white leading-none">
+                        {Number(item.badge) > 99 ? '99+' : item.badge}
                       </span>
                     )}
                   </div>
@@ -345,10 +349,10 @@ export const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Global Modals */}
+      {/* Global Modals — cohesive backdrop, responsive padding, scrollable */}
       {isQuestionBankOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-fade-in">
-          <div className="max-w-2xl w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/30 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="max-w-2xl w-full my-auto max-h-[90vh] overflow-y-auto rounded-2xl">
             <QuestionBank patientId={activeProfile.userId} onClose={() => setIsQuestionBankOpen(false)} />
           </div>
         </div>

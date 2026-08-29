@@ -77,20 +77,20 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Safety Header & Emergency Button */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Safety Header — tokenized, clinical urgency cohesive */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 shadow-inner">
+          <div className="w-12 h-12 rounded-xl bg-rose-50 text-clinical-red flex items-center justify-center border border-rose-200 shadow-sm">
             <ShieldAlert className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">Get Help</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-700 font-bold border border-rose-500/30">
+              <h2 className="text-heading-lg text-slate-900">Get Help</h2>
+              <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200">
                 Urgent
               </span>
             </div>
-            <p className="text-xs text-slate-600">
+            <p className="text-body-sm text-muted">
               Tell your care team quickly if something feels wrong — and see what happens next.
             </p>
           </div>
@@ -106,7 +106,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
             <span>I need help now</span>
           </button>
 
-          <div className="flex items-center bg-slate-50 p-1 rounded-2xl border border-slate-200">
+          <div className="flex items-center bg-canvas-muted p-1 rounded-xl border border-canvas-border">
             <button
               onClick={() => setActiveTab('patient_safety')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -141,23 +141,23 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         </div>
       </div>
 
-      {/* Active Danger Warning Banner */}
+      {/* Active Danger Warning Banner — light clinical amber/red */}
       {activeAlerts.length > 0 && (
-        <div className="bg-gradient-to-r from-rose-950/80 via-slate-50 to-white border-2 border-rose-500/50 rounded-3xl p-5 shadow-xl flex items-center justify-between gap-4">
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/40">
+            <div className="w-10 h-10 rounded-xl bg-clinical-red text-white flex items-center justify-center shrink-0 shadow-md">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-rose-700 uppercase tracking-wider">
+                <span className="text-caption text-clinical-red uppercase tracking-wider">
                   Needs attention now
                 </span>
-                <span className="px-2 py-0.2 rounded-full bg-rose-500/20 text-rose-700 text-[10px] font-bold border border-rose-200">
+                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-clinical-red text-[10px] font-bold border border-rose-200">
                   URGENT
                 </span>
               </div>
-              <p className="text-xs text-slate-800 font-semibold pt-0.5">
+              <p className="text-body-sm text-slate-800 font-semibold pt-0.5">
                 Swelling in legs and high blood pressure reported — sent to Dr. Anita Patel.
               </p>
             </div>
@@ -179,19 +179,19 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Safety Advice & Red Flags */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-                <ShieldAlert className="w-5 h-5 text-rose-400" />
-                <h3 className="text-sm font-bold text-slate-900">Immediate Escalation & First-Aid Guidance (SF1)</h3>
+            <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-canvas-border pb-3">
+                <ShieldAlert className="w-5 h-5 text-clinical-red" />
+                <h3 className="text-heading-md text-slate-900">Immediate Escalation & First-Aid Guidance</h3>
               </div>
 
               <div className="space-y-3">
-                <div className="bg-slate-50 rounded-2xl p-4 border border-rose-500/20 space-y-2">
-                  <span className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-rose-400" />
-                    When to Call 911 or Visit Nearest ER Immediately:
+                <div className="bg-rose-50 rounded-xl p-4 border border-rose-200 space-y-2">
+                  <span className="text-body-sm font-bold text-clinical-red flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-clinical-red" />
+                    When to call 911 or visit nearest ER immediately:
                   </span>
-                  <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside">
+                  <ul className="text-body-sm text-slate-700 space-y-1 list-disc list-inside">
                     <li>Crushing chest pain, tightness, or pain spreading to arm/jaw</li>
                     <li>Sudden severe difficulty breathing or gasping for air</li>
                     <li>Sudden numbness, facial drooping, or slurred speech</li>
@@ -199,12 +199,12 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
                   </ul>
                 </div>
 
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2">
-                  <span className="text-xs font-bold text-sky-700 flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-sky-400" />
-                    When to Report Danger Sign (Dr. Patel Review):
+                <div className="bg-canvas-muted rounded-xl p-4 border border-canvas-border space-y-2">
+                  <span className="text-body-sm font-bold text-accent flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-accent" />
+                    When to report danger sign (Dr. Patel review):
                   </span>
-                  <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside">
+                  <ul className="text-body-sm text-slate-700 space-y-1 list-disc list-inside">
                     <li>Sudden swelling in both feet, ankles, or legs (edema)</li>
                     <li>Rapid weight gain exceeding 3 lbs in 24 hours</li>
                     <li>Blood pressure readings consistently above 170/100 mmHg</li>
@@ -221,41 +221,49 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
             />
           </div>
 
-          {/* Right Column: Active Emergency Alerts & Dossier Pinning (SF8) */}
+          {/* Right Column: Active Emergency Alerts & Dossier Pinning */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-canvas-border pb-3">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-sky-400" />
-                  <h3 className="text-sm font-bold text-slate-900">Safety Dossier Trail (SF8)</h3>
+                  <Activity className="w-5 h-5 text-clinical-blue" />
+                  <h3 className="text-heading-md text-slate-900">Safety Dossier Trail</h3>
                 </div>
-                <span className="text-[11px] text-slate-600 font-mono">Immutable</span>
+                <span className="text-caption text-muted font-mono">Immutable</span>
               </div>
 
-              <div className="space-y-3">
-                {dangerReports.map((report) => (
-                  <div
-                    key={report.reportId}
-                    className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-xs"
-                  >
+              {dangerReports.length === 0 ? (
+                <div className="bg-canvas-muted rounded-xl p-6 text-center border border-canvas-border">
+                  <ShieldAlert className="w-8 h-8 text-muted-light mx-auto mb-2" />
+                  <p className="text-body-sm font-semibold text-slate-900">No danger reports yet</p>
+                  <p className="text-body-sm text-muted">Reported signs will appear here with triage status.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {dangerReports.map((report) => (
+                    <div
+                      key={report.reportId}
+                      className="bg-canvas-muted rounded-xl p-4 border border-canvas-border space-y-2 text-body-sm"
+                    >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-rose-700">
+                      <span className="font-bold text-clinical-red">
                         {report.symptomTags.join(', ').replace(/_/g, ' ').toUpperCase()}
                       </span>
-                      <span className="text-[11px] text-slate-600 font-mono">
+                      <span className="text-caption text-muted font-mono">
                         {new Date(report.timestamp).toLocaleDateString()}
                       </span>
                     </div>
 
                     <p className="text-slate-700 leading-relaxed">{report.freeText}</p>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1 border-t border-slate-200">
-                      <span>Severity: <strong className="text-rose-400 uppercase">{report.severityRating}</strong></span>
-                      <span className="text-emerald-400 font-medium">Logged to Dossier</span>
+                    <div className="flex items-center justify-between text-caption text-muted pt-2 border-t border-canvas-border">
+                      <span>Severity: <strong className="text-clinical-red uppercase">{report.severityRating}</strong></span>
+                      <span className="text-clinical-emerald font-medium">Logged to Dossier</span>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

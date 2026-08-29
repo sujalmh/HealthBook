@@ -169,21 +169,21 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
   return (
     <div className="space-y-6">
       {/* Clinician Header */}
-      <div className="bg-gradient-to-r from-indigo-50 via-slate-50 to-white border border-indigo-200 rounded-3xl p-6 shadow-xl flex items-center justify-between">
+      <div className="bg-gradient-to-r from-indigo-50 via-canvas-muted to-white border border-indigo-200 rounded-2xl p-5 sm:p-6 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-inner">
+          <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
             <Inbox className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-indigo-400 uppercase tracking-wider font-bold">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-caption font-mono text-indigo-600 uppercase tracking-wider font-bold">
                 Doctor Triage & Review Inbox
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-caption font-semibold border border-emerald-200">
                 Dr. Anita Patel, MD (Active)
               </span>
             </div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-heading-md text-slate-900">
               Remote Patient Monitoring: Shanti Devi (78F)
             </h3>
           </div>
@@ -192,22 +192,22 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Pinned Annotation Creator (📌) */}
-        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div className="lg:col-span-6 bg-white border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+          <div className="flex items-center justify-between border-b border-canvas-border pb-3">
             <div className="flex items-center gap-2">
-              <Pin className="w-5 h-5 text-amber-400" />
-              <h4 className="text-sm font-bold text-slate-900">Pin Clinical Note to LabStory Chart (📌)</h4>
+              <Pin className="w-5 h-5 text-amber-500" />
+              <h4 className="text-body font-semibold text-slate-900">Pin Clinical Note to LabStory Chart (📌)</h4>
             </div>
-            <span className="text-[11px] text-slate-600">Anchors to lab point</span>
+            <span className="text-caption text-muted">Anchors to lab point</span>
           </div>
 
           <form onSubmit={handlePinComment} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Select Lab Result Point</label>
+              <label className="text-body-sm font-semibold text-slate-700">Select Lab Result Point</label>
               <select
                 value={selectedLabId}
                 onChange={(e) => setSelectedLabId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
+                className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               >
                 {labs.map((l) => (
                   <option key={l.id} value={l.id}>
@@ -218,12 +218,12 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Clinical Comment & Interpretation</label>
+              <label className="text-body-sm font-semibold text-slate-700">Clinical Comment & Interpretation</label>
               <textarea
                 value={pinnedText}
                 onChange={(e) => setPinnedText(e.target.value)}
                 rows={3}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 leading-relaxed placeholder-slate-500"
+                className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-3 text-body-sm text-slate-800 leading-relaxed placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="Enter authenticated clinical observation..."
               />
             </div>
@@ -231,7 +231,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
             <button
               type="submit"
               disabled={isPinning || !pinnedText.trim()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-amber-600/20"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
             >
               <Pin className="w-4 h-4" />
               <span>{isPinning ? 'Pinning to Chart...' : 'Pin Note to Patient Lab Timeline (📌)'}</span>
@@ -240,57 +240,57 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         </div>
 
         {/* Right Column: Dosage Proposal Builder */}
-        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+        <div className="lg:col-span-6 bg-white border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+          <div className="flex items-center justify-between border-b border-canvas-border pb-3">
             <div className="flex items-center gap-2">
-              <HeartPulse className="w-5 h-5 text-rose-400" />
-              <h4 className="text-sm font-bold text-slate-900">Build Medication Dosage Proposal</h4>
+              <HeartPulse className="w-5 h-5 text-rose-500" />
+              <h4 className="text-body font-semibold text-slate-900">Build Medication Dosage Proposal</h4>
             </div>
-            <span className="text-[11px] text-slate-600">Dispatches proposal card</span>
+            <span className="text-caption text-muted">Dispatches proposal card</span>
           </div>
 
           <form onSubmit={handleSubmitProposal} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Target Medication</label>
+                <label className="text-body-sm font-semibold text-slate-700">Target Medication</label>
                 <input
                   type="text"
                   value={propMedName}
                   onChange={(e) => setPropMedName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold"
+                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-slate-800 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="e.g. Metformin"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Current Dose</label>
+                <label className="text-body-sm font-semibold text-slate-700">Current Dose</label>
                 <input
                   type="text"
                   value={propCurrentDose}
                   onChange={(e) => setPropCurrentDose(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
+                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   placeholder="e.g. 1000mg BID"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Proposed New Regimen</label>
+              <label className="text-body-sm font-semibold text-slate-700">Proposed New Regimen</label>
               <input
                 type="text"
                 value={propNewDose}
                 onChange={(e) => setPropNewDose(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold"
+                className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-emerald-700 font-bold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="e.g. 500mg Daily (Morning Only)"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Clinical Rationale for Patient</label>
+              <label className="text-body-sm font-semibold text-slate-700">Clinical Rationale for Patient</label>
               <textarea
                 value={propReason}
                 onChange={(e) => setPropReason(e.target.value)}
                 rows={2}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 leading-relaxed placeholder-slate-500"
+                className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-3 text-body-sm text-slate-800 leading-relaxed placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="Explain the medical reason in patient-friendly terms..."
               />
             </div>
@@ -298,7 +298,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
             <button
               type="submit"
               disabled={isSubmittingProposal || !propMedName || !propNewDose}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
             >
               <Send className="w-4 h-4" />
               <span>{isSubmittingProposal ? 'Staging Proposal...' : 'Stage Dosage Proposal for Patient Approval'}</span>
@@ -308,22 +308,22 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
       </div>
 
       {/* Auto-Set Next Lab Cadence (HL7) */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div className="bg-white border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-canvas-border pb-3">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-sky-400" />
-            <h4 className="text-sm font-bold text-slate-900">Set Next Lab Cadence (Auto-Spawns Due Card)</h4>
+            <Calendar className="w-5 h-5 text-primary" />
+            <h4 className="text-body font-semibold text-slate-900">Set Next Lab Cadence (Auto-Spawns Due Card)</h4>
           </div>
-          <span className="text-[11px] text-slate-600">Doctor Prescribed Cadence</span>
+          <span className="text-caption text-muted">Doctor Prescribed Cadence</span>
         </div>
 
         <form onSubmit={handleScheduleCadence} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Monitoring Cadence</label>
+            <label className="text-body-sm font-semibold text-slate-700">Monitoring Cadence</label>
             <select
               value={nextCadence}
               onChange={(e) => setNextCadence(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
+              className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
               <option value="2_weeks">Repeat in 2 Weeks</option>
               <option value="4_weeks">Repeat in 4 Weeks (1 Month)</option>
@@ -333,12 +333,12 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Lab Test Panel</label>
+            <label className="text-body-sm font-semibold text-slate-700">Lab Test Panel</label>
             <input
               type="text"
               value={cadenceTestPanel}
               onChange={(e) => setCadenceTestPanel(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-bold"
+              className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3 py-2.5 text-body-sm text-slate-800 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               placeholder="e.g. Creatinine & eGFR Blood Test"
             />
           </div>
@@ -346,7 +346,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
           <button
             type="submit"
             disabled={isSchedulingCadence}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-sky-600/20"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
           >
             <PlusCircle className="w-4 h-4" />
             <span>{isSchedulingCadence ? 'Setting Cadence...' : 'Prescribe Lab Cadence'}</span>

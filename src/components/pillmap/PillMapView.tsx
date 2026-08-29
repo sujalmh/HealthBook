@@ -444,23 +444,23 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Controls Bar */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xl space-y-4">
+      <div className="bg-white border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Module Title & Badge */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md">
               <Pill className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black tracking-tight text-slate-900">
+                <h2 className="text-heading-lg tracking-tight text-slate-900">
                   My Medicines
                 </h2>
-                <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-caption border border-emerald-200">
                   Weekly pill box
                 </span>
               </div>
-              <p className="text-xs text-slate-600">
+              <p className="text-body-sm text-muted">
                 Your medicines for the week — drag to change times, see warnings, and check food rules.
               </p>
             </div>
@@ -469,19 +469,19 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           {/* Right Toolbar: View Toggle, Chronotype, Actions */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* View Mode Toggle (Full Grid vs Elder Mode) */}
-            <div className="flex items-center bg-slate-50 p-1 rounded-2xl border border-slate-200 text-xs">
+            <div className="flex items-center bg-canvas-muted p-1 rounded-2xl border border-canvas-border text-body-sm">
               <button
                 onClick={() => setViewMode('canvas')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                  viewMode === 'canvas' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                className={`px-3 py-2 rounded-xl font-semibold transition-all min-h-[36px] ${
+                  viewMode === 'canvas' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-slate-900'
                 }`}
               >
                 Week View
               </button>
               <button
                 onClick={() => setViewMode('elder')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                  viewMode === 'elder' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                className={`px-3 py-2 rounded-xl font-semibold transition-all min-h-[36px] ${
+                  viewMode === 'elder' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-slate-900'
                 }`}
               >
                 Simple View 👵
@@ -489,12 +489,12 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             </div>
 
             {/* Chronotype Selector */}
-            <div className="flex items-center bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200 text-xs gap-2">
-              <Clock className="w-4 h-4 text-amber-400" />
+            <div className="flex items-center bg-canvas-muted px-3 py-2 rounded-2xl border border-canvas-border text-body-sm gap-2">
+              <Clock className="w-4 h-4 text-amber-500" />
               <select
                 value={chronotype}
                 onChange={(e) => setChronotype(e.target.value as Chronotype)}
-                className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
                 title="Select sleep/wake chronotype"
               >
                 <option value="standard">Standard (08:00–22:00) ☀️</option>
@@ -506,12 +506,12 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         </div>
 
         {/* Action Button Strip */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-canvas-border">
           <div className="flex flex-wrap items-center gap-2">
             {/* Schedule Optimizer */}
             <button
               onClick={handleOptimizeSchedule}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-900/30 transition-all hover:scale-102"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-body-sm font-bold shadow-sm transition-all min-h-[44px]"
             >
               <Sparkles className="w-4 h-4" />
               <span>Find Best Times</span>
@@ -520,27 +520,27 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             {/* Missed Dose Simulator */}
             <button
               onClick={() => handleOpenSimulator()}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-700 border border-amber-200 text-xs font-bold transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-body-sm font-semibold transition-all min-h-[44px]"
             >
-              <HelpCircle className="w-4 h-4 text-amber-400" />
+              <HelpCircle className="w-4 h-4 text-amber-600" />
               <span>What if I miss a dose?</span>
             </button>
 
             {/* Pharmacist Export */}
             <button
               onClick={handleOpenExport}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border text-body-sm font-semibold transition-all min-h-[44px]"
             >
-              <FileText className="w-4 h-4 text-sky-400" />
+              <FileText className="w-4 h-4 text-primary" />
               <span>Print for Pharmacist</span>
             </button>
 
             {/* Set Reminders */}
             <button
               onClick={() => setIsReminderModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border text-body-sm font-semibold transition-all min-h-[44px]"
             >
-              <Bell className="w-4 h-4 text-indigo-400" />
+              <Bell className="w-4 h-4 text-primary" />
               <span>Reminders</span>
             </button>
           </div>
@@ -548,7 +548,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           {/* Add Medication Button */}
           <button
             onClick={() => setIsAddMedOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/30 transition-all"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm transition-all min-h-[44px]"
           >
             <Plus className="w-4 h-4" />
             <span>Add Medication</span>
@@ -611,13 +611,13 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
 
       {/* Friendly empty when no medicines */}
       {activeMedsCount === 0 && viewMode !== 'elder' ? (
-        <div className="bg-white border border-dashed border-slate-200 rounded-3xl p-10 text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
+        <div className="bg-white border border-dashed border-canvas-border rounded-2xl p-10 text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
             <Pill className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-900">No medicines yet</h3>
-          <p className="text-xs text-slate-600 max-w-md mx-auto">Add a medicine below, or go to <span className="text-sky-700 font-semibold">Medicine Review</span> to bring your hospital list here.</p>
-          <button onClick={() => setIsAddMedOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow">
+          <h3 className="text-heading-md text-slate-900">No medicines yet</h3>
+          <p className="text-body-sm text-muted max-w-md mx-auto">Add a medicine below, or go to <span className="text-primary-text font-semibold">Medicine Review</span> to bring your hospital list here.</p>
+          <button onClick={() => setIsAddMedOpen(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm min-h-[44px]">
             <Plus className="w-4 h-4" /> Add a medicine
           </button>
         </div>
@@ -650,15 +650,15 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           />
 
           {/* Interactive OTC & Supplement Drag Palette */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xl space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="bg-white border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-slate-600" />
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                <GripVertical className="w-4 h-4 text-muted" />
+                <h3 className="text-caption uppercase tracking-wider text-slate-800">
                   Shop medicines — drag onto your week
                 </h3>
               </div>
-              <span className="text-[11px] text-slate-600">
+              <span className="text-caption text-muted">
                 Drag any store-bought medicine or vitamin onto a day to check for warnings.
               </span>
             </div>
@@ -683,22 +683,22 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                   onClick={() => {
                     handleDropPill({ name: otc.name, dosage: otc.dose }, 'monday', 'morning');
                   }}
-                  className="p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:border-sky-500/80 cursor-grab active:cursor-grabbing hover:bg-slate-850 transition-all hover:scale-105 select-none shadow-sm group"
+                  className="p-3 rounded-xl bg-canvas-muted border border-canvas-border hover:border-primary-border hover:bg-primary-light/30 cursor-grab active:cursor-grabbing transition-all hover:scale-[1.02] select-none shadow-sm group min-h-[72px]"
                   title={`Drag ${otc.name} (${otc.dose}) onto any pillbox slot, or click to add to Monday Morning`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span
-                      className="w-3 h-3 rounded-full shrink-0 border border-white/40"
+                      className="w-3 h-3 rounded-full shrink-0 border border-white shadow-sm"
                       style={{ backgroundColor: otc.color }}
                     />
-                    <span className="font-bold text-[11px] text-white truncate group-hover:text-sky-700">
+                    <span className="font-semibold text-body-sm text-slate-900 truncate">
                       {otc.name}
                     </span>
                   </div>
-                  <div className="mt-1 text-[10px] font-mono text-slate-600 font-semibold truncate">
+                  <div className="mt-1 text-caption font-mono text-muted font-semibold truncate">
                     {otc.dose}
                   </div>
-                  <div className="text-[9px] text-slate-600 truncate mt-0.5">
+                  <div className="text-caption text-muted truncate mt-0.5">
                     {otc.desc}
                   </div>
                 </div>

@@ -36,6 +36,16 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
     };
   }, [patientId]);
 
+  // ESC closes modal + focus trap handled by global *:focus-visible
+  useEffect(() => {
+    if (!showModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowModal(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showModal]);
+
   const handleExportFHIR = async () => {
     const facts = await localVault.getConfirmedFacts(patientId);
     const meds = await localVault.getActiveMedications(patientId);
@@ -71,74 +81,86 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = 'pa
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-700 hover:bg-emerald-900/60 transition-all text-xs font-medium shadow-sm hover:shadow-emerald-950/50"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-all text-xs font-medium shadow-sm focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         title="Click to view local privacy guarantees and vault stats"
+        aria-label="View privacy guarantees and vault stats"
       >
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
-        <Lock className="w-3.5 h-3.5 text-emerald-400" />
+        <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
         <span className="font-semibold tracking-wide">Local Vault (Zero Cloud PHI)</span>
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-slate-800">
-            <div className="flex items-start justify-between">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in overflow-y-auto"
+          onClick={() => setShowModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Zero-Cloud PHI Invariant"
+        >
+          <div
+            className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full p-3 sm:p-6 shadow-2xl space-y-5 text-slate-800 max-h-[90vh] overflow-y-auto my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-emerald-500/10 border border-emerald-200 rounded-xl text-emerald-400">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-200 rounded-xl text-emerald-600 shrink-0">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Zero-Cloud PHI Invariant</h3>
-                  <p className="text-xs text-slate-600">Privacy Guarantee for The WebMCP Challenge</p>
+                  <h3 className="text-heading-md text-slate-900">Zero-Cloud PHI Invariant</h3>
+                  <p className="text-caption text-muted font-medium">Privacy Guarantee for The WebMCP Challenge</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-600 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-100"
+                className="text-muted hover:text-slate-800 p-2 rounded-xl hover:bg-canvas-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors"
+                aria-label="Close privacy details"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-2 text-xs text-slate-700 leading-relaxed">
-              <p className="flex items-center gap-2 text-emerald-400 font-semibold">
+            <div className="bg-canvas-muted p-4 rounded-xl border border-canvas-border space-y-2 text-xs text-slate-700 leading-relaxed">
+              <p className="flex items-center gap-2 text-emerald-600 font-semibold">
                 <Lock className="w-4 h-4" /> 100% Client-Side In-Browser Execution
               </p>
               <p>
                 All medical parsing, OCR extraction, drug-drug interaction calculations, causal biomarker graphs, and schedule
                 optimizations run exclusively on your device within IndexedDB and in-browser WebMCP models.
               </p>
-              <p className="text-slate-600">
+              <p className="text-muted">
                 Protected Health Information (PHI) is never sent to third-party telemetry servers or cloud databases.
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 bg-slate-100 rounded-xl border border-slate-200/60 text-center">
-                <div className="text-2xl font-bold text-sky-400">{stats.facts}</div>
-                <div className="text-[11px] text-slate-600 uppercase tracking-wider mt-0.5">Approved Facts</div>
+              <div className="p-3 bg-canvas-muted rounded-xl border border-canvas-border text-center shadow-sm">
+                <div className="text-2xl font-bold text-sky-600">{stats.facts}</div>
+                <div className="text-caption text-muted uppercase tracking-wider mt-0.5">Approved Facts</div>
               </div>
-              <div className="p-3 bg-slate-100 rounded-xl border border-slate-200/60 text-center">
-                <div className="text-2xl font-bold text-emerald-400">{stats.meds}</div>
-                <div className="text-[11px] text-slate-600 uppercase tracking-wider mt-0.5">Active Meds</div>
+              <div className="p-3 bg-canvas-muted rounded-xl border border-canvas-border text-center shadow-sm">
+                <div className="text-2xl font-bold text-emerald-600">{stats.meds}</div>
+                <div className="text-caption text-muted uppercase tracking-wider mt-0.5">Active Meds</div>
               </div>
-              <div className="p-3 bg-slate-100 rounded-xl border border-slate-200/60 text-center">
-                <div className="text-2xl font-bold text-purple-400">{stats.labs}</div>
-                <div className="text-[11px] text-slate-600 uppercase tracking-wider mt-0.5">Tracked Labs</div>
+              <div className="p-3 bg-canvas-muted rounded-xl border border-canvas-border text-center shadow-sm">
+                <div className="text-2xl font-bold text-purple-600">{stats.labs}</div>
+                <div className="text-caption text-muted uppercase tracking-wider mt-0.5">Tracked Labs</div>
               </div>
             </div>
 
-            <div className="pt-2 flex justify-between items-center border-t border-slate-200">
-              <div className="text-xs text-slate-600 flex items-center gap-2">
-                <Database className="w-3.5 h-3.5 text-slate-600" />
+            <div className="pt-3 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-canvas-border">
+              <div className="text-xs text-muted flex items-center gap-2">
+                <Database className="w-3.5 h-3.5 text-muted shrink-0" />
                 <span>Store: IndexedDB (LocalVault v1)</span>
               </div>
               <button
                 onClick={handleExportFHIR}
-                className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-semibold shadow focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors min-h-[44px]"
+                aria-label="Export FHIR R4 Bundle"
               >
                 <Download className="w-3.5 h-3.5" />
                 Export FHIR R4 Bundle

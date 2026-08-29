@@ -219,7 +219,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative bg-white border border-slate-200 rounded-2xl shadow-sm p-2 sm:p-4 select-none overflow-hidden"
+      className="relative bg-white border border-canvas-border rounded-2xl shadow-sm p-3 sm:p-4 select-none"
     >
       {/* SVG Conflict Arc Overlay — hidden on mobile to avoid clutter */}
       <div className="hidden sm:block">
@@ -231,8 +231,8 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         />
       </div>
 
-      {/* Main Responsive Grid Container — horizontal scroll on mobile, no page overflow */}
-      <div className="overflow-x-auto -mx-2 sm:mx-0 px-2 sm:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Main Responsive Grid Container — horizontal scroll on mobile, not clipped */}
+      <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="min-w-[720px] sm:min-w-[960px]">
         {/* Table Structure */}
         <table className="w-full border-collapse">
@@ -240,19 +240,19 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
           <thead>
             <tr>
               {/* Time Slot column title */}
-              <th className="p-3 w-40 text-left bg-white border-b border-r border-slate-200 text-xs font-black tracking-wider text-slate-600 uppercase rounded-tl-xl">
+              <th className="p-3 w-36 text-left bg-white border-b border-r border-canvas-border text-caption tracking-wider text-muted uppercase rounded-tl-xl">
                 Time Slot
               </th>
               {DAYS_OF_WEEK.map((day) => (
                 <th
                   key={day}
-                  className="p-3 text-center bg-slate-50 border-b border-r border-slate-200 last:border-r-0 text-xs font-bold"
+                  className="p-3 text-center bg-canvas-muted border-b border-r border-canvas-border last:border-r-0"
                 >
                   <div className="flex flex-col items-center">
-                    <span className="font-extrabold text-sm tracking-tight text-slate-900">
+                    <span className="font-bold text-heading-md tracking-tight text-slate-900">
                       {dayLabels[day].short}
                     </span>
-                    <span className="text-[10px] text-slate-600 font-medium capitalize">
+                    <span className="text-caption text-muted font-medium capitalize">
                       {dayLabels[day].full}
                     </span>
                   </div>
@@ -267,18 +267,18 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
               const meta = slotMeta[slot];
 
               return (
-                <tr key={slot} className="border-b border-slate-200 last:border-b-0">
-                  {/* Row Header: Slot Label, Chronotype Time, Meal Icon — high contrast light */}
-                  <td className={`p-3 align-top border-r border-slate-200 ${meta.headerBg}`}>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 font-black text-xs text-slate-900">
+                <tr key={slot} className="border-b border-canvas-border last:border-b-0">
+                  {/* Row Header: Slot Label, Chronotype Time, Meal Icon — tokenized */}
+                  <td className={`p-3 align-top border-r border-canvas-border ${meta.headerBg}`}>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5 font-bold text-body text-slate-900">
                         {meta.icon}
                         <span>{meta.label}</span>
                       </div>
-                      <div className="text-xs font-mono font-bold text-sky-700 bg-white px-2 py-0.5 rounded-lg border border-slate-200 inline-block shadow-sm">
+                      <div className="text-body-sm font-mono font-semibold text-primary-text bg-white px-2 py-1 rounded-lg border border-canvas-border inline-block shadow-sm">
                         {meta.time}
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] text-slate-700 pt-1 font-medium">
+                      <div className="flex items-center gap-1 text-caption text-muted pt-1 font-medium">
                         <span>{meta.mealIcon}</span>
                         <span>{meta.mealLabel}</span>
                       </div>
@@ -304,13 +304,13 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                         onDragOver={(e) => handleDragOver(e, cellKey)}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, day, slot)}
-                        className={`p-2 align-top border-r border-slate-200 last:border-r-0 transition-colors min-w-[130px] ${
+                        className={`p-2.5 align-top border-r border-canvas-border last:border-r-0 transition-colors min-w-[136px] ${
                           isDragOver
-                            ? 'bg-sky-950/50 ring-2 ring-inset ring-sky-500/80'
-                            : 'bg-white/30 hover:bg-white/50'
+                            ? 'bg-primary-light ring-2 ring-inset ring-primary/40'
+                            : 'bg-white hover:bg-canvas-muted/50'
                         }`}
                       >
-                        <div className="min-h-[110px] flex flex-col gap-2">
+                        <div className="min-h-[116px] flex flex-col gap-2.5">
                           {/* Active Pills */}
                           {pillsInSlot.map((pill) => (
                             <PillCard
@@ -352,11 +352,11 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                             <button
                               type="button"
                               onClick={() => onQuickAdd?.(day, slot)}
-                              className="flex-1 flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-slate-200 hover:border-slate-600 text-slate-600 hover:text-slate-700 transition-all group/btn"
+                              className="flex-1 min-h-[44px] flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-canvas-border hover:border-primary-border hover:bg-primary-light/40 text-muted hover:text-primary-text transition-all group/btn"
                               title={`Add medication to ${dayLabels[day].full} ${meta.label}`}
                             >
-                              <Plus className="w-4 h-4 group-hover/btn:scale-125 transition-transform text-slate-600" />
-                              <span className="text-[10px] font-medium mt-1 opacity-60">Empty Slot</span>
+                              <Plus className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                              <span className="text-caption font-medium mt-1 opacity-70">Empty Slot</span>
                             </button>
                           )}
                         </div>

@@ -42,32 +42,32 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
         return {
           label: customLabel || 'NEW',
           icon: Sparkles,
-          bgClass: 'bg-purple-500/20 text-purple-300 border-purple-500/40 hover:bg-purple-500/30',
-          dotClass: 'bg-purple-400 shadow-purple-400/50',
+          bgClass: 'bg-purple-50 text-clinical-purple border-purple-200 hover:bg-purple-100',
+          dotClass: 'bg-clinical-purple shadow-purple-400/50',
           defaultTooltip: 'Brand new medication started in hospital or on discharge.'
         };
       case 'DOSE_CHANGED':
         return {
           label: customLabel || 'DOSE CHANGED',
           icon: ArrowUpDown,
-          bgClass: 'bg-sky-500/20 text-sky-700 border-sky-500/40 hover:bg-sky-500/30',
-          dotClass: 'bg-sky-400 shadow-sky-400/50',
+          bgClass: 'bg-sky-50 text-clinical-blue border-sky-200 hover:bg-sky-100',
+          dotClass: 'bg-clinical-blue shadow-sky-400/50',
           defaultTooltip: 'Dose, frequency, or administration route was modified.'
         };
       case 'STOPPED':
         return {
           label: customLabel || 'STOPPED',
           icon: XOctagon,
-          bgClass: 'bg-rose-500/20 text-rose-700 border-rose-200 hover:bg-rose-500/30',
-          dotClass: 'bg-rose-400 shadow-rose-400/50',
+          bgClass: 'bg-rose-50 text-clinical-red border-rose-200 hover:bg-rose-100',
+          dotClass: 'bg-clinical-red shadow-rose-400/50',
           defaultTooltip: 'Medication discontinued in hospital. Do NOT take old supply.'
         };
       case 'HELD_AND_RESUMED':
         return {
           label: customLabel || 'HELD & RESUMED',
           icon: RotateCcw,
-          bgClass: 'bg-amber-500/20 text-amber-700 border-amber-200 hover:bg-amber-500/30',
-          dotClass: 'bg-amber-400 shadow-amber-400/50',
+          bgClass: 'bg-amber-50 text-clinical-amber border-amber-200 hover:bg-amber-100',
+          dotClass: 'bg-clinical-amber shadow-amber-400/50',
           defaultTooltip: 'Temporarily paused during inpatient stay, now resumed at home dose.'
         };
       case 'CONTINUED':
@@ -75,8 +75,8 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
         return {
           label: customLabel || 'CONTINUED',
           icon: CheckCircle2,
-          bgClass: 'bg-emerald-500/20 text-emerald-700 border-emerald-200 hover:bg-emerald-500/30',
-          dotClass: 'bg-emerald-400 shadow-emerald-400/50',
+          bgClass: 'bg-emerald-50 text-clinical-emerald border-emerald-200 hover:bg-emerald-100',
+          dotClass: 'bg-clinical-emerald shadow-emerald-400/50',
           defaultTooltip: 'Unchanged from regular home baseline regimen.'
         };
     }

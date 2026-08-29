@@ -31,19 +31,19 @@ export const DueCardList: React.FC<DueCardListProps> = ({
 
   if (dueCards.length === 0) {
     return (
-      <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-3">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
+      <div className="bg-white border border-canvas-border rounded-2xl p-8 text-center space-y-4 shadow-sm">
+        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
           <CheckCircle2 className="w-6 h-6" />
         </div>
         <div className="space-y-1">
-          <h3 className="text-base font-bold text-slate-900">All caught up!</h3>
-          <p className="text-xs text-slate-600 max-w-md mx-auto">
+          <h3 className="text-heading-md text-slate-900">All caught up!</h3>
+          <p className="text-body-sm text-muted max-w-md mx-auto">
             No tests waiting — you're up to date. When your doctor asks for a new test, it will appear here.
           </p>
         </div>
         <button
           onClick={() => onUploadClick()}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border text-body-sm font-semibold transition-colors min-h-[44px]"
         >
           <UploadCloud className="w-4 h-4" />
           <span>Upload a result</span>
@@ -56,10 +56,10 @@ export const DueCardList: React.FC<DueCardListProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-sky-400" />
-          <h3 className="text-base font-bold text-slate-900">Your Tests</h3>
+          <Calendar className="w-5 h-5 text-primary" />
+          <h3 className="text-heading-md text-slate-900">Your Tests</h3>
         </div>
-        <span className="text-xs text-slate-600">
+        <span className="text-body-sm text-muted">
           {dueCards.filter((c) => c.status !== 'completed').length} waiting
         </span>
       </div>
@@ -74,50 +74,50 @@ export const DueCardList: React.FC<DueCardListProps> = ({
           return (
             <div
               key={card.id}
-              className={`relative overflow-hidden rounded-3xl border p-5 transition-all shadow-lg ${
+              className={`relative overflow-hidden rounded-2xl border p-5 transition-all shadow-sm ${
                 isCompleted
-                  ? 'bg-slate-50 border-emerald-500/20 opacity-80'
+                  ? 'bg-canvas-muted border-emerald-200 opacity-80'
                   : isOverdue
-                  ? 'bg-gradient-to-br from-rose-950/40 via-slate-50 to-white border-rose-200 shadow-rose-100'
+                  ? 'bg-rose-50 border-rose-200'
                   : isUrgent
-                  ? 'bg-gradient-to-br from-amber-50 via-slate-50 to-white border-amber-200 shadow-amber-100'
-                  : 'bg-white border-slate-200 hover:border-slate-200'
+                  ? 'bg-amber-50 border-amber-200'
+                  : 'bg-white border-canvas-border hover:border-primary-border hover:shadow-md'
               }`}
             >
               {/* Status Header Badge */}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-slate-600 uppercase tracking-wider">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-caption font-mono text-muted uppercase tracking-wider">
                       Prescribed Lab
                     </span>
                     {isCompleted ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-caption font-semibold border border-emerald-200">
                         <CheckCircle2 className="w-3 h-3" />
                         Completed
                       </span>
                     ) : isOverdue ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-700 text-[10px] font-bold border border-rose-200 animate-pulse">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-caption font-semibold border border-rose-200 animate-pulse">
                         <AlertTriangle className="w-3 h-3" />
                         OVERDUE ({Math.abs(daysRemaining)}d ago)
                       </span>
                     ) : isUrgent ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 text-[10px] font-bold border border-amber-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-caption font-semibold border border-amber-200">
                         <Clock className="w-3 h-3" />
                         DUE IN {daysRemaining === 0 ? 'TODAY' : `${daysRemaining} DAYS`}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-700 text-[10px] font-bold border border-sky-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-light text-primary-text text-caption font-semibold border border-primary-border">
                         <Clock className="w-3 h-3" />
                         Due in {daysRemaining} days
                       </span>
                     )}
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900">{card.testPanel}</h4>
+                  <h4 className="text-body font-semibold text-slate-900">{card.testPanel}</h4>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-xs font-semibold text-slate-700">
+                  <span className="text-body-sm font-medium text-muted">
                     {new Date(card.dueDate).toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
@@ -134,7 +134,7 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                     {card.biomarkers.map((m) => (
                       <span
                         key={m}
-                        className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200/60"
+                        className="text-caption font-medium px-2 py-0.5 rounded-md bg-canvas-muted text-slate-700 border border-canvas-border"
                       >
                         {m}
                       </span>
@@ -143,15 +143,15 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                 )}
 
                 {card.instructions && (
-                  <div className="flex items-start gap-1.5 text-xs text-slate-600 bg-white rounded-xl p-2.5 border border-slate-200">
-                    <Info className="w-3.5 h-3.5 text-sky-400 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-1.5 text-body-sm text-muted bg-white rounded-xl p-2.5 border border-canvas-border">
+                    <Info className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
                     <span>{card.instructions}</span>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1">
+                <div className="flex items-center justify-between text-caption text-muted pt-1">
                   <span className="flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-slate-600" />
+                    <User className="w-3.5 h-3.5" />
                     Prescribed by {card.prescribedBy || 'Dr. Anita Patel, MD'}
                   </span>
                   <span>Prescribed: {new Date(card.prescribedDate).toLocaleDateString()}</span>
@@ -159,12 +159,12 @@ export const DueCardList: React.FC<DueCardListProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-2 border-t border-slate-200">
+              <div className="flex items-center gap-2 pt-3 border-t border-canvas-border">
                 {!isCompleted ? (
                   <>
                     <button
                       onClick={() => onUploadClick(card.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-md shadow-sky-600/20"
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
                     >
                       <UploadCloud className="w-4 h-4" />
                       <span>Upload Result Slip</span>
@@ -172,20 +172,20 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                     {onCompleteCard && (
                       <button
                         onClick={() => onCompleteCard(card.id)}
-                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors"
+                        className="px-3 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                         title="Mark as completed"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                       </button>
                     )}
                   </>
                 ) : (
-                  <div className="w-full flex items-center justify-between text-xs text-emerald-400 bg-emerald-500/10 rounded-xl px-3 py-2 border border-emerald-500/20">
+                  <div className="w-full flex items-center justify-between text-body-sm text-emerald-700 bg-emerald-50 rounded-xl px-3 py-2 border border-emerald-200">
                     <span className="flex items-center gap-1.5 font-medium">
                       <CheckCircle2 className="w-4 h-4" />
                       Lab slip ingested & verified in LabStory
                     </span>
-                    <span className="text-[11px] text-slate-600">Linked to chart</span>
+                    <span className="text-caption text-muted">Linked to chart</span>
                   </div>
                 )}
               </div>

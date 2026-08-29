@@ -31,7 +31,6 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
   const handleExtractSample = async (sample: (typeof sampleDocuments)[0]) => {
     setIsExtracting(true);
     try {
-      // 1. Ensure document is registered in LocalVault
       await localVault.addDocument({
         id: sample.id,
         patientId,
@@ -43,7 +42,6 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
         extractedFactIds: [],
       });
 
-      // 2. Trigger extract_fact WebMCP Tool
       const result = await webMCPEngine.execute('extract_fact', {
         documentId: sample.id,
         rawText: sample.rawText,
@@ -69,67 +67,70 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
   };
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xl space-y-5 text-slate-800">
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 shadow-sm space-y-5 text-slate-900">
+      <div className="flex items-center justify-between gap-3 border-b border-canvas-border pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-sky-500/10 border border-sky-200 rounded-xl text-sky-400">
+          <div className="p-2.5 bg-primary-light border border-primary-border rounded-xl text-primary shrink-0">
             <UploadCloud className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900">Add Your Health Papers</h3>
-            <p className="text-xs text-slate-600">
+            <h3 className="text-heading-md font-bold text-slate-900 tracking-tight">Add Your Health Papers</h3>
+            <p className="text-body-sm text-muted leading-relaxed">
               Drop a PDF or photo — we read it safely on your device, nothing leaves it.
             </p>
           </div>
         </div>
-        <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full">
+        <span className="hidden sm:inline-flex text-caption font-semibold text-clinical-emerald bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full whitespace-nowrap">
           🔒 Private on your device
         </span>
       </div>
 
       {/* Sample Document Selectors for Fast Verification & Live Demo */}
       <div className="space-y-3">
-        <div className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+        <div className="text-caption font-semibold text-muted uppercase tracking-wider flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           Try an example or drop your own file
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {sampleDocuments.map((doc) => (
             <div
               key={doc.id}
               onClick={() => setSelectedSample(doc.id)}
-              className={`p-4 rounded-xl border cursor-pointer transition-all ${
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && setSelectedSample(doc.id)}
+              className={`p-4 rounded-xl border cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                 selectedSample === doc.id
-                  ? 'bg-slate-100 border-sky-500 shadow-md ring-1 ring-sky-500/50'
-                  : 'bg-white border-slate-200 hover:border-slate-200'
+                  ? 'bg-primary-light border-primary-border shadow-sm ring-1 ring-primary/20'
+                  : 'bg-canvas-card border-canvas-border hover:border-primary-border/50 hover:shadow-sm'
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span className="text-xs font-bold text-slate-900">{doc.title}</span>
+                  <FileText className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-body-sm font-semibold text-slate-900">{doc.title}</span>
                 </div>
-                {selectedSample === doc.id && <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />}
+                {selectedSample === doc.id && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
               </div>
-              <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">{doc.description}</p>
+              <p className="text-body-sm text-muted mt-2 leading-relaxed">{doc.description}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Trigger Extraction Button */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-200">
-        <div className="text-xs text-slate-600">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-canvas-border">
+        <p className="text-body-sm text-muted">
           We'll pull out the important details for you to review
-        </div>
+        </p>
         <button
           onClick={() => {
             const doc = sampleDocuments.find((d) => d.id === selectedSample) || sampleDocuments[0];
             handleExtractSample(doc);
           }}
           disabled={isExtracting}
-          className="flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition-all shadow hover:shadow-sky-500/30 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-body-sm font-bold transition-all shadow-sm hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 min-h-[44px] shrink-0"
         >
           {isExtracting ? (
             <>
@@ -144,6 +145,15 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
           )}
         </button>
       </div>
+
+      {/* Loading skeleton while extracting */}
+      {isExtracting && (
+        <div className="rounded-xl border border-canvas-border bg-canvas-muted p-4 space-y-3 animate-pulse">
+          <div className="h-3 w-2/3 bg-muted/20 rounded" />
+          <div className="h-3 w-full bg-muted/10 rounded" />
+          <div className="h-3 w-5/6 bg-muted/10 rounded" />
+        </div>
+      )}
     </div>
   );
 };

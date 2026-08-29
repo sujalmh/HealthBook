@@ -69,50 +69,50 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
   const getRowBgClass = (status: ChangeStatusBadge) => {
     switch (status) {
       case 'NEW':
-        return 'hover:bg-purple-950/20 bg-purple-950/5 border-l-4 border-l-purple-500';
+        return 'hover:bg-purple-50 bg-purple-50/50 border-l-4 border-l-purple-500';
       case 'DOSE_CHANGED':
-        return 'hover:bg-sky-950/20 bg-sky-950/5 border-l-4 border-l-sky-500';
+        return 'hover:bg-sky-50 bg-sky-50/50 border-l-4 border-l-sky-500';
       case 'STOPPED':
-        return 'hover:bg-rose-950/20 bg-rose-950/10 border-l-4 border-l-rose-500 opacity-80';
+        return 'hover:bg-rose-50 bg-rose-50/70 border-l-4 border-l-clinical-red opacity-95';
       case 'HELD_AND_RESUMED':
-        return 'hover:bg-amber-950/20 bg-amber-950/5 border-l-4 border-l-amber-500';
+        return 'hover:bg-amber-50 bg-amber-50/50 border-l-4 border-l-clinical-amber';
       case 'CONTINUED':
       default:
-        return 'hover:bg-emerald-950/10 bg-slate-50 border-l-4 border-l-emerald-500/60';
+        return 'hover:bg-emerald-50 bg-canvas-muted border-l-4 border-l-clinical-emerald/60';
     }
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5">
+    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
       {/* Header & Filter Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-            <span>3-List Comparative Reconciliation Table</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono">
+          <h3 className="text-heading-md text-slate-900 flex items-center gap-2">
+            <span>3-list comparative reconciliation table</span>
+            <span className="text-caption px-2 py-0.5 rounded-full bg-canvas-muted text-muted font-mono border border-canvas-border">
               {filteredItems.length} of {items.length} items
             </span>
           </h3>
-          <p className="text-xs text-slate-600 mt-0.5">
-            Side-by-side verification of Pre-Admission (Home), In-Hospital Chart, and Final Discharge Orders.
+          <p className="text-body-sm text-muted mt-0.5">
+            Side-by-side verification of pre-admission (home), in-hospital chart, and final discharge orders.
           </p>
         </div>
 
         {/* Search Input */}
         <div className="relative w-full md:w-72">
-          <Search className="w-4 h-4 text-slate-600 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search med or reason..."
-            className="w-full pl-9 pr-4 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            className="w-full pl-9 pr-4 py-2 rounded-xl bg-canvas-muted border border-canvas-border text-body-sm text-slate-900 placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 pb-3">
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-canvas-border pb-3">
         {(
           [
             { id: 'ALL', label: 'All Medications' },
@@ -137,8 +137,8 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
             >
               <span>{tab.label}</span>
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                  isActive ? 'bg-sky-800 text-slate-900' : 'bg-slate-100 text-slate-600'
+                className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                  isActive ? 'bg-sky-700 text-white' : 'bg-canvas-muted text-muted border border-canvas-border'
                 }`}
               >
                 {count}
@@ -149,10 +149,10 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
       </div>
 
       {/* Table Container */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50/50">
-        <table className="w-full text-left border-collapse text-xs">
+      <div className="overflow-x-auto rounded-xl border border-canvas-border bg-canvas-muted/50">
+        <table className="w-full text-left border-collapse text-body-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+            <tr className="bg-canvas-muted border-b border-canvas-border text-muted font-bold uppercase tracking-wider text-caption">
               <th className="py-3 px-4 w-12 text-center">Status</th>
               <th className="py-3 px-4 min-w-[180px]">Medication</th>
               <th className="py-3 px-4 min-w-[160px] bg-white/30">1. Pre-Admission (Home)</th>
@@ -161,7 +161,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
               <th className="py-3 px-4 min-w-[140px] text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody className="divide-y divide-canvas-border">
             {filteredItems.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-12 text-center text-slate-600">
@@ -183,15 +183,15 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
 
                   {/* Medication Name & Crosswalk */}
                   <td className="py-3.5 px-4">
-                    <div className="font-extrabold text-white text-sm flex items-center gap-1.5">
+                    <div className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
                       <span>{item.medName}</span>
                       {item.isOTC && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-700 font-mono border border-amber-200">
+                        <span className="text-caption px-1.5 py-0.5 rounded bg-amber-50 text-clinical-amber font-mono border border-amber-200">
                           OTC
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-600 font-mono">
+                    <div className="text-caption text-muted font-mono">
                       {item.genericName !== item.medName ? `Generic: ${item.genericName}` : 'Rx'}
                     </div>
 
@@ -233,9 +233,9 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                     <div
                       className={`font-bold text-sm ${
                         item.statusBadge === 'STOPPED'
-                          ? 'text-rose-400 line-through'
+                          ? 'text-clinical-red line-through'
                           : item.statusBadge === 'NEW'
-                          ? 'text-purple-300'
+                          ? 'text-clinical-purple'
                           : 'text-slate-900'
                       }`}
                     >

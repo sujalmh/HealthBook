@@ -30,34 +30,34 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-lg overflow-hidden animate-scale-up">
         {/* Modal Top Control Bar */}
-        <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div className="p-4 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <FileText className="w-5 h-5 text-sky-400" />
-            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+            <FileText className="w-5 h-5 text-primary" />
+            <h2 className="text-body font-bold text-slate-900 tracking-tight">
               1-Page Pharmacist Consultation & Regimen Map
             </h2>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyJSON}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[36px]"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'Copied JSON' : 'Copy JSON'}</span>
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold transition-colors shadow-sm min-h-[36px]"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Document</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+              className="p-2 rounded-xl hover:bg-canvas-muted text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Close export modal"
             >
               <X className="w-5 h-5" />
@@ -66,36 +66,36 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
         </div>
 
         {/* Printable Document Body */}
-        <div className="flex-1 overflow-y-auto p-8 bg-slate-50 text-slate-900 space-y-6 print:bg-white print:text-black">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-canvas-muted text-slate-900 space-y-6 print:bg-white print:text-black">
           {/* Document Header */}
-          <div className="border-b border-slate-200 pb-4 flex items-start justify-between">
+          <div className="border-b border-canvas-border pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-black tracking-tight text-white print:text-black">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-heading-lg tracking-tight text-slate-900 print:text-black">
                   CareCanvas — Clinical Pharmacist Regimen Map
                 </h1>
-                <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-700 text-[10px] font-bold border border-sky-200 print:hidden">
+                <span className="px-2 py-0.5 rounded-full bg-primary-light text-primary-text text-caption font-semibold border border-primary-border print:hidden">
                   Verified LocalVault Snapshot
                 </span>
               </div>
-              <p className="text-xs text-slate-600 print:text-gray-600 mt-1">
-                Patient: <strong className="text-white print:text-black">{bundle.patientName}</strong> | Generated: {new Date(bundle.generatedDate).toLocaleDateString()}
+              <p className="text-body-sm text-muted print:text-gray-600 mt-1">
+                Patient: <strong className="text-slate-900 print:text-black">{bundle.patientName}</strong> | Generated: {new Date(bundle.generatedDate).toLocaleDateString()}
               </p>
             </div>
-            <div className="text-right text-xs text-slate-600 print:text-gray-600">
-              <span className="font-bold text-sky-400 print:text-black block">Privacy-Preserving On-Device Vault</span>
+            <div className="text-right text-body-sm text-muted print:text-gray-600">
+              <span className="font-semibold text-primary-text print:text-black block">Privacy-Preserving On-Device Vault</span>
               <span>Zero PHI Cloud Transmission</span>
             </div>
           </div>
 
           {/* Section 1: Brand / Generic Crosswalk Table */}
           <div className="space-y-2">
-            <h3 className="text-xs font-black uppercase tracking-wider text-sky-400 print:text-gray-800">
+            <h3 className="text-caption uppercase tracking-wider text-primary-text print:text-gray-800">
               1. Active Medication Regimen & Crosswalk
             </h3>
-            <div className="border border-slate-200 rounded-xl overflow-hidden print:border-gray-300">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-white border-b border-slate-200 text-slate-700 font-bold uppercase text-[10px] print:bg-gray-100 print:text-black">
+            <div className="border border-canvas-border rounded-xl overflow-hidden print:border-gray-300 bg-white">
+              <table className="w-full text-body-sm text-left">
+                <thead className="bg-canvas-muted border-b border-canvas-border text-muted font-semibold uppercase text-caption print:bg-gray-100 print:text-black">
                   <tr>
                     <th className="p-2.5">Brand Name</th>
                     <th className="p-2.5">Generic Chemical</th>
@@ -104,13 +104,13 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
                     <th className="p-2.5">Frequency / Timing</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80 print:divide-gray-200">
+                <tbody className="divide-y divide-canvas-border print:divide-gray-200">
                   {bundle.brandGenericCrosswalk.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 print:hover:bg-transparent">
-                      <td className="p-2.5 font-bold text-white print:text-black">{item.brand}</td>
+                    <tr key={idx} className="hover:bg-canvas-muted print:hover:bg-transparent">
+                      <td className="p-2.5 font-semibold text-slate-900 print:text-black">{item.brand}</td>
                       <td className="p-2.5 text-slate-700 print:text-gray-800">{item.generic}</td>
-                      <td className="p-2.5 text-slate-600 print:text-gray-600">{item.class || 'Prescription Drug'}</td>
-                      <td className="p-2.5 font-mono font-semibold text-emerald-400 print:text-black">{item.dose}</td>
+                      <td className="p-2.5 text-muted print:text-gray-600">{item.class || 'Prescription Drug'}</td>
+                      <td className="p-2.5 font-mono font-semibold text-emerald-700 print:text-black">{item.dose}</td>
                       <td className="p-2.5 text-slate-700 print:text-gray-800">{item.frequency || item.timingSlots?.join(', ') || 'Scheduled Daily'}</td>
                     </tr>
                   ))}
@@ -123,31 +123,31 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Drug-Drug Conflicts */}
             <div className="space-y-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 print:text-gray-800">
+              <h3 className="text-caption uppercase tracking-wider text-rose-600 print:text-gray-800">
                 2. Flagged Drug Interactions ({bundle.drugInteractions.length})
               </h3>
               <div className="space-y-2">
                 {bundle.drugInteractions.length === 0 ? (
-                  <p className="text-xs text-slate-600 italic">No drug-drug interaction conflicts flagged.</p>
+                  <p className="text-body-sm text-muted italic">No drug-drug interaction conflicts flagged.</p>
                 ) : (
                   bundle.drugInteractions.map((arc, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-1 print:bg-gray-50 print:border-gray-300"
+                      className="p-3 rounded-xl bg-white border border-canvas-border text-body-sm space-y-1 print:bg-gray-50 print:border-gray-300"
                     >
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="text-white print:text-black">{arc.drugA} + {arc.drugB}</span>
+                      <div className="flex items-center justify-between font-semibold">
+                        <span className="text-slate-900 print:text-black">{arc.drugA} + {arc.drugB}</span>
                         <span
-                          className={`text-[9px] px-1.5 py-0.2 rounded font-black uppercase ${
+                          className={`text-caption px-1.5 py-0.5 rounded font-bold uppercase ${
                             arc.severity === 'CONTRAINDICATED'
-                              ? 'bg-rose-500/20 text-rose-700 border border-rose-200'
-                              : 'bg-amber-500/20 text-amber-700 border border-amber-200'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-amber-50 text-amber-800 border border-amber-200'
                           }`}
                         >
                           {arc.severity}
                         </span>
                       </div>
-                      <p className="text-slate-700 text-[11px] print:text-gray-700">{arc.mechanism}</p>
+                      <p className="text-slate-700 text-body-sm print:text-gray-700">{arc.mechanism}</p>
                     </div>
                   ))
                 )}
@@ -156,23 +156,23 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
 
             {/* Diet & Meal Rules */}
             <div className="space-y-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 print:text-gray-800">
+              <h3 className="text-caption uppercase tracking-wider text-amber-700 print:text-gray-800">
                 3. Dietary & Timing Rules ({bundle.dietTimingRules.length})
               </h3>
               <div className="space-y-2">
                 {bundle.dietTimingRules.length === 0 ? (
-                  <p className="text-xs text-slate-600 italic">No specific food-drug restrictions noted.</p>
+                  <p className="text-body-sm text-muted italic">No specific food-drug restrictions noted.</p>
                 ) : (
                   bundle.dietTimingRules.map((rule, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-1 print:bg-gray-50 print:border-gray-300"
+                      className="p-3 rounded-xl bg-white border border-canvas-border text-body-sm space-y-1 print:bg-gray-50 print:border-gray-300"
                     >
-                      <div className="flex items-center justify-between font-bold">
-                        <span className="text-white print:text-black">{rule.drugName}</span>
-                        <span className="text-[10px] text-amber-400 font-semibold">{rule.badgeText}</span>
+                      <div className="flex items-center justify-between font-semibold">
+                        <span className="text-slate-900 print:text-black">{rule.drugName}</span>
+                        <span className="text-caption text-amber-700 font-semibold">{rule.badgeText}</span>
                       </div>
-                      <p className="text-slate-700 text-[11px] print:text-gray-700">{rule.clinicalGuidance}</p>
+                      <p className="text-slate-700 text-body-sm print:text-gray-700">{rule.clinicalGuidance}</p>
                     </div>
                   ))
                 )}
@@ -181,23 +181,23 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
           </div>
 
           {/* Section 3: Pharmacist Sign-Off & Verification Block */}
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:bg-gray-50 print:border-gray-300">
+          <div className="p-4 rounded-2xl bg-white border border-canvas-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:bg-gray-50 print:border-gray-300">
             <div className="flex items-center gap-3">
-              <Award className="w-8 h-8 text-sky-400 shrink-0" />
+              <Award className="w-8 h-8 text-primary shrink-0" />
               <div>
-                <h4 className="font-bold text-xs text-white print:text-black">
+                <h4 className="font-semibold text-body-sm text-slate-900 print:text-black">
                   Clinical Pharmacist Verification Block
                 </h4>
-                <p className="text-[11px] text-slate-600 print:text-gray-600">
+                <p className="text-caption text-muted print:text-gray-600">
                   Reviewed for drug interactions, therapeutic duplication, and renal dosage adjustment.
                 </p>
               </div>
             </div>
-            <div className="text-right border-t sm:border-t-0 sm:border-l border-slate-200 pl-0 sm:pl-4 pt-2 sm:pt-0 w-full sm:w-auto">
-              <div className="text-xs font-mono text-slate-700 print:text-black">
+            <div className="text-right border-t sm:border-t-0 sm:border-l border-canvas-border pl-0 sm:pl-4 pt-2 sm:pt-0 w-full sm:w-auto">
+              <div className="text-body-sm font-mono text-slate-700 print:text-black">
                 Signature: ______________________
               </div>
-              <div className="text-[10px] text-slate-600 mt-1">
+              <div className="text-caption text-muted mt-1">
                 Date: {new Date().toLocaleDateString()} | License / NPI: _________
               </div>
             </div>

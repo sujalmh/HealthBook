@@ -180,12 +180,12 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
 
       {/* Modal on click */}
       {selectedBadge && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+          <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-scale-up">
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full shadow-lg overflow-hidden animate-scale-up">
+            <div className="p-4 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{selectedBadge.icon}</span>
                 <h3 className="font-bold text-sm text-slate-900">{selectedBadge.title}</h3>
@@ -199,16 +199,16 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
               </button>
             </div>
 
-            <div className="p-5 space-y-3 text-xs text-slate-800">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <p className="text-slate-800 leading-relaxed text-sm font-medium">{selectedBadge.guidance}</p>
+            <div className="p-5 space-y-3 text-body text-slate-800">
+              <div className="bg-canvas-muted p-3 rounded-xl border border-canvas-border">
+                <p className="text-slate-800 leading-relaxed text-body font-medium">{selectedBadge.guidance}</p>
               </div>
             </div>
 
-            <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div className="p-3 bg-canvas-muted border-t border-canvas-border flex justify-end">
               <button
                 onClick={() => setSelectedBadge(null)}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-100 text-white rounded-lg text-xs font-semibold"
+                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
               >
                 Got It
               </button>

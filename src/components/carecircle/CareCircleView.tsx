@@ -77,20 +77,20 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header — tokenized */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-inner">
+          <div className="w-12 h-12 rounded-xl bg-primary-light text-primary flex items-center justify-center border border-primary-border shadow-sm">
             <Users className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">Family</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 font-bold border border-indigo-200">
+              <h2 className="text-heading-lg text-slate-900">Family</h2>
+              <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
                 Trusted helpers
               </span>
             </div>
-            <p className="text-xs text-slate-600">
+            <p className="text-body-sm text-muted">
               Family and caregivers who can help — see who has access and what they did.
             </p>
           </div>
@@ -114,8 +114,8 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         onProfileChange={onProfileChange}
       />
 
-      {/* Sub-Navigation Tabs */}
-      <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 text-xs w-fit">
+      {/* Sub-Navigation Tabs — pill, tokenized */}
+      <div className="flex items-center bg-canvas-card p-1 rounded-xl border border-canvas-border text-body-sm w-fit shadow-sm">
         <button
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2 rounded-xl font-bold transition-all ${
@@ -155,87 +155,102 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Active Linked Caregivers */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-canvas-border pb-3">
                 <div className="flex items-center gap-2">
-                  <UserCheck className="w-5 h-5 text-indigo-400" />
-                  <h3 className="text-sm font-bold text-slate-900">People Who Can Help</h3>
+                  <UserCheck className="w-5 h-5 text-primary" />
+                  <h3 className="text-heading-md text-slate-900">People who can help</h3>
                 </div>
-                <span className="text-[11px] text-slate-600">
+                <span className="text-caption text-muted">
                   {caregiverLinks.length} helper{caregiverLinks.length === 1 ? '' : 's'}
                 </span>
               </div>
 
-              <div className="space-y-3">
-                {caregiverLinks.map((link) => (
-                  <div
-                    key={link.linkId}
-                    className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-sm">
-                        {link.caregiverName?.charAt(0) || 'R'}
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-slate-900">{link.caregiverName}</h4>
-                          <span className="text-slate-600 text-[11px]">({link.relationship})</span>
-                        </div>
-                        <span className="inline-block px-2 py-0.2 rounded-full bg-indigo-500/20 text-indigo-700 text-[10px] font-bold border border-indigo-200 uppercase">
-                          Tier: {link.permissionLevel || 'MANAGE'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setIsPermissionsModalOpen(true)}
-                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors"
+              {caregiverLinks.length === 0 ? (
+                <div className="bg-canvas-muted rounded-xl p-6 text-center border border-canvas-border">
+                  <Users className="w-8 h-8 text-muted-light mx-auto mb-2" />
+                  <p className="text-body-sm font-semibold text-slate-900">No helpers yet</p>
+                  <p className="text-body-sm text-muted">Add a family member who helps with your health.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {caregiverLinks.map((link) => (
+                    <div
+                      key={link.linkId}
+                      className="bg-canvas-muted rounded-xl p-4 border border-canvas-border flex items-center justify-between gap-3 text-body-sm"
                     >
-                      Edit Scopes
-                    </button>
-                  </div>
-                ))}
-              </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary-light text-primary flex items-center justify-center font-bold text-sm border border-primary-border">
+                          {link.caregiverName?.charAt(0) || 'R'}
+                        </div>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-slate-900">{link.caregiverName}</h4>
+                            <span className="text-muted text-caption">({link.relationship})</span>
+                          </div>
+                          <span className="inline-block px-2 py-0.5 rounded-full bg-primary-light text-primary-text text-caption font-bold border border-primary-border uppercase">
+                            Tier: {link.permissionLevel || 'MANAGE'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setIsPermissionsModalOpen(true)}
+                        className="px-3 py-2 rounded-xl bg-canvas-card hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[36px]"
+                      >
+                        Edit scopes
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right Column: Proxy Audit Trail Snippet */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-canvas-border pb-3">
                 <div className="flex items-center gap-2">
-                  <FileCheck2 className="w-5 h-5 text-emerald-400" />
-                  <h3 className="text-sm font-bold text-slate-900">Recent Activity</h3>
+                  <FileCheck2 className="w-5 h-5 text-clinical-emerald" />
+                  <h3 className="text-heading-md text-slate-900">Recent activity</h3>
                 </div>
                 <button
                   onClick={() => setActiveTab('audit_log')}
-                  className="text-xs text-sky-400 hover:underline font-semibold"
+                  className="text-body-sm text-accent hover:underline font-semibold"
                 >
-                  View All
+                  View all
                 </button>
               </div>
 
-              <div className="space-y-2.5">
-                {auditLogs.slice(0, 4).map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="bg-slate-50 rounded-2xl p-3 border border-slate-200 text-xs space-y-1"
-                  >
-                    <div className="flex items-center justify-between text-slate-700 font-medium">
-                      <span className="text-sky-400 font-mono text-[10px] uppercase">
-                        {entry.action.replace(/_/g, ' ')}
-                      </span>
-                      <span className="text-[10px] text-slate-600 font-mono">
-                        {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+              {auditLogs.length === 0 ? (
+                <div className="bg-canvas-muted rounded-xl p-6 text-center border border-canvas-border">
+                  <Activity className="w-8 h-8 text-muted-light mx-auto mb-2" />
+                  <p className="text-body-sm text-muted">No recent activity.</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {auditLogs.slice(0, 4).map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="bg-canvas-muted rounded-xl p-3 border border-canvas-border text-body-sm space-y-1"
+                    >
+                      <div className="flex items-center justify-between text-slate-700 font-medium">
+                        <span className="text-accent font-mono text-caption uppercase">
+                          {entry.action.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-caption text-muted font-mono">
+                          {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-muted text-body-sm">
+                        By {entry.performedBy?.userName}
+                        {entry.performedBy?.onBehalfOf ? ` on behalf of ${entry.performedBy.onBehalfOf}` : ''}
+                      </p>
                     </div>
-                    <p className="text-slate-600 text-[11px]">
-                      By {entry.performedBy?.userName}
-                      {entry.performedBy?.onBehalfOf ? ` on behalf of ${entry.performedBy.onBehalfOf}` : ''}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -248,7 +263,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           }}
         />
       ) : (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl">
+        <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm">
           <AuditLogViewer logs={auditLogs} />
         </div>
       )}

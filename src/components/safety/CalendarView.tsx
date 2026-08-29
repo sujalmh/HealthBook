@@ -88,21 +88,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Calendar Header & Actions */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Calendar Header & Actions — tokenized */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20 shadow-inner">
+          <div className="w-12 h-12 rounded-xl bg-sky-50 text-clinical-blue flex items-center justify-center border border-sky-200 shadow-sm">
             <CalendarIcon className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-slate-900">Prescribed Clinical Calendar</h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 font-bold border border-sky-200">
-                24h & 2h Active Alerts
+              <h3 className="text-heading-md text-slate-900">Prescribed clinical calendar</h3>
+              <span className="text-caption px-2 py-0.5 rounded-full bg-sky-50 text-clinical-blue font-bold border border-sky-200">
+                24h & 2h alerts
               </span>
             </div>
-            <p className="text-xs text-slate-600">
-              Synchronized follow-up visits, lab due cadences, and medication reminder windows.
+            <p className="text-body-sm text-muted">
+              Synchronized follow-up visits, lab due cadences, and reminder windows.
             </p>
           </div>
         </div>
@@ -139,10 +139,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           <button
             key={tab.id}
             onClick={() => setFilterType(tab.id as any)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap border ${
+              className={`px-3.5 py-1.5 rounded-xl text-body-sm font-semibold transition-colors whitespace-nowrap border ${
               filterType === tab.id
-                ? 'bg-sky-500/20 border-sky-500 text-sky-700'
-                : 'bg-white border-slate-200 text-slate-600 hover:text-slate-800'
+                ? 'bg-sky-50 border-sky-200 text-clinical-blue'
+                : 'bg-canvas-card border-canvas-border text-muted hover:text-slate-900'
             }`}
           >
             {tab.label}
@@ -152,9 +152,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Events Stream */}
       {filteredEvents.length === 0 ? (
-        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 text-center space-y-2">
-          <Clock className="w-8 h-8 text-slate-600 mx-auto" />
-          <p className="text-xs text-slate-600">No scheduled events in this category.</p>
+        <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-8 text-center space-y-2">
+          <Clock className="w-8 h-8 text-muted-light mx-auto" />
+          <p className="text-body-sm font-semibold text-slate-900">No scheduled events</p>
+          <p className="text-body-sm text-muted">No events in this category — try another filter or book a visit.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -166,16 +167,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return (
               <div
                 key={evt.id}
-                className="bg-white border border-slate-200 hover:border-slate-200 rounded-2xl p-4 transition-all shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="bg-canvas-card border border-canvas-border hover:border-primary-border rounded-xl p-4 transition-all shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="flex items-start gap-3.5">
                   <div
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center border shrink-0 ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center border shrink-0 ${
                       evt.eventType === 'doctor_followup'
-                        ? 'bg-sky-500/10 text-sky-400 border-sky-200'
+                        ? 'bg-sky-50 text-clinical-blue border-sky-200'
                         : evt.eventType === 'lab_due'
-                        ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                        : 'bg-amber-500/10 text-amber-400 border-amber-200'
+                        ? 'bg-rose-50 text-clinical-red border-rose-200'
+                        : 'bg-amber-50 text-clinical-amber border-amber-200'
                     }`}
                   >
                     {evt.eventType === 'doctor_followup' ? (

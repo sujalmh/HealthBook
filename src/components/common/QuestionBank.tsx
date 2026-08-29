@@ -29,6 +29,16 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
     };
   }, [patientId]);
 
+  // ESC closes modal when onClose provided
+  useEffect(() => {
+    if (!onClose) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQuestionText.trim()) return;
@@ -72,23 +82,24 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
   };
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-2xl space-y-6 text-slate-800">
-      <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-amber-500/10 border border-amber-200 rounded-xl text-amber-400">
+    <div className="bg-white border border-canvas-border rounded-2xl p-3 sm:p-6 shadow-2xl space-y-5 sm:space-y-6 text-slate-800 max-h-[90vh] overflow-y-auto">
+      <div className="flex items-center justify-between gap-3 border-b border-canvas-border pb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2.5 bg-amber-500/10 border border-amber-200 rounded-xl text-amber-600 shrink-0">
             <HelpCircle className="w-6 h-6" />
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Doctor Question Bank</h2>
-            <p className="text-xs text-slate-600">
+          <div className="min-w-0">
+            <h2 className="text-heading-lg text-slate-900">Doctor Question Bank</h2>
+            <p className="text-xs text-muted leading-snug">
               Aggregated questions from discharge reconciliation, lab anomalies, and dosage proposals.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-medium border border-slate-200 transition-colors"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-slate-700 text-xs font-medium border border-canvas-border transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px]"
+            aria-label="Print agenda"
           >
             <Printer className="w-3.5 h-3.5" />
             Print Agenda
@@ -96,7 +107,8 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors"
+              className="p-2 rounded-xl hover:bg-canvas-muted text-muted hover:text-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Close question bank"
             >
               ✕
             </button>
@@ -105,23 +117,24 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
       </div>
 
       {/* Add New Question Form */}
-      <form onSubmit={handleAddQuestion} className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
+      <form onSubmit={handleAddQuestion} className="bg-canvas-muted p-3 sm:p-4 rounded-xl border border-canvas-border space-y-3 shadow-sm">
         <div className="text-xs font-semibold text-slate-700 flex items-center gap-2">
-          <Plus className="w-3.5 h-3.5 text-sky-400" />
+          <Plus className="w-3.5 h-3.5 text-sky-600" />
           Add Question for Next Doctor Visit
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             placeholder="e.g. Can I take Tylenol instead of Advil for my knee pain given my kidney markers?"
             value={newQuestionText}
             onChange={(e) => setNewQuestionText(e.target.value)}
-            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-600 focus:border-sky-500 focus:outline-none"
+            className="flex-1 px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px]"
           />
           <select
             value={newPriority}
             onChange={(e) => setNewPriority(e.target.value as any)}
-            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none"
+            className="px-3 py-2 bg-white border border-canvas-border rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px] sm:w-auto w-full"
+            aria-label="Question priority"
           >
             <option value="urgent">🔴 Urgent</option>
             <option value="high">🟡 High</option>
@@ -129,7 +142,7 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
           </select>
           <button
             type="submit"
-            className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold shrink-0 transition-colors shadow"
+            className="px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-semibold shrink-0 transition-colors shadow focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px]"
           >
             Add Question
           </button>
@@ -137,25 +150,27 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
       </form>
 
       {/* Filter Toolbar */}
-      <div className="flex items-center justify-between gap-4 text-xs">
-        <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-slate-600" />
-          <span className="text-slate-600">Filter by Module:</span>
-          {['all', 'rxbridge', 'labstory', 'homelab', 'safety', 'vault'].map((mod) => (
-            <button
-              key={mod}
-              onClick={() => setFilterModule(mod)}
-              className={`px-2.5 py-1 rounded-md capitalize font-medium transition-colors ${
-                filterModule === mod
-                  ? 'bg-sky-500/20 text-sky-700 border border-sky-500/40'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {mod}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="w-3.5 h-3.5 text-muted shrink-0" />
+          <span className="text-muted whitespace-nowrap">Filter by Module:</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {['all', 'rxbridge', 'labstory', 'homelab', 'safety', 'vault'].map((mod) => (
+              <button
+                key={mod}
+                onClick={() => setFilterModule(mod)}
+                className={`px-2.5 py-1 rounded-lg capitalize font-medium transition-colors min-h-[32px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                  filterModule === mod
+                    ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm'
+                    : 'bg-canvas-muted text-muted hover:bg-canvas-border border border-transparent'
+                }`}
+              >
+                {mod}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="text-slate-600 font-medium">
+        <div className="text-muted font-medium whitespace-nowrap">
           {filteredQuestions.length} Questions ({filteredQuestions.filter((q) => q.status === 'discussed').length} Discussed)
         </div>
       </div>
@@ -163,59 +178,60 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
       {/* Questions List */}
       <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
         {filteredQuestions.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-2">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto">
+          <div className="p-8 text-center bg-canvas-muted rounded-xl border border-dashed border-canvas-border space-y-2">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto">
               <HelpCircle className="w-5 h-5" />
             </div>
             <p className="text-xs font-bold text-slate-700">No questions yet</p>
-            <p className="text-xs text-slate-600">Add one above for your next visit — we'll keep it safe here.</p>
+            <p className="text-xs text-muted">Add one above for your next visit — we'll keep it safe here.</p>
           </div>
         ) : (
           filteredQuestions.map((q) => (
             <div
               key={q.id}
-              className={`p-4 rounded-xl border transition-all ${
+              className={`p-4 rounded-xl border transition-all shadow-sm ${
                 q.status === 'discussed'
-                  ? 'bg-slate-50 border-slate-200 opacity-60'
-                  : 'bg-slate-100 border-slate-200/80 hover:border-slate-600'
+                  ? 'bg-canvas-muted border-canvas-border opacity-60'
+                  : 'bg-white border-canvas-border hover:border-primary-border hover:shadow-md'
               }`}
             >
               <div className="flex items-start gap-3 justify-between">
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 min-w-0">
                   <button
                     onClick={() => handleToggleStatus(q)}
-                    className={`mt-0.5 p-1 rounded-md transition-colors ${
-                      q.status === 'discussed' ? 'text-emerald-400 bg-emerald-950/50' : 'text-slate-600 hover:text-slate-700'
+                    className={`mt-0.5 p-1.5 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                      q.status === 'discussed' ? 'text-emerald-600 bg-emerald-50 border border-emerald-200' : 'text-muted hover:text-slate-700 hover:bg-canvas-muted'
                     }`}
                     title={q.status === 'discussed' ? 'Mark as active' : 'Mark as discussed with doctor'}
+                    aria-label={q.status === 'discussed' ? 'Mark as active' : 'Mark as discussed'}
                   >
                     <CheckCircle className="w-5 h-5" />
                   </button>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                        className={`text-caption px-2 py-0.5 rounded font-bold uppercase tracking-wider border ${
                           q.priority === 'urgent'
-                            ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
                             : q.priority === 'high'
-                            ? 'bg-amber-500/20 text-amber-700 border border-amber-200'
-                            : 'bg-emerald-500/20 text-emerald-700 border border-emerald-200'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         }`}
                       >
                         {q.priority}
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700 text-slate-700 uppercase font-semibold">
+                      <span className="text-caption px-2 py-0.5 rounded bg-canvas-muted text-muted uppercase font-semibold border border-canvas-border">
                         {q.sourceModule}
                       </span>
                       {q.status === 'discussed' && (
-                        <span className="text-[10px] text-emerald-400 font-semibold italic">✓ Discussed</span>
+                        <span className="text-caption text-emerald-600 font-semibold italic">✓ Discussed</span>
                       )}
                     </div>
                     <p className={`text-sm font-medium text-slate-900 ${q.status === 'discussed' ? 'line-through' : ''}`}>
                       {q.questionText}
                     </p>
                     {q.clinicalRationale && (
-                      <p className="text-xs text-slate-600 leading-relaxed italic">{q.clinicalRationale}</p>
+                      <p className="text-xs text-muted leading-relaxed italic">{q.clinicalRationale}</p>
                     )}
                   </div>
                 </div>

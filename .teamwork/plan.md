@@ -1,38 +1,80 @@
-# Plan — Distributed Coding
+# Plan — Distributed Coding (Modern Professional Intuitive UI)
 
-Created: 2026-08-29T04:01:30.268Z
+Created: 2026-08-29T13:16:00Z
+Updated: 2026-08-29T13:30:00Z
+ProjectId: teamwork-1787989591222
+Status: M4 PASS — awaiting Success Auditor (M1-M3 PASS, M4 PASS 2026-08-29T16:35Z)
 
-## Milestones
-### milestone-01: M1 Supabase Client & Env Plumbing
-Create src/core/supabase/client.ts + index.ts that reads env-only via import.meta.env.VITE_SUPABASE_DB_URL || process.env.DATABASE_URL || process.env.SUPABASE_DB_URL, never hard-codes password/host password, handles missing URL gracefully (local-only fallback), exports isSupabaseEnabled(), getSupabaseConfig(), typed helpers for 11 stores with patientId===CANONICAL_PATIENT_ID scoping. Add src/core/supabase/schema.sql mirroring LocalVault stores (facts, meds, labs, conditions, allergies, proposals, calendar_events, care_circle, doctor_grants, due_cards, danger_reports, documents, question_bank) with patientId index. Ensure .env.example redacted placeholder present and docs, .env gitignored. Verify no baqduk outside .env. No regression to cohesion.
-- Workstreams: ws-01-01
+> Prior Supabase project (teamwork-1787976000076, 4 milestones PASS) archived to /tmp/archive-old-project-1787976000076/. New UI modernization project initialized.
 
-### milestone-02: M2 LocalVault Sync & Hydration
-Wrap LocalVault add* methods (addMedication, addLab, addFact, addDangerReport, addCalendarEvent, addProposal, addDueCard, addCondition, addAllergy, addDoctorGrant, addCaregiverLink, addQuestion) to optionally syncToSupabase after local emit (non-blocking catch -> local-only + toast, no event duplication). Implement hydrateFromSupabase(patientId) in src/core/vault/supabaseSync.ts that pulls Postgres rows -> Map.set without emitting duplicate added inflation (use has check -> updated vs added, patient isolation exact ===). Handle Supabase down -> fallback. Preserve EventBus relevance matrix.
-- Workstreams: ws-02-01
-- Depends on: milestone-01
+## Milestones (DAG: M1 → M2 → M3 → M4)
 
-### milestone-03: M3 Bootstrap Integration & Fallback
-Update src/main.tsx / src/core/vault/seed.ts bootstrap to: if (isSupabaseEnabled()) { try hydrateFromSupabase(CANONICAL); if (hydrated>0) skip seed; else seedIfEmpty } else seedIfEmpty idempotent. Ensure seedIfEmpty remains single source (no per-view seeds regress). Preserve App.tsx hidden wrappers, ensure wireLocalVaultToEventBus remains. Handle bootstrap async hydration before React mount, with fallback to local seed on error/offline.
-- Workstreams: ws-03-01
-- Depends on: milestone-02
+### M1 Design System (no deps) — ws-m1-01
+- **Goal:** Centralized semantic tokens, typography scale, spacing 4/8, rounded xl/2xl, shadows, refined index.css, App header token use, no scattered hex
+- **Files:** tailwind.config.js, src/index.css, (App header token pass)
+- **Verification:** >=2 screenshots desktop+mobile under .teamwork/snapshots/m1/, critic→challenger→auditor
 
-### milestone-04: M4 Tests/Build/Adversarial & Final Hardening
-Add env-gated supabase.test.ts verifying sync+hydration+offline fallback+rapid no-dup+isolation (skips if !DATABASE_URL). Keep cohesion.test.ts 28 green, ensure npm test 133+ PASS, test-runner 231 PASS, lint 0, build 1660+ 40 tools, dist built. Challenger adversarial for missing URL, Supabase error, rapid sync, multi-patient isolation. Verify grep baqduk 0 outside .env, grep p_devi_78 0, seedBaseline 0, EventBus matrix intact.
-- Workstreams: ws-04-01, ws-04-02
-- Depends on: milestone-03
+### M2 Shell & Navigation (depends M1) — ws-m2-01
+- **Goal:** Modern header (glass/shadow, logo, subtitle, chip), pill tabs, mobile bottom nav safe-area, profile switcher, badges, transitions, 8 routes intact
+- **Files:** src/App.tsx
+- **Verification:** screenshots desktop 1280 + mobile 375 (+ tablet 768) under .teamwork/snapshots/m2/
 
-## Workstreams & Ownership
-- **ws-01-01** (milestone-01) — Supabase Client & Schema Layer — files: src/core/supabase/client.ts, src/core/supabase/schema.sql, src/core/supabase/index.ts — owner: worker-supabase-client
-- **ws-02-01** (milestone-02) — LocalVault Sync Wrappers & Hydration — files: src/core/vault/LocalVault.ts, src/core/vault/supabaseSync.ts — owner: worker-vault-sync
-- **ws-03-01** (milestone-03) — Bootstrap Hydration & Fallback Integration — files: src/main.tsx, src/core/vault/seed.ts — owner: worker-bootstrap
-- **ws-04-01** (milestone-04) — Cohesion & Supabase Integration Tests — files: test/tier3-integration/supabase.test.ts, test/tier3-integration/cohesion.test.ts — owner: worker-cohesion-tests
-- **ws-04-02** (milestone-04) — Build Lint Tool Integrity Verification — files: src/tools/index.ts, src/core/webmcp/WebMCPEngine.ts, vite.config.ts, test/test-runner.ts — owner: worker-build-verify
+### M3 Module Polish (depends M2) — ws-m3-01, ws-m3-02, ws-m3-03 parallel
+- **Goal:** Vault / LabStory / PillMap / HomeLab / Safety / CareCircle polished (cards, padding, empty/loading, typography), RxBridge/Dossier token-aligned
+- **Files partitioned:**
+  - ws-m3-01: src/components/vault/*, src/components/labstory/*
+  - ws-m3-02: src/components/pillmap/*, src/components/homelab/*
+  - ws-m3-03: src/components/safety/*, src/components/carecircle/*, src/components/rxbridge/*, src/components/dossier/*
+- **Verification:** per-workstream screenshots aggregated .teamwork/snapshots/m3/
+
+### M4 Responsive & Final Hardening (depends M3) — ws-m4-01, ws-m4-02 parallel
+- **Goal:** index.css responsive, max-w-7xl, overflow fixes, modals cohesive, common components token-aligned, performance & a11y
+- **Files partitioned:**
+  - ws-m4-01: src/index.css, src/App.tsx (container/overflow polish)
+  - ws-m4-02: src/components/common/* (PrivacyBadge, QuestionBank, WebMCPInspector, ToastContainer, BoundingBoxViewer)
+- **Verification:** screenshots at 320/375/768/1024/1280/1440, final gates + Success Auditor independent dev-server audit
+
+## Workstreams & Ownership (explicit, non-overlapping per milestone)
+
+| Workstream | Milestone | Files (globs) | Owner | Status | Isolation |
+|------------|-----------|---------------|-------|--------|-----------|
+| ws-m1-01 | M1 | tailwind.config.js, src/index.css, src/App.tsx (header token only) | worker-m1-01 | pending | .teamwork/worktrees/ws-m1-01/ |
+| ws-m2-01 | M2 | src/App.tsx | worker-m2-01 | pending | .teamwork/worktrees/ws-m2-01/ |
+| ws-m3-01 | M3 | src/components/vault/*, src/components/labstory/* | worker-m3-01 | pending | .teamwork/worktrees/ws-m3-01/ |
+| ws-m3-02 | M3 | src/components/pillmap/*, src/components/homelab/* | worker-m3-02 | pending | .teamwork/worktrees/ws-m3-02/ |
+| ws-m3-03 | M3 | src/components/safety/*, src/components/carecircle/*, src/components/rxbridge/*, src/components/dossier/* | worker-m3-03 | pending | .teamwork/worktrees/ws-m3-03/ |
+| ws-m4-01 | M4 | src/index.css, src/App.tsx | worker-m4-01 | completed | .teamwork/worktrees/ws-m4-01/ |
+| ws-m4-02 | M4 | src/components/common/* | worker-m4-02 | completed | .teamwork/worktrees/ws-m4-02/ |
+
+**Conflict check:** Within each milestone, globs are disjoint. M4 ws-m4-01 re-owns index.css/App.tsx after M1/M2/M3 completed — serialized by DAG, no concurrent overlap. Verified via ownership.ts logic equivalent (no overlapping globs in same batch).
 
 ## Dependency Graph
 ```mermaid
 graph TD
-  milestone-01 --> milestone-02
-  milestone-02 --> milestone-03
-  milestone-03 --> milestone-04
+  M1[ M1 Design System<br/>ws-m1-01] --> M2[ M2 Shell & Navigation<br/>ws-m2-01]
+  M2 --> M3A[ws-m3-01 vault/labstory]
+  M2 --> M3B[ws-m3-02 pillmap/homelab]
+  M2 --> M3C[ws-m3-03 safety/carecircle/rxbridge/dossier]
+  M3A --> M4[ M4 Responsive & Final ]
+  M3B --> M4
+  M3C --> M4
+  M4 --> SA[Success Auditor → Done]
+  Explorer[Explorer baseline<br/>3 viewports + token audit] -.-> M1
 ```
+
+## Explorer
+- Baseline: research/explorer-*.md with screenshots at 375/768/1280, tailwind token audit, a11y audit, proposes design system approach
+- Runs before M1 workers, read-only
+
+## Gates
+- Per milestone: critic → challenger → auditor (all PASS, screenshot evidence required)
+- Final: Success Auditor (lint, test, build, grep, live screenshot audit at 3 viewports)
+
+## Snapshots
+- .teamwork/snapshots/m1/, m2/, m3/, m4/ — each milestone >=2 captures (desktop 1280 + mobile 375), tablet 768 optional, auditor re-captures
+
+## Risks & Mitigations
+- Hex sprawl (#EEF2FF) → centralized tokens, grep check in auditor
+- Responsive breakage → M4 dedicated, challenger tests edge viewports/long text/empty
+- Regression (p_devi_78, supabase, 40 tools) → grep + build checks per auditor
+

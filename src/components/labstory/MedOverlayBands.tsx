@@ -46,10 +46,10 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       startDate: '2022-01-10T00:00:00Z',
       stopDate: '2026-08-25T00:00:00Z',
       status: 'stopped',
-      colorHex: '#38bdf8', // sky-400
-      bgClass: 'bg-sky-500/20 hover:bg-sky-500/30',
-      borderClass: 'border-sky-500/40',
-      textClass: 'text-sky-700',
+      colorHex: '#4F46E5',
+      bgClass: 'bg-primary-light hover:brightness-95',
+      borderClass: 'border-primary-border',
+      textClass: 'text-primary-text',
       indication: 'Hypertension & Cardioprotection',
       prescribedBy: 'Dr. Anita Patel, MD',
       notes: 'Discontinued on hospital discharge due to acute eGFR decline (32 mL/min).'
@@ -62,8 +62,8 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       category: 'antidiabetic',
       startDate: '2023-01-20T00:00:00Z',
       status: 'active',
-      colorHex: '#34d399', // emerald-400
-      bgClass: 'bg-emerald-500/20 hover:bg-emerald-500/30',
+      colorHex: '#10B981',
+      bgClass: 'bg-emerald-50 hover:bg-emerald-100',
       borderClass: 'border-emerald-200',
       textClass: 'text-emerald-700',
       indication: 'Type 2 Diabetes Glycemic Control',
@@ -79,10 +79,10 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       startDate: '2023-11-01T00:00:00Z',
       stopDate: '2023-11-20T00:00:00Z',
       status: 'stopped',
-      colorHex: '#c084fc', // purple-400
-      bgClass: 'bg-purple-500/20 hover:bg-purple-500/30',
-      borderClass: 'border-purple-500/40',
-      textClass: 'text-purple-300',
+      colorHex: '#A855F7',
+      bgClass: 'bg-purple-50 hover:bg-purple-100',
+      borderClass: 'border-purple-200',
+      textClass: 'text-purple-700',
       indication: 'Osteoarthritis flare & joint inflammation',
       prescribedBy: 'Rheumatology Clinic',
       notes: 'Directly caused temporary fasting glucose spike to 145 mg/dL during therapy.'
@@ -95,10 +95,10 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       category: 'statin',
       startDate: '2024-08-01T00:00:00Z',
       status: 'active',
-      colorHex: '#2dd4bf', // teal-400
-      bgClass: 'bg-teal-500/20 hover:bg-teal-500/30',
-      borderClass: 'border-teal-500/40',
-      textClass: 'text-teal-300',
+      colorHex: '#14B8A6',
+      bgClass: 'bg-teal-50 hover:bg-teal-100',
+      borderClass: 'border-teal-200',
+      textClass: 'text-teal-700',
       indication: 'Hyperlipidemia & Atherosclerosis prevention',
       prescribedBy: 'Cardiology Clinic',
       notes: 'Titration in Aug 2024 led to sustained LDL reduction from 125 to 88 mg/dL.'
@@ -112,9 +112,9 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       startDate: '2026-08-15T00:00:00Z',
       stopDate: '2026-08-28T00:00:00Z',
       status: 'stopped',
-      colorHex: '#f87171', // red-400
-      bgClass: 'bg-rose-500/25 hover:bg-rose-500/35',
-      borderClass: 'border-rose-500/50',
+      colorHex: '#EF4444',
+      bgClass: 'bg-rose-50 hover:bg-rose-100',
+      borderClass: 'border-rose-200',
       textClass: 'text-rose-700',
       indication: 'Acute knee osteoarthritis pain',
       prescribedBy: 'Self-administered OTC',
@@ -128,8 +128,8 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       category: 'anticoagulant',
       startDate: '2026-08-25T00:00:00Z',
       status: 'active',
-      colorHex: '#fbbf24', // amber-400
-      bgClass: 'bg-amber-500/20 hover:bg-amber-500/30',
+      colorHex: '#F59E0B',
+      bgClass: 'bg-amber-50 hover:bg-amber-100',
       borderClass: 'border-amber-200',
       textClass: 'text-amber-700',
       indication: 'Stroke prevention in Atrial Fibrillation',
@@ -172,21 +172,21 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
   };
 
   return (
-    <div className={`bg-white border border-slate-200/90 rounded-2xl p-4 space-y-3 ${className}`}>
+    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 space-y-3 shadow-sm ${className}`}>
       {/* Header with Info and Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-canvas-border pb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+          <div className="p-1.5 rounded-lg bg-primary-light border border-primary-border text-primary shrink-0">
             <Pill className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              Medication Overlay Bands (LS4)
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-700 font-semibold border border-indigo-200">
+            <h4 className="text-body-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+              Medication Overlay Bands
+              <span className="text-caption px-1.5 py-0.5 rounded-full bg-primary-light text-primary-text font-semibold border border-primary-border">
                 Timeline Aligned
               </span>
             </h4>
-            <p className="text-[11px] text-slate-600">
+            <p className="text-caption text-muted leading-relaxed">
               Active & historical drug courses overlaid on the biomarker timeline to visualize causal impacts.
             </p>
           </div>
@@ -200,16 +200,16 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
               <button
                 key={med.id}
                 onClick={() => toggleMed(med.id)}
-                className={`text-[10px] px-2 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all border ${
+                className={`text-caption px-2 py-1 rounded-full font-bold flex items-center gap-1.5 transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[28px] ${
                   isVis
-                    ? `${med.bgClass} ${med.borderClass} ${med.textClass}`
-                    : 'bg-white text-slate-600 border-slate-200 opacity-60'
+                    ? `${med.bgClass} ${med.borderClass} ${med.textClass} shadow-sm`
+                    : 'bg-canvas-card text-muted border-canvas-border opacity-60'
                 }`}
                 title={`Toggle ${med.name}`}
               >
                 <span
                   className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: isVis ? med.colorHex : '#64748b' }}
+                  style={{ backgroundColor: isVis ? med.colorHex : '#64748B' }}
                 />
                 <span>{med.name}</span>
                 {isVis ? <Eye className="w-3 h-3 opacity-60" /> : <EyeOff className="w-3 h-3 opacity-60" />}
@@ -223,11 +223,11 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       <div className="relative pt-1 pb-2 space-y-1.5">
         {/* Subtle grid ticks matching chart width */}
         <div className="absolute inset-0 pointer-events-none flex justify-between">
-          <div className="w-px h-full bg-slate-100/40" />
-          <div className="w-px h-full bg-slate-100/40" />
-          <div className="w-px h-full bg-slate-100/40" />
-          <div className="w-px h-full bg-slate-100/40" />
-          <div className="w-px h-full bg-slate-100/40" />
+          <div className="w-px h-full bg-canvas-border/60" />
+          <div className="w-px h-full bg-canvas-border/60" />
+          <div className="w-px h-full bg-canvas-border/60" />
+          <div className="w-px h-full bg-canvas-border/60" />
+          <div className="w-px h-full bg-canvas-border/60" />
         </div>
 
         {defaultTimelineMeds
@@ -246,8 +246,8 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
                     left: `${left}%`,
                     width: `${width}%`
                   }}
-                  className={`absolute h-6 rounded-lg px-2 flex items-center justify-between text-left text-[11px] font-semibold transition-all border shadow-sm cursor-pointer truncate z-10 ${med.bgClass} ${med.borderClass} ${med.textClass} ${
-                    isSelected ? 'ring-2 ring-white/50 scale-[1.01]' : ''
+                  className={`absolute h-6 rounded-lg px-2 flex items-center justify-between text-left text-caption font-semibold transition-all border shadow-sm cursor-pointer truncate z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${med.bgClass} ${med.borderClass} ${med.textClass} ${
+                    isSelected ? 'ring-2 ring-primary/30 scale-[1.01]' : ''
                   }`}
                 >
                   <span className="truncate flex items-center gap-1.5">
@@ -267,30 +267,30 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
 
       {/* Selected Medication Details Card */}
       {selectedMed && (
-        <div className="mt-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start justify-between gap-4 animate-fade-in text-xs">
+        <div className="mt-3 p-3.5 bg-canvas-muted border border-canvas-border rounded-xl flex items-start justify-between gap-4 animate-fade-in text-body-sm shadow-sm">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-900 text-sm">{selectedMed.name}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${selectedMed.bgClass} ${selectedMed.borderClass} ${selectedMed.textClass}`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-slate-900 text-body-sm">{selectedMed.name}</span>
+              <span className={`text-caption px-2 py-0.5 rounded-full font-bold border ${selectedMed.bgClass} ${selectedMed.borderClass} ${selectedMed.textClass}`}>
                 {selectedMed.dosage}
               </span>
-              <span className="text-slate-600 text-[11px]">
+              <span className="text-caption text-muted">
                 {new Date(selectedMed.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 {selectedMed.stopDate ? ` → ${new Date(selectedMed.stopDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : ' → Ongoing'}
               </span>
             </div>
 
-            <p className="text-slate-700 font-medium">{selectedMed.notes}</p>
-            <div className="flex items-center gap-3 text-[11px] text-slate-600 pt-1">
-              <span>Indication: <strong className="text-slate-700">{selectedMed.indication}</strong></span>
+            <p className="text-slate-700 font-medium leading-relaxed">{selectedMed.notes}</p>
+            <div className="flex items-center gap-3 text-caption text-muted pt-1 flex-wrap">
+              <span>Indication: <strong className="text-slate-900">{selectedMed.indication}</strong></span>
               <span>•</span>
-              <span>Prescriber: <strong className="text-slate-700">{selectedMed.prescribedBy}</strong></span>
+              <span>Prescriber: <strong className="text-slate-900">{selectedMed.prescribedBy}</strong></span>
             </div>
           </div>
 
           <button
             onClick={() => setSelectedMed(null)}
-            className="text-slate-600 hover:text-slate-800 text-xs px-2 py-1 bg-slate-100 rounded-lg hover:bg-slate-100"
+            className="text-muted hover:text-slate-900 text-caption px-2 py-1 bg-canvas-card rounded-lg hover:bg-white border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0 min-h-[32px]"
           >
             Dismiss
           </button>

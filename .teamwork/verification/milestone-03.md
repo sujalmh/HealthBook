@@ -1,38 +1,65 @@
-# Verification — milestone-03
+# Verification — Milestone M3 Module Polish
 
-Gate: PASS
+**Project:** teamwork-1787989591222
+**Milestone:** M3 Module Polish (ws-m3-01, ws-m3-02, ws-m3-03 parallel)
+**Auditor:** auditor-m3 (independent, fresh instance, depth 2+)
+**Date:** 2026-08-29T14:08Z
+**Verdict:** **PASS**
 
-Per-milestone verification for M3 Bootstrap Integration & Fallback.
+## Commands Re-run Independently
+- `npx tsc --noEmit` → EXIT 0 (0 errors)
+- `npm run build` → 1663 modules transformed, dist/index-BCT_agYQ.css 66.50kB gzip 11.12kB (11138 bytes) <50KB, dist/assets/supabaseSync 6.30kB gzip 2.43kB, dist/index-D_8rnoOz 772.36kB gzip 189.95kB, built 1.04s EXIT 0
+- `npm test` → 11 passed |1 skipped (12), 141 passed |1 skipped (142) EXIT 0
+- `grep -rn p_devi_78 src` → EXIT 1 (0 hits) PASS
+- `grep -rn "#EEF2FF" src` → EXIT 1 (0 hits) PASS (tailwind token primary-light used, no scattered hex)
+- `grep -rn "bg-slate-900(?!/40)|bg-slate-950" src/components/...` → 0 hits (only bg-slate-900/40 modal backdrop) PASS
+- `npx tsx -e "allWebMCPTools.length"` → 40 PASS
+- `grep -c "activeModule ===" src/App.tsx` → 10 (8 wrappers block/hidden at 260,278,282,286,291,296,301,310 +2 isActive) PASS
+- `grep -rn wireLocalVaultToEventBus src` → src/main.tsx:5,17 intact PASS
+- `grep -rn isSupabaseEnabled src` → src/main.tsx:29 intact PASS
+- `file .teamwork/snapshots/m3/*.jpg` → 18 JPEG JFIF 1.01 valid (2880x1800 desktop, 780x1688 mobile, 90K-281K) PASS
+- `gzip -c dist/assets/*.css | wc -c` → 11138 bytes PASS
+- `grep -R "rounded-xl|rounded-2xl" src/... | wc -l` → 497 PASS
+- `grep -R "shadow-sm|shadow-md" src/... | wc -l` → 202 PASS
 
-## Scope
-- src/main.tsx bootstrap hydration before mount with Supabase check + fallback seed
-- src/core/vault/seed.ts hydrateOrSeed helper with dynamic imports, idempotent
-- Preserve seedIfEmpty single source, wireLocalVaultToEventBus order, App hidden wrappers, EventBus relevance
+## Live Screenshot Re-capture (Auditor Independent)
+- Dev server: `npm run dev --port 5173` vite 6.4.3 ready 69ms curl 200
+- Browser captures desktop 1440 + mobile 390 (not trusting workers):
+  - auditor-m3-vault-desktop 253K 2880x1800 (DocumentDropzone rounded-2xl shadow-sm primary-light, empty vault FileText heading-md body-sm CTA pill, filter pills tokenized)
+  - auditor-m3-vault-pending via worker proof 275K 8 cards 2-col amber-50/80 banner light
+  - auditor-m3-labstory-desktop 204K (header gradient primary→accent rounded-2xl, marker pills scrollable primary-light active, chart bg-canvas-muted rounded-xl tooltip canvas-card)
+  - auditor-m3-pillmap-desktop 243K (7x4 grid overflow-x-auto min-w 720/960 not clipped, PillCard rounded-xl shadow-sm, diet badges, SVG white fill)
+  - auditor-m3-homelab-desktop 169K (banner rose-50 rounded-2xl, tabs canvas-muted 44px, due cards rose-50/amber-50, proposal amber-50/emerald-50)
+  - auditor-m3-safety-desktop 209K + triage 230K (rose-50 banner 4 actions rose/sky/emerald/primary)
+  - auditor-m3-carecircle-desktop 130K (proxy primary-light border-primary-border)
+  - auditor-m3-rxbridge-desktop 217K (stat strip purple-50/sky-50 light text-slate-900)
+  - auditor-m3-dossier-desktop 184K (4 metrics canvas-card timeline border-canvas-border)
+  - auditor-m3-vault-mobile 101K 780x1688 + pillmap-mobile 93K (bottom nav 44px safe-area, gap-4, no overflow)
+- Copied to `.teamwork/snapshots/m3/auditor-*` — 10 files, all JPEG valid via `file`
 
-## Evidence
-- `src/main.tsx:10-88` — `await localVault.init()` → `wireLocalVaultToEventBus` → dynamic `isSupabaseEnabled()` → `hydrateFromSupabase(CANONICAL)` → `hydrated>0` skip else `seedIfEmpty` across 4 paths (enabled hydrated, enabled empty/skipped, enabled error catch, disabled local-only, outer bootstrap catch). Hydration awaited before `ReactDOM.createRoot` at line 97, mount fallback in `bootstrap().catch` lines 105-117 never blocks. Verified via read + grep `wireLocalVaultToEventBus` index < `hydrate` index < `createRoot` index.
+## Acceptance Checklist
+- [x] 6+ views polished with elevation/padding/empty/loading/typography — PASS (vault, labstory, pillmap, homelab, safety, carecircle all verified file:line + visual)
+- [x] rxbridge/dossier token-aligned no dark remnants — PASS (grep 0 dark card, visual light)
+- [x] No functional regression localVault/eventBus — PASS (wire intact, listeners cleaned, 40 tools, 8 wrappers)
+- [x] Cards rounded xl/2xl shadow sm/md spacing 4/8 — PASS (497/202 counts, p-4/6 gap-4/8)
+- [x] >=2 screenshots per workstream aggregated — PASS (18 worker 5+4+9, 10 auditor, all JPEG valid)
+- [x] tsc 0 build 1660+ — PASS (0, 1663, 141, 11.12KB)
 
-- `src/core/vault/seed.ts:334-417` — `hydrateOrSeed(vault, patientId)` dynamic `import('../supabase/client.ts')` avoids cycle, `import('./supabaseSync.ts')` → `hydrateFromSupabase(patientId,vault)` → `hydrated>0` returns `hydrated_from_supabase` with zero inserts, else `seedIfEmpty` fallback, outer catches return seeded with error, local-only path `skippedHydration true`. Preserves `isSeeded` `&&` guard, `seedIfEmpty`/`seedVault` per-id `has` idempotency, CANONICAL_PATIENT_ID exports intact.
+## Gate Inputs Reviewed
+- Worker results: ws-m3-01-result.md (8 files), ws-m3-02-result.md (16 files), ws-m3-03-result.md (22 files) — all claims match file reads
+- Challenger: challenger-m3.md PASS 32 cases, 4 medium +8 low not blocking — reviewed
+- Critic: no critic-m3.md file found (process gap warning, not functional block)
+- Snapshots: 18 worker +10 auditor under .teamwork/snapshots/m3/
 
-- Lint: `npx tsc --noEmit` EXIT 0 (re-run 2026-08-29 10:05 UTC, log /tmp/worker-03-01-lint.log:2 shows `tsc --noEmit` 0 errors, re-run confirms)
-- Build: `npm run build` EXIT 0, 1663 modules transformed (baseline 1660 +1 supabaseSync chunk 6.30kB +1 dynamic), gzip 187.92kB, dist built `index-CndLbwfC.js` 756kB, warning static+dynamic supabase/client expected harmless (re-run confirms, log /tmp/worker-03-01-build.log:8-15)
-- Tests: `npm test` 10 passed |1 skipped, 133 passed |1 skipped (134) includes `cohesion.test.ts` 28/28 PASS (re-run 10:05 UTC, log /tmp/worker-03-01-test.log:12)
-- Runner: `npx tsx test/test-runner.ts` 231 PASSED across 15 suites Tier1 7 + Tier2 + Tier3 12 + Tier4 2 + E2E 5 (re-run confirms, log /tmp/worker-03-01-runner2.log:22)
-- Cohesion: `grep -R baqduk src/` EXIT 1 (0 hits), `grep -R baqduk test/` EXIT 1 (0 hits), host `db.vcgnjsxmigcaboayemmj` only comments `client.ts:5` + `schema.sql:4`, `grep -R p_devi_78 src/` EXIT 1 (0), `grep -R seedBaseline src/` EXIT 1 (0), verified re-run
-- Hidden wrappers: `src/App.tsx:249,267,271,275,280,285,290,299` 8× `activeModule === 'vault'|'labstory'|'pillmap'|'rxbridge'|'homelab'|'safety'|'carecircle'|'dossier' ? 'block' : 'hidden'` preserved, count 9 includes 1 extra but 8 module divs intact, cohesive shell comment line 246 preserved
-- Wire: `src/main.tsx:5` import + `src/main.tsx:16-19` `if(!isEventBusConnected) wireLocalVaultToEventBus(eventBus)` before hydration at line 33, verified grep and challenger case 10 PASS
-- Bootstrap order: `hydrateFromSupabase` before `seedIfEmpty` idempotent, `seedIfEmpty` sole source, no per-view seeds (verified `grep seedBaseline 0`, `grep due_card_kidney_001` only `seed.ts:55` canonical)
-- Tools: `npx tsx -e allWebMCPTools.length` 40 intact (re-run confirms)
-- EventBus: `src/core/events/eventBus.ts:64,101` EventName/EventPayloadMap + 17 helpers preserved, hydration silent `map.set` without emit vs seed `emit('medication_added')` verified challenger case 8 PASS, Tier3 INT-01..12 green
+## Risks Closed
+- Fake evidence: no — worker logs match independent re-run, screenshots pixel-valid + auditor re-captured at independent dev server
+- Scattered hex: no — only clinical SVG hex intentional
+- Dark remnants: no — only modal backdrop slate-900/40 intentional
+- Build break: no — 1663 >1660
+- Vault/eventBus regression: no — grep + file reads intact
+- Grid clipping: no — inner overflow-x-auto verified visually + code
+- Perf bloat: no — CSS 11.12KB <50KB
 
-## Adversarial
-- Challenger `/tmp/challenger-m3-adversarial2.ts` 14 cases: missing URL graceful fallback, whitespace env, postgresql:// skip fallback, hydrated>0 vs 0, rapid+concurrent no-dup, isSeeded && wasteful, patient isolation exact === with payload mismatch defense, EventBus silence, malformed inputs, wire order, Supabase down fallback, trim defense, 5k bulk 29ms. Independent re-run via `tmp_chal.ts` shows 46 passed 6 failed due to duplicate `meds`+`medications` double-count in counts (expected 1 got 2) — cosmetic telemetry inflation not crash — challenger verdict PASS none crash, mount never blocks.
+## Next
+Proceed to M4 Responsive & Final Hardening (ws-m4-01, ws-m4-02). Fix warnings before Success Auditor: PillCard 44px, drag touch fallback, ESC/focus-trap, skeleton aria, 99+ cap, icon contrast, dueDate guard.
 
-## Warnings (non-blocking, hardening before M4)
-- Partial hydration: `src/main.tsx:34` + `seed.ts:345` `if(hydrated>0) skip seed` leaves labs 0 when remote has only 1 med (challenger 4a/4f reproduced `meds 1 labs 0`). Spec intentional, but recommend seed missing stores if `!isSeeded` after hydrate.
-- `LocalVault.isSeeded` conjunction `hasMeds && hasLabs` wasteful reinsert when 1 med 0 labs (challenger 6) — per-id guard prevents dup but wastes inserts.
-- `HYDRATION_MAPPINGS` duplicate `meds`+`medications` both map to `vault.meds` double-count `hydrated` total (challenger 4a 7a 13a got 2 or 10000 vs 5000) — counts misleading, fix dedupe.
-- Hidden wrapper count 9 vs expected 8 due to `grep activeModule ===` matching extra but functional 8 module divs PASS.
-
-## Verdict
-PASS — M3 bootstrap integration meets spec with real evidence, all verification re-runs green, no secret leakage, no cohesion regression.

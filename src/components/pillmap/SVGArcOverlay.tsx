@@ -221,7 +221,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
                     cx="12"
                     cy="12"
                     r={isHovered ? 13 : 11}
-                    fill="#0F172A"
+                    fill="white"
                     stroke={strokeColor}
                     strokeWidth="2"
                     className="transition-all"
@@ -245,8 +245,8 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
 
       {/* Slide-over / Modal Clinical Mechanism Sheet */}
       {selectedArc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scale-up">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full shadow-lg overflow-hidden animate-scale-up">
             {/* Header */}
             <div
               className={`p-4 border-b flex items-center justify-between ${
@@ -286,9 +286,9 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4 text-slate-800 text-sm">
-              <div className="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200 space-y-1">
-                <span className="text-[11px] font-bold tracking-wide uppercase text-slate-600">
+            <div className="p-6 space-y-4 text-slate-800 text-body">
+              <div className="bg-canvas-muted p-3.5 rounded-xl border border-canvas-border space-y-1">
+                <span className="text-caption tracking-wide uppercase text-muted">
                   Clinical Mechanism
                 </span>
                 <p className="text-slate-900 leading-relaxed font-medium">
@@ -297,10 +297,10 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
               </div>
 
               <div className="bg-sky-50 p-3.5 rounded-xl border border-sky-200 space-y-1">
-                <span className="text-[11px] font-bold tracking-wide uppercase text-sky-400 flex items-center gap-1.5">
+                <span className="text-caption tracking-wide uppercase text-sky-700 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" /> Recommended Clinical Action
                 </span>
-                <p className="text-sky-100 leading-relaxed">
+                <p className="text-sky-900 leading-relaxed text-body">
                   {selectedArc.clinicalGuidance}
                 </p>
               </div>
@@ -314,10 +314,10 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div className="p-4 bg-canvas-muted border-t border-canvas-border flex justify-end">
               <button
                 onClick={() => setSelectedArc(null)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-100 text-white rounded-xl text-xs font-semibold transition-colors"
+                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
               >
                 Close Explanation
               </button>

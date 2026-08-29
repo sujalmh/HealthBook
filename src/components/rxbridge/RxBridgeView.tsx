@@ -297,8 +297,8 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Controls & Module Banner */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-4">
+      {/* Top Controls & Module Banner — tokenized */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Module Title */}
           <div className="flex items-center gap-3.5">
@@ -321,7 +321,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           </div>
 
           {/* Quick-Fill Sample Dataset Switcher */}
-          <div className="flex flex-wrap items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 text-xs">
+          <div className="flex flex-wrap items-center gap-2 bg-canvas-muted p-1.5 rounded-xl border border-canvas-border text-body-sm">
             <span className="text-[11px] font-mono text-slate-600 px-2 font-bold">Example:</span>
             <button
               onClick={() => setSelectedCaseId('shanti')}
@@ -346,45 +346,45 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           </div>
         </div>
 
-        {/* Statistical Overview Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-200">
-          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
-            <div className="text-[10px] font-mono text-slate-600 uppercase font-bold">Total Meds</div>
-            <div className="text-xl font-black text-white mt-0.5">{reconciledItems.length}</div>
+        {/* Statistical Overview Strip — tokenized light */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-canvas-border">
+          <div className="p-3 rounded-xl bg-canvas-muted border border-canvas-border">
+            <div className="text-caption font-mono text-muted uppercase font-bold">Total meds</div>
+            <div className="text-xl font-black text-slate-900 mt-0.5">{reconciledItems.length}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-purple-950/30 border border-purple-800/50">
-            <div className="text-[10px] font-mono text-purple-300 uppercase font-bold">New Meds</div>
-            <div className="text-xl font-black text-purple-200 mt-0.5">{newCount}</div>
+          <div className="p-3 rounded-xl bg-purple-50 border border-purple-200">
+            <div className="text-caption font-mono text-clinical-purple uppercase font-bold">New meds</div>
+            <div className="text-xl font-black text-clinical-purple mt-0.5">{newCount}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-sky-50 border border-sky-800/50">
-            <div className="text-[10px] font-mono text-sky-700 uppercase font-bold">Dose Changed</div>
-            <div className="text-xl font-black text-sky-700 mt-0.5">{changedCount}</div>
+          <div className="p-3 rounded-xl bg-sky-50 border border-sky-200">
+            <div className="text-caption font-mono text-clinical-blue uppercase font-bold">Dose changed</div>
+            <div className="text-xl font-black text-clinical-blue mt-0.5">{changedCount}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200">
-            <div className="text-[10px] font-mono text-rose-700 uppercase font-bold">Stopped / Omitted</div>
-            <div className="text-xl font-black text-rose-700 mt-0.5">{stoppedCount}</div>
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
+            <div className="text-caption font-mono text-clinical-red uppercase font-bold">Stopped / Omitted</div>
+            <div className="text-xl font-black text-clinical-red mt-0.5">{stoppedCount}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-800/50">
-            <div className="text-[10px] font-mono text-amber-700 uppercase font-bold">Conflicts Flagged</div>
-            <div className="text-xl font-black text-amber-700 mt-0.5">{interactionsCount}</div>
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
+            <div className="text-caption font-mono text-clinical-amber uppercase font-bold">Conflicts flagged</div>
+            <div className="text-xl font-black text-clinical-amber mt-0.5">{interactionsCount}</div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-800/50">
-            <div className="text-[10px] font-mono text-emerald-700 uppercase font-bold">Approved Status</div>
-            <div className="text-base font-black text-emerald-700 mt-1">
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+            <div className="text-caption font-mono text-clinical-emerald uppercase font-bold">Approved status</div>
+            <div className="text-base font-black text-clinical-emerald mt-1">
               {totalApproved}/{reconciledItems.length} ({progressPercent}%)
             </div>
           </div>
         </div>
 
         {/* Action & View Mode Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-canvas-border">
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-50 p-1 rounded-2xl border border-slate-200 text-xs">
+          <div className="flex items-center bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm">
             <button
               onClick={() => setViewMode('table')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all ${
@@ -429,15 +429,15 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               <span>Print Summary</span>
             </button>
 
-            {/* Cross-Module Handoff Button — RB4 gate disabled until 100% approved */}
+            {/* Cross-Module Handoff Button — RB4 gate */}
             <button
               onClick={handleFinalizeAndHandoffToPillMap}
               disabled={totalApproved !== reconciledItems.length}
               title={totalApproved !== reconciledItems.length ? `Approve all ${reconciledItems.length} medicines first (${totalApproved}/${reconciledItems.length})` : 'Add to my weekly medicines'}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold shadow-lg transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-body-sm font-bold shadow-md transition-all min-h-[44px] ${
                 totalApproved !== reconciledItems.length
-                  ? 'bg-slate-700 text-slate-600 cursor-not-allowed border border-slate-600'
-                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-900/30 hover:scale-102'
+                  ? 'bg-canvas-muted text-muted cursor-not-allowed border border-canvas-border'
+                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/20 hover:scale-[1.01]'
               }`}
             >
               <Pill className="w-4 h-4" />

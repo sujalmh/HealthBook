@@ -26,10 +26,10 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden animate-scale-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-2xl w-full shadow-lg overflow-hidden animate-scale-up">
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-emerald-50 via-slate-50 to-sky-50 border-b border-slate-200 flex items-center justify-between">
+        <div className="p-6 bg-gradient-to-r from-emerald-50 via-canvas-muted to-sky-50 border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-200 flex items-center justify-center text-emerald-400">
               <Sparkles className="w-5 h-5" />
@@ -45,7 +45,7 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
           </div>
           <button
             onClick={onReject}
-            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
+            className="p-2 rounded-xl hover:bg-canvas-muted text-muted hover:text-slate-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Close modal"
           >
             <XCircle className="w-5 h-5" />
@@ -53,51 +53,51 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
         </div>
 
         {/* Body Content */}
-        <div className="p-6 space-y-5 text-sm text-slate-800">
+        <div className="p-6 space-y-5 text-body text-slate-800">
           {/* Plain Language Summary */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-wider">
+          <div className="bg-canvas-muted p-4 rounded-2xl border border-canvas-border space-y-1.5">
+            <div className="flex items-center gap-2 text-caption uppercase tracking-wider text-primary-text">
               <Clock className="w-4 h-4" /> Schedule Rationale
             </div>
-            <p className="text-slate-800 leading-relaxed">
+            <p className="text-slate-800 leading-relaxed text-body">
               {suggestion.plainExplanation}
             </p>
           </div>
 
           {/* Shifts Comparison Table */}
           <div className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">
+            <h3 className="text-caption uppercase tracking-wider text-muted">
               Proposed Timing Adjustments ({suggestion.proposedShifts.length})
             </h3>
 
             {suggestion.proposedShifts.length === 0 ? (
-              <div className="p-6 text-center bg-slate-50 rounded-2xl border border-slate-200 text-slate-600">
-                <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+              <div className="p-6 text-center bg-canvas-muted rounded-2xl border border-canvas-border text-muted">
+                <ShieldCheck className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                 <p className="font-semibold text-slate-800">Your schedule is already optimal!</p>
-                <p className="text-xs mt-1">No timing shifts needed for your current medication combination.</p>
+                <p className="text-body-sm mt-1">No timing shifts needed for your current medication combination.</p>
               </div>
             ) : (
               <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                 {suggestion.proposedShifts.map((shift, idx) => (
                   <div
                     key={`shift_${shift.medId}_${idx}`}
-                    className="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 hover:border-slate-200 transition-all space-y-2"
+                    className="p-4 rounded-2xl bg-canvas-muted border border-canvas-border hover:border-primary-border transition-all space-y-2"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-white text-sm">
+                      <span className="font-semibold text-heading-md text-slate-900">
                         {shift.medName}
                       </span>
-                      <div className="flex items-center gap-2 text-xs font-mono font-bold">
-                        <span className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 border border-rose-200 uppercase">
+                      <div className="flex items-center gap-2 text-caption font-mono font-bold">
+                        <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 uppercase">
                           {shift.fromSlot}
                         </span>
-                        <ArrowRight className="w-4 h-4 text-emerald-400" />
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase shadow-sm">
+                        <ArrowRight className="w-4 h-4 text-emerald-500" />
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase shadow-sm">
                           {shift.toSlot}
                         </span>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-700 leading-relaxed bg-white p-2.5 rounded-xl border border-slate-200/60">
+                    <p className="text-body-sm text-slate-700 leading-relaxed bg-white p-2.5 rounded-xl border border-canvas-border">
                       💡 {shift.reason}
                     </p>
                   </div>
@@ -108,11 +108,11 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
         </div>
 
         {/* Action Gate Footer */}
-        <div className="p-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-4">
+        <div className="p-6 bg-canvas-muted border-t border-canvas-border flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={onReject}
-            className="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors"
+            className="px-5 py-2.5 rounded-xl border border-canvas-border hover:bg-white text-slate-700 text-body-sm font-semibold transition-colors min-h-[44px]"
           >
             Keep Current Schedule
           </button>
@@ -120,7 +120,7 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
             type="button"
             onClick={onApprove}
             disabled={suggestion.proposedShifts.length === 0}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold shadow-lg shadow-emerald-900/30 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-body-sm font-bold shadow-sm transition-all disabled:opacity-50 min-h-[44px]"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Approve & Apply Schedule Shifts</span>

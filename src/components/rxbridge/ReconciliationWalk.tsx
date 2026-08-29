@@ -81,7 +81,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-6">
+    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
       {/* Top Stepper & Navigation Header */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -97,17 +97,17 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             </p>
           </div>
 
-          {/* Progress Indicator */}
-          <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200 text-xs">
+          {/* Progress Indicator — tokenized */}
+          <div className="flex items-center gap-3 bg-canvas-muted px-4 py-2 rounded-xl border border-canvas-border text-body-sm">
             <div className="text-right">
-              <div className="font-bold text-white">
-                {totalApproved}/{items.length} Approved
+              <div className="font-bold text-slate-900">
+                {totalApproved}/{items.length} approved
               </div>
-              <div className="text-[10px] text-slate-600 font-mono">{progressPercent}% Completed</div>
+              <div className="text-caption text-muted font-mono">{progressPercent}% completed</div>
             </div>
-            <div className="w-16 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-16 h-2 bg-canvas-border rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-300"
+                className="h-full bg-gradient-to-r from-primary to-clinical-emerald transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -128,16 +128,16 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                   isCurrent
-                    ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30 ring-2 ring-sky-400'
+                    ? 'bg-primary text-white shadow-sm ring-2 ring-primary-border'
                     : item.isApprovedByPatient
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-900/40'
-                    : 'bg-slate-50 text-slate-600 hover:text-slate-800 border border-slate-200'
+                    ? 'bg-emerald-50 text-clinical-emerald border border-emerald-200'
+                    : 'bg-canvas-muted text-muted hover:text-slate-900 border border-canvas-border'
                 }`}
               >
                 {item.isApprovedByPatient ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-clinical-emerald shrink-0" />
                 ) : (
-                  <span className="w-3.5 h-3.5 rounded-full bg-slate-700 text-[9px] flex items-center justify-center font-mono">
+                  <span className="w-3.5 h-3.5 rounded-full bg-canvas-border text-[9px] flex items-center justify-center font-mono text-muted">
                     {idx + 1}
                   </span>
                 )}
@@ -148,20 +148,20 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
         </div>
       </div>
 
-      {/* Main Walkthrough Card */}
-      <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 space-y-6 shadow-inner">
+      {/* Main Walkthrough Card — tokenized */}
+      <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-5 sm:p-6 space-y-6 shadow-sm">
         {/* Medication Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-200 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-canvas-border pb-5">
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-black tracking-tight text-slate-900">{currentItem.medName}</h2>
+              <h2 className="text-heading-lg text-slate-900">{currentItem.medName}</h2>
               <ChangeBadge status={currentItem.statusBadge} size="md" />
             </div>
-            <div className="flex items-center gap-2 mt-1 text-xs text-slate-600 font-mono">
-              <span>Generic Chemical: <strong className="text-slate-800">{currentItem.genericName}</strong></span>
+            <div className="flex items-center gap-2 mt-1 text-body-sm text-muted font-mono">
+              <span>Generic: <strong className="text-slate-800">{currentItem.genericName}</strong></span>
               {currentItem.isOTC && (
-                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 font-bold border border-amber-200">
-                  Over-The-Counter
+                <span className="px-2 py-0.5 rounded bg-amber-50 text-clinical-amber font-bold border border-amber-200">
+                  Over-the-counter
                 </span>
               )}
             </div>
@@ -169,10 +169,10 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
 
           {/* Timing & Food Tag */}
           {currentItem.timingSlots && currentItem.timingSlots.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 bg-white px-3.5 py-2 rounded-2xl border border-slate-200 text-xs">
-              <Clock className="w-4 h-4 text-sky-400 shrink-0" />
+            <div className="flex flex-wrap items-center gap-2 bg-canvas-card px-3.5 py-2 rounded-xl border border-canvas-border text-body-sm">
+              <Clock className="w-4 h-4 text-accent shrink-0" />
               <span className="font-semibold text-slate-700">
-                Take: <strong className="text-white capitalize">{currentItem.timingSlots.join(', ')}</strong>
+                Take: <strong className="text-slate-900 capitalize">{currentItem.timingSlots.join(', ')}</strong>
               </span>
             </div>
           )}
@@ -208,14 +208,14 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             )}
           </div>
 
-          {/* 3. Discharge Orders */}
+          {/* 3. Discharge Orders — tokenized light */}
           <div
-            className={`p-4 rounded-2xl border space-y-1.5 ${
+            className={`p-4 rounded-xl border space-y-1.5 ${
               currentItem.statusBadge === 'STOPPED'
-                ? 'bg-rose-950/20 border-rose-200 text-rose-700'
+                ? 'bg-rose-50 border-rose-200 text-clinical-red'
                 : currentItem.statusBadge === 'NEW'
-                ? 'bg-purple-950/20 border-purple-800/80 text-purple-200'
-                : 'bg-emerald-50 border-emerald-800/80 text-emerald-700'
+                ? 'bg-purple-50 border-purple-200 text-clinical-purple'
+                : 'bg-emerald-50 border-emerald-200 text-clinical-emerald'
             }`}
           >
             <span className="text-[10px] font-mono uppercase tracking-wider font-bold block opacity-80">
@@ -230,28 +230,28 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         </div>
 
-        {/* Conversational Explanation Card */}
-        <div className="p-5 rounded-3xl bg-gradient-to-br from-white via-slate-50/90 to-sky-950/30 border border-sky-900/50 shadow-lg space-y-3">
+        {/* Conversational Explanation Card — tokenized */}
+        <div className="p-5 rounded-2xl bg-canvas-card border border-canvas-border shadow-sm space-y-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-sky-600/30 text-sky-700 flex items-center justify-center border border-sky-500/40">
+            <div className="w-8 h-8 rounded-xl bg-sky-50 text-clinical-blue flex items-center justify-center border border-sky-200">
               <Bot className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-sky-700">
-                CareCanvas Clinical Agent Explanation
+              <h4 className="text-caption font-black uppercase tracking-wider text-clinical-blue">
+                CareCanvas clinical agent explanation
               </h4>
-              <p className="text-[11px] text-slate-600">Plain-language translation of why this medication changed</p>
+              <p className="text-caption text-muted">Plain-language why this medication changed</p>
             </div>
           </div>
 
-          <p className="text-sm font-medium text-slate-900 leading-relaxed bg-white p-4 rounded-2xl border border-slate-200">
+          <p className="text-body font-medium text-slate-900 leading-relaxed bg-canvas-muted p-4 rounded-xl border border-canvas-border">
             {currentItem.plainLanguageExplanation}
           </p>
 
           {currentItem.dietInstructions && (
-            <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-800/40 font-medium">
-              <Utensils className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Food Rule: <strong>{currentItem.dietInstructions}</strong></span>
+            <div className="flex items-center gap-2 text-body-sm text-clinical-amber bg-amber-50 p-2.5 rounded-xl border border-amber-200 font-medium">
+              <Utensils className="w-4 h-4 text-clinical-amber shrink-0" />
+              <span>Food rule: <strong>{currentItem.dietInstructions}</strong></span>
             </div>
           )}
         </div>
@@ -336,9 +336,9 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         )}
 
-        {/* Patient Note Field (if open or note exists) */}
+        {/* Patient Note Field */}
         {showNoteInput || currentItem.patientComment ? (
-          <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2">
+          <div className="p-4 rounded-xl bg-canvas-card border border-canvas-border space-y-2">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
               <span>Personal Notes or Questions for this Medication:</span>
@@ -359,7 +359,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
               </button>
               <button
                 onClick={handleSaveNote}
-                className="px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs"
+                className="px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-body-sm"
               >
                 Save Note
               </button>
@@ -398,10 +398,10 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             <button
               onClick={handlePrev}
               disabled={currentIndex === 0}
-              className={`flex items-center gap-1 px-3.5 py-2 rounded-2xl text-xs font-semibold border transition-colors ${
+              className={`flex items-center gap-1 px-3.5 py-2 rounded-xl text-body-sm font-semibold border transition-colors ${
                 currentIndex === 0
-                  ? 'bg-slate-50 text-slate-600 border-slate-900 cursor-not-allowed'
-                  : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-200'
+                  ? 'bg-canvas-muted text-muted border-canvas-border cursor-not-allowed'
+                  : 'bg-canvas-card hover:bg-canvas-muted text-slate-800 border-canvas-border'
               }`}
             >
               <ChevronLeft className="w-4 h-4" />
@@ -410,9 +410,9 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
 
             <button
               onClick={handleNext}
-              className="flex items-center gap-1 px-4 py-2 rounded-2xl bg-slate-100 hover:bg-slate-100 text-white text-xs font-bold border border-slate-200 transition-colors shadow-sm"
+              className="flex items-center gap-1 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold border border-primary transition-colors shadow-sm"
             >
-              <span>{currentIndex === items.length - 1 ? 'Finish Review' : 'Next Med'}</span>
+              <span>{currentIndex === items.length - 1 ? 'Finish review' : 'Next med'}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

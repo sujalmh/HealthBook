@@ -87,8 +87,8 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Filter & Search Bar */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Filter & Search Bar — tokenized */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Category Pill Filters */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           {categories.map((cat) => {
@@ -101,10 +101,10 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
                   setSelectedCategory(cat.id);
                   if (onSelectCategory) onSelectCategory(cat.id);
                 }}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-body-sm font-bold transition-all whitespace-nowrap min-h-[36px] ${
                   isSelected
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-500/50'
-                    : 'bg-slate-50 text-slate-600 hover:text-slate-800 hover:bg-slate-100 border border-slate-200'
+                    ? 'bg-primary text-white shadow-sm border border-primary'
+                    : 'bg-canvas-muted text-muted hover:text-slate-900 hover:bg-canvas-border border border-canvas-border'
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-slate-900' : 'text-slate-600'}`} />
@@ -128,19 +128,20 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
       </div>
 
       {/* Timeline Stream Container */}
-      <div className="relative border-l-2 border-slate-200 ml-4 sm:ml-6 pl-6 sm:pl-8 space-y-6">
+      <div className="relative border-l-2 border-canvas-border ml-4 sm:ml-6 pl-6 sm:pl-8 space-y-6">
         {filteredItems.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center text-slate-600 space-y-2">
-            <Clock className="w-8 h-8 text-slate-600 mx-auto" />
-            <p className="font-semibold text-sm">No events found matching your filter criteria.</p>
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-8 text-center text-muted space-y-2 shadow-sm">
+            <Clock className="w-8 h-8 text-muted-light mx-auto" />
+            <p className="font-semibold text-heading-md text-slate-900">No events found</p>
+            <p className="text-body-sm">No events match your filter — try resetting.</p>
             <button
               onClick={() => {
                 setSelectedCategory('all');
                 setSearchQuery('');
               }}
-              className="text-xs text-sky-400 font-bold hover:underline"
+              className="text-body-sm text-accent font-bold hover:underline"
             >
-              Reset Filters
+              Reset filters
             </button>
           </div>
         ) : (
@@ -150,12 +151,12 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
               className="relative group transition-all"
             >
               {/* Timeline Bullet Anchor */}
-              <div className="absolute -left-[35px] sm:-left-[43px] top-4 w-7 h-7 rounded-full bg-slate-50 border-2 border-slate-200 group-hover:border-indigo-500 flex items-center justify-center transition-colors shadow-md">
+              <div className="absolute -left-[35px] sm:-left-[43px] top-4 w-7 h-7 rounded-full bg-canvas-muted border-2 border-canvas-border group-hover:border-primary flex items-center justify-center transition-colors shadow-sm">
                 {getCategoryIcon(item.category)}
               </div>
 
               {/* Event Card */}
-              <div className="bg-white border border-slate-200 hover:border-slate-200/80 rounded-2xl p-5 shadow-lg space-y-3 transition-all">
+              <div className="bg-canvas-card border border-canvas-border hover:border-primary-border rounded-xl p-5 shadow-sm space-y-3 transition-all">
                 {/* Event Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                   <div className="flex items-center gap-2">
@@ -206,14 +207,14 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
                     </div>
                   )}
 
-                  {/* Doctor Pinned Comment Box if present */}
+                  {/* Doctor Pinned Comment Box */}
                   {item.doctorComment && (
-                    <div className="bg-amber-950/20 border border-amber-200 rounded-xl p-3 space-y-1">
-                      <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1">
+                      <div className="flex items-center gap-1.5 text-clinical-amber text-body-sm font-bold">
                         <Pin className="w-3.5 h-3.5" />
-                        <span>Pinned Clinical Note by {item.doctorName || 'Attending Physician'}</span>
+                        <span>Pinned clinical note by {item.doctorName || 'Attending physician'}</span>
                       </div>
-                      <p className="text-xs text-amber-700/90 italic font-serif leading-normal pl-5">
+                      <p className="text-body-sm text-amber-800 italic font-serif leading-normal pl-5">
                         "{item.doctorComment}"
                       </p>
                     </div>

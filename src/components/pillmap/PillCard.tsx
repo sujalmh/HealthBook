@@ -87,19 +87,19 @@ export const PillCard: React.FC<PillCardProps> = ({
       onDragStart={handleDragStart}
       data-med-id={pill.medId || pill.id}
       data-med-name={pill.name}
-      className={`group relative rounded-xl p-2.5 transition-all select-none ${
+      className={`group relative rounded-xl p-3 transition-all select-none border ${
         isGhost
-          ? 'bg-emerald-50 border-2 border-dashed border-emerald-500/80 text-emerald-700 animate-pulse shadow-lg shadow-emerald-900/20'
+          ? 'bg-emerald-50 border-dashed border-emerald-300 text-emerald-800 animate-pulse shadow-sm'
           : isDuplicate
-          ? 'bg-white border-2 border-amber-500 shadow-md shadow-amber-500/10 text-amber-800'
-          : 'bg-white/95 hover:bg-slate-850 border border-slate-750 hover:border-slate-600 shadow-md text-slate-900'
+          ? 'bg-white border-amber-300 shadow-sm shadow-amber-500/10 text-amber-900'
+          : 'bg-white border-canvas-border hover:border-primary-border shadow-sm hover:shadow-md text-slate-900'
       } ${isDragging ? 'opacity-40 scale-95' : 'opacity-100'}`}
       role="article"
       aria-label={`${pill.name} ${pill.dosage}`}
     >
       {/* Ghost Preview Header Badge */}
       {isGhost && (
-        <div className="flex items-center gap-1 mb-1.5 px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
+        <div className="flex items-center gap-1 mb-1.5 px-1.5 py-0.5 rounded-lg bg-emerald-500 text-white font-bold text-[9px] uppercase tracking-wider">
           <ArrowRight className="w-2.5 h-2.5" /> Proposed Timing Shift
         </div>
       )}
@@ -116,15 +116,15 @@ export const PillCard: React.FC<PillCardProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           <span className="shrink-0">{renderShapeIcon()}</span>
           <div className="min-w-0">
-            <h4 className="font-bold text-xs leading-tight truncate text-slate-900 tracking-tight">
-              {pill.name} <span className="font-normal text-[10px] text-slate-600">{pill.dosage}</span>
+            <h4 className="font-semibold text-body leading-tight truncate text-slate-900 tracking-tight">
+              {pill.name} <span className="font-normal text-body-sm text-muted">{pill.dosage}</span>
             </h4>
           </div>
         </div>
 
-        {/* Action icons */}
+        {/* Action icons - 44px touch target ensured via min-height on parent, compact buttons with focus rings */}
         {!isGhost && (
-          <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
             {onSimulate && (
               <button
                 type="button"
@@ -132,7 +132,7 @@ export const PillCard: React.FC<PillCardProps> = ({
                   e.stopPropagation();
                   onSimulate(pill, day, slot);
                 }}
-                className="p-1 rounded text-slate-600 hover:text-amber-700 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-lg text-muted hover:text-amber-700 hover:bg-amber-50 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
                 title="Simulate missed dose clinical risk"
                 aria-label={`Simulate missing ${pill.name}`}
               >
@@ -146,14 +146,14 @@ export const PillCard: React.FC<PillCardProps> = ({
                   e.stopPropagation();
                   onRemove(pill.id);
                 }}
-                className="p-1 rounded text-slate-600 hover:text-rose-400 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 transition-colors focus-visible:ring-2 focus-visible:ring-primary"
                 title="Remove from pillbox"
                 aria-label={`Remove ${pill.name}`}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             )}
-            <div className="cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-700 p-0.5">
+            <div className="cursor-grab active:cursor-grabbing text-muted hover:text-slate-700 p-1">
               <GripVertical className="w-3 h-3" />
             </div>
           </div>

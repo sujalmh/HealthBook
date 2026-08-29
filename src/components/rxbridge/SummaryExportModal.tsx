@@ -52,8 +52,8 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in print:p-0 print:bg-white">
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-4xl w-full p-6 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto print:max-h-none print:border-none print:shadow-none print:p-0 print:bg-white print:text-black">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in print:p-0 print:bg-white">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-4xl w-full p-6 shadow-xl space-y-6 max-h-[92vh] overflow-y-auto print:max-h-none print:border-none print:shadow-none print:p-0 print:bg-white print:text-black">
         {/* Action Header (Hidden in Print) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4 print:hidden">
           <div className="flex items-center gap-3">
@@ -110,17 +110,17 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
         </div>
 
         {/* Printable 1-Page Summary Card */}
-        <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-inner text-slate-900 print:bg-white print:text-black print:border-none print:p-4">
+        <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm text-slate-900 print:bg-white print:text-black print:border-none print:p-4">
           {/* Header Block */}
           <div className="border-b-2 border-slate-200 print:border-black pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-black text-xl text-white print:text-black tracking-tight">CareCanvas</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/20 text-sky-700 print:text-black print:border-black font-bold uppercase border border-sky-500/40">
-                  Discharge Handoff Document
+                <span className="font-black text-xl text-slate-900 print:text-black tracking-tight">CareCanvas</span>
+                <span className="text-caption px-2 py-0.5 rounded bg-sky-50 text-clinical-blue print:text-black print:border-black font-bold uppercase border border-sky-200">
+                  Discharge handoff document
                 </span>
               </div>
-              <h2 className="text-2xl font-black text-slate-900 print:text-black mt-1">{summary.patientName}</h2>
+              <h2 className="text-heading-xl text-slate-900 print:text-black mt-1">{summary.patientName}</h2>
             </div>
 
             <div className="text-xs text-slate-600 print:text-black space-y-0.5 font-mono text-left sm:text-right">
@@ -144,16 +144,16 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
                 return (
                   <div
                     key={idx}
-                    className={`p-3 rounded-2xl border text-xs space-y-1 ${
+                    className={`p-3 rounded-xl border text-body-sm space-y-1 ${
                       isStopped
-                        ? 'bg-rose-50 border-rose-200 text-rose-700 print:bg-rose-50 print:text-black print:border-rose-300'
+                        ? 'bg-rose-50 border-rose-200 text-clinical-red print:bg-rose-50 print:text-black print:border-rose-300'
                         : isNew
-                        ? 'bg-purple-950/40 border-purple-800/80 text-purple-200 print:bg-purple-50 print:text-black print:border-purple-300'
-                        : 'bg-sky-50 border-sky-200 text-sky-700 print:bg-blue-50 print:text-black print:border-blue-300'
+                        ? 'bg-purple-50 border-purple-200 text-clinical-purple print:bg-purple-50 print:text-black print:border-purple-300'
+                        : 'bg-sky-50 border-sky-200 text-clinical-blue print:bg-blue-50 print:text-black print:border-blue-300'
                     }`}
                   >
                     <div className="flex items-center justify-between font-bold">
-                      <span className="text-white print:text-black font-black">{item.medName}</span>
+                      <span className="text-slate-900 print:text-black font-black">{item.medName}</span>
                       <span
                         className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full border ${
                           isStopped
@@ -184,21 +184,21 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {summary.activeDailySchedule.map((slotItem, sIdx) => (
-                <div
+                  <div
                   key={sIdx}
-                  className="p-3.5 rounded-2xl bg-white border border-slate-200 print:bg-gray-100 print:border-gray-300 space-y-2 text-xs"
+                  className="p-3.5 rounded-xl bg-canvas-card border border-canvas-border print:bg-gray-100 print:border-gray-300 space-y-2 text-body-sm"
                 >
-                  <div className="font-extrabold uppercase text-[11px] text-sky-700 print:text-black border-b border-slate-200 print:border-gray-300 pb-1.5 flex items-center justify-between">
+                  <div className="font-extrabold uppercase text-caption text-clinical-blue print:text-black border-b border-canvas-border print:border-gray-300 pb-1.5 flex items-center justify-between">
                     <span>{slotItem.slot}</span>
-                    <span className="text-[10px] text-slate-600 print:text-gray-600 font-mono">
+                    <span className="text-caption text-muted print:text-gray-600 font-mono">
                       {slotItem.timeString.split(' ')[0]}
                     </span>
                   </div>
                   <div className="space-y-2">
                     {slotItem.meds.map((med, mIdx) => (
                       <div key={mIdx} className="space-y-0.5">
-                        <div className="font-bold text-white print:text-black">
-                          {med.name} <span className="text-slate-600 print:text-gray-600 font-mono text-[11px]">({med.dose})</span>
+                        <div className="font-bold text-slate-900 print:text-black">
+                          {med.name} <span className="text-muted print:text-gray-600 font-mono text-caption">({med.dose})</span>
                         </div>
                         <div className="text-[10px] text-slate-600 print:text-gray-700 italic">
                           {med.instructions}
@@ -257,21 +257,21 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
           {/* Section 6: Emergency & Clinic Contact Strip */}
           <div className="border-t border-slate-200 print:border-black pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
             <div className="space-y-1">
-              <div className="font-bold text-white print:text-black flex items-center gap-1.5">
-                <PhoneCall className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="font-bold text-slate-900 print:text-black flex items-center gap-1.5">
+                <PhoneCall className="w-3.5 h-3.5 text-clinical-emerald" />
                 <span>{summary.emergencyContact.clinicName}</span>
               </div>
-              <div className="text-slate-600 print:text-gray-700 font-mono text-[11px]">
+              <div className="text-muted print:text-gray-700 font-mono text-caption">
                 Clinic Phone: <strong>{summary.emergencyContact.phone}</strong> | Discharge Ward: <strong>{summary.emergencyContact.dischargeWardPhone}</strong>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="text-[10px] text-slate-600 print:text-gray-500 font-mono text-right">
-                <div>CareCanvas Reconciled Hash</div>
-                <div className="text-[9px] truncate max-w-[140px]">SHA256: 0x8f4b...3a91</div>
+              <div className="text-caption text-muted print:text-gray-500 font-mono text-right">
+                <div>CareCanvas reconciled hash</div>
+                <div className="text-caption truncate max-w-[140px]">SHA256: 0x8f4b...3a91</div>
               </div>
-              <div className="p-1 rounded-xl bg-white text-slate-950">
+              <div className="p-1 rounded-xl bg-canvas-card border border-canvas-border text-slate-900">
                 <QrCode className="w-8 h-8" />
               </div>
             </div>

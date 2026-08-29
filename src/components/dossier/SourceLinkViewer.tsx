@@ -124,7 +124,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl flex flex-col h-full text-slate-900 space-y-4">
+    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col h-full text-slate-900 space-y-4">
       {/* Header with document title and zoom controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div className="flex items-center gap-3">
@@ -205,10 +205,10 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
         </div>
       </div>
 
-      {/* Document Viewport */}
+      {/* Document Viewport — tokenized */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto bg-slate-50/90 rounded-2xl border border-slate-200/90 p-6 min-h-[440px] max-h-[560px] relative flex justify-center items-start shadow-inner"
+        className="flex-1 overflow-auto bg-canvas-muted rounded-xl border border-canvas-border p-6 min-h-[440px] max-h-[560px] relative flex justify-center items-start shadow-inner"
       >
         <div
           ref={docWrapperRef}
@@ -387,17 +387,17 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
               className="absolute pointer-events-none rounded-md transition-all duration-300 border-2 border-amber-400 bg-amber-400/20 shadow-lg shadow-amber-400/30 animate-pulse"
               style={getBoxStyle(activeBox)}
             >
-              <div className="absolute -top-7 left-0 flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-sky-500 text-slate-950 font-sans font-black text-[9px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap">
-                <Sparkles className="w-3 h-3 text-slate-950" />
-                <span>Source Ground Truth Highlight</span>
+              <div className="absolute -top-7 left-0 flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-sky-500 text-slate-900 font-sans font-black text-[9px] px-2 py-0.5 rounded shadow-md whitespace-nowrap">
+                <Sparkles className="w-3 h-3 text-slate-900" />
+                <span>Source ground truth highlight</span>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Footer: Verbatim text span and Bounding Box Citation */}
-      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+      {/* Footer: Verbatim text span and Bounding Box Citation — tokenized */}
+      <div className="bg-canvas-muted rounded-xl p-4 border border-canvas-border flex flex-col md:flex-row md:items-center justify-between gap-3 text-body-sm">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
             <Crosshair className="w-4 h-4" />

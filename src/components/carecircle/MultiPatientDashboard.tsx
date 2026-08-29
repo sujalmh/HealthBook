@@ -92,12 +92,12 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
             <div
               key={p.id}
               onClick={() => onSelectPatient(p.id)}
-              className={`cursor-pointer rounded-3xl border p-5 transition-all shadow-xl hover:scale-[1.01] space-y-4 ${
+              className={`cursor-pointer rounded-2xl border p-5 transition-all shadow-sm hover:shadow-md hover:scale-[1.01] space-y-4 ${
                 isCritical
-                  ? 'bg-gradient-to-br from-rose-950/40 via-slate-50 to-white border-rose-200 shadow-rose-100'
+                  ? 'bg-rose-50 border-rose-200'
                   : isAttention
-                  ? 'bg-gradient-to-br from-amber-50 via-slate-50 to-white border-amber-200 shadow-amber-100'
-                  : 'bg-white border-slate-200 hover:border-slate-200'
+                  ? 'bg-amber-50 border-amber-200'
+                  : 'bg-canvas-card border-canvas-border hover:border-primary-border'
               }`}
             >
               {/* Card Header */}
@@ -133,34 +133,34 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
               </div>
 
               {/* Status Grid */}
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="bg-slate-50 rounded-xl p-2 border border-slate-200">
-                  <div className="text-[10px] text-slate-600 font-semibold">Danger Alerts</div>
+              <div className="grid grid-cols-3 gap-2 text-center text-body-sm">
+                <div className="bg-canvas-muted rounded-xl p-2 border border-canvas-border">
+                  <div className="text-caption text-muted font-semibold">Danger alerts</div>
                   <div
-                    className={`text-sm font-bold ${
-                      p.activeDangerAlertsCount > 0 ? 'text-rose-400 font-black' : 'text-slate-600'
+                    className={`text-heading-md font-bold ${
+                      p.activeDangerAlertsCount > 0 ? 'text-clinical-red font-black' : 'text-muted'
                     }`}
                   >
                     {p.activeDangerAlertsCount}
                   </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-xl p-2 border border-slate-200">
-                  <div className="text-[10px] text-slate-600 font-semibold">Due Labs</div>
+                <div className="bg-canvas-muted rounded-xl p-2 border border-canvas-border">
+                  <div className="text-caption text-muted font-semibold">Due labs</div>
                   <div
-                    className={`text-sm font-bold ${
-                      p.dueLabsCount > 0 ? 'text-amber-400 font-black' : 'text-slate-600'
+                    className={`text-heading-md font-bold ${
+                      p.dueLabsCount > 0 ? 'text-clinical-amber font-black' : 'text-muted'
                     }`}
                   >
                     {p.dueLabsCount}
                   </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-xl p-2 border border-slate-200">
-                  <div className="text-[10px] text-slate-600 font-semibold">Proposals</div>
+                <div className="bg-canvas-muted rounded-xl p-2 border border-canvas-border">
+                  <div className="text-caption text-muted font-semibold">Proposals</div>
                   <div
-                    className={`text-sm font-bold ${
-                      p.pendingProposalsCount > 0 ? 'text-sky-400 font-black' : 'text-slate-600'
+                    className={`text-heading-md font-bold ${
+                      p.pendingProposalsCount > 0 ? 'text-clinical-blue font-black' : 'text-muted'
                     }`}
                   >
                     {p.pendingProposalsCount}
@@ -169,7 +169,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
               </div>
 
               {/* Next Scheduled Milestone */}
-              <div className="bg-slate-50/50 rounded-xl p-2.5 border border-slate-200 flex items-center justify-between text-xs text-slate-700">
+              <div className="bg-canvas-muted rounded-xl p-2.5 border border-canvas-border flex items-center justify-between text-body-sm text-slate-700">
                 <span className="flex items-center gap-1.5 truncate">
                   <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                   <span className="truncate">{p.nextEvent}</span>

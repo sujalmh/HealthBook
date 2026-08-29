@@ -115,22 +115,22 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-xl space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-200 flex items-center justify-center shadow-inner">
+            <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm">
               <KeyRound className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">Clinician Handover Delegation</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 font-bold border border-indigo-200 uppercase">
-                  CD4 Secure Access
+                <h3 className="text-heading-lg text-slate-900">Clinician handover delegation</h3>
+                <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border uppercase">
+                  CD4 secure access
                 </span>
               </div>
-              <p className="text-xs text-slate-600">
+              <p className="text-body-sm text-muted">
                 Grant time-bound access tokens to new physicians with zero cloud storage and instant 1-click revocation.
               </p>
             </div>
@@ -138,14 +138,14 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors"
+            className="p-2 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted hover:text-slate-900 transition-colors min-h-[44px] min-w-[44px]"
           >
             ✕
           </button>
         </div>
 
-        {/* Create Grant Form */}
-        <form onSubmit={handleGenerateGrant} className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-4">
+        {/* Create Grant Form — tokenized */}
+        <form onSubmit={handleGenerateGrant} className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-4">
           <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
             Generate Time-Bound Access Passkey
           </h4>
@@ -179,10 +179,10 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                   key={preset.days}
                   type="button"
                   onClick={() => setDurationDays(preset.days)}
-                  className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                    className={`py-2 rounded-xl text-body-sm font-bold transition-all min-h-[36px] ${
                     durationDays === preset.days
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-500/50'
-                      : 'bg-white text-slate-600 hover:text-slate-800 border border-slate-200'
+                      ? 'bg-primary text-white shadow-sm border border-primary'
+                      : 'bg-canvas-card text-muted hover:text-slate-900 border border-canvas-border'
                   }`}
                 >
                   {preset.label}
@@ -225,12 +225,12 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
           </div>
 
           {grants.length === 0 ? (
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 text-center space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center mx-auto">
+            <div className="bg-canvas-muted rounded-xl p-6 border border-canvas-border text-center space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-canvas-card text-muted flex items-center justify-center mx-auto border border-canvas-border">
                 <KeyRound className="w-5 h-5" />
               </div>
-              <p className="text-xs font-bold text-slate-800">No doctors shared with yet</p>
-              <p className="text-xs text-slate-600">When you want to share, add a doctor above — you can remove access anytime.</p>
+              <p className="text-body-sm font-bold text-slate-900">No doctors shared with yet</p>
+              <p className="text-body-sm text-muted">When you want to share, add a doctor above — you can remove access anytime.</p>
             </div>
           ) : (
             <div className="space-y-3">

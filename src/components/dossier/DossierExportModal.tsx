@@ -125,22 +125,22 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-3xl w-full p-6 sm:p-8 shadow-xl space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-200 flex items-center justify-center shadow-inner">
+            <div className="w-12 h-12 rounded-xl bg-sky-50 text-clinical-blue border border-sky-200 flex items-center justify-center shadow-sm">
               <Download className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">Export Clinical Dossier Package</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-700 font-bold border border-sky-200 uppercase">
-                  CD6 Interoperability
+                <h3 className="text-heading-lg text-slate-900">Export clinical dossier package</h3>
+                <span className="text-caption px-2 py-0.5 rounded-full bg-sky-50 text-clinical-blue font-bold border border-sky-200 uppercase">
+                  CD6 interoperability
                 </span>
               </div>
-              <p className="text-xs text-slate-600">
+              <p className="text-body-sm text-muted">
                 Generate standards-compliant FHIR R4 JSON bundles, printable PDF summaries, and tabular CSV clinical archives.
               </p>
             </div>
@@ -148,13 +148,13 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors"
+            className="p-2 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted hover:text-slate-900 transition-colors min-h-[44px] min-w-[44px]"
           >
             ✕
           </button>
         </div>
 
-        {/* Format Selector Tabs */}
+        {/* Format Selector Tabs — tokenized */}
         <div className="grid grid-cols-3 gap-3">
           {[
             { id: 'pdf', label: 'Doctor Consultation PDF', icon: Printer, desc: 'Print-ready 1-page clinical summary' },
@@ -168,10 +168,10 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
                 key={fmt.id}
                 type="button"
                 onClick={() => setActiveFormat(fmt.id as any)}
-                className={`p-4 rounded-2xl text-left border transition-all space-y-1.5 ${
+                className={`p-4 rounded-xl text-left border transition-all space-y-1.5 min-h-[44px] ${
                   isSelected
-                    ? 'bg-sky-600/20 border-sky-500/60 shadow-md shadow-sky-500/10 text-white'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-800'
+                    ? 'bg-sky-50 border-sky-200 shadow-sm text-clinical-blue'
+                    : 'bg-canvas-muted border-canvas-border text-muted hover:text-slate-900'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -184,8 +184,8 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
           })}
         </div>
 
-        {/* Section Inclusion Checkboxes */}
-        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
+        {/* Section Inclusion Checkboxes — tokenized */}
+        <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
           <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
             Include Clinical Sections
           </h4>

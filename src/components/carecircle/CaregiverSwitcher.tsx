@@ -69,16 +69,16 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Profile Switcher Tabs */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-2 flex flex-wrap items-center justify-between gap-3">
+      {/* Profile Switcher Tabs — tokenized */}
+      <div className="bg-canvas-card border border-canvas-border rounded-xl p-2 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+          <div className="w-8 h-8 rounded-lg bg-primary-light text-primary flex items-center justify-center border border-primary-border">
             <Users className="w-4 h-4" />
           </div>
-          <span className="text-xs font-bold text-slate-800">Active Profile:</span>
+          <span className="text-body-sm font-bold text-slate-800">Active profile:</span>
         </div>
 
-        <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
+        <div className="flex items-center bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm">
           <button
             onClick={() => handleSwitch('self')}
             className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
@@ -114,25 +114,25 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
         </div>
       </div>
 
-      {/* Active Proxy Mode Banner (G1-G4) */}
+      {/* Active Proxy Mode Banner — light, tokenized */}
       {isProxy && (
-        <div className="bg-gradient-to-r from-indigo-950/80 via-slate-50 to-white border border-indigo-500/40 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-lg shadow-indigo-500/5 animate-fade-in">
+        <div className="bg-primary-light border border-primary-border rounded-xl p-4 flex items-center justify-between gap-4 shadow-sm animate-fade-in">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/30">
+            <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-sm">
               <UserCheck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">
-                  Caregiver Proxy Mode Active
+                <span className="text-caption font-black text-primary uppercase tracking-wider">
+                  Caregiver proxy mode active
                 </span>
-                <span className="px-2 py-0.2 rounded-full bg-indigo-500/20 text-indigo-200 text-[10px] font-bold border border-indigo-200 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full bg-canvas-card text-primary text-caption font-bold border border-primary-border flex items-center gap-1">
                   <KeyRound className="w-3 h-3" />
                   Scope: {permission.toUpperCase()}
                 </span>
               </div>
-              <p className="text-xs text-slate-700 font-medium pt-0.5">
-                Acting on behalf of <strong className="text-white">{activeProfile.onBehalfOf || 'Smt. Shanti Devi'}</strong>.
+              <p className="text-body-sm text-slate-700 font-medium pt-0.5">
+                Acting on behalf of <strong className="text-slate-900">{activeProfile.onBehalfOf || 'Smt. Shanti Devi'}</strong>.
                 All approved proposals and uploaded slips will be cryptographically signed to the audit trail.
               </p>
             </div>
@@ -140,9 +140,9 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
 
           <button
             onClick={() => handleSwitch('self')}
-            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-semibold shrink-0 border border-slate-200 transition-colors"
+            className="px-3 py-2 rounded-xl bg-canvas-card hover:bg-canvas-muted text-slate-700 text-body-sm font-semibold shrink-0 border border-canvas-border transition-colors min-h-[36px]"
           >
-            Exit Proxy Mode
+            Exit proxy mode
           </button>
         </div>
       )}

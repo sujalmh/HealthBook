@@ -3,15 +3,18 @@ import { FactEntity } from '@/types/vault';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { FactApprovalCard } from './FactApprovalCard';
-import { CheckCircle, ShieldAlert, Eye } from 'lucide-react';
+import { CheckCircle, ShieldAlert, Eye, FileText, Sparkles } from 'lucide-react';
 
 export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = 'patient-s-devi' }) => {
   const [facts, setFacts] = useState<FactEntity[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const loadFacts = async () => {
+    setIsLoading(true);
     const all = await localVault.getFacts(patientId);
     setFacts(all);
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -41,24 +44,35 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
 
   return (
     <div className="space-y-6">
+      {/* Loading skeletons */}
+      {isLoading && (
+        <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="h-5 w-1/3 bg-canvas-muted rounded animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-32 bg-canvas-muted rounded-xl animate-pulse" />
+            <div className="h-32 bg-canvas-muted rounded-xl animate-pulse" />
+          </div>
+        </div>
+      )}
+
       {/* 1. Human-in-the-Loop Trust Gate: Pending Facts Stage */}
-      {pendingFacts.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between">
+      {!isLoading && pendingFacts.length > 0 && (
+        <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-500/20 rounded-xl text-amber-400">
+              <div className="p-2 bg-amber-100 border border-amber-200 rounded-xl text-amber-700 shrink-0">
                 <ShieldAlert className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-amber-700">
+                <h3 className="text-heading-md font-bold text-amber-900 tracking-tight">
                   Review what we found ({pendingFacts.length})
                 </h3>
-                <p className="text-xs text-amber-700/80">
+                <p className="text-body-sm text-amber-800/80 leading-relaxed">
                   We pulled these details from your document. Check them before they update your medicines and labs.
                 </p>
               </div>
             </div>
-            <span className="text-xs font-bold text-amber-400 px-3 py-1 bg-amber-900/60 rounded-full border border-amber-600/50 animate-pulse">
+            <span className="text-caption font-bold text-amber-800 px-3 py-1 bg-amber-100 rounded-full border border-amber-200 animate-pulse-subtle shrink-0">
               Needs your okay
             </span>
           </div>
@@ -71,31 +85,43 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
         </div>
       )}
 
+      {/* Empty pending state — helpful when no pending but also not loading */}
+      {!isLoading && pendingFacts.length === 0 && facts.length > 0 && (
+        <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 shrink-0">
+            <CheckCircle className="w-5 h-5" />
+          </div>
+          <p className="text-body-sm text-muted">
+            All caught up — no pending reviews. Your approved records are below.
+          </p>
+        </div>
+      )}
+
       {/* 2. Confirmed Facts Vault Stream */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xl space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-canvas-border pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-500/10 border border-emerald-200 rounded-xl text-emerald-400">
+            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 shrink-0">
               <CheckCircle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Your Saved Records ({approvedFacts.length})</h3>
-              <p className="text-xs text-slate-600">
+              <h3 className="text-heading-md font-bold text-slate-900 tracking-tight">Your Saved Records ({approvedFacts.length})</h3>
+              <p className="text-body-sm text-muted leading-relaxed">
                 Once you approve, they update your medicines, labs, and doctor's pack automatically.
               </p>
             </div>
           </div>
 
-          {/* Category Filter */}
-          <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
+          {/* Category Filter — pill tokenized */}
+          <div className="flex items-center gap-2 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm overflow-x-auto scrollbar-none shrink-0">
             {['all', 'lab', 'medication', 'allergy', 'condition'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg capitalize font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg capitalize font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary whitespace-nowrap min-h-[32px] ${
                   selectedCategory === cat
-                    ? 'bg-sky-500/20 text-sky-700 border border-sky-500/40'
-                    : 'text-slate-600 hover:text-slate-800'
+                    ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm'
+                    : 'text-muted hover:text-slate-900 hover:bg-white border border-transparent'
                 }`}
               >
                 {cat}
@@ -106,27 +132,34 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
 
         {/* Fact Grid */}
         {filteredApprovedFacts.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center mx-auto">
-              <CheckCircle className="w-5 h-5" />
+          <div className="p-8 text-center bg-canvas-muted rounded-xl border border-dashed border-canvas-border space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-primary-light border border-primary-border text-primary flex items-center justify-center mx-auto">
+              <FileText className="w-6 h-6" />
             </div>
-            <p className="text-xs text-slate-600">No records here yet.</p>
-            <p className="text-[11px] text-slate-600">Add a document above and review what we find.</p>
+            <h4 className="text-heading-md font-bold text-slate-900">No records here yet</h4>
+            <p className="text-body-sm text-muted max-w-sm mx-auto leading-relaxed">
+              Add a document above and review what we find. Approved facts will appear here as cards and sync to your other modules.
+            </p>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-primary bg-primary-light border border-primary-border px-3 py-1 rounded-full">
+                <Sparkles className="w-3 h-3" /> Drop a PDF to get started
+              </span>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredApprovedFacts.map((fact) => (
               <div
                 key={fact.id}
-                className="bg-slate-50/70 border border-slate-200 hover:border-slate-200 rounded-xl p-4 space-y-2.5 transition-all text-slate-800"
+                className="bg-canvas-card border border-canvas-border hover:border-primary-border/30 rounded-xl p-4 space-y-2.5 transition-all shadow-sm hover:shadow-md text-slate-900"
               >
-                <div className="flex items-start justify-between">
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-caption font-bold uppercase px-2 py-0.5 rounded-full bg-muted-subtle text-muted border border-canvas-border">
                     {fact.category}
                   </span>
                   <button
                     onClick={() => handleHighlight(fact)}
-                    className="flex items-center gap-1 text-[10px] text-sky-400 hover:text-sky-700 font-medium"
+                    className="inline-flex items-center gap-1 text-caption text-primary hover:text-primary-hover font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full px-2 py-1 hover:bg-primary-light transition-colors"
                     title="Highlight source bounding box"
                   >
                     <Eye className="w-3 h-3" />
@@ -135,13 +168,13 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold text-slate-900 font-mono">
-                    {fact.name || fact.factKey}: <span className="text-emerald-400 font-bold">{typeof fact.value === 'object' ? JSON.stringify(fact.value) : (fact.value || fact.factValue)}</span> {fact.unit}
+                  <div className="text-body-sm font-semibold text-slate-900 font-mono tracking-tight line-clamp-2">
+                    {fact.name || fact.factKey}: <span className="text-clinical-emerald font-bold">{typeof fact.value === 'object' ? JSON.stringify(fact.value) : (fact.value || fact.factValue)}</span> {fact.unit}
                   </div>
-                  <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">{(fact.plainExplanation || fact.plainNarration || '').split('.')[0] ? (fact.plainExplanation || fact.plainNarration || '').split('.')[0] + '.' : ''}</p>
+                  <p className="text-body-sm text-muted mt-1 leading-relaxed line-clamp-2">{(fact.plainExplanation || fact.plainNarration || '').split('.')[0] ? (fact.plainExplanation || fact.plainNarration || '').split('.')[0] + '.' : ''}</p>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-600">
+                <div className="pt-2 border-t border-canvas-border flex items-center justify-between text-caption text-muted">
                   <span>Approved by {fact.approvedBy || 'Patient'}</span>
                   <span>{new Date(fact.createdAt || fact.timestamp || Date.now()).toLocaleDateString()}</span>
                 </div>

@@ -136,30 +136,30 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-white border border-rose-200 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-rose-950/20">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-canvas-border bg-rose-50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-200">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-clinical-red flex items-center justify-center border border-rose-200 shadow-sm">
               <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Report Red-Flag Danger Signs</h3>
-              <p className="text-xs text-rose-700/80">Immediate clinical escalation & doctor notification</p>
+              <h3 className="text-heading-md text-slate-900">Report red-flag danger signs</h3>
+              <p className="text-body-sm text-clinical-red">Immediate clinical escalation & doctor notification</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-600 hover:text-slate-800 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted hover:text-slate-900 flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Emergency Callout Box */}
+        {/* Emergency Callout Box — cohesive light + clinical red */}
         {isEmergency && (
-          <div className="bg-gradient-to-r from-rose-600 to-red-600 px-6 py-3 text-white flex items-center justify-between gap-4">
+          <div className="bg-rose-600 px-6 py-3 text-white flex items-center justify-between gap-4">
             <div className="flex items-center gap-2.5 text-xs font-bold">
               <AlertTriangle className="w-5 h-5 shrink-0 animate-bounce" />
               <span>
@@ -191,10 +191,10 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
                     key={s.tag}
                     type="button"
                     onClick={() => toggleSymptom(s.tag)}
-                    className={`flex items-center justify-between p-3 rounded-2xl text-xs font-semibold border transition-all text-left ${
+                    className={`flex items-center justify-between p-3 rounded-xl text-body-sm font-semibold border transition-all text-left ${
                       isSelected
-                        ? 'bg-rose-500/20 border-rose-500/50 text-rose-700 shadow-md shadow-rose-500/10'
-                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-200 hover:text-slate-800'
+                        ? 'bg-rose-50 border-rose-200 text-clinical-red shadow-sm'
+                        : 'bg-canvas-card border-canvas-border text-muted hover:text-slate-900'
                     }`}
                   >
                     <span>{s.label}</span>
@@ -289,7 +289,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
         </form>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between gap-3">
+        <div className="px-6 py-4 border-t border-canvas-border bg-canvas-muted flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}

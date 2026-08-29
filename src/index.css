@@ -4,18 +4,31 @@
 
 @layer base {
   html {
+    background-color: #F3F4F6; /* canvas.bg — unified with body to avoid flash-of-wrong-bg (index.html slate-50) */
     overflow-x: hidden;
+    scrollbar-gutter: stable;
   }
   body {
-    @apply bg-slate-50 text-slate-900 font-sans min-h-screen;
+    @apply bg-canvas-bg text-slate-900 font-sans min-h-screen antialiased;
     color-scheme: light;
     overflow-x: hidden;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
   * {
     @apply scroll-mt-20;
   }
   img, svg, canvas {
     max-width: 100%;
+  }
+  /* Base typography — semantic scale via Tailwind fontSize tokens */
+  h1 {
+    @apply text-heading-xl font-extrabold tracking-tight text-slate-900;
+  }
+  h2 {
+    @apply text-heading-lg font-bold tracking-tight text-slate-900;
+  }
+  h3 {
+    @apply text-heading-md font-semibold text-slate-800;
   }
 }
 
@@ -38,15 +51,27 @@
   background: #94a3b8;
 }
 
-/* Bounding box highlight pulse */
+/* Scrollbar hide utility — for tab overflow rows (still scrollable, accessible) */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Bounding box highlight pulse — uses primary indigo (79,70,229) */
 @keyframes highlightPulse {
   0%, 100% {
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.9), 0 0 15px rgba(56, 189, 248, 0.5);
-    background-color: rgba(56, 189, 248, 0.25);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.9), 0 0 15px rgba(79, 70, 229, 0.5);
+    background-color: rgba(79, 70, 229, 0.18);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(56, 189, 248, 1), 0 0 25px rgba(56, 189, 248, 0.8);
-    background-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 1), 0 0 25px rgba(79, 70, 229, 0.75);
+    background-color: rgba(79, 70, 229, 0.28);
   }
 }
 
@@ -54,15 +79,43 @@
   animation: highlightPulse 2s infinite ease-in-out;
 }
 
-/* High-contrast focus rings for accessibility - light */
+/* High-contrast focus rings — semantic primary */
 *:focus-visible {
-  @apply outline-none ring-2 ring-sky-600 ring-offset-2 ring-offset-white;
+  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-white;
+}
+*:focus-visible:not(:focus-visible) {
+  outline: none;
 }
 
-/* Mobile: prevent horizontal overflow and ensure proper touch targets */
+/* Touch targets — 44px WCAG AA */
+/* Mobile: strict 44px for all interactive */
 @media (max-width: 640px) {
-  button, a {
+  button, a, [role="button"] {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+/* Desktop/Tablet: ensure nav has 44px height (tabs + bottom nav already min-h-[44px], this reinforces) */
+@media (min-width: 641px) {
+  nav button,
+  [aria-current="page"] {
+    min-height: 44px;
+  }
+}
+
+/* Reduced motion: disable pulse/animations for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .bounding-box-highlight,
+  .animate-pulse,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-glow-pulse {
+    animation: none !important;
   }
 }

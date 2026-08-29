@@ -11,10 +11,12 @@ interface StorySentenceProps {
 export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, className = '' }) => {
   if (!labs || labs.length === 0) {
     return (
-      <div className={`bg-white/90 border border-slate-200 rounded-2xl p-4 flex items-center gap-3 ${className}`}>
-        <Sparkles className="w-5 h-5 text-sky-400 shrink-0" />
-        <p className="text-xs text-slate-600">
-          No longitudinal data points available for <span className="font-semibold text-slate-800">{marker}</span>. Upload a lab report or select another marker.
+      <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 flex items-center gap-3 shadow-sm ${className}`}>
+        <div className="p-2 rounded-xl bg-primary-light border border-primary-border text-primary shrink-0">
+          <Sparkles className="w-5 h-5" />
+        </div>
+        <p className="text-body-sm text-muted leading-relaxed">
+          No longitudinal data points available for <span className="font-semibold text-slate-900">{marker}</span>. Upload a lab report or select another marker.
         </p>
       </div>
     );
@@ -45,100 +47,100 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
 
   // Generate automated clinical story sentence
   let storySentence = '';
-  let trendIcon = <Minus className="w-4 h-4 text-slate-600" />;
-  let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+  let trendIcon = <Minus className="w-4 h-4 text-muted" />;
+  let badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
 
   if (marker.toLowerCase().includes('egfr')) {
     if (last.normalizedValue < 30) {
       storySentence = `eGFR ${last.normalizedValue} — low. Was ${first.normalizedValue}.`;
-      trendIcon = <TrendingDown className="w-4 h-4 text-rose-400" />;
-      badgeColor = 'bg-rose-500/20 text-rose-700 border-rose-500/30';
+      trendIcon = <TrendingDown className="w-4 h-4 text-rose-600" />;
+      badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
     } else if (delta < 0) {
       storySentence = `eGFR down to ${last.normalizedValue}.`;
-      trendIcon = <TrendingDown className="w-4 h-4 text-amber-400" />;
-      badgeColor = 'bg-amber-500/20 text-amber-700 border-amber-200';
+      trendIcon = <TrendingDown className="w-4 h-4 text-amber-600" />;
+      badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
     } else {
       storySentence = `eGFR stable at ${last.normalizedValue}.`;
-      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
-      badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
+      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
   } else if (marker.toLowerCase().includes('creat')) {
     if (last.normalizedValue > 1.5) {
       storySentence = `Creatinine high at ${last.normalizedValue}.`;
-      trendIcon = <TrendingUp className="w-4 h-4 text-rose-400" />;
-      badgeColor = 'bg-rose-500/20 text-rose-700 border-rose-500/30';
+      trendIcon = <TrendingUp className="w-4 h-4 text-rose-600" />;
+      badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
     } else {
       storySentence = `Creatinine ok at ${last.normalizedValue}.`;
-      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
-      badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
+      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
   } else if (marker.toLowerCase().includes('glucose') || marker.toLowerCase().includes('a1c')) {
     if (delta > 10) {
       storySentence = `${marker} up to ${last.normalizedValue}.`;
-      trendIcon = <TrendingUp className="w-4 h-4 text-amber-400" />;
-      badgeColor = 'bg-amber-500/20 text-amber-700 border-amber-200';
+      trendIcon = <TrendingUp className="w-4 h-4 text-amber-600" />;
+      badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
     } else {
       storySentence = `${marker} steady at ${last.normalizedValue}.`;
-      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
-      badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
+      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
   } else if (marker.toLowerCase().includes('potassium')) {
     if (last.normalizedValue > 5.0) {
       storySentence = `Potassium high at ${last.normalizedValue}.`;
-      trendIcon = <AlertTriangle className="w-4 h-4 text-amber-400" />;
-      badgeColor = 'bg-amber-500/20 text-amber-700 border-amber-200';
+      trendIcon = <AlertTriangle className="w-4 h-4 text-amber-600" />;
+      badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
     } else {
       storySentence = `Potassium ok at ${last.normalizedValue}.`;
-      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-400" />;
-      badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
+      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
   } else if (marker.toLowerCase().includes('ldl') || marker.toLowerCase().includes('cholesterol')) {
     if (delta < 0) {
       storySentence = `${marker} down to ${last.normalizedValue}.`;
-      trendIcon = <TrendingDown className="w-4 h-4 text-emerald-400" />;
-      badgeColor = 'bg-emerald-500/20 text-emerald-700 border-emerald-200';
+      trendIcon = <TrendingDown className="w-4 h-4 text-emerald-600" />;
+      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     } else {
       storySentence = `${marker} ${last.normalizedValue}.`;
-      trendIcon = <Minus className="w-4 h-4 text-slate-600" />;
-      badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+      trendIcon = <Minus className="w-4 h-4 text-muted" />;
+      badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
     }
   } else {
     storySentence = `${marker} ${last.normalizedValue} ${last.normalizedUnit}.`;
-    trendIcon = <Minus className="w-4 h-4 text-slate-600" />;
-    badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+    trendIcon = <Minus className="w-4 h-4 text-muted" />;
+    badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
   }
 
   return (
-    <div className={`bg-gradient-to-r from-white via-slate-50/95 to-white border border-slate-200 rounded-2xl p-4 shadow-md ${className}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 shadow-sm ${className}`}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 mt-0.5 shrink-0">
+          <div className="p-2 rounded-xl bg-primary-light border border-primary-border text-primary mt-0.5 shrink-0">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-xs font-bold uppercase tracking-wider text-sky-400">Story Sentence (LS6)</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border flex items-center gap-1 ${badgeColor}`}>
+              <span className="text-caption font-bold uppercase tracking-wider text-primary">Story Sentence</span>
+              <span className={`text-caption px-2 py-0.5 rounded-full font-bold border inline-flex items-center gap-1 ${badgeColor}`}>
                 {trendIcon}
                 <span>{last.flag || (last.isBorderline ? 'BORDERLINE' : 'NORMAL')}</span>
               </span>
-              <span className="text-[11px] text-slate-600">
+              <span className="text-caption text-muted">
                 {count} data points ({firstDate} → {lastDate})
               </span>
             </div>
-            <p className="text-xs sm:text-sm font-medium text-slate-800 leading-relaxed">
+            <p className="text-body font-medium text-slate-900 leading-relaxed">
               {storySentence}
             </p>
           </div>
         </div>
 
         {/* Quick Delta Stats */}
-        <div className="flex items-center gap-2 sm:self-center shrink-0 border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 sm:pl-4">
+        <div className="flex items-center gap-2 sm:self-center shrink-0 border-t sm:border-t-0 sm:border-l border-canvas-border pt-2 sm:pt-0 sm:pl-4">
           <div className="text-right">
-            <div className="text-[10px] text-slate-600 uppercase tracking-wider font-bold">Trajectory Delta</div>
-            <div className={`text-xs sm:text-sm font-black ${delta > 0 ? (isDecliningBad ? 'text-rose-400' : 'text-emerald-400') : (isImproving ? 'text-emerald-400' : 'text-slate-800')}`}>
+            <div className="text-caption text-muted uppercase tracking-wider font-bold">Trajectory Delta</div>
+            <div className={`text-body font-black ${delta > 0 ? (isDecliningBad ? 'text-rose-600' : 'text-emerald-700') : (isImproving ? 'text-emerald-700' : 'text-slate-900')}`}>
               {delta > 0 ? `+${delta}` : delta} {last.normalizedUnit}
-              <span className="text-[10px] ml-1 font-semibold opacity-75">
+              <span className="text-caption ml-1 font-semibold opacity-75">
                 ({pctChange > 0 ? `+${pctChange}%` : `${pctChange}%`})
               </span>
             </div>

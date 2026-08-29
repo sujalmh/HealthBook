@@ -74,7 +74,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
 
       {/* Log Entries */}
       {filteredLogs.length === 0 ? (
-        <div className="bg-slate-50 rounded-2xl p-8 text-center text-xs text-slate-600 border border-slate-200">
+        <div className="bg-canvas-muted rounded-xl p-8 text-center text-body-sm text-muted border border-canvas-border">
           No matching audit log transactions found.
         </div>
       ) : (
@@ -85,7 +85,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
             return (
               <div
                 key={entry.id}
-                className="bg-slate-50 border border-slate-200/90 hover:border-slate-200 rounded-2xl p-4 transition-all space-y-2"
+                className="bg-canvas-muted border border-canvas-border hover:border-primary-border rounded-xl p-4 transition-all space-y-2"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 font-bold text-slate-800">
@@ -111,7 +111,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
 
                 {/* Details Breakdown */}
                 {entry.details && (
-                  <div className="bg-white rounded-xl p-2.5 text-[11px] text-slate-700 font-mono border border-slate-200 space-y-1">
+                  <div className="bg-canvas-card rounded-xl p-2.5 text-caption text-slate-700 font-mono border border-canvas-border space-y-1">
                     {Object.entries(entry.details).map(([k, v]) => (
                       <div key={k} className="flex items-center gap-2 truncate">
                         <span className="text-slate-600">{k}:</span>

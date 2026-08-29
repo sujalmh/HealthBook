@@ -35,45 +35,57 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    if (!onClose) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const handleZoomIn = () => setZoom((z) => Math.min(z + 0.2, 2.5));
   const handleZoomOut = () => setZoom((z) => Math.max(z - 0.2, 0.7));
   const handleResetZoom = () => setZoom(1);
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xl flex flex-col h-full text-slate-800">
+    <div className="bg-white border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-2xl flex flex-col h-full text-slate-800">
       {/* Header with zoom controls */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-sky-500/10 border border-sky-200 rounded-lg text-sky-400">
+      <div className="flex items-center justify-between gap-2 border-b border-canvas-border pb-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-2 bg-primary-light border border-primary-border rounded-xl text-primary-text shrink-0">
             <FileText className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">{documentTitle}</h3>
-            <p className="text-[11px] text-slate-600 font-mono">ID: {documentId} • Page 1 of 1</p>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-slate-900 truncate">{documentTitle}</h3>
+            <p className="text-caption text-muted font-mono">ID: {documentId} • Page 1 of 1</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-1 text-xs">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center bg-canvas-muted border border-canvas-border rounded-xl p-1 text-xs">
             <button
               onClick={handleZoomOut}
-              className="p-1 hover:bg-slate-100 rounded text-slate-700 transition-colors"
+              className="p-1.5 hover:bg-white rounded-lg text-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
               title="Zoom Out"
+              aria-label="Zoom out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="px-2 font-mono text-[11px] text-slate-700">{Math.round(zoom * 100)}%</span>
+            <span className="px-2 font-mono text-caption text-slate-700 min-w-[48px] text-center">{Math.round(zoom * 100)}%</span>
             <button
               onClick={handleZoomIn}
-              className="p-1 hover:bg-slate-100 rounded text-slate-700 transition-colors"
+              className="p-1.5 hover:bg-white rounded-lg text-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
               title="Zoom In"
+              aria-label="Zoom in"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleResetZoom}
-              className="p-1 hover:bg-slate-100 rounded text-slate-600 hover:text-slate-800 transition-colors ml-1 border-l border-slate-200"
+              className="p-1.5 hover:bg-white rounded-lg text-muted hover:text-slate-800 transition-colors ml-1 border-l border-canvas-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
               title="Reset Zoom"
+              aria-label="Reset zoom"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -82,7 +94,8 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors"
+              className="p-2 rounded-xl hover:bg-canvas-muted text-muted hover:text-slate-800 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Close document viewer"
             >
               ✕
             </button>
@@ -93,25 +106,25 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
       {/* Document Viewport Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto bg-slate-50 rounded-xl border border-slate-200 p-4 relative flex items-center justify-center min-h-[380px]"
+        className="flex-1 overflow-auto bg-canvas-muted rounded-xl border border-canvas-border p-3 sm:p-4 relative flex items-center justify-center min-h-[380px]"
       >
         <div
-          className="relative bg-white text-slate-900 rounded-md shadow-2xl transition-transform duration-200 origin-center p-8 select-text font-serif text-[11px] leading-relaxed border border-slate-300 max-w-lg w-full"
+          className="relative bg-white text-slate-900 rounded-xl shadow-xl transition-transform duration-200 origin-center p-6 sm:p-8 select-text font-serif text-[11px] leading-relaxed border border-canvas-border max-w-lg w-full"
           style={{ transform: `scale(${zoom})` }}
         >
           {/* Simulated Medical Document Layout */}
-          <div className="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-start">
+          <div className="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-start gap-2">
             <div>
               <h1 className="font-bold text-sm tracking-wider uppercase">ST. JUDE MEDICAL CENTER</h1>
-              <p className="text-[10px] text-slate-600 font-sans">Inpatient Discharge Summary & Transition Record</p>
+              <p className="text-caption text-muted font-sans font-medium">Inpatient Discharge Summary & Transition Record</p>
             </div>
-            <div className="text-right text-[10px] text-slate-600 font-mono">
+            <div className="text-right text-caption text-muted font-mono">
               <div>Date: Aug 28, 2026</div>
               <div>MRN: #940-281-CC</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-[10px] bg-slate-100 p-2.5 rounded mb-4 font-sans">
+          <div className="grid grid-cols-2 gap-2 text-caption bg-canvas-muted p-2.5 rounded-xl mb-4 font-sans border border-canvas-border">
             <div><strong>Patient:</strong> Shanti Devi (72 F)</div>
             <div><strong>Attending:</strong> Dr. Sarah Patel, MD</div>
             <div><strong>Admission:</strong> Aug 22, 2026</div>
@@ -120,7 +133,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
 
           <div className="space-y-3">
             <div>
-              <h4 className="font-bold font-sans text-[11px] text-slate-800 uppercase border-b border-slate-200 pb-0.5 mb-1">
+              <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
                 Discharge Diagnoses
               </h4>
               <p className="text-slate-700">1. Chronic Kidney Disease (Stage 3b), baseline eGFR ~32.</p>
@@ -129,10 +142,10 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
             </div>
 
             <div>
-              <h4 className="font-bold font-sans text-[11px] text-slate-800 uppercase border-b border-slate-200 pb-0.5 mb-1">
+              <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
                 Discharge Laboratory Biomarkers
               </h4>
-              <div className="font-mono text-[10px] space-y-0.5 text-slate-800">
+              <div className="font-mono text-caption space-y-0.5 text-slate-800">
                 <p>• Serum Creatinine: 1.9 mg/dL (Ref: 0.6 - 1.2 mg/dL) [HIGH]</p>
                 <p>• eGFR: 32 mL/min/1.73m2 (Ref: &gt;60 mL/min/1.73m2) [LOW]</p>
                 <p>• Serum Potassium (K+): 4.8 mEq/L (Ref: 3.5 - 5.0 mEq/L) [NORMAL]</p>
@@ -140,22 +153,22 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
             </div>
 
             <div>
-              <h4 className="font-bold font-sans text-[11px] text-slate-800 uppercase border-b border-slate-200 pb-0.5 mb-1">
+              <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
                 Reconciled Discharge Medications
               </h4>
-              <div className="font-sans text-[10px] space-y-1 text-slate-800">
-                <p>1. <strong>Apixaban (Eliquis)</strong> 5 mg PO BID (Stroke prophylaxis) - <span className="text-blue-700 font-semibold">[NEW]</span></p>
+              <div className="font-sans text-caption space-y-1 text-slate-800">
+                <p>1. <strong>Apixaban (Eliquis)</strong> 5 mg PO BID (Stroke prophylaxis) - <span className="text-primary-text font-semibold">[NEW]</span></p>
                 <p>2. <strong>Metformin HCl</strong> 1000 mg PO BID with meals - <span className="text-amber-700 font-semibold">[DOSE INCREASED]</span></p>
-                <p>3. <strong>Atorvastatin</strong> 40 mg PO QHS - <span className="text-slate-600 font-semibold">[CONTINUED]</span> (Avoid Grapefruit)</p>
+                <p>3. <strong>Atorvastatin</strong> 40 mg PO QHS - <span className="text-muted font-semibold">[CONTINUED]</span> (Avoid Grapefruit)</p>
                 <p>4. <strong>Lisinopril</strong> 20 mg PO Daily - <span className="text-rose-700 font-semibold">[STOPPED / HELD DUE TO AKI]</span></p>
               </div>
             </div>
 
             <div>
-              <h4 className="font-bold font-sans text-[11px] text-slate-800 uppercase border-b border-slate-200 pb-0.5 mb-1">
+              <h4 className="font-bold font-sans text-caption text-slate-800 uppercase border-b border-canvas-border pb-0.5 mb-1">
                 Allergies & Warnings
               </h4>
-              <p className="text-rose-800 font-semibold text-[10px]">
+              <p className="text-rose-700 font-semibold text-caption">
                 • Penicillin (Severe Anaphylaxis) • Avoid NSAIDs (Ibuprofen/Naproxen)
               </p>
             </div>
@@ -164,17 +177,17 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
           {/* Render Vector Bounding Box Overlay if coordinates present */}
           {activeBox && (
             <div
-              className="absolute pointer-events-none rounded-sm transition-all duration-300 bounding-box-highlight border-2 border-sky-400"
+              className="absolute pointer-events-none rounded-sm transition-all duration-300 bounding-box-highlight border-2 border-primary"
               style={{
                 top: `${activeBox.y * 100}%`,
                 left: `${activeBox.x * 100}%`,
                 width: `${activeBox.width * 100}%`,
                 height: `${activeBox.height * 100}%`,
-                backgroundColor: activeBox.highlightColor || 'rgba(56, 189, 248, 0.25)',
+                backgroundColor: activeBox.highlightColor || 'rgba(79, 70, 229, 0.22)',
               }}
             >
-              <div className="absolute -top-6 left-0 flex items-center gap-1 bg-sky-500 text-slate-950 font-sans font-bold text-[9px] px-2 py-0.5 rounded shadow-lg whitespace-nowrap">
-                <Sparkles className="w-2.5 h-2.5" />
+              <div className="absolute -top-6 left-0 flex items-center gap-1 bg-primary text-white font-sans font-bold text-caption px-2 py-0.5 rounded-lg shadow-lg whitespace-nowrap">
+                <Sparkles className="w-3 h-3" />
                 <span>Verified OCR Source</span>
               </div>
             </div>
@@ -184,13 +197,13 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
 
       {/* Bounding Box Source Snippet Footer */}
       {activeBox && (
-        <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <Crosshair className="w-4 h-4 text-sky-400 shrink-0" />
-            <span className="text-slate-600">Verbatim Text Span:</span>
-            <span className="font-mono text-sky-700 font-medium">"{activeBox.textSnippet}"</span>
+        <div className="mt-3 p-3 bg-canvas-muted rounded-xl border border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <Crosshair className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-muted whitespace-nowrap">Verbatim Text Span:</span>
+            <span className="font-mono text-primary-text font-medium truncate">"{activeBox.textSnippet}"</span>
           </div>
-          <span className="text-[10px] text-slate-600 font-mono">
+          <span className="text-caption text-muted font-mono whitespace-nowrap">
             X: {Math.round(activeBox.x * 100)}% Y: {Math.round(activeBox.y * 100)}%
           </span>
         </div>

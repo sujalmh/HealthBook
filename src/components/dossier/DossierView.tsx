@@ -163,20 +163,20 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header Banner */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header Banner — tokenized */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-200 flex items-center justify-center shadow-inner">
+          <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm">
             <FolderLock className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-900 tracking-tight">For My Doctor</h2>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 font-bold border border-indigo-200 uppercase">
+              <h2 className="text-heading-lg text-slate-900">For My Doctor</h2>
+              <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border uppercase">
                 Share all at once
               </span>
             </div>
-            <p className="text-xs text-slate-600">
+            <p className="text-body-sm text-muted">
               Everything your doctor needs — medicines, lab results, and notes — ready to share.
             </p>
           </div>
@@ -187,23 +187,23 @@ export const DossierView: React.FC<DossierViewProps> = ({
           <button
             onClick={loadCompiledDossier}
             disabled={isLoading}
-            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
-            title="Refresh Dossier"
+            className="p-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted text-body-sm font-bold border border-canvas-border transition-colors min-h-[44px] min-w-[44px]"
+            title="Refresh dossier"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
           <button
             onClick={() => setIsDoctorAccessModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-slate-800 text-body-sm font-bold border border-canvas-border transition-colors shadow-sm min-h-[44px]"
           >
-            <KeyRound className="w-4 h-4 text-indigo-400" />
-            <span>Share with Doctor ({activeGrantsCount})</span>
+            <KeyRound className="w-4 h-4 text-primary" />
+            <span>Share with doctor ({activeGrantsCount})</span>
           </button>
 
           <button
             onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
           >
             <Download className="w-4 h-4" />
             <span>Download PDF</span>
@@ -211,51 +211,51 @@ export const DossierView: React.FC<DossierViewProps> = ({
         </div>
       </div>
 
-      {/* Metric Quick Strip */}
+      {/* Metric Quick Strip — tokenized */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+        <div className="bg-canvas-card border border-canvas-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="p-3 rounded-xl bg-sky-50 text-clinical-blue border border-sky-200">
             <Pill className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Medicines Now</span>
-            <p className="text-base font-black text-slate-900">{activeMedsCount} medicines</p>
+            <span className="text-caption text-muted uppercase font-bold tracking-wider">Medicines now</span>
+            <p className="text-heading-md text-slate-900">{activeMedsCount} medicines</p>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <div className="bg-canvas-card border border-canvas-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="p-3 rounded-xl bg-emerald-50 text-clinical-emerald border border-emerald-200">
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Lab Results</span>
-            <p className="text-base font-black text-slate-900">{labsCount} results</p>
+            <span className="text-caption text-muted uppercase font-bold tracking-wider">Lab results</span>
+            <p className="text-heading-md text-slate-900">{labsCount} results</p>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        <div className="bg-canvas-card border border-canvas-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="p-3 rounded-xl bg-amber-50 text-clinical-amber border border-amber-200">
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Proof</span>
-            <p className="text-base font-black text-slate-900">{citationsCount} linked pages</p>
+            <span className="text-caption text-muted uppercase font-bold tracking-wider">Proof</span>
+            <p className="text-heading-md text-slate-900">{citationsCount} linked pages</p>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+        <div className="bg-canvas-card border border-canvas-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="p-3 rounded-xl bg-primary-light text-primary border border-primary-border">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Privacy</span>
-            <p className="text-base font-black text-emerald-400">Private & secure</p>
+            <span className="text-caption text-muted uppercase font-bold tracking-wider">Privacy</span>
+            <p className="text-heading-md text-clinical-emerald">Private & secure</p>
           </div>
         </div>
       </div>
 
-      {/* Navigation Sub-Tabs */}
-      <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200 text-xs w-fit">
+      {/* Navigation Sub-Tabs — pill, tokenized */}
+      <div className="flex items-center bg-canvas-card p-1 rounded-xl border border-canvas-border text-body-sm w-fit shadow-sm">
         <button
           onClick={() => setActiveTab('timeline')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
@@ -334,15 +334,15 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
           {/* Right Column: Citation List Navigator */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xl space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+            <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                    Document Citations ({citationsCount})
+                  <FileText className="w-4 h-4 text-clinical-amber" />
+                  <h3 className="text-caption font-bold uppercase tracking-wider text-slate-800">
+                    Document citations ({citationsCount})
                   </h3>
                 </div>
-                <span className="text-[10px] text-slate-600 font-mono">Grounded Facts</span>
+                <span className="text-caption text-muted font-mono">Grounded facts</span>
               </div>
 
               <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
@@ -356,10 +356,10 @@ export const DossierView: React.FC<DossierViewProps> = ({
                       setActiveSnippet(cite.snippetText);
                       setActivePage(cite.boundingBox?.pageIndex || 1);
                     }}
-                    className={`w-full text-left p-3 rounded-xl border text-xs transition-all space-y-1 ${
+                    className={`w-full text-left p-3 rounded-xl border text-body-sm transition-all space-y-1 min-h-[44px] ${
                       activeCitationBox === cite.boundingBox
-                        ? 'bg-amber-500/10 border-amber-500/50 shadow-sm'
-                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-amber-50 border-amber-200 shadow-sm'
+                        : 'bg-canvas-muted border-canvas-border hover:bg-canvas-border'
                     }`}
                   >
                     <div className="flex items-center justify-between">

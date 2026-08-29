@@ -212,24 +212,24 @@ SECURITY VALIDATION:
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 text-slate-900 print:bg-white print:text-black print:border-none print:shadow-none animate-fade-in">
+    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-6 text-slate-900 print:bg-white print:text-black print:border-none print:shadow-none animate-fade-in">
       {/* Top Banner: Emergency Priority Header & Action Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6 print:border-black">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-canvas-border pb-6 print:border-black">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/20">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-500 to-amber-500 flex items-center justify-center text-white shadow-md">
             <AlertOctagon className="w-7 h-7" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 print:text-black">
-                Emergency Clinical Snapshot
+              <h2 className="text-heading-lg text-slate-900 print:text-black">
+                Emergency clinical snapshot
               </h2>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-700 font-bold border border-rose-500/30 uppercase tracking-wider">
-                High Priority Quick-Card
+              <span className="text-caption px-2.5 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200 uppercase tracking-wider">
+                High priority quick-card
               </span>
             </div>
-            <p className="text-xs text-slate-600 print:text-gray-600">
-              One-page high-yield clinical overview for emergency physicians, paramedics, and specialist consults.
+            <p className="text-body-sm text-muted print:text-gray-600">
+              One-page high-yield clinical overview for emergency physicians, paramedics, and specialists.
             </p>
           </div>
         </div>
@@ -238,10 +238,10 @@ SECURITY VALIDATION:
         <div className="flex items-center gap-2.5 self-end md:self-auto print:hidden">
           <button
             onClick={handleCopySummary}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-bold border border-slate-200 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-canvas-muted hover:bg-canvas-border text-slate-800 text-body-sm font-bold border border-canvas-border transition-colors shadow-sm min-h-[44px]"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? 'Copied Text' : 'Copy Text'}</span>
+            {copied ? <Check className="w-4 h-4 text-clinical-emerald" /> : <Copy className="w-4 h-4" />}
+            <span>{copied ? 'Copied' : 'Copy'}</span>
           </button>
 
           <button
@@ -249,19 +249,19 @@ SECURITY VALIDATION:
               if (onPrint) onPrint();
               else window.print();
             }}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-md shadow-sky-600/20"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold transition-all shadow-sm min-h-[44px]"
           >
             <Printer className="w-4 h-4" />
-            <span>Print 1-Page Card</span>
+            <span>Print 1-page card</span>
           </button>
         </div>
       </div>
 
-      {/* Patient Demographics Bar */}
-      <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-xs">
+      {/* Patient Demographics Bar — tokenized */}
+      <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-body-sm">
         <div>
-          <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Patient Name</span>
-          <p className="text-sm font-black text-white">{data.patientName}</p>
+          <span className="text-caption text-muted uppercase font-bold tracking-wider">Patient name</span>
+          <p className="text-heading-md text-slate-900">{data.patientName}</p>
         </div>
         <div>
           <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">DOB / Age</span>
@@ -293,8 +293,8 @@ SECURITY VALIDATION:
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column (5 Cols): Severe Allergies & Critical Labs */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Severe Allergies Card */}
-          <div className="bg-slate-50 rounded-2xl p-5 border border-rose-900/40 shadow-inner space-y-3">
+          {/* Severe Allergies Card — tokenized light */}
+          <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-200 shadow-sm space-y-3">
             <div className="flex items-center justify-between border-b border-rose-900/30 pb-2.5">
               <div className="flex items-center gap-2">
                 <Flame className="w-4 h-4 text-rose-500" />
@@ -326,8 +326,8 @@ SECURITY VALIDATION:
           </div>
 
           {/* Critical Recent Labs */}
-          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+          <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
+            <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-sky-400" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
@@ -352,7 +352,7 @@ SECURITY VALIDATION:
                         ? 'bg-rose-50 border-rose-200 text-rose-700'
                         : isAbnormal
                         ? 'bg-amber-50 border-amber-200 text-amber-700'
-                        : 'bg-white border-slate-200 text-slate-800'
+                        : 'bg-canvas-card border-canvas-border text-slate-900'
                     }`}
                   >
                     <div>
@@ -370,12 +370,12 @@ SECURITY VALIDATION:
                         {lab.value} <span className="text-[10px] font-sans font-medium">{lab.unit}</span>
                       </div>
                       <span
-                        className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                        className={`inline-block px-1.5 py-0.5 rounded text-caption font-bold uppercase border ${
                           isCritical
-                            ? 'bg-rose-600 text-white'
+                            ? 'bg-rose-600 text-white border-rose-600'
                             : isAbnormal
-                            ? 'bg-amber-600 text-slate-950'
-                            : 'bg-emerald-500/20 text-emerald-700'
+                            ? 'bg-amber-100 text-clinical-amber border-amber-200'
+                            : 'bg-emerald-50 text-clinical-emerald border-emerald-200'
                         }`}
                       >
                         {lab.flag}
@@ -388,8 +388,8 @@ SECURITY VALIDATION:
           </div>
 
           {/* Baseline Vitals Card */}
-          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-2.5">
+          <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
+            <div className="flex items-center gap-2 border-b border-canvas-border pb-2.5">
               <Heart className="w-4 h-4 text-rose-400" />
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
                 Baseline Vital Signs
@@ -397,28 +397,28 @@ SECURITY VALIDATION:
             </div>
 
             <div className="grid grid-cols-3 gap-2.5 text-center">
-              <div className="bg-white rounded-xl p-2.5 border border-slate-200">
-                <span className="text-[10px] text-slate-600 block font-semibold">Blood Pressure</span>
-                <span className="text-sm font-black font-mono text-white">
+              <div className="bg-canvas-card rounded-xl p-2.5 border border-canvas-border">
+                <span className="text-caption text-muted block font-semibold">Blood pressure</span>
+                <span className="text-heading-md font-black font-mono text-slate-900">
                   {data.baselineVitals.systolicBP}/{data.baselineVitals.diastolicBP}
                 </span>
-                <span className="text-[9px] text-slate-600 block">mmHg</span>
+                <span className="text-caption text-muted block">mmHg</span>
               </div>
 
-              <div className="bg-white rounded-xl p-2.5 border border-slate-200">
-                <span className="text-[10px] text-slate-600 block font-semibold">Heart Rate</span>
-                <span className="text-sm font-black font-mono text-emerald-400">
+              <div className="bg-canvas-card rounded-xl p-2.5 border border-canvas-border">
+                <span className="text-caption text-muted block font-semibold">Heart rate</span>
+                <span className="text-heading-md font-black font-mono text-clinical-emerald">
                   {data.baselineVitals.heartRate}
                 </span>
-                <span className="text-[9px] text-slate-600 block">bpm (Sinus)</span>
+                <span className="text-caption text-muted block">bpm (Sinus)</span>
               </div>
 
-              <div className="bg-white rounded-xl p-2.5 border border-slate-200">
-                <span className="text-[10px] text-slate-600 block font-semibold">Oxygen (SpO2)</span>
-                <span className="text-sm font-black font-mono text-sky-400">
+              <div className="bg-canvas-card rounded-xl p-2.5 border border-canvas-border">
+                <span className="text-caption text-muted block font-semibold">Oxygen (SpO2)</span>
+                <span className="text-heading-md font-black font-mono text-clinical-blue">
                   {data.baselineVitals.oxygenSaturation}%
                 </span>
-                <span className="text-[9px] text-slate-600 block">Room Air</span>
+                <span className="text-caption text-muted block">Room air</span>
               </div>
             </div>
           </div>
@@ -427,8 +427,8 @@ SECURITY VALIDATION:
         {/* Right Column (7 Cols): Active Medication Regimen & Handover Contacts */}
         <div className="lg:col-span-7 space-y-6">
           {/* Active Medications List */}
-          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+          <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
+            <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
               <div className="flex items-center gap-2">
                 <Pill className="w-4 h-4 text-indigo-400" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
@@ -444,7 +444,7 @@ SECURITY VALIDATION:
               {data.activeMedications.map((med, idx) => (
                 <div
                   key={med.id || idx}
-                  className="bg-white rounded-xl p-3.5 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  className="bg-canvas-card rounded-xl p-3.5 border border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -492,8 +492,8 @@ SECURITY VALIDATION:
           </div>
 
           {/* Emergency Contacts & Physician Handover */}
-          <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-2.5">
+          <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
+            <div className="flex items-center gap-2 border-b border-canvas-border pb-2.5">
               <Phone className="w-4 h-4 text-emerald-400" />
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
                 Designated Emergency Contacts & Clinicians
@@ -504,7 +504,7 @@ SECURITY VALIDATION:
               {data.emergencyContacts.map((contact, idx) => (
                 <div
                   key={idx}
-                  className="bg-white rounded-xl p-3.5 border border-slate-200 flex items-center justify-between gap-3 text-xs"
+                  className="bg-canvas-card rounded-xl p-3.5 border border-canvas-border flex items-center justify-between gap-3 text-xs"
                 >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5">
@@ -537,11 +537,11 @@ SECURITY VALIDATION:
           </div>
 
           {/* QR Validation Seal & Tamper-Evident Attestation */}
-          <div className="bg-gradient-to-r from-slate-50 via-slate-50 to-indigo-50 rounded-2xl p-5 border border-indigo-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-canvas-muted via-canvas-muted to-primary-light rounded-2xl p-5 border border-indigo-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               {/* Simulated High-Res QR Seal */}
-              <div className="w-16 h-16 rounded-xl bg-white p-1.5 flex items-center justify-center shrink-0 shadow-md">
-                <QrCode className="w-full h-full text-slate-950" />
+              <div className="w-16 h-16 rounded-xl bg-canvas-card p-1.5 flex items-center justify-center shrink-0 shadow-sm border border-canvas-border">
+                <QrCode className="w-full h-full text-slate-900" />
               </div>
               <div className="space-y-1 text-xs">
                 <div className="flex items-center gap-2">

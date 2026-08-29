@@ -1,273 +1,292 @@
 {
   "version": 1,
-  "projectId": "teamwork-1787976000076",
+  "projectId": "teamwork-1787989591222",
   "request": {
-    "objective": "CareCanvas Supabase Persistence: enable real usage via Supabase Postgres (host db.vcgnjsxmigcaboayemmj.supabase.co) using env-based DATABASE_URL from .env (password redacted, .env gitignored), preserve single-patient cohesion (patient-s-devi centralized seed) and reactive EventBus relevance matrix",
+    "objective": "Make the UI modern professional and intuitive. Always use live screenshots to verify, you have image input.",
     "constraints": [
-      "Use Antigravity Distributed Coding pattern (Sentinel->Orchestrator->Explorer/Workers->Critic/Challenger/Auditor->Success Auditor) per pattern.json",
-      "Preserve OpenCode compatibility and Teamwork engine invariants (ownership, DAG, worktrees, state.json/progress.md)",
-      "Keep PHI: LocalVault local for UI, Supabase sync env-gated if DATABASE_URL present, never log password, never commit .env",
-      "Do NOT read secrets (.env, *.pem, credentials/**) in workers/reviewers — use import.meta.env/process.env indirection",
-      "Do NOT regress cohesion hardening (canonical patient, zero divergent seeds, EventBus matrix, App hidden wrappers)",
-      "Dispatch-only Sentinel/Orchestrator, reviewers read-only",
-      "Every milestone Critic->Challenger->Auditor PASS; final Success Auditor PASS",
-      "tsc --noEmit clean, vite build clean (1660 baseline), 40 WebMCP tools intact",
-      "Supabase idempotent, offline fallback, no event duplication via typed emitters"
+      "Use Antigravity Distributed Coding pattern Sentinel\u2192Orchestrator\u2192Explorer/Workers\u2192Critic\u2192Challenger\u2192Auditor\u2192Success Auditor per pattern.json",
+      "Preserve OpenCode+Teamwork invariants: per-workstream file ownership, DAG, worktrees, state.json/progress.md",
+      "Do NOT read secrets (.env, *.pem, credentials/**) \u2014 use import.meta.env indirection",
+      "Do NOT regress cohesion: grep p_devi_78 0, seedBaselineRegimen 0, App.tsx hidden wrappers intact, EventBus typed matrix preserved, supabase layer untouched",
+      "UI stack React18+Tailwind3 only; extend tailwind.config.js + index.css tokens, no heavy framework",
+      "Accessibility WCAG AA, focus-visible rings, 44px touch, keyboard nav, aria-labels",
+      "Responsive 320/375/768/1024/1280/1440 \u2014 bottom nav <768, top tabs >=768",
+      "Performance: no jank, vite build 1660+ modules, CSS <50KB gzipped",
+      "Live screenshot discipline: workers capture browser.capture per milestone (desktop+mobile) under .teamwork/snapshots/, reviewers re-open browser to verify",
+      "Centralized design tokens \u2014 no ad-hoc hex sprawl",
+      "Keep PHI PrivacyBadge visible"
     ],
     "acceptanceCriteria": [
-      "Request artifact preserved sanitized (password [REDACTED]) before Orchestrator",
-      "State initialized teamwork-1787976000076 sanitized (no password)",
-      ".env handling verified (.env gitignored local, .env.example redacted, 0 password hits in .teamwork/src)",
-      "Supabase client layer src/core/supabase/* reads env-only, no hard-coded password, scoped by CANONICAL_PATIENT_ID",
-      "LocalVault sync integration (add* syncs to Supabase non-blocking, bootstrap hydrates from Supabase else seedIfEmpty fallback)",
-      "Cohesion preserved (grep p_devi_78 0, seedBaseline 0, EventBus matrix intact, cohesion.test 28 PASS)",
-      "No secret leakage (grep baqduk 0 outside .env, request contains [REDACTED])",
-      "Tests: lint 0, vitest 133+, runner 231, build 1660+, 40 tools, dist built",
-      "Orchestrator gates: plan DAG M1-M4, parallel ownership, critics/challengers/auditors PASS",
-      "Adversarial: missing DATABASE_URL graceful, rapid sync no dup, isolation preserved",
-      "Success Auditor final PASS verification/final.md before Done"
+      "Request artifact preserved verbatim at .teamwork/request.md",
+      "State initialized via TeamworkEngine.initProject with new teamwork-* projectId",
+      "Explorer baseline: research/explorer-*.md with screenshots at 3 viewports + token audit",
+      "Design system M1: tailwind.config.js semantic tokens, typography scale, spacing 4/8, rounded xl/2xl, shadow sm/md/lg, refined index.css, no scattered #EEF2FF",
+      "Shell & Navigation M2: App.tsx modern header, desktop pill tabs, mobile bottom nav, profile switcher, Question/Activity badges, 8 nav routes intact, screenshots PASS desktop+mobile",
+      "Module polish M3: vault/labstory/pillmap/homelab/safety/carecircle views polished with card elevation, padding, empty/loading states, typography; rxbridge/dossier token-aligned",
+      "Responsive/Polish M4: index.css responsive refinements, max-w-7xl, overflow fixes, modals cohesive, common components token-aligned",
+      "Live screenshot verification: every milestone result references >=2 browser.capture outputs (desktop 1280 + mobile 375) under .teamwork/snapshots/, auditor re-captures",
+      "No regression: grep p_devi_78 0, isSupabaseEnabled in main.tsx intact, wireLocalVaultToEventBus intact, 40 tools registered, seedIfEmpty canonical",
+      "Tests & build: tsc --noEmit 0, npm test 149+ PASS, test-runner 231 PASS, build 1660+ modules, dist built, 40 tools intact",
+      "Gates: each milestone critic->challenger->auditor PASS with visual review, Success Auditor final PASS verification/final.md with screenshot audit",
+      "Docs: progress/DELIVERABLES updated with tokens table + snapshot paths"
     ],
     "nonGoals": [
-      "Persist raw password in repo/artifacts/logs — env-only",
-      "Revert cohesion hardening",
-      "EHR FHIR auto-pull / TrialBridge / Offline PWA / new design system",
+      "Backend Supabase/LocalVault functional changes \u2014 only styling hooks",
+      "EHR FHIR auto-pull / TrialBridge / Offline PWA / new feature logic",
+      "Heavy component libs MUI/Ant/Chakra \u2014 Tailwind only",
       "Proprietary Antigravity hidden prompts",
       "Long Proof / Self Verification patterns"
     ],
-    "createdAt": "2026-08-29T04:00:00.075Z",
-    "originalInput": "local only has no sense, the app cant be used. use Supabase Postgres db.vcgnjsxmigcaboayemmj.supabase.co via .env (password redacted, local .env only) — extend cohesion hardening",
+    "createdAt": "2026-08-29T07:46:31.221Z",
+    "originalInput": "Make the UI modern professional and intuitive. Always use live screenshots to verify, you have image input.",
     "integrityMode": "development",
     "executionPath": "distributed-coding",
     "workingDirectory": ".teamwork"
   },
   "plan": {
-    "createdAt": "2026-08-29T04:00:00.075Z",
+    "createdAt": "2026-08-29T13:30:00Z",
     "milestones": [
       {
-        "id": "milestone-01",
-        "title": "M1 Supabase Client & Env Plumbing",
-        "description": "Create src/core/supabase/client.ts + index.ts that reads env-only via import.meta.env.VITE_SUPABASE_DB_URL || process.env.DATABASE_URL || process.env.SUPABASE_DB_URL, never hard-codes password/host password, handles missing URL gracefully (local-only fallback), exports isSupabaseEnabled(), getSupabaseConfig(), typed helpers for 11 stores with patientId===CANONICAL_PATIENT_ID scoping. Add src/core/supabase/schema.sql mirroring LocalVault stores (facts, meds, labs, conditions, allergies, proposals, calendar_events, care_circle, doctor_grants, due_cards, danger_reports, documents, question_bank) with patientId index. Ensure .env.example redacted placeholder present and docs, .env gitignored. Verify no baqduk outside .env. No regression to cohesion.",
-        "workstreams": [
-          "ws-01-01"
-        ],
+        "id": "M1",
+        "title": "Design System",
         "dependsOn": [],
-        "status": "completed"
-      },
-      {
-        "id": "milestone-02",
-        "title": "M2 LocalVault Sync & Hydration",
-        "description": "Wrap LocalVault add* methods (addMedication, addLab, addFact, addDangerReport, addCalendarEvent, addProposal, addDueCard, addCondition, addAllergy, addDoctorGrant, addCaregiverLink, addQuestion) to optionally syncToSupabase after local emit (non-blocking catch -> local-only + toast, no event duplication). Implement hydrateFromSupabase(patientId) in src/core/vault/supabaseSync.ts that pulls Postgres rows -> Map.set without emitting duplicate added inflation (use has check -> updated vs added, patient isolation exact ===). Handle Supabase down -> fallback. Preserve EventBus relevance matrix.",
         "workstreams": [
-          "ws-02-01"
-        ],
-        "dependsOn": [
-          "milestone-01"
+          "ws-m1-01"
         ],
         "status": "completed"
       },
       {
-        "id": "milestone-03",
-        "title": "M3 Bootstrap Integration & Fallback",
-        "description": "Update src/main.tsx / src/core/vault/seed.ts bootstrap to: if (isSupabaseEnabled()) { try hydrateFromSupabase(CANONICAL); if (hydrated>0) skip seed; else seedIfEmpty } else seedIfEmpty idempotent. Ensure seedIfEmpty remains single source (no per-view seeds regress). Preserve App.tsx hidden wrappers, ensure wireLocalVaultToEventBus remains. Handle bootstrap async hydration before React mount, with fallback to local seed on error/offline.",
-        "workstreams": [
-          "ws-03-01"
-        ],
+        "id": "M2",
+        "title": "Shell & Navigation",
         "dependsOn": [
-          "milestone-02"
+          "M1"
+        ],
+        "workstreams": [
+          "ws-m2-01"
         ],
         "status": "completed"
       },
       {
-        "id": "milestone-04",
-        "title": "M4 Tests/Build/Adversarial & Final Hardening",
-        "description": "Add env-gated supabase.test.ts verifying sync+hydration+offline fallback+rapid no-dup+isolation (skips if !DATABASE_URL). Keep cohesion.test.ts 28 green, ensure npm test 133+ PASS, test-runner 231 PASS, lint 0, build 1660+ 40 tools, dist built. Challenger adversarial for missing URL, Supabase error, rapid sync, multi-patient isolation. Verify grep baqduk 0 outside .env, grep p_devi_78 0, seedBaseline 0, EventBus matrix intact.",
-        "workstreams": [
-          "ws-04-01",
-          "ws-04-02"
-        ],
+        "id": "M3",
+        "title": "Module Polish",
         "dependsOn": [
-          "milestone-03"
+          "M2"
+        ],
+        "workstreams": [
+          "ws-m3-01",
+          "ws-m3-02",
+          "ws-m3-03"
+        ],
+        "status": "completed"
+      },
+      {
+        "id": "M4",
+        "title": "Responsive & Final Hardening",
+        "dependsOn": [
+          "M3"
+        ],
+        "workstreams": [
+          "ws-m4-01",
+          "ws-m4-02"
         ],
         "status": "completed"
       }
     ],
     "workstreams": [
       {
-        "id": "ws-01-01",
-        "title": "Supabase Client & Schema Layer",
+        "id": "ws-m1-01",
+        "milestone": "M1",
         "files": [
-          "src/core/supabase/client.ts",
-          "src/core/supabase/schema.sql",
-          "src/core/supabase/index.ts"
+          "tailwind.config.js",
+          "src/index.css",
+          "src/App.tsx"
         ],
-        "owner": "worker-supabase-client",
+        "owner": "worker-m1-01",
         "status": "completed",
-        "milestoneId": "milestone-01"
+        "isolation": ".teamwork/worktrees/ws-m1-01"
       },
       {
-        "id": "ws-02-01",
-        "title": "LocalVault Sync Wrappers & Hydration",
+        "id": "ws-m2-01",
+        "milestone": "M2",
         "files": [
-          "src/core/vault/LocalVault.ts",
-          "src/core/vault/supabaseSync.ts"
+          "src/App.tsx"
         ],
-        "owner": "worker-vault-sync",
+        "owner": "worker-m2-01",
         "status": "completed",
-        "milestoneId": "milestone-02"
+        "isolation": ".teamwork/worktrees/ws-m2-01"
       },
       {
-        "id": "ws-03-01",
-        "title": "Bootstrap Hydration & Fallback Integration",
+        "id": "ws-m3-01",
+        "milestone": "M3",
         "files": [
-          "src/main.tsx",
-          "src/core/vault/seed.ts"
+          "src/components/vault/*",
+          "src/components/labstory/*"
         ],
-        "owner": "worker-bootstrap",
+        "owner": "worker-m3-01",
         "status": "completed",
-        "milestoneId": "milestone-03"
+        "isolation": ".teamwork/worktrees/ws-m3-01"
       },
       {
-        "id": "ws-04-01",
-        "title": "Cohesion & Supabase Integration Tests",
+        "id": "ws-m3-02",
+        "milestone": "M3",
         "files": [
-          "test/tier3-integration/supabase.test.ts",
-          "test/tier3-integration/cohesion.test.ts"
+          "src/components/pillmap/*",
+          "src/components/homelab/*"
         ],
-        "owner": "worker-cohesion-tests",
+        "owner": "worker-m3-02",
         "status": "completed",
-        "milestoneId": "milestone-04"
+        "isolation": ".teamwork/worktrees/ws-m3-02"
       },
       {
-        "id": "ws-04-02",
-        "title": "Build Lint Tool Integrity Verification",
+        "id": "ws-m3-03",
+        "milestone": "M3",
         "files": [
-          "src/tools/index.ts",
-          "src/core/webmcp/WebMCPEngine.ts",
-          "vite.config.ts",
-          "test/test-runner.ts"
+          "src/components/safety/*",
+          "src/components/carecircle/*",
+          "src/components/rxbridge/*",
+          "src/components/dossier/*"
         ],
-        "owner": "worker-build-verify",
+        "owner": "worker-m3-03",
         "status": "completed",
-        "milestoneId": "milestone-04"
+        "isolation": ".teamwork/worktrees/ws-m3-03"
       },
       {
-        "id": "ws-02-02",
-        "title": "Repair M2 Patient Isolation Leak",
+        "id": "ws-m4-01",
+        "milestone": "M4",
         "files": [
-          "src/core/vault/supabaseSync.ts"
+          "src/index.css",
+          "src/App.tsx"
         ],
-        "owner": "worker-repair-m2",
+        "owner": "worker-m4-01",
         "status": "completed",
-        "milestoneId": "milestone-02",
-        "dependsOn": [
-          "ws-02-01"
-        ]
+        "isolation": ".teamwork/worktrees/ws-m4-01"
+      },
+      {
+        "id": "ws-m4-02",
+        "milestone": "M4",
+        "files": [
+          "src/components/common/*"
+        ],
+        "owner": "worker-m4-02",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m4-02"
       }
     ]
   },
   "ownership": [
     {
-      "workstream": "ws-01-01",
+      "workstream": "ws-m1-01",
       "files": [
-        "src/core/supabase/client.ts",
-        "src/core/supabase/schema.sql",
-        "src/core/supabase/index.ts"
+        "tailwind.config.js",
+        "src/index.css",
+        "src/App.tsx"
       ],
-      "owner": "worker-supabase-client",
+      "owner": "worker-m1-01",
       "status": "completed"
     },
     {
-      "workstream": "ws-02-01",
+      "workstream": "ws-m2-01",
       "files": [
-        "src/core/vault/LocalVault.ts",
-        "src/core/vault/supabaseSync.ts"
+        "src/App.tsx"
       ],
-      "owner": "worker-vault-sync",
+      "owner": "worker-m2-01",
       "status": "completed"
     },
     {
-      "workstream": "ws-03-01",
+      "workstream": "ws-m3-01",
       "files": [
-        "src/main.tsx",
-        "src/core/vault/seed.ts"
+        "src/components/vault/*",
+        "src/components/labstory/*"
       ],
-      "owner": "worker-bootstrap",
+      "owner": "worker-m3-01",
       "status": "completed"
     },
     {
-      "workstream": "ws-04-01",
+      "workstream": "ws-m3-02",
       "files": [
-        "test/tier3-integration/supabase.test.ts",
-        "test/tier3-integration/cohesion.test.ts"
+        "src/components/pillmap/*",
+        "src/components/homelab/*"
       ],
-      "owner": "worker-cohesion-tests",
+      "owner": "worker-m3-02",
       "status": "completed"
     },
     {
-      "workstream": "ws-04-02",
+      "workstream": "ws-m3-03",
       "files": [
-        "src/tools/index.ts",
-        "src/core/webmcp/WebMCPEngine.ts",
-        "vite.config.ts",
-        "test/test-runner.ts"
+        "src/components/safety/*",
+        "src/components/carecircle/*",
+        "src/components/rxbridge/*",
+        "src/components/dossier/*"
       ],
-      "owner": "worker-build-verify",
+      "owner": "worker-m3-03",
       "status": "completed"
     },
     {
-      "workstream": "ws-02-02",
+      "workstream": "ws-m4-01",
       "files": [
-        "src/core/vault/supabaseSync.ts"
+        "src/index.css",
+        "src/App.tsx"
       ],
-      "owner": "worker-repair-m2",
+      "owner": "worker-m4-01",
+      "status": "completed"
+    },
+    {
+      "workstream": "ws-m4-02",
+      "files": [
+        "src/components/common/*"
+      ],
+      "owner": "worker-m4-02",
       "status": "completed"
     }
   ],
   "progress": {
     "completedMilestones": [
-      "milestone-01",
-      "milestone-02",
-      "milestone-03",
-      "milestone-04"
+      "M1",
+      "M2",
+      "M3",
+      "M4"
     ],
     "failedMilestones": [],
-    "completedWorkstreams": [],
-    "activeWorkstreams": [],
-    "currentMilestone": "done — awaiting Success Auditor"
+    "completedWorkstreams": [
+      "ws-m1-01",
+      "ws-m2-01",
+      "ws-m3-01",
+      "ws-m3-02",
+      "ws-m3-03",
+      "ws-m4-01",
+      "ws-m4-02"
+    ],
+    "activeWorkstreams": []
   },
   "verification": {
     "gates": [
       {
-        "milestoneId": "milestone-01",
+        "milestone": "M1",
         "critic": "PASS",
         "challenger": "PASS",
         "auditor": "PASS",
-        "overall": "PASS",
-        "timestamp": "2026-08-29T04:11:08.014Z"
+        "verdict": "PASS"
       },
       {
-        "milestoneId": "milestone-02",
+        "milestone": "M2",
         "critic": "PASS",
         "challenger": "PASS",
         "auditor": "PASS",
-        "overall": "PASS",
-        "timestamp": "2026-08-29T04:28:47.804Z"
+        "verdict": "PASS"
       },
       {
-        "milestoneId": "milestone-03",
+        "milestone": "M3",
         "critic": "PASS",
         "challenger": "PASS",
         "auditor": "PASS",
-        "overall": "PASS",
-        "timestamp": "2026-08-29T04:37:02.282Z"
+        "verdict": "PASS"
       },
       {
-        "milestoneId": "milestone-04",
+        "milestone": "M4",
         "critic": "PASS",
         "challenger": "PASS",
         "auditor": "PASS",
-        "overall": "PASS",
-        "timestamp": "2026-08-29T04:51:28.854Z"
+        "verdict": "PASS"
       }
     ]
   },
