@@ -279,8 +279,8 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
 
     eventBus.dispatchToast({
       type: 'success',
-      title: 'PillMap Day 0 Populated!',
-      message: `Successfully transferred ${activeDischargeMeds.length} active medications with diet-aware timing to your weekly Pillbox. Reminders set for ${Object.keys(slotTimeMap).join(', ')}.`
+      title: 'My Medicines Updated!',
+      message: `Added ${activeDischargeMeds.length} medicines to your weekly box with food reminders for ${Object.keys(slotTimeMap).join(', ')}.`
     });
   };
 
@@ -308,21 +308,21 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black tracking-tight text-white">
-                  RxBridge — 3-List Reconciliation Walk
+                  Medicine Review
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono font-bold text-xs border border-purple-500/40">
-                  Post-Discharge Engine
+                  Before / Hospital / Now
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Reconciles Pre-Admission, In-Hospital, and Discharge orders with plain-language explanations and teach-back validation.
+                Check what changed after your hospital stay — approve each medicine in plain language before it goes to your weekly box.
               </p>
             </div>
           </div>
 
           {/* Quick-Fill Sample Dataset Switcher */}
           <div className="flex flex-wrap items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 text-xs">
-            <span className="text-[11px] font-mono text-slate-400 px-2 font-bold">Sample Case:</span>
+            <span className="text-[11px] font-mono text-slate-400 px-2 font-bold">Example:</span>
             <button
               onClick={() => setSelectedCaseId('shanti')}
               className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
@@ -331,7 +331,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Shanti Devi (Cardiology / Afib)
+              Shanti Devi — heart
             </button>
             <button
               onClick={() => setSelectedCaseId('jenkins')}
@@ -341,7 +341,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Harold Jenkins (Heart Failure / Entresto)
+              Harold Jenkins — heart
             </button>
           </div>
         </div>
@@ -392,7 +392,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               }`}
             >
               <TableIcon className="w-3.5 h-3.5" />
-              <span>3-List Comparison</span>
+              <span>Compare Lists</span>
             </button>
             <button
               onClick={() => setViewMode('walk')}
@@ -401,7 +401,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               }`}
             >
               <Bot className="w-3.5 h-3.5" />
-              <span>Conversational Walk</span>
+              <span>Step-by-Step</span>
             </button>
           </div>
 
@@ -417,7 +417,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               }`}
             >
               <ShieldCheck className="w-4 h-4 text-indigo-400" />
-              <span>{teachBackRecord ? 'Teach-Back Verified ✓' : 'Teach-Back Prompt'}</span>
+              <span>{teachBackRecord ? 'Checked ✓' : 'Check My Understanding'}</span>
             </button>
 
             {/* 1-Page Summary Export */}
@@ -426,14 +426,14 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-all"
             >
               <Printer className="w-4 h-4 text-sky-400" />
-              <span>1-Page Patient Summary</span>
+              <span>Print Summary</span>
             </button>
 
             {/* Cross-Module Handoff Button — RB4 gate disabled until 100% approved */}
             <button
               onClick={handleFinalizeAndHandoffToPillMap}
               disabled={totalApproved !== reconciledItems.length}
-              title={totalApproved !== reconciledItems.length ? `Approve all ${reconciledItems.length} medications first (${totalApproved}/${reconciledItems.length})` : 'Populate PillMap Day 0 with diet-aware schedule + reminders'}
+              title={totalApproved !== reconciledItems.length ? `Approve all ${reconciledItems.length} medicines first (${totalApproved}/${reconciledItems.length})` : 'Add to my weekly medicines'}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold shadow-lg transition-all ${
                 totalApproved !== reconciledItems.length
                   ? 'bg-slate-700 text-slate-400 cursor-not-allowed border border-slate-600'
@@ -441,7 +441,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               }`}
             >
               <Pill className="w-4 h-4" />
-              <span>Send to PillMap (Day 0){totalApproved !== reconciledItems.length ? ` (${totalApproved}/${reconciledItems.length})` : ''}</span>
+              <span>Add to My Medicines{totalApproved !== reconciledItems.length ? ` (${totalApproved}/${reconciledItems.length})` : ''}</span>
             </button>
           </div>
         </div>

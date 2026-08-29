@@ -281,8 +281,8 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     
     eventBus.dispatchToast({
       type: 'info',
-      title: 'Medication Removed',
-      message: 'Medication removed from active PillMap.'
+      title: 'Medicine removed',
+      message: 'Removed from your weekly medicines.'
     });
     loadMedicationsFromVault();
   };
@@ -454,14 +454,14 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black tracking-tight text-white">
-                  PillMap & Polypharmacy Negotiator
+                  My Medicines
                 </h2>
                 <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold text-xs border border-emerald-500/40">
-                  7x4 Accessible Canvas
+                  Weekly pill box
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Drag-and-drop pillbox with dynamic SVG conflict arcs, meal badges, and chronotype optimization.
+                Your medicines for the week — drag to change times, see warnings, and check food rules.
               </p>
             </div>
           </div>
@@ -476,7 +476,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                   viewMode === 'canvas' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                7x4 Canvas
+                Week View
               </button>
               <button
                 onClick={() => setViewMode('elder')}
@@ -484,7 +484,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                   viewMode === 'elder' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Simple Elder View 👵
+                Simple View 👵
               </button>
             </div>
 
@@ -514,7 +514,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-900/30 transition-all hover:scale-102"
             >
               <Sparkles className="w-4 h-4" />
-              <span>Optimize Schedule</span>
+              <span>Find Best Times</span>
             </button>
 
             {/* Missed Dose Simulator */}
@@ -523,7 +523,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all"
             >
               <HelpCircle className="w-4 h-4 text-amber-400" />
-              <span>Simulate Missed Dose</span>
+              <span>What if I miss a dose?</span>
             </button>
 
             {/* Pharmacist Export */}
@@ -532,7 +532,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-all"
             >
               <FileText className="w-4 h-4 text-sky-400" />
-              <span>1-Page Pharmacist Export</span>
+              <span>Print for Pharmacist</span>
             </button>
 
             {/* Set Reminders */}
@@ -567,10 +567,10 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
               </div>
               <div>
                 <h4 className="font-extrabold text-white text-sm">
-                  {interactionArcs.length} Drug-Drug Interaction Conflict{interactionArcs.length === 1 ? '' : 's'} Detected
+                  {interactionArcs.length} Warning{interactionArcs.length === 1 ? '' : 's'} — medicines that don't mix well
                 </h4>
                 <p className="text-rose-200 text-[11px] mt-0.5">
-                  Click on the Red / Orange SVG arcs on the canvas to inspect biological mechanisms.
+                  Tap the red or orange lines between pills to see why they clash.
                 </p>
               </div>
             </div>
@@ -642,11 +642,11 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
               <div className="flex items-center gap-2">
                 <GripVertical className="w-4 h-4 text-slate-400" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
-                  OTC & Supplement Quick-Add Palette (Drag onto grid)
+                  Shop medicines — drag onto your week
                 </h3>
               </div>
               <span className="text-[11px] text-slate-400">
-                Drag any OTC or supplement onto a time slot to evaluate instant interaction arcs & food rules.
+                Drag any store-bought medicine or vitamin onto a day to check for warnings.
               </span>
             </div>
 

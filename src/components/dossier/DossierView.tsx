@@ -171,13 +171,13 @@ export const DossierView: React.FC<DossierViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-white tracking-tight">Continuity Dossier</h2>
+              <h2 className="text-xl font-black text-white tracking-tight">For My Doctor</h2>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30 uppercase">
-                CD1 – CD6 Lifetime Record
+                Share all at once
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Lifetime health record synthesis with deep document bounding-box citations and time-bound specialist delegation.
+              Everything your doctor needs — medicines, lab results, and notes — ready to share.
             </p>
           </div>
         </div>
@@ -198,7 +198,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
             className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors shadow-sm"
           >
             <KeyRound className="w-4 h-4 text-indigo-400" />
-            <span>Doctor Access ({activeGrantsCount})</span>
+            <span>Share with Doctor ({activeGrantsCount})</span>
           </button>
 
           <button
@@ -206,7 +206,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
           >
             <Download className="w-4 h-4" />
-            <span>Export Dossier (CD6)</span>
+            <span>Download PDF</span>
           </button>
         </div>
       </div>
@@ -218,8 +218,8 @@ export const DossierView: React.FC<DossierViewProps> = ({
             <Pill className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Active Regimen</span>
-            <p className="text-base font-black text-white">{activeMedsCount} Medications</p>
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Medicines Now</span>
+            <p className="text-base font-black text-white">{activeMedsCount} medicines</p>
           </div>
         </div>
 
@@ -228,8 +228,8 @@ export const DossierView: React.FC<DossierViewProps> = ({
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Lab Trajectory</span>
-            <p className="text-base font-black text-white">{labsCount} Data Points</p>
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Lab Results</span>
+            <p className="text-base font-black text-white">{labsCount} results</p>
           </div>
         </div>
 
@@ -238,8 +238,8 @@ export const DossierView: React.FC<DossierViewProps> = ({
             <FileText className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Source Grounding</span>
-            <p className="text-base font-black text-white">{citationsCount} Verified Citations</p>
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Proof</span>
+            <p className="text-base font-black text-white">{citationsCount} linked pages</p>
           </div>
         </div>
 
@@ -248,8 +248,8 @@ export const DossierView: React.FC<DossierViewProps> = ({
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Security Tier</span>
-            <p className="text-base font-black text-emerald-400">Local-Only Vault</p>
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Privacy</span>
+            <p className="text-base font-black text-emerald-400">Private & secure</p>
           </div>
         </div>
       </div>
@@ -265,7 +265,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Chronological Timeline (CD2)</span>
+          <span>Timeline</span>
         </button>
 
         <button
@@ -277,7 +277,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           }`}
         >
           <AlertOctagon className="w-4 h-4" />
-          <span>Emergency Snapshot Card</span>
+          <span>Emergency Card</span>
         </button>
 
         <button
@@ -289,7 +289,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>Source Link Inspector (CD3)</span>
+          <span>Source Pages</span>
         </button>
 
         <button
@@ -299,7 +299,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all text-slate-400 hover:text-slate-200`}
         >
           <KeyRound className="w-4 h-4" />
-          <span>Clinician Grants (CD4)</span>
+          <span>Share Settings</span>
         </button>
       </div>
 

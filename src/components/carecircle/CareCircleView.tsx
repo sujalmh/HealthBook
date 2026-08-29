@@ -85,13 +85,13 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-100 tracking-tight">Family Care Circle</h2>
+              <h2 className="text-xl font-black text-slate-100 tracking-tight">Family</h2>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                G1 – G6
+                Trusted helpers
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Multi-patient proxy switching, scoped caregiver access delegation, and immutable action audit trail.
+              Family and caregivers who can help — see who has access and what they did.
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
           >
             <KeyRound className="w-4 h-4" />
-            <span>Manage Permissions (G2)</span>
+            <span>Manage Access</span>
           </button>
         </div>
       </div>
@@ -124,7 +124,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Care Circle Roster
+          Family List
         </button>
 
         <button
@@ -135,7 +135,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Multi-Patient Overview (G6)
+          Everyone I Care For
         </button>
 
         <button
@@ -146,7 +146,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Proxy Audit Trail (G3)
+          History
         </button>
       </div>
 
@@ -159,10 +159,10 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <UserCheck className="w-5 h-5 text-indigo-400" />
-                  <h3 className="text-sm font-bold text-slate-100">Authorized Caregivers & Advocates</h3>
+                  <h3 className="text-sm font-bold text-slate-100">People Who Can Help</h3>
                 </div>
                 <span className="text-[11px] text-slate-400">
-                  {caregiverLinks.length} Active Delegate(s)
+                  {caregiverLinks.length} helper{caregiverLinks.length === 1 ? '' : 's'}
                 </span>
               </div>
 
@@ -205,7 +205,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <FileCheck2 className="w-5 h-5 text-emerald-400" />
-                  <h3 className="text-sm font-bold text-slate-100">Recent Proxy Activity</h3>
+                  <h3 className="text-sm font-bold text-slate-100">Recent Activity</h3>
                 </div>
                 <button
                   onClick={() => setActiveTab('audit_log')}

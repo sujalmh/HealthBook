@@ -85,13 +85,13 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-100 tracking-tight">Safety Escalation & Doctor Triage</h2>
+              <h2 className="text-xl font-black text-slate-100 tracking-tight">Get Help</h2>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
-                SF1 – SF8
+                Urgent
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Red-flag danger sign reporting, emergency doctor remote pillbox controls, and calendar sync.
+              Tell your care team quickly if something feels wrong — and see what happens next.
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-black transition-all shadow-lg shadow-rose-600/30 animate-pulse"
           >
             <AlertTriangle className="w-4 h-4" />
-            <span>Report Danger Sign</span>
+            <span>I need help now</span>
           </button>
 
           <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800">
@@ -115,7 +115,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Patient Triage
+              What to do
             </button>
             <button
               onClick={() => setActiveTab('doctor_triage')}
@@ -125,7 +125,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Doctor Console
+              Doctor's Actions
             </button>
             <button
               onClick={() => setActiveTab('calendar')}
@@ -135,7 +135,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Prescribed Calendar
+              My Appointments
             </button>
           </div>
         </div>
@@ -151,14 +151,14 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-rose-300 uppercase tracking-wider">
-                  Active Clinical Escalation Alert
+                  Needs attention now
                 </span>
                 <span className="px-2 py-0.2 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/40">
-                  URGENT TRIAGE
+                  URGENT
                 </span>
               </div>
               <p className="text-xs text-slate-200 font-semibold pt-0.5">
-                Bilateral pedal edema & elevated blood pressure reported. Dispatched to Dr. Anita Patel's triage queue.
+                Swelling in legs and high blood pressure reported — sent to Dr. Anita Patel.
               </p>
             </div>
           </div>

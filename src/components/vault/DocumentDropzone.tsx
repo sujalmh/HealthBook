@@ -76,14 +76,14 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
             <UploadCloud className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-100">Ingest Medical Documents & Lab Slips</h3>
+            <h3 className="text-base font-bold text-slate-100">Add Your Health Papers</h3>
             <p className="text-xs text-slate-400">
-              Drag & drop PDFs or photos. All OCR extraction executes 100% client-side.
+              Drop a PDF or photo — we read it safely on your device, nothing leaves it.
             </p>
           </div>
         </div>
         <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-          🔒 Zero Cloud PHI
+          🔒 Private on your device
         </span>
       </div>
 
@@ -91,7 +91,7 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
       <div className="space-y-3">
         <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          Choose Sample Test Document or Drop Custom File
+          Try an example or drop your own file
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -121,7 +121,7 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
       {/* Trigger Extraction Button */}
       <div className="flex items-center justify-between pt-2 border-t border-slate-800">
         <div className="text-xs text-slate-400">
-          Target Engine: <span className="font-mono text-sky-400">extract_fact (WebMCP)</span>
+          We'll pull out the important details for you to review
         </div>
         <button
           onClick={() => {
@@ -134,11 +134,11 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
           {isExtracting ? (
             <>
               <span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
-              Extracting Facts...
+              Reading...
             </>
           ) : (
             <>
-              <span>Extract Clinical Facts</span>
+              <span>Read Document</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </>
           )}

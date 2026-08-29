@@ -13,3 +13,4 @@ coverage
 .teamwork/handoff/
 .teamwork/**/*.log
 /tmp/
+.vercel

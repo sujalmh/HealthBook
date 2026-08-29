@@ -51,15 +51,15 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
               </div>
               <div>
                 <h3 className="text-base font-bold text-amber-200">
-                  Human Approval Gate ({pendingFacts.length} Pending Staged Facts)
+                  Review what we found ({pendingFacts.length})
                 </h3>
                 <p className="text-xs text-amber-300/80">
-                  AI extracted these facts from your document. They will NOT propagate to PillMap or LabStory until you approve them.
+                  We pulled these details from your document. Check them before they update your medicines and labs.
                 </p>
               </div>
             </div>
             <span className="text-xs font-bold text-amber-400 px-3 py-1 bg-amber-900/60 rounded-full border border-amber-600/50 animate-pulse">
-              Action Required
+              Needs your okay
             </span>
           </div>
 
@@ -79,9 +79,9 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId = '
               <CheckCircle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-100">Approved Fact Vault ({approvedFacts.length} Verified)</h3>
+              <h3 className="text-base font-bold text-slate-100">Your Saved Records ({approvedFacts.length})</h3>
               <p className="text-xs text-slate-400">
-                Single source of truth for downstream modules (PillMap, LabStory, RxBridge).
+                Once you approve, they update your medicines, labs, and doctor's pack automatically.
               </p>
             </div>
           </div>

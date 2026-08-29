@@ -111,13 +111,13 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-slate-100 tracking-tight">HomeLab Remote Loop</h2>
+              <h2 className="text-xl font-black text-slate-100 tracking-tight">Tests to Do</h2>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
-                Doctor-Prescribed Cadence
+                From your doctor
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Closed-loop remote laboratory monitoring, photo extraction, and doctor dosage adjustments.
+              Tests your doctor asked you to do at home — upload a photo and see dose changes.
             </p>
           </div>
         </div>
@@ -133,7 +133,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
             }`}
           >
             <Calendar className="w-4 h-4" />
-            <span>Patient Loop</span>
+            <span>My Tasks</span>
             {activeDueCards.length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-sky-400/30 text-sky-200 text-[10px] font-mono">
                 {activeDueCards.length}
@@ -150,7 +150,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
             }`}
           >
             <Stethoscope className="w-4 h-4" />
-            <span>Doctor Review Queue</span>
+            <span>Doctor's View</span>
             {pendingProposals.length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-amber-400/30 text-amber-200 text-[10px] font-mono">
                 {pendingProposals.length}
@@ -177,10 +177,10 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <HeartPulse className="w-5 h-5 text-rose-400" />
-                <h3 className="text-base font-bold text-slate-100">Doctor Dosage Adjustment Proposals</h3>
+                <h3 className="text-base font-bold text-slate-100">Dose Changes From Your Doctor</h3>
               </div>
               <span className="text-xs text-slate-400">
-                {pendingProposals.length} pending patient approval
+                {pendingProposals.length} waiting for your okay
               </span>
             </div>
 

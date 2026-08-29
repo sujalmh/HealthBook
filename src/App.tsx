@@ -125,14 +125,14 @@ export const App: React.FC = () => {
   };
 
   const navItems = [
-    { id: 'vault', label: 'Approved Fact Vault', icon: Shield, badge: pendingCount > 0 ? `${pendingCount}` : null },
-    { id: 'labstory', label: 'LabStory', icon: Activity },
-    { id: 'pillmap', label: 'PillMap', icon: Pill },
-    { id: 'rxbridge', label: 'RxBridge Recon', icon: FileCheck2 },
-    { id: 'homelab', label: 'HomeLab Loop', icon: HeartPulse },
-    { id: 'safety', label: 'Safety & Triage', icon: AlertTriangle },
-    { id: 'carecircle', label: 'Care Circle', icon: Users },
-    { id: 'dossier', label: 'Continuity Dossier', icon: FolderLock },
+    { id: 'vault', label: 'My Records', icon: Shield, badge: pendingCount > 0 ? `${pendingCount}` : null },
+    { id: 'labstory', label: 'Lab Results', icon: Activity },
+    { id: 'pillmap', label: 'My Medicines', icon: Pill },
+    { id: 'rxbridge', label: 'Medicine Review', icon: FileCheck2 },
+    { id: 'homelab', label: 'Tests to Do', icon: HeartPulse },
+    { id: 'safety', label: 'Get Help', icon: AlertTriangle },
+    { id: 'carecircle', label: 'Family', icon: Users },
+    { id: 'dossier', label: 'For My Doctor', icon: FolderLock },
   ];
 
   return (
@@ -148,11 +148,11 @@ export const App: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-black tracking-tight text-white">CareCanvas</h1>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">
-                  WebMCP Agent Companion
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                  Private & Secure
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">Agent-Native Patient-Facing Health Engine</p>
+              <p className="text-[11px] text-slate-400">Your health, all in one place — everything connects</p>
             </div>
           </div>
 
@@ -197,13 +197,14 @@ export const App: React.FC = () => {
               )}
             </button>
 
-            {/* WebMCP Inspector Toggle */}
+            {/* Activity Log Toggle */}
             <button
               onClick={() => setIsInspectorOpen(true)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-xs font-bold border border-sky-500/40 transition-colors shadow-sm"
+              title="See what's happening behind the scenes"
             >
               <Terminal className="w-4 h-4 text-sky-400" />
-              <span>WebMCP Inspector</span>
+              <span className="hidden sm:inline">Activity</span>
               {pendingCount > 0 && (
                 <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold animate-pulse">
                   {pendingCount}

@@ -222,13 +222,13 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-black text-white tracking-tight">LabStory & Longitudinal Causal Engine</h2>
+              <h2 className="text-xl font-black text-white tracking-tight">Lab Results</h2>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">
-                Milestone 2
+                Trends over time
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Longitudinal biomarker trajectories with unit normalization, medication overlay bands, and causal query synthesis.
+              See your blood tests over time — what’s normal, what’s changed, and how your medicines affect them.
             </p>
           </div>
         </div>
@@ -240,7 +240,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-colors"
           >
             <UploadCloud className="w-4 h-4" />
-            <span>Ingest Multi-Year Lab Drop</span>
+            <span>Add Past Results</span>
           </button>
 
           <button
@@ -248,7 +248,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors"
           >
             <Plus className="w-4 h-4 text-sky-400" />
-            <span>Add Lab Point</span>
+            <span>Add Result Manually</span>
           </button>
 
           <button
