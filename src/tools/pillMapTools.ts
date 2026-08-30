@@ -1,11 +1,26 @@
 /**
- * CareCanvas WebMCP Tools: PillMap Polypharmacy Negotiator (M3)
+ * CareCanvas WebMCP Tools: PillMap Polypharmacy Negotiator (M3) — AI Enhanced
  * Tools: add_medication, check_interactions, check_diet_interactions, check_duplicate_ingredient, suggest_schedule, simulate_adherence, export_for_pharmacist, set_reminder
+ * AI-enhanced reasoning via knowledge engine AI path (call AI when enabled, fallback fixture) — generic configurable via Settings>env.
  */
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
+import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 import type {  TimeSlot, DayOfWeek  } from '../types/pillmap.ts';
+
+function isTestEnvPillMap(): boolean {
+  try {
+    if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
+    if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
+    if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
+  } catch {}
+  return false;
+}
+function shouldUseAI(): boolean {
+  if (isTestEnvPillMap()) return false;
+  try { return isAIEnabled(getAIConfig()); } catch { return false; }
+}
 
 export const addMedicationTool: WebMCPToolDefinition = {
   name: 'add_medication',
@@ -48,11 +63,19 @@ export const addMedicationTool: WebMCPToolDefinition = {
       };
     }
 
+    // Try AI-enhanced generic resolution when enabled (vision+text not needed, text only)
+    let genericName = ClinicalInteractionEngine.resolveGenericName(params.name);
+    try {
+      if (shouldUseAI()) {
+        genericName = await ClinicalInteractionEngine.resolveGenericNameAI(params.name);
+      }
+    } catch {}
+
     const medRecord = context.vault.addMedication(
       {
         id: `med_${params.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
         patientId: context.patientId,
-        genericName: ClinicalInteractionEngine.resolveGenericName(params.name),
+        genericName,
         brandName: params.name,
         dosage: params.dose,
         frequency: params.frequency || 'Once daily',
@@ -93,12 +116,22 @@ export const checkInteractionsTool: WebMCPToolDefinition = {
   },
   execute: async (params: { medList?: string[] }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const list = params.medList || context.vault.getMedications(context.patientId).map((m: any) => m.genericName);
-    const arcs = ClinicalInteractionEngine.checkDrugInteractions(list);
+    let arcs;
+    // AI-enhanced reasoning via knowledge engine AI path (call AI when enabled, fallback fixture)
+    try {
+      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDrugInteractionsAI === 'function') {
+        arcs = await ClinicalInteractionEngine.checkDrugInteractionsAI(list);
+      } else {
+        arcs = ClinicalInteractionEngine.checkDrugInteractions(list);
+      }
+    } catch {
+      arcs = ClinicalInteractionEngine.checkDrugInteractions(list);
+    }
 
     const summary =
       arcs.length === 0
         ? 'No drug-drug interaction conflicts detected across active medications.'
-        : `Detected ${arcs.length} drug-drug conflict(s): ${arcs.map(a => `${a.drugA} + ${a.drugB} (${a.severity})`).join(', ')}.`;
+        : `Detected ${arcs.length} drug-drug conflict(s): ${arcs.map((a: any) => `${a.drugA} + ${a.drugB} (${a.severity})`).join(', ')}.`;
 
     return {
       success: true,
@@ -138,7 +171,16 @@ export const checkDietInteractionsTool: WebMCPToolDefinition = {
       usesPotassiumSaltSubstitute: true
     };
 
-    const badges = ClinicalInteractionEngine.checkDietInteractions(params.medList, dietProfile);
+    let badges;
+    try {
+      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDietInteractionsAI === 'function') {
+        badges = await ClinicalInteractionEngine.checkDietInteractionsAI(params.medList, dietProfile);
+      } else {
+        badges = ClinicalInteractionEngine.checkDietInteractions(params.medList, dietProfile);
+      }
+    } catch {
+      badges = ClinicalInteractionEngine.checkDietInteractions(params.medList, dietProfile);
+    }
 
     return {
       success: true,
@@ -148,7 +190,7 @@ export const checkDietInteractionsTool: WebMCPToolDefinition = {
       plainLanguageSummary:
         badges.length === 0
           ? 'No dietary conflicts found with current medications.'
-          : `Identified ${badges.length} dietary interaction(s): ${badges.map(b => `${b.drugName}: ${b.badgeText}`).join('; ')}.`,
+          : `Identified ${badges.length} dietary interaction(s): ${badges.map((b: any) => `${b.drugName}: ${b.badgeText}`).join('; ')}.`,
       humanApprovalRequired: false
     };
   }
@@ -173,7 +215,16 @@ export const checkDuplicateIngredientTool: WebMCPToolDefinition = {
     canvasRerenders: ['pillmap']
   },
   execute: async (params: { medList: { name: string; dose?: string }[] }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    const alerts = ClinicalInteractionEngine.checkDuplicateIngredients(params.medList);
+    let alerts;
+    try {
+      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDuplicateIngredientsAI === 'function') {
+        alerts = await ClinicalInteractionEngine.checkDuplicateIngredientsAI(params.medList);
+      } else {
+        alerts = ClinicalInteractionEngine.checkDuplicateIngredients(params.medList);
+      }
+    } catch {
+      alerts = ClinicalInteractionEngine.checkDuplicateIngredients(params.medList);
+    }
 
     return {
       success: true,
@@ -209,7 +260,16 @@ export const suggestScheduleTool: WebMCPToolDefinition = {
     canvasRerenders: ['pillmap']
   },
   execute: async (params: { medList: any[]; chronotype?: 'early_bird' | 'night_owl' | 'standard' }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    const result = ClinicalInteractionEngine.suggestSchedule(params.medList, params.chronotype || 'standard');
+    let result;
+    try {
+      if (shouldUseAI() && typeof ClinicalInteractionEngine.suggestScheduleAI === 'function') {
+        result = await ClinicalInteractionEngine.suggestScheduleAI(params.medList, params.chronotype || 'standard');
+      } else {
+        result = ClinicalInteractionEngine.suggestSchedule(params.medList, params.chronotype || 'standard');
+      }
+    } catch {
+      result = ClinicalInteractionEngine.suggestSchedule(params.medList, params.chronotype || 'standard');
+    }
 
     return {
       success: true,

@@ -41,11 +41,30 @@ interface LabStoryViewProps {
   className?: string;
 }
 
+function deriveLabPatientId(passed: string, fallbackUserId?: string): string {
+  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
+  if (fallbackUserId && fallbackUserId.trim() !== '' && fallbackUserId !== 'patient-s-devi') return fallbackUserId.trim();
+  try {
+    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+    if (ls) {
+      const raw = ls.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
+      }
+    }
+  } catch {}
+  return passed || fallbackUserId || '';
+}
+
 export const LabStoryView: React.FC<LabStoryViewProps> = ({
   patientId,
   activeProfile = { userId: patientId, name: 'Patient', role: 'patient' },
   className = ''
 }) => {
+  const effectivePatientId = deriveLabPatientId(patientId, activeProfile?.userId);
   const [labs, setLabs] = useState<LabRecord[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<string>('eGFR');
   const [activeZoom, setActiveZoom] = useState<ZoomWindow>('5Y');
@@ -63,8 +82,9 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Load labs from LocalVault for active patient — read-only, no per-view seeding (centralized seed.ts via main.tsx owns baseline).
+  // Uses effectivePatientId derived via globalThis for patient isolation never '' leak; normalized via BIOMARKER_STANDARDS ±10% borderline + critical flags and AI correlate_meds trajectory
   const loadLabs = () => {
-    const patientLabs = localVault.getLabs(patientId);
+    const patientLabs = effectivePatientId ? localVault.getLabs(effectivePatientId) : [];
     setLabs(patientLabs);
   };
 
@@ -74,11 +94,11 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   useEffect(() => {
     loadLabs();
 
-    const guard = (p: any) => !p || !p.patientId || p.patientId === patientId;
+    const guard = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId;
     const onLabAdded = (payload: any) => { if (guard(payload)) loadLabs(); };
     const onFactConfirmed = (payload: any) => {
       const pid = payload?.patientId || payload?.fact?.patientId;
-      if (!pid || pid === patientId) loadLabs();
+      if (!pid || pid === effectivePatientId) loadLabs();
     };
     const onMedOverlay = (payload: any) => { if (guard(payload)) loadLabs(); };
 
@@ -94,7 +114,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       u3();
       u4();
     };
-  }, [patientId]);
+  }, [effectivePatientId]);
 
   // Distinct markers available in patient labs
   const availableMarkers = useMemo(() => {
@@ -131,13 +151,13 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     return { minEpoch: Math.min(...times), maxEpoch: Math.max(...times) };
   }, [labs]);
 
-  // Ingest Multi-Doc Drop via WebMCP extract_labs tool
+  // Ingest Multi-Doc Drop via WebMCP extract_labs tool — uses effectivePatientId for isolation
   const handleIngestDataset = async (type: 'shanti' | 'jenkins' | 'custom') => {
     setIsLoading(true);
     try {
       const docId = type === 'jenkins' ? 'doc_jenkins_5y_labs' : 'doc_historical_labs_2022_2026';
       const context = {
-        patientId,
+        patientId: effectivePatientId,
         activeProfile: {
           userId: activeProfile.userId,
           name: activeProfile.name,
@@ -148,7 +168,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         eventBus
       };
 
-      await webMCPEngine.execute('extract_labs', { documentId: docId, patientId }, context);
+      await webMCPEngine.execute('extract_labs', { documentId: docId, patientId: effectivePatientId }, context);
       loadLabs();
       setIsDropzoneOpen(false);
     } catch (err: any) {
@@ -176,15 +196,15 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     }
   };
 
-  // Submit Manual Lab Entry
+  // Submit Manual Lab Entry — delegates normalization to LocalVault BIOMARKER_STANDARDS ±10% + AI trajectory will reflect via vault subscription
   const handleManualAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const val = parseFloat(manualValue);
     if (isNaN(val)) return;
 
     const newRecord: LabRecord = {
-      id: `lab_${patientId}_${manualMarker.toLowerCase()}_${Date.now()}`,
-      patientId,
+      id: `lab_${effectivePatientId}_${manualMarker.toLowerCase()}_${Date.now()}`,
+      patientId: effectivePatientId,
       marker: manualMarker,
       value: val,
       unit: manualUnit,

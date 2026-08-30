@@ -1,19 +1,18 @@
 # Request — Teamwork Distributed Coding
 
-Created: 2026-08-30T07:38:17.933Z
+Created: 2026-08-30T13:40:22.689Z
 
 ## Objective
-the app’s project submission for webmcp hackathon. so make sure the WebMCP integration is protocol-correct. do thorough online research about webmcp.
+Intelligence gap: generic configurable AI (any model/any baseURL via Settings > env) to replace every hardcoded branch, vision+text multimodal single response, all image OCR via AI, cross-field propagation preserving WebMCP 40
 
 ## Constraints
 - none stated
 
 ## Acceptance Criteria
-- [ ] R1 Native 40 exposed via document.modelContext.getTools() length 40 in Chrome 149 and polyfill fallback
-- [ ] R2 Dictionary conformance inputSchema name/description validation duplicate handling
-- [ ] R3 API parity getTools Promise RegisteredTool executeTool object DOMString patientId correct
-- [ ] R4 Origin SecureContext Permissions-Policy toolchange allow tools
-- [ ] R5 No regression lint 0 test 172 runner 231 build 1660 Flows A-E 6-viewport
+- [ ] R1 generic configurable extraction vision+text multimodal all OCR via AI no hardcode
+- [ ] R2 every hardcoded branch replaced + cross-field propagation
+- [ ] R3 generic wiring no regression no hardcode Settings>env
+- [ ] R4 planning blocked M0 before implementation
 
 ## Non-Goals
 - none

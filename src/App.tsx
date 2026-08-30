@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   LogOut,
   Plug,
+  Settings,
 } from 'lucide-react';
 import { PrivacyBadge } from '@/components/common/PrivacyBadge';
 import { QuestionBank } from '@/components/common/QuestionBank';
@@ -31,10 +32,11 @@ import { CareCircleView } from '@/components/carecircle/CareCircleView';
 import { DossierView } from '@/components/dossier/DossierView';
 import { CreateAccountView } from '@/components/auth/CreateAccountView';
 import { SignInView } from '@/components/auth/SignInView';
+import { SettingsView } from '@/components/settings/SettingsView';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
-export type ActiveModule = 'vault' | 'labstory' | 'pillmap' | 'rxbridge' | 'homelab' | 'safety' | 'carecircle' | 'dossier';
+export type ActiveModule = 'vault' | 'labstory' | 'pillmap' | 'rxbridge' | 'homelab' | 'safety' | 'carecircle' | 'dossier' | 'settings';
 
 export interface ActiveProfile {
   userId: string;
@@ -293,6 +295,7 @@ export const App: React.FC = () => {
     { id: 'safety', label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle },
     { id: 'carecircle', label: 'Family', shortLabel: 'Family', icon: Users },
     { id: 'dossier', label: 'For My Doctor', shortLabel: 'Doctor', icon: FolderLock },
+    { id: 'settings', label: 'Settings', shortLabel: 'Settings', icon: Settings },
   ];
 
   // Semantic primary tokens — indigo light palette (tokenized, no hard hex)
@@ -541,6 +544,11 @@ export const App: React.FC = () => {
         {/* MODULE 7: CONTINUITY DOSSIER & LIFETIME RECORD */}
         <div className={activeModule === 'dossier' ? 'block' : 'hidden'}>
           <DossierView patientId={activeProfile.userId} activeProfile={activeProfile} />
+        </div>
+
+        {/* MODULE 8: SETTINGS — Generic configurable LLM config via Settings>env */}
+        <div className={activeModule === 'settings' ? 'block' : 'hidden'}>
+          <SettingsView />
         </div>
       </main>
 

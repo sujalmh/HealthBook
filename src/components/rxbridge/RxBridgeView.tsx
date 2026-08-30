@@ -38,6 +38,7 @@ import type {
 import { ClinicalReconciliationEngine } from '../../core/knowledge/reconciliationEngine.ts';
 import { localVault } from '../../core/vault/LocalVault.ts';
 import { eventBus } from '../../core/events/eventBus.ts';
+import { getAIConfig, isAIEnabled } from '../../core/ai/config.ts';
 import { ThreeListTable } from './ThreeListTable.tsx';
 import { ReconciliationWalk } from './ReconciliationWalk.tsx';
 import { TeachBackModal } from './TeachBackModal.tsx';
@@ -55,13 +56,32 @@ export interface RxBridgeViewProps {
   };
 }
 
+function deriveRxPatientId(passed: string, fallback?: string): string {
+  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
+  if (fallback && fallback.trim() !== '' && fallback !== 'patient-s-devi') return fallback.trim();
+  try {
+    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+    if (ls) {
+      const raw = ls.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
+      }
+    }
+  } catch {}
+  return passed || fallback || 'patient-unknown';
+}
+
 export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   patientId = '',
   activeProfile = { userId: '', name: 'Patient', role: 'patient' }
 }) => {
-  // Real data — vault-derived (no mock case selection)
+  const effectivePatientId = deriveRxPatientId(patientId, activeProfile.userId);
+  // Real data — vault-derived (no mock case selection) — uses effectivePatientId for isolation
   const emptyDataset: Patient3ListDischargeDataset = {
-    patientId: patientId || activeProfile.userId || 'patient-unknown',
+    patientId: effectivePatientId,
     patientName: activeProfile.name || 'Patient',
     admissionDate: new Date().toISOString().slice(0, 10),
     dischargeDate: new Date().toISOString().slice(0, 10),
@@ -85,10 +105,19 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [summaryData, setSummaryData] = useState<PatientHomeSummaryExport | null>(null);
 
-  // Load and reconcile data
-  const loadReconciliation = (dataset: Patient3ListDischargeDataset) => {
-    const items = ClinicalReconciliationEngine.reconcileThreeLists(dataset);
-    setReconciledItems(items);
+  // Load and reconcile data — AI-enhanced via knowledge engine when enabled (reconciliation + question synthesis)
+  const loadReconciliation = async (dataset: Patient3ListDischargeDataset) => {
+    try {
+      let useAI = false;
+      try { useAI = isAIEnabled(getAIConfig()) && typeof (ClinicalReconciliationEngine as any).reconcileThreeListsAI === 'function'; } catch {}
+      const items = useAI
+        ? await (ClinicalReconciliationEngine as any).reconcileThreeListsAI(dataset)
+        : ClinicalReconciliationEngine.reconcileThreeLists(dataset);
+      setReconciledItems(items);
+    } catch {
+      const items = ClinicalReconciliationEngine.reconcileThreeLists(dataset);
+      setReconciledItems(items);
+    }
     setWalkIndex(0);
     setTeachBackRecord(null);
   };
@@ -96,13 +125,13 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   useEffect(() => {
     // Real data: use emptyDataset (vault-derived) — no mock fixture branching
     loadReconciliation(emptyDataset);
-  }, [patientId, activeProfile.userId]);
+  }, [effectivePatientId, activeProfile.userId]);
 
   // M2 Relevant-only: RxBridge listens to proposal_created/status_changed (alias proposal_submitted), lab_added (alias lab_extracted, eGFR flag), medication_added/updated
   // medication adds outside RxBridge (e.g., PillMap) should refresh flags; irrelevant like danger_report/calendar filtered out
   // Alias dispatch covers legacy names without double. Handlers trigger reconciler recompute guarded by patientId.
   useEffect(() => {
-    const guard = (p: any) => !p || !p.patientId || p.patientId === patientId;
+    const guard = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId;
     const onProposal = (payload: any) => { if (guard(payload)) loadReconciliation(activeDataset); };
     const onLab = (payload: any) => { if (guard(payload)) loadReconciliation(activeDataset); };
     const onMed = (payload: any) => { if (guard(payload)) loadReconciliation(activeDataset); };
@@ -114,7 +143,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     const u5 = eventBus.on('medication_updated', onMed);
 
     return () => { u1(); u2(); u3(); u4(); u5(); };
-  }, [patientId, activeDataset]);
+  }, [effectivePatientId, activeDataset]);
 
   // Handle Per-Med Approval
   const handleToggleApproval = (medId: string) => {
@@ -166,9 +195,10 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   };
 
   const handleAskDoctor = (medName: string, questionText: string) => {
+    // Dedup spam via vault (LocalVault.addQuestion checks duplicate) — AI-enriched without spam
     localVault.addQuestionBankItem({
       id: `q_recon_${Date.now()}`,
-      patientId,
+      patientId: effectivePatientId,
       questionText,
       category: 'medication_change',
       sourceModule: 'rxbridge',
@@ -185,9 +215,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     });
   };
 
-  // Open 1-Page Export Summary
+  // Open 1-Page Export Summary — uses effectivePatientId, questions reflect AI suggest_question bank
   const handleOpenExportSummary = () => {
-    const questions = localVault.getQuestions(patientId).map((q) => q.questionText);
+    const questions = localVault.getQuestions(effectivePatientId).map((q) => q.questionText);
     const summary = ClinicalReconciliationEngine.compilePatientSummary(activeDataset, questions, 'en');
     setSummaryData(summary);
     setIsExportModalOpen(true);
@@ -211,7 +241,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     const activeDischargeMeds = activeDataset.dischargeMeds.filter((d) => d.status !== 'STOPPED');
     const stoppedMeds = activeDataset.dischargeMeds.filter((d) => d.status === 'STOPPED');
 
-    // Add active discharge meds
+    // Add active discharge meds — uses effectivePatientId, AI-aware (questionBank enriched without duplicate spam)
     for (const d of activeDischargeMeds) {
       const generic = ClinicalReconciliationEngine.determineStatusBadge(undefined, undefined, d.dose) === 'NEW'
         ? d.medName
@@ -220,7 +250,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
       localVault.addMedication(
         {
           id: `med_${d.medName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
-          patientId,
+          patientId: effectivePatientId,
           brandName: d.medName,
           genericName: d.medName,
           dosage: d.dose,
@@ -238,7 +268,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
 
     // Mark stopped meds
     for (const s of stoppedMeds) {
-      const existing = localVault.getMedications(patientId).find(
+      const existing = localVault.getMedications(effectivePatientId).find(
         (m) => m.genericName.toLowerCase().includes(s.medName.toLowerCase()) || (m.brandName && m.brandName.toLowerCase().includes(s.medName.toLowerCase()))
       );
       if (existing) {
@@ -268,7 +298,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
       localVault.addCalendarEvent(
         {
           id: `reminder_${slot}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-          patientId,
+          patientId: effectivePatientId,
           title: `${slot.toUpperCase()} Meds Reminder (${slotTimeMap[slot]})`,
           eventType: 'med_reminder',
           scheduledDate: new Date().toISOString(),
@@ -281,8 +311,8 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
       );
     }
 
-    // Emit event so PillMap re-evaluates (INT2) — include patientId for relevant-only filtering
-    eventBus.emit('medication_added', { patientId, source: 'rxbridge_reconciliation' });
+    // Emit event so PillMap re-evaluates (INT2) — include patientId for relevant-only filtering, never '' leak
+    eventBus.emit('medication_added', { patientId: effectivePatientId, source: 'rxbridge_reconciliation' });
 
     eventBus.dispatchToast({
       type: 'success',

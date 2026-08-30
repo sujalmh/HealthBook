@@ -32,7 +32,7 @@
  * | question_bank                 |         |          |         |        |    ✅   |          |            | Alias |
  * | audit_logged                  |         |          |         |        |    ✅   |          |    ✅      | Dossier + CareCircle audit trail |
  * | toast                         |  global |  global  |  global | global |  global |  global  |   global   | ToastContainer |
- * | highlight_document            |  global |  global  |  global | global |  global |  global  |   global   | BoundingBoxViewer |
+ *   | highlight_document            |  global |  global  |  global | global |  global |  global  |   global   | Document highlight |
  *
  * ✅ = must subscribe, ⬚ = optional/conditional, blank = must NOT subscribe (spurious guard)
  *
@@ -41,7 +41,38 @@
  * =============================================================================
  */
 
-import type { BoundingBox } from '../../types/vault.ts';
+/**
+ * Derive patientId via globalThis localStorage carecanvas_active_user — never '' nor patient-s-devi leak.
+ * Used to ensure typed helpers always include patientId when caller omits.
+ */
+function deriveBusPatientId(): string {
+  try {
+    const g: any = typeof globalThis !== 'undefined' ? globalThis : undefined;
+    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? localStorage : undefined);
+    if (ls) {
+      const raw = ls.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+        if (typeof pid === 'string' && pid.trim() !== '' && pid.trim() !== 'patient-s-devi') return pid.trim();
+      }
+    }
+  } catch {}
+  return '';
+}
+
+function ensureBusPatientId(payload: any): any {
+  if (!payload || typeof payload !== 'object') return payload;
+  if (typeof payload.patientId === 'string' && payload.patientId.trim() !== '' && payload.patientId.trim() !== 'patient-s-devi') return payload;
+  const derived = deriveBusPatientId();
+  if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') return { ...payload, patientId: derived };
+  return payload;
+}
+
+function clampBbox(bbox?: any): any {
+  // bbox removed — no-op for backward compat
+  return bbox;
+}
 
 export type EventHandler<T = any> = (payload: T) => void;
 
@@ -56,7 +87,7 @@ export interface ToastMessage {
 
 export interface HighlightDocumentPayload {
   documentId: string;
-  boundingBox?: BoundingBox;
+  boundingBox?: any;
 }
 
 // Canonical typed event names — keep aliases for backward compat.
@@ -194,57 +225,57 @@ export class WebMCPEventBus {
     }
   }
 
-  // Typed helper emitters — wrap emit with canonical name and ensure patientId present where applicable.
+  // Typed helper emitters — wrap emit with canonical name and ensure patientId present where applicable (derived via globalThis if missing).
   public emitMedicationAdded(payload: EventPayloadMap['medication_added']): void {
-    this.emit('medication_added', payload);
+    this.emit('medication_added', ensureBusPatientId(payload));
   }
   public emitMedicationUpdated(payload: EventPayloadMap['medication_updated']): void {
-    this.emit('medication_updated', payload);
+    this.emit('medication_updated', ensureBusPatientId(payload));
   }
   public emitProposalCreated(payload: EventPayloadMap['proposal_created']): void {
-    this.emit('proposal_created', payload);
+    this.emit('proposal_created', ensureBusPatientId(payload));
   }
   public emitProposalStatusChanged(payload: EventPayloadMap['proposal_status_changed']): void {
-    this.emit('proposal_status_changed', payload);
+    this.emit('proposal_status_changed', ensureBusPatientId(payload));
   }
   public emitLabAdded(payload: EventPayloadMap['lab_added']): void {
-    this.emit('lab_added', payload);
+    this.emit('lab_added', ensureBusPatientId(payload));
   }
   public emitLabExtracted(payload: EventPayloadMap['lab_extracted']): void {
-    this.emit('lab_extracted', payload);
+    this.emit('lab_extracted', ensureBusPatientId(payload));
   }
   public emitFactConfirmed(payload: EventPayloadMap['fact_confirmed']): void {
-    this.emit('fact_confirmed', payload);
+    this.emit('fact_confirmed', ensureBusPatientId(payload));
   }
   public emitFactAdded(payload: EventPayloadMap['fact_added']): void {
-    this.emit('fact_added', payload);
+    this.emit('fact_added', ensureBusPatientId(payload));
   }
   public emitDangerReportAdded(payload: EventPayloadMap['danger_report_added']): void {
-    this.emit('danger_report_added', payload);
+    this.emit('danger_report_added', ensureBusPatientId(payload));
   }
   public emitCalendarEventAdded(payload: EventPayloadMap['calendar_event_added']): void {
-    this.emit('calendar_event_added', payload);
+    this.emit('calendar_event_added', ensureBusPatientId(payload));
   }
   public emitDueCardAdded(payload: EventPayloadMap['due_card_added']): void {
-    this.emit('due_card_added', payload);
+    this.emit('due_card_added', ensureBusPatientId(payload));
   }
   public emitDueCardUpdated(payload: EventPayloadMap['due_card_updated']): void {
-    this.emit('due_card_updated', payload);
+    this.emit('due_card_updated', ensureBusPatientId(payload));
   }
   public emitDoctorGrantAdded(payload: EventPayloadMap['doctor_grant_added']): void {
-    this.emit('doctor_grant_added', payload);
+    this.emit('doctor_grant_added', ensureBusPatientId(payload));
   }
   public emitDoctorGrantRevoked(payload: EventPayloadMap['doctor_grant_revoked']): void {
-    this.emit('doctor_grant_revoked', payload);
+    this.emit('doctor_grant_revoked', ensureBusPatientId(payload));
   }
   public emitCaregiverLinked(payload: EventPayloadMap['caregiver_linked']): void {
-    this.emit('caregiver_linked', payload);
+    this.emit('caregiver_linked', ensureBusPatientId(payload));
   }
   public emitQuestionAdded(payload: EventPayloadMap['question_added']): void {
-    this.emit('question_added', payload);
+    this.emit('question_added', ensureBusPatientId(payload));
   }
   public emitAuditLogged(payload: EventPayloadMap['audit_logged']): void {
-    this.emit('audit_logged', payload);
+    this.emit('audit_logged', ensureBusPatientId(payload));
   }
 
   public dispatchToast(toast: Omit<ToastMessage, 'id' | 'timestamp'> & { id?: string }): void {
@@ -263,11 +294,11 @@ export class WebMCPEventBus {
     return this.on('toast', handler);
   }
 
-  public highlightSourceDocument(payloadOrDocId: string | { documentId: string; boundingBox?: BoundingBox }, boundingBox?: BoundingBox): void {
+  public highlightSourceDocument(payloadOrDocId: string | { documentId: string; boundingBox?: any }, boundingBox?: any): void {
     if (typeof payloadOrDocId === 'string') {
-      this.emit('highlight_document', { documentId: payloadOrDocId, boundingBox });
+      this.emit('highlight_document', { documentId: payloadOrDocId });
     } else if (payloadOrDocId && typeof payloadOrDocId === 'object') {
-      this.emit('highlight_document', payloadOrDocId);
+      this.emit('highlight_document', { documentId: (payloadOrDocId as any).documentId });
     }
   }
 

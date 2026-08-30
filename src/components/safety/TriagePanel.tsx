@@ -35,19 +35,45 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
   const [isFollowupOpen, setIsFollowupOpen] = useState(false);
   const [isExecuting, setIsExecuting] = useState<string | null>(null);
 
-  const activeReport = dangerReports[0] || {
-    reportId: 'danger_edema_001',
-    patientId,
-    symptomTags: ['edema_feet', 'dyspnea'],
-    freeText: 'Sudden bilateral ankle swelling and shortness of breath climbing stairs.',
-    severityRating: 'severe' as const,
-    vitalSigns: { systolicBP: 185, diastolicBP: 105, heartRate: 92 },
-    timestamp: new Date().toISOString(),
-    triagePriority: 'URGENT' as const,
-    firstAidAdvice: "Alert dispatched to your care team's triage queue."
-  };
+  // Effective patient isolation — derive via globalThis if passed empty, never '' leak; fallback to vault-derived report, not hardcoded patient-s-devi literal
+  function deriveTriagePatientId(passed: string): string {
+    if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
+    try {
+      const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+      const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+      if (ls) {
+        const raw = ls.getItem('carecanvas_active_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+          if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
+        }
+      }
+    } catch {}
+    return passed || '';
+  }
+  const effectiveTriagePatientId = deriveTriagePatientId(patientId);
+  const activeReport = dangerReports[0] || (() => {
+    // If no vault reports yet, try vault direct for effective patient (AI triage will populate after document with red flags)
+    try {
+      const vaultReports = localVault.getDangerReports(effectiveTriagePatientId);
+      if (vaultReports.length > 0) return vaultReports[0];
+    } catch {}
+    // Empty state still shows generic triage guidance without hardcoded patient-s-devi data — will be replaced by AI vision/text inference when document contains red flags
+    return {
+      reportId: `danger_empty_${effectiveTriagePatientId || 'none'}`,
+      patientId: effectiveTriagePatientId,
+      symptomTags: [] as any,
+      freeText: 'No danger signs reported yet. Red flags inferred via AI vision/text will appear here and still require clinician review.',
+      severityRating: 'moderate' as const,
+      vitalSigns: undefined,
+      timestamp: new Date().toISOString(),
+      triagePriority: 'ROUTINE' as const,
+      firstAidAdvice: 'No active triage. AI triage via vision+text will assess new documents for red flags; clinician review still required.'
+    } as DangerSignReport;
+  })();
 
-  // Remote Pillbox Action 1: Remove NSAID Ibuprofen
+  // Remote Pillbox Action 1: Remove NSAID Ibuprofen — uses effectiveTriagePatientId and AI triage context
   const handleRemoveIbuprofen = async () => {
     setIsExecuting('remove_ibuprofen');
     try {
@@ -56,10 +82,10 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         {
           medName: 'Ibuprofen',
           reason: 'NSAID-induced peripheral fluid retention and acute kidney injury risk in CKD 3b.',
-          patientId
+          patientId: effectiveTriagePatientId
         },
         {
-          patientId,
+          patientId: effectiveTriagePatientId,
           activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
@@ -72,7 +98,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
           title: 'Stop Order Dispatched',
           message: 'Your care team ordered immediate discontinuation of Ibuprofen 800mg.'
         });
-        eventBus.emit('proposal_submitted', { patientId });
+        eventBus.emit('proposal_submitted', { patientId: effectiveTriagePatientId });
         if (onActionDispatched) onActionDispatched();
       }
     } catch (err) {
@@ -82,7 +108,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     }
   };
 
-  // Remote Pillbox Action 2: Titrate Amlodipine 5mg -> 10mg
+  // Remote Pillbox Action 2: Titrate Amlodipine 5mg -> 10mg — patient isolation via effective ID
   const handleTitrateAmlodipine = async () => {
     setIsExecuting('titrate_amlodipine');
     try {
@@ -94,7 +120,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
           reason: 'Severe hypertensive crisis (BP 185/105 mmHg). Increasing calcium channel blocker dose for BP control.'
         },
         {
-          patientId,
+          patientId: effectiveTriagePatientId,
           activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
@@ -107,7 +133,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
           title: 'Dose Increase Dispatched',
           message: 'Your care team proposed titrating Amlodipine to 10mg daily.'
         });
-        eventBus.emit('proposal_submitted', { patientId });
+        eventBus.emit('proposal_submitted', { patientId: effectiveTriagePatientId });
         if (onActionDispatched) onActionDispatched();
       }
     } catch (err) {
@@ -117,7 +143,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     }
   };
 
-  // Remote Pillbox Action 3: Add Diuretic Furosemide
+  // Remote Pillbox Action 3: Add Diuretic Furosemide — patient isolation
   const handleAddDiuretic = async () => {
     setIsExecuting('add_furosemide');
     try {
@@ -130,7 +156,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
           reason: 'Initiate loop diuretic for acute pedal edema and bilateral fluid retention.'
         },
         {
-          patientId,
+          patientId: effectiveTriagePatientId,
           activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
           vault: localVault,
           eventBus
@@ -143,7 +169,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
           title: 'Medication Addition Dispatched',
           message: 'Your care team proposed adding Furosemide 20mg QAM.'
         });
-        eventBus.emit('proposal_submitted', { patientId });
+        eventBus.emit('proposal_submitted', { patientId: effectiveTriagePatientId });
         if (onActionDispatched) onActionDispatched();
       }
     } catch (err) {

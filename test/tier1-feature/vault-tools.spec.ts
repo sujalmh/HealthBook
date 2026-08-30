@@ -22,7 +22,7 @@ export async function runVaultToolsTests(): Promise<{ passed: number; failed: nu
   }
 
   // --- Tool 1: extract_fact (5 tests) — real FileReader rawText path ---
-  await test('TC-V01-01: extract_fact - standard extraction with rawText and bounding box', async () => {
+  await test('TC-V01-01: extract_fact - standard extraction with rawText without bbox', async () => {
     const { engine, context } = createTestHarness();
     const rawText = 'Creatinine 1.80 mg/dL (HIGH). eGFR 32 mL/min/1.73m2. Apixaban 5mg twice daily for stroke prevention.';
     const res = await engine.execute('extract_fact', { documentId: 'doc_test_001', rawText, documentType: 'general_pdf' }, context);
@@ -30,7 +30,8 @@ export async function runVaultToolsTests(): Promise<{ passed: number; failed: nu
     assert(Array.isArray(res.data), 'Data should be an array of extracted facts');
     assert(res.data.length >= 1, 'Should extract at least 1 fact from rawText');
     const anyFact = res.data[0];
-    assert(anyFact.boundingBox?.pageIndex === 1, 'Bounding box pageIndex should be 1');
+    // bbox removed — AI upload no bbox
+    assert(!anyFact.boundingBox, 'Bounding box should be undefined after removal');
     assertEquals(anyFact.status, 'unconfirmed', 'Initial status must be unconfirmed');
     assertEquals(anyFact.patientId, context.patientId, 'Fact must be owned by context.patientId');
   });
@@ -56,7 +57,8 @@ export async function runVaultToolsTests(): Promise<{ passed: number; failed: nu
     assert(res.data.length >= 2, 'Multi-line rawText should create multiple facts (up to 3)');
     const ckdFact = res.data.find((f: any) => f.name.includes('Chronic Kidney') || f.plainExplanation.includes('Chronic Kidney'));
     assert(!!ckdFact, 'CKD fact should be extracted from rawText');
-    assertEquals(ckdFact.boundingBox.pageIndex, 1);
+    // bbox removed
+    assert(!ckdFact.boundingBox, 'Bounding box should be undefined after removal');
   });
 
   await test('TC-V01-04: extract_fact - homelab-style rawText with lab values staged for patientId', async () => {
@@ -166,7 +168,7 @@ export async function runVaultToolsTests(): Promise<{ passed: number; failed: nu
     assert(!hasRejected, 'Rejected facts must be excluded from citations');
   });
 
-  await test('TC-V03-03: compile_health_record - source link preservation with bounding box', async () => {
+  await test('TC-V03-03: compile_health_record - source link preservation without bbox', async () => {
     const { engine, context } = createTestHarness();
     const rawText = 'Apixaban 5mg twice daily for stroke prevention.';
     const ext = await engine.execute('extract_fact', { documentId: 'doc_compile_003', rawText }, context);
@@ -176,8 +178,9 @@ export async function runVaultToolsTests(): Promise<{ passed: number; failed: nu
     assert(res.success);
     assert(res.data.sourceDocumentCitations.length >= 1, 'At least one citation must be present after approval');
     const cite = res.data.sourceDocumentCitations[0];
-    assert(cite.boundingBox?.pageIndex === 1, 'Citation boundingBox pageIndex should be 1');
-    assert(typeof cite.boundingBox.x === 'number', 'Bounding box x must be number');
+    // bbox removed — citation should not have bbox
+    assert(!cite.boundingBox, 'Citation boundingBox should be undefined after removal');
+    assert(typeof cite.snippetText === 'string', 'Citation snippetText must be string');
   });
 
   await test('TC-V03-04: compile_health_record - empty vault returns valid empty schema without crash', async () => {

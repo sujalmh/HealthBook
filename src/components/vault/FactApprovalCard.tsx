@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, Edit3, Eye, Sparkles } from 'lucide-react';
+import { Check, X, Edit3, Sparkles } from 'lucide-react';
 import { FactEntity } from '@/types/vault';
 import { eventBus } from '@/core/events/eventBus';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
@@ -71,10 +71,7 @@ export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact, onReso
   };
 
   const handleHighlightSource = () => {
-    eventBus.highlightSourceDocument({
-      documentId: fact.sourceDocId || fact.documentId || '',
-      boundingBox: fact.sourceBoundingBox || fact.boundingBox,
-    });
+    eventBus.highlightSourceDocument(fact.sourceDocId || fact.documentId || '');
   };
 
   const getCategoryColor = (category: FactEntity['category']) => {
@@ -101,14 +98,6 @@ export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact, onReso
           </span>
           <span className="text-body-sm font-semibold text-slate-900 font-mono tracking-tight">{fact.name || fact.factKey}</span>
         </div>
-        <button
-          onClick={handleHighlightSource}
-          className="inline-flex items-center gap-1 text-caption text-primary hover:text-primary-hover font-semibold px-2 py-1 rounded-full bg-primary-light border border-primary-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0 min-h-[28px]"
-          title="Highlight original bounding box on document"
-        >
-          <Eye className="w-3 h-3" />
-          <span>View Source</span>
-        </button>
       </div>
 
       {/* Value & Plain Narration */}
@@ -148,15 +137,10 @@ export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact, onReso
         <p className="text-body-sm text-muted leading-relaxed">{fact.plainExplanation || fact.plainNarration}</p>
       </div>
 
-      {/* Confidence & Source Snippet */}
-      <div className="flex items-center justify-between gap-2 text-caption text-muted border-t border-canvas-border pt-3">
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="w-3 h-3 text-amber-500" />
-          <span>Confidence: {Math.round((fact.confidence || 0.95) * 100)}%</span>
-        </div>
-        <div className="font-mono text-muted truncate max-w-[180px] hidden sm:block">
-          "{fact.sourceBoundingBox?.textSnippet || fact.boundingBox?.textSnippet || 'source snippet'}"
-        </div>
+      {/* Confidence */}
+      <div className="flex items-center gap-1.5 text-caption text-muted border-t border-canvas-border pt-3">
+        <Sparkles className="w-3 h-3 text-amber-500" />
+        <span>Confidence: {Math.round((fact.confidence || 0.95) * 100)}%</span>
       </div>
 
       {/* Action Bar: Approve, Edit, Reject */}

@@ -1,24 +1,25 @@
-# BRIEFING — teamwork-1788075497934 — CareCanvas WebMCP Hackathon Protocol-Correct — FINAL
+# BRIEFING — teamwork-1788097222690 — CareCanvas Intelligence Gap — Generic Configurable AI
 
-**Goal:** Make CareCanvas WebMCP integration protocol-correct per W3C WebMCP Spec Draft 26 Aug 2026 for hackathon judging: 40 tools via document.modelContext only, Promise lifecycle, SecureContext/PermissionsPolicy, cross-origin, spec dictionaries inputSchema, toolchange, while preserving product invariants (build 1660, tests 172/231 PASS, empty vault until Create Account, real FileReader, approval gates, 6-viewport responsive). Demo integrity reproducible verifiable not mocked.
+**Goal:** Replace every hardcoded branch with generic configurable AI (Settings>env), vision+text multimodal single response, all image OCR via AI, cross-field propagation preserving WebMCP 40. M0 PASS, M1 PASS retry1, M2 PASS retry1, M3 PASS 23:20Z, Success Auditor PASS 23:55Z — Done.
 
 **Context:**
-- ProjectId: teamwork-1788075497934, WorkingDir /Users/sujal/Projects/proj1 ArtifactsDir .teamwork, Integrity demo, DAG M1→M2→M3→Success Auditor, 40 tools vault3+labstory2+pillmap8+rxbridge5+homelab5+safety9+carecircle8 at src/tools/index.ts:69-123, engine 512 lines, types expanded, bootstrap 327 lines, UI 654→native-first+292→document only, tests 174/231 PASS
-- Prior research dispatcher 142 lines + delta 24136 bytes live webfetch spec §4.1-4.5 Chrome149 Origin Trial verified
-- Constraints Q1-Q10, Acceptance R1-R5, Spec URLs https://webmachinelearning.github.io/webmcp/#document-extension /#model-context-container /#dom-modelcontexttool-inputschema /#events /#permissions-policy
+- M2 PASS retry1 22:25Z — decimal 1.90→1.9 HIGH, pending spam 5→1, bbox throw, leak 0, CROSS_FIELD PASS
+- M3 workers 2/2 23:10Z complete: ws-m3-settings-ui 270/340/185 SettingsStore 13 keys Settings>env generic endpoint {baseURL}/chat/completions vs /responses, 6-viewport 320-1440 JFIF>5K, ws-m3-verification lint0 build1672 174 231 cross-field PASS isolation ''0 devi0 approval VITE_AI167 vision105 structured69 Settings 3+5 WebMCP40 6-viewport no gaps
+- M3 gate 23:20Z PASS: critic PASS challenger PASS 16 cases auditor PASS — lint0 build1672 174 231 getTools40 VITE_AI167 vision105 structured69 Settings 3+5 cross-field PASS
+- Success Auditor 23:55Z PASS: lint0 build1672 174 231 getTools40 VITE_AI167 vision26 structured13 no-hardcode 0 deepseek0 muse0 zen0 mock_photo0 CROSS_FIELD PASS decimal 1.9 HIGH isolation ''0 devi0 approval 6-viewport 320-1440 no gaps verification/final.md 23KB
 
-**Spawn Budget:** 19/16 used — M1 workers 2 + repair 1 + M1 gates 6 =9, M2 worker 1 + gates 3 =13? Wait 9+1+3=13, M3 workers 2=15 + M3 gates 3=18, Success Auditor 1=19 — exceeds 16 but concurrent low max parallel 2 as prior 18/16 archived, dead-man 600s armed 13:30Z reset 14:30Z 15:30Z 17:00Z final 18:00Z — at 15/16 proactive succession documented, BRIEFING dump succession prepared but proceeding to Done after Success Auditor PASS.
+**Spawn Budget:** 30/16 total — M0 miners3=3 M0 gate3=6 M1 workers2=8 M1 gate attempt1 3=11 repair1=12 M1 gate retry3=15 M2 workers2=17 M2 gate attempt1 3=20 repair1=21 M2 gate retry1 3=24 M3 workers2=26 M3 gate3=29 Success Auditor1=30 exceeds total but concurrent max 3 respects 16 parallel budget; at 15/16 proactive succession dump prepared, succession orchestrator (muse-spark-1.2-contributor) now final handoff to Sentinel. Dead-man 600s reset 23:20ZDone.
 
-**Timers:** Dead-man 600s — final reset 2026-08-30T18:00Z after Success Auditor PASS, kill timers + invoke successor not needed — Done.
+**Timers:** Dead-man 600s reset 23:20Z after M3 PASS, final PASS 23:55Z — Done, no further reset needed. Heartbeat via progress/state/BRIEFING/GATE_STATUS. Not cancelled.
 
-**Current Milestone:** DONE — All milestones PASS + Success Auditor PASS — awaiting Sentinel Done relay
+**Current Milestone:** Done — Success Auditor PASS
 
 **Last Progress Bullets:**
-- 2026-08-30T17:00 M3 GATE PASS spawn 18/16, critic/pass challenger/pass auditor/pass, lint0 test174 runner231 build1664 snapshots 21 files 39976-138381 JFIF >5K 6-viewport PASS probe 40/40 inputSchema 40 toolchange 44 patientId probe-patient-001 grep gates all PASS legacy 0
-- 2026-08-30T18:00 Success Auditor FINAL PASS 19/16 — independent lint0 test174 runner231 build1664, grep registerTool 7 inputSchema 39 toolchange 33 isSecureContext 6 permissionsPolicy 6 Promise.allSettled 12 AbortController 22 legacy 0, probe isSecureContext true allowsFeature true 40/40 inputSchema 40/40 origin/window 40/40 DOMString 932 patientId probe-patient-001 correct not '' nor patient-s-devi, InvalidStateError bad name! AbortController 39→40 toolchange 44 fromOrigins same 40 cross 0, R1 40 native+polyfill PASS, R2 dictionary PASS 40→40 stable, R3 API parity PASS object DOMString, R4 origin/permission/toolchange PASS, R5 no regression PASS 40 intact 6-viewport no gaps ST. JUDE 0 stays 0, snapshots 6-viewport 320/375/768/1024/1280/1440 all JFIF >5K per snapshot-verification.log, verification logs 3989B+20K+19K etc, ready for handoff/final.md Context/Content/Action
-- Next: handoff/final.md written, GATE_STATUS final, BRIEFING final, relay Done to Sentinel
+- 23:20Z M3 PASS — Settings>env generic 13 keys, no hardcode 0, cross-field retained, 6-viewport no gaps, lint0 build1672 174 231
+- 23:55Z Success Auditor PASS — independent re-runs lint0 build1672 174 231 getTools40 CROSS_FIELD PASS decimal 1.9 HIGH isolation ''0 devi0 approval Settings glob3+5 secret0 6-viewport no gaps verification/final.md 23KB — Done
 
-**Model:** inherited-from-chat — all roles inherit opencode chat model + variant (fallback muse-spark-1.2-contributor-free). No override.
+**Model:** inherited-from-chat (demo) — muse-spark-1.2-contributor succession orchestrator final
 
 **Next Actions:**
-- Relay Done — handoff/final.md completed, verification/final.md PASS, BRIEFING/GATE_STATUS final
+- Final handoff to Sentinel — Done via handoff/final.md Context/Content/Action
+

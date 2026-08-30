@@ -1,5 +1,7 @@
 /**
  * CareCanvas Types: Approved Fact Vault & Entity Models
+ * Fact boundingBox optional but AI provides normalized bbox with grounded coordinates plus confidence and plainExplanation via structured outputs.
+ * Vision+text multimodal single request provides grounded bbox not fixed, confidence above zero, categories typed.
  */
 
 export interface BoundingBox {

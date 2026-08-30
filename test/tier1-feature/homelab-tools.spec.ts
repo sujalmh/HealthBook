@@ -26,11 +26,16 @@ export async function runHomeLabToolsTests(): Promise<{ passed: number; failed: 
     const { engine, context } = createTestHarness();
     const res = await engine.execute('upload_lab_image', { imageBlob: 'data:image/jpeg;base64,mockdata' }, context);
     assert(res.success);
-    assert(res.data.extractedValues.length >= 2, 'Should extract at least 2 placeholders for base64');
-    const creat = res.data.extractedValues.find((v: any) => v.marker === 'Creatinine');
-    assert(!!creat, 'Creatinine placeholder must exist');
-    // M3 real-data: base64 opaque image returns neutral 1.0 (not Shanti 1.90) — vault-owned generic
-    assert(Number.isFinite(creat.value), 'Creatinine value must be finite');
+    // Q10 all image OCR via AI — when AI disabled (no VITE_AI_*), image returns empty per repair even in test env
+    if (res.data.extractedValues.length === 0) {
+      assertContains(res.plainLanguageSummary, 'AI required');
+    } else {
+      assert(res.data.extractedValues.length >= 2, 'Should extract at least 2 placeholders for base64');
+      const creat = res.data.extractedValues.find((v: any) => v.marker === 'Creatinine');
+      assert(!!creat, 'Creatinine placeholder must exist');
+      // M3 real-data: base64 opaque image returns neutral 1.0 (not Shanti 1.90) — vault-owned generic
+      assert(Number.isFinite(creat.value), 'Creatinine value must be finite');
+    }
   });
 
   await test('TC-HL01-02: upload_lab_image - links and completes prescribed due card', async () => {
@@ -56,16 +61,26 @@ export async function runHomeLabToolsTests(): Promise<{ passed: number; failed: 
     const { engine, context } = createTestHarness();
     const res = await engine.execute('upload_lab_image', { imageBlob: 'data:image/jpeg;base64,mock' }, context);
     assert(res.success);
-    // Real-data generic placeholder: check contains Creatinine and eGFR, not Shanti-specific 1.90
-    assertContains(res.plainLanguageSummary, 'Creatinine');
-    assertContains(res.plainLanguageSummary, 'eGFR');
+    // Q10 all image OCR via AI — when AI disabled, returns empty with AI required narration
+    if (res.data.extractedValues.length === 0) {
+      assertContains(res.plainLanguageSummary, 'AI required');
+    } else {
+      // Real-data generic placeholder: check contains Creatinine and eGFR, not Shanti-specific 1.90
+      assertContains(res.plainLanguageSummary, 'Creatinine');
+      assertContains(res.plainLanguageSummary, 'eGFR');
+    }
   });
 
   await test('TC-HL01-04: upload_lab_image - saves extracted facts into vault in unconfirmed status', async () => {
     const { engine, context, vault } = createTestHarness();
-    await engine.execute('upload_lab_image', { imageBlob: 'data:image/jpeg;base64,mock' }, context);
-    const unconfirmed = vault.getFactsByPatient(context.patientId, 'unconfirmed');
-    assert(unconfirmed.some(f => f.name === 'Creatinine'), 'Unconfirmed creatinine fact must exist');
+    const res = await engine.execute('upload_lab_image', { imageBlob: 'data:image/jpeg;base64,mock' }, context);
+    // Q10 all image OCR via AI — when AI disabled, image returns empty and no facts saved (correct per repair)
+    if (res.data.extractedValues.length === 0) {
+      assertContains(res.plainLanguageSummary, 'AI required');
+    } else {
+      const unconfirmed = vault.getFactsByPatient(context.patientId, 'unconfirmed');
+      assert(unconfirmed.some(f => f.name === 'Creatinine'), 'Unconfirmed creatinine fact must exist');
+    }
   });
 
   await test('TC-HL01-05: upload_lab_image - validation rejects missing imageBlob', async () => {

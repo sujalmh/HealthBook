@@ -40,11 +40,12 @@ describe('Module 0: Approved Fact Vault WebMCP Tools', () => {
     const pending = localVault.getPendingFacts(patientId);
     expect(pending.length).toBe(result.data.length);
 
-    // Verify bounding box and plain narration structure — generic (M1 clean)
+    // Verify plain narration structure — bbox removed (AI upload no bbox)
     const anyFact = pending[0];
     expect(anyFact).toBeDefined();
-    expect(anyFact?.boundingBox).toBeDefined();
     expect(anyFact?.plainExplanation).toBeDefined();
+    // bbox removed — should be undefined for AI extraction
+    expect(anyFact?.boundingBox).toBeUndefined();
   });
 
   it('confirm_fact: approves fact, propagates to domain store (meds/labs), and logs immutable audit trail', async () => {

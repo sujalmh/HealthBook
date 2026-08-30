@@ -53,10 +53,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   });
 
   const handleHighlight = (fact: FactEntity) => {
-    eventBus.highlightSourceDocument({
-      documentId: (fact.sourceDocId || fact.documentId || '') as string,
-      boundingBox: fact.sourceBoundingBox || fact.boundingBox,
-    });
+    eventBus.highlightSourceDocument((fact.sourceDocId || fact.documentId || '') as string);
   };
 
   return (
@@ -177,7 +174,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                   <button
                     onClick={() => handleHighlight(fact)}
                     className="inline-flex items-center gap-1 text-caption text-primary hover:text-primary-hover font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full px-2 py-1 hover:bg-primary-light transition-colors"
-                    title="Highlight source bounding box"
+                    title="Highlight source"
                   >
                     <Eye className="w-3 h-3" />
                     <span>Source</span>

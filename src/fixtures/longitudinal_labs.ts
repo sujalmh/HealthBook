@@ -26,93 +26,141 @@ export interface LongitudinalLabDataPoint {
 export * from '../../test/fixtures/legacyMocks.ts';
 export const __fixtureClean_longitudinal_labs = true;
 
+function deriveBorderlineFlag(value: number, ref: { low: number; high: number }, criticalLow?: number, criticalHigh?: number) {
+  const span = ref.high - ref.low;
+  const buffer = span * 0.10;
+  const isNearHigh = value >= (ref.high - buffer) && value <= (ref.high + buffer);
+  const isNearLow = value >= (ref.low - buffer) && value <= (ref.low + buffer);
+  const isBorderline = isNearHigh || isNearLow;
+  let isCritical = false;
+  let flag: LabRecord['flag'] = 'NORMAL';
+  if (criticalHigh !== undefined && value >= criticalHigh) { isCritical = true; flag = 'CRITICAL_HIGH'; }
+  else if (criticalLow !== undefined && value <= criticalLow) { isCritical = true; flag = 'CRITICAL_LOW'; }
+  else if (value > ref.high) flag = 'HIGH';
+  else if (value < ref.low) flag = 'LOW';
+  else flag = 'NORMAL';
+  return { isBorderline, isCritical, flag };
+}
+
 export function convertToLabRecords(patientId: string, dataPoints: LongitudinalLabDataPoint[]): LabRecord[] {
+  // Patient isolation: derive via globalThis if passed empty — never '' leak
+  let pid = patientId;
+  if (!pid || pid.trim() === '') {
+    try {
+      const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+      const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+      if (ls) {
+        const raw = ls.getItem('carecanvas_active_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const derived = parsed?.userId || parsed?.id || parsed?.patientId;
+          if (typeof derived === 'string' && derived.trim() !== '') pid = derived.trim();
+        }
+      }
+    } catch {}
+  }
   const records: LabRecord[] = [];
   dataPoints.forEach((pt, idx) => {
-    // Creatinine
-    records.push({
-      id: `lab_${patientId}_creat_${idx}`,
-      patientId,
-      marker: 'Creatinine',
-      value: pt.creatinine,
-      unit: 'mg/dL',
-      normalizedValue: pt.creatinine,
-      normalizedUnit: 'mg/dL',
-      drawDate: pt.date,
-      referenceRange: { low: 0.6, high: 1.2 },
-      optimalRange: { low: 0.7, high: 1.0 },
-      isBorderline: pt.creatinine >= 1.2 && pt.creatinine <= 1.35,
-      isCritical: pt.creatinine >= 3.0,
-      flag: pt.creatinine > 1.2 ? (pt.creatinine >= 3.0 ? 'CRITICAL_HIGH' : 'HIGH') : 'NORMAL'
-    });
-
-    // eGFR
-    records.push({
-      id: `lab_${patientId}_egfr_${idx}`,
-      patientId,
-      marker: 'eGFR',
-      value: pt.egfr,
-      unit: 'mL/min/1.73m2',
-      normalizedValue: pt.egfr,
-      normalizedUnit: 'mL/min/1.73m2',
-      drawDate: pt.date,
-      referenceRange: { low: 60, high: 120 },
-      optimalRange: { low: 90, high: 120 },
-      isBorderline: pt.egfr >= 55 && pt.egfr < 60,
-      isCritical: pt.egfr < 15,
-      flag: pt.egfr < 60 ? (pt.egfr < 15 ? 'CRITICAL_LOW' : 'LOW') : 'NORMAL'
-    });
-
-    // HbA1c
-    records.push({
-      id: `lab_${patientId}_hba1c_${idx}`,
-      patientId,
-      marker: 'HbA1c',
-      value: pt.hba1c,
-      unit: '%',
-      normalizedValue: pt.hba1c,
-      normalizedUnit: '%',
-      drawDate: pt.date,
-      referenceRange: { low: 4.0, high: 5.6 },
-      optimalRange: { low: 4.5, high: 5.4 },
-      isBorderline: pt.hba1c >= 5.7 && pt.hba1c <= 6.4,
-      isCritical: pt.hba1c >= 10.0,
-      flag: pt.hba1c > 5.6 ? 'HIGH' : 'NORMAL'
-    });
-
-    // Glucose Fasting
-    records.push({
-      id: `lab_${patientId}_glucose_${idx}`,
-      patientId,
-      marker: 'Glucose Fasting',
-      value: pt.glucose_fasting,
-      unit: 'mg/dL',
-      normalizedValue: pt.glucose_fasting,
-      normalizedUnit: 'mg/dL',
-      drawDate: pt.date,
-      referenceRange: { low: 70, high: 99 },
-      optimalRange: { low: 75, high: 90 },
-      isBorderline: pt.glucose_fasting >= 100 && pt.glucose_fasting <= 125,
-      isCritical: pt.glucose_fasting >= 250 || pt.glucose_fasting <= 50,
-      flag: pt.glucose_fasting > 99 ? 'HIGH' : 'NORMAL'
-    });
-
-    // Potassium
-    records.push({
-      id: `lab_${patientId}_potassium_${idx}`,
-      patientId,
-      marker: 'Potassium',
-      value: pt.potassium,
-      unit: 'mEq/L',
-      normalizedValue: pt.potassium,
-      normalizedUnit: 'mEq/L',
-      drawDate: pt.date,
-      referenceRange: { low: 3.5, high: 5.0 },
-      optimalRange: { low: 3.8, high: 4.6 },
-      isBorderline: pt.potassium > 5.0 && pt.potassium <= 5.3,
-      isCritical: pt.potassium >= 6.0 || pt.potassium <= 2.8,
-      flag: pt.potassium > 5.0 ? 'HIGH' : (pt.potassium < 3.5 ? 'LOW' : 'NORMAL')
-    });
+    // Creatinine — BIOMARKER_STANDARDS ref 0.6-1.2 optimal 0.7-1.0 criticalHigh 3.0 ±10% borderline
+    {
+      const ref = { low: 0.6, high: 1.2 }; const opt = { low: 0.7, high: 1.0 };
+      const { isBorderline, isCritical, flag } = deriveBorderlineFlag(pt.creatinine, ref, undefined, 3.0);
+      records.push({
+        id: `lab_${pid}_creat_${idx}`,
+        patientId: pid,
+        marker: 'Creatinine',
+        value: pt.creatinine,
+        unit: 'mg/dL',
+        normalizedValue: pt.creatinine,
+        normalizedUnit: 'mg/dL',
+        drawDate: pt.date,
+        referenceRange: ref,
+        optimalRange: opt,
+        isBorderline,
+        isCritical,
+        flag
+      });
+    }
+    // eGFR — ref 60-120 optimal 90-120 criticalLow 15
+    {
+      const ref = { low: 60, high: 120 }; const opt = { low: 90, high: 120 };
+      const { isBorderline, isCritical, flag } = deriveBorderlineFlag(pt.egfr, ref, 15, undefined);
+      records.push({
+        id: `lab_${pid}_egfr_${idx}`,
+        patientId: pid,
+        marker: 'eGFR',
+        value: pt.egfr,
+        unit: 'mL/min/1.73m2',
+        normalizedValue: pt.egfr,
+        normalizedUnit: 'mL/min/1.73m2',
+        drawDate: pt.date,
+        referenceRange: ref,
+        optimalRange: opt,
+        isBorderline,
+        isCritical,
+        flag
+      });
+    }
+    // HbA1c — ref 4.0-5.6 optimal 4.5-5.4 criticalHigh 10.0
+    {
+      const ref = { low: 4.0, high: 5.6 }; const opt = { low: 4.5, high: 5.4 };
+      const { isBorderline, isCritical, flag } = deriveBorderlineFlag(pt.hba1c, ref, undefined, 10.0);
+      records.push({
+        id: `lab_${pid}_hba1c_${idx}`,
+        patientId: pid,
+        marker: 'HbA1c',
+        value: pt.hba1c,
+        unit: '%',
+        normalizedValue: pt.hba1c,
+        normalizedUnit: '%',
+        drawDate: pt.date,
+        referenceRange: ref,
+        optimalRange: opt,
+        isBorderline,
+        isCritical,
+        flag
+      });
+    }
+    // Glucose Fasting — ref 70-99 optimal 75-90 criticalLow 50 criticalHigh 250
+    {
+      const ref = { low: 70, high: 99 }; const opt = { low: 75, high: 90 };
+      const { isBorderline, isCritical, flag } = deriveBorderlineFlag(pt.glucose_fasting, ref, 50, 250);
+      records.push({
+        id: `lab_${pid}_glucose_${idx}`,
+        patientId: pid,
+        marker: 'Glucose Fasting',
+        value: pt.glucose_fasting,
+        unit: 'mg/dL',
+        normalizedValue: pt.glucose_fasting,
+        normalizedUnit: 'mg/dL',
+        drawDate: pt.date,
+        referenceRange: ref,
+        optimalRange: opt,
+        isBorderline,
+        isCritical,
+        flag
+      });
+    }
+    // Potassium — ref 3.5-5.0 optimal 3.8-4.6 criticalLow 2.8 criticalHigh 6.0
+    {
+      const ref = { low: 3.5, high: 5.0 }; const opt = { low: 3.8, high: 4.6 };
+      const { isBorderline, isCritical, flag } = deriveBorderlineFlag(pt.potassium, ref, 2.8, 6.0);
+      records.push({
+        id: `lab_${pid}_potassium_${idx}`,
+        patientId: pid,
+        marker: 'Potassium',
+        value: pt.potassium,
+        unit: 'mEq/L',
+        normalizedValue: pt.potassium,
+        normalizedUnit: 'mEq/L',
+        drawDate: pt.date,
+        referenceRange: ref,
+        optimalRange: opt,
+        isBorderline,
+        isCritical,
+        flag
+      });
+    }
   });
 
   return records;

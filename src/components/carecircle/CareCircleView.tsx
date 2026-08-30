@@ -35,31 +35,50 @@ interface CareCircleViewProps {
   onProfileChange: (target: 'self' | 'mother' | 'child') => void;
 }
 
+function deriveCarePatientId(passed: string, fallback?: string): string {
+  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
+  if (fallback && fallback.trim() !== '' && fallback !== 'patient-s-devi') return fallback.trim();
+  try {
+    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+    if (ls) {
+      const raw = ls.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
+      }
+    }
+  } catch {}
+  return passed || fallback || '';
+}
+
 export const CareCircleView: React.FC<CareCircleViewProps> = ({
   patientId,
   activeProfile,
   onProfileChange
 }) => {
+  const effectivePatientId = deriveCarePatientId(patientId, activeProfile.userId);
   const [activeTab, setActiveTab] = useState<'overview' | 'multi_patient' | 'audit_log'>('overview');
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [caregiverLinks, setCaregiverLinks] = useState<LinkedCareProfile[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
 
   const loadData = () => {
-    // Read-only vault loads — no per-view seeding (centralized src/core/vault/seed.ts owns baseline via main.tsx bootstrap).
-    const links = localVault.getCaregiverLinks(patientId);
+    // Read-only vault loads — effectivePatientId for isolation, reflects AI-derived timeline citations
+    const links = effectivePatientId ? localVault.getCaregiverLinks(effectivePatientId) : [];
     setCaregiverLinks(links);
 
-    const logs = localVault.getAuditLogs(patientId);
+    const logs = effectivePatientId ? localVault.getAuditLogs(effectivePatientId) : [];
     setAuditLogs(logs);
   };
 
   // M2 Relevant-only: CareCircle listens to caregiver_linked, doctor_grant_added/revoked, audit_logged
-  // proposal_status_changed / lab_* are irrelevant — spurious guard
+  // proposal_status_changed / lab_* are irrelevant — spurious guard; reflects new facts via dossier audit
   useEffect(() => {
     loadData();
 
-    const guard = (p: any) => !p || !p.patientId || p.patientId === patientId || (p.details && p.details.patientId === patientId);
+    const guard = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId || (p.details && p.details.patientId === effectivePatientId);
     const mk = (h: () => void) => (payload: any) => { if (guard(payload)) h(); };
 
     const u1 = eventBus.on('caregiver_linked', mk(loadData));
@@ -73,7 +92,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
       u3();
       u4();
     };
-  }, [patientId]);
+  }, [effectivePatientId]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -276,7 +295,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
       <ScopedPermissionsModal
         isOpen={isPermissionsModalOpen}
         onClose={() => setIsPermissionsModalOpen(false)}
-        patientId={patientId}
+        patientId={effectivePatientId}
         onPermissionsUpdated={loadData}
       />
     </div>

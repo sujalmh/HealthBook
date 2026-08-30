@@ -35,10 +35,29 @@ interface SafetyViewProps {
   };
 }
 
+function deriveSafetyPatientId(passed: string, fallback?: string): string {
+  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
+  if (fallback && fallback.trim() !== '' && fallback !== 'patient-s-devi') return fallback.trim();
+  try {
+    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+    if (ls) {
+      const raw = ls.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
+      }
+    }
+  } catch {}
+  return passed || fallback || '';
+}
+
 export const SafetyView: React.FC<SafetyViewProps> = ({
   patientId,
   activeProfile = { userId: patientId, name: 'Patient', role: 'patient' }
 }) => {
+  const effectivePatientId = deriveSafetyPatientId(patientId, activeProfile?.userId);
   const [activeTab, setActiveTab] = useState<'patient_safety' | 'doctor_triage' | 'calendar'>('patient_safety');
   const [dangerReports, setDangerReports] = useState<DangerSignReport[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventRecord[]>([]);
@@ -46,20 +65,21 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
   const [isFollowupModalOpen, setIsFollowupModalOpen] = useState(false);
 
   const loadData = () => {
-    // Read-only vault loads — no per-view seeding (centralized src/core/vault/seed.ts owns baseline via main.tsx bootstrap).
-    const reports = localVault.getDangerReports(patientId);
+    // Read-only vault loads — uses effectivePatientId for isolation, danger triage via AI vision+text but still clinician path
+    const reports = effectivePatientId ? localVault.getDangerReports(effectivePatientId) : [];
     setDangerReports(reports);
 
-    const events = localVault.getCalendarEvents(patientId);
+    const events = effectivePatientId ? localVault.getCalendarEvents(effectivePatientId) : [];
     setCalendarEvents(events);
   };
 
   // M2 Relevant-only: Safety listens to danger_report_added (alias danger_reported), calendar_event_added, proposal_created (alias proposal_submitted)
   // lab_* / medication_* / due_card_* are irrelevant — alias dispatch covers legacy names without double
+  // Danger triage via AI vision+text inferred if document contains red flags but still requires clinician path
   useEffect(() => {
     loadData();
 
-    const guard = (p: any) => !p || !p.patientId || p.patientId === patientId;
+    const guard = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId;
     const mk = (h: () => void) => (payload: any) => { if (guard(payload)) h(); };
 
     const u1 = eventBus.on('danger_report_added', mk(loadData));
@@ -71,7 +91,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
       u2();
       u3();
     };
-  }, [patientId]);
+  }, [effectivePatientId]);
 
   const activeAlerts = dangerReports.filter((r) => r.triagePriority === 'URGENT' || r.triagePriority === 'EMERGENCY');
 
@@ -269,7 +289,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         </div>
       ) : activeTab === 'doctor_triage' ? (
         <TriagePanel
-          patientId={patientId}
+          patientId={effectivePatientId}
           dangerReports={dangerReports}
           onActionDispatched={() => loadData()}
         />
@@ -284,14 +304,14 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
       <DangerSignModal
         isOpen={isDangerModalOpen}
         onClose={() => setIsDangerModalOpen(false)}
-        patientId={patientId}
+        patientId={effectivePatientId}
         onReportSubmitted={() => loadData()}
       />
 
       <FollowupScheduler
         isOpen={isFollowupModalOpen}
         onClose={() => setIsFollowupModalOpen(false)}
-        patientId={patientId}
+        patientId={effectivePatientId}
         onScheduled={() => loadData()}
       />
     </div>

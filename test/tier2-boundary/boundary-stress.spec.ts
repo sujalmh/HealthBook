@@ -111,8 +111,13 @@ export async function runBoundaryStressTests(): Promise<{ passed: number; failed
     const { engine, context } = createTestHarness();
     const res = await engine.execute('upload_lab_image', { imageBlob: 'data:image/jpeg;base64,blurry_slip' }, context);
     assert(res.success);
-    const lowConfValue = res.data.extractedValues.find((v: any) => v.confidence < 0.95);
-    assert(!!lowConfValue, 'Confidence metric must be recorded');
+    // Q10 all image OCR via AI — when AI disabled, image returns 0 with AI required narration (correct per repair)
+    if (res.data.extractedValues.length === 0) {
+      assertContains(res.plainLanguageSummary, 'AI required');
+    } else {
+      const lowConfValue = res.data.extractedValues.find((v: any) => v.confidence < 0.95);
+      assert(!!lowConfValue, 'Confidence metric must be recorded');
+    }
   });
 
   // T2-07: Extreme Multi-Year Timeline (150+ records)

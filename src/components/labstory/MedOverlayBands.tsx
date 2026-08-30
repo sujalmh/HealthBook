@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pill, Info, Check, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import type { MedicationRecord } from '@/types/vault';
+import { localVault } from '@/core/vault/LocalVault';
 
 export interface TimelineMedication {
   id: string;
@@ -28,6 +29,50 @@ interface MedOverlayBandsProps {
   onMedToggle?: (medId: string, visible: boolean) => void;
 }
 
+function deriveOverlayPatientId(): string {
+  try {
+    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+    if (ls) {
+      const raw = ls.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
+      }
+    }
+  } catch {}
+  return '';
+}
+
+function vaultMedToTimeline(med: MedicationRecord): TimelineMedication {
+  const lower = (med.genericName || med.brandName || '').toLowerCase();
+  let category: TimelineMedication['category'] = 'other';
+  if (lower.includes('lisinopril') || lower.includes('amlodipine') || lower.includes('carvedilol') || lower.includes('furosemide')) category = 'antihypertensive';
+  else if (lower.includes('prednisone') || lower.includes('steroid')) category = 'steroid';
+  else if (lower.includes('ibuprofen') || lower.includes('naproxen') || lower.includes('nsaid') || lower.includes('advil') || lower.includes('aleve')) category = 'nsaid';
+  else if (lower.includes('metformin') || lower.includes('glipizide') || lower.includes('jardiance')) category = 'antidiabetic';
+  else if (lower.includes('atorvastatin') || lower.includes('simvastatin')) category = 'statin';
+  else if (lower.includes('apixaban') || lower.includes('warfarin') || lower.includes('clopidogrel')) category = 'anticoagulant';
+  return {
+    id: med.id,
+    name: med.brandName || med.genericName || med.name || 'Medication',
+    genericName: med.genericName || med.brandName || '',
+    dosage: med.dosage || 'Standard',
+    category,
+    startDate: (med as any).startDate || new Date().toISOString(),
+    stopDate: med.status === 'active' ? undefined : new Date().toISOString(),
+    status: med.status === 'active' ? 'active' : 'stopped',
+    colorHex: category === 'nsaid' ? '#EF4444' : category === 'anticoagulant' ? '#F59E0B' : '#10B981',
+    bgClass: category === 'nsaid' ? 'bg-rose-50 hover:bg-rose-100' : category === 'anticoagulant' ? 'bg-amber-50 hover:bg-amber-100' : 'bg-emerald-50 hover:bg-emerald-100',
+    borderClass: category === 'nsaid' ? 'border-rose-200' : category === 'anticoagulant' ? 'border-amber-200' : 'border-emerald-200',
+    textClass: category === 'nsaid' ? 'text-rose-700' : category === 'anticoagulant' ? 'text-amber-700' : 'text-emerald-700',
+    indication: (med as any).indication || 'Vault-derived regimen',
+    prescribedBy: 'Care Team',
+    notes: `Vault-derived medication ${med.genericName} ${med.dosage} — AI trajectory correlates this course with lab timeline.`
+  };
+}
+
 export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
   minTime,
   maxTime,
@@ -35,8 +80,26 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
   className = '',
   onMedToggle
 }) => {
-  // Built-in rich timeline medications covering the longitudinal 2022-2026 timeline
-  const defaultTimelineMeds: TimelineMedication[] = [
+  // Vault-derived timeline when activeMeds provided via props or via LocalVault when empty — replaces hardcoded fallback with AI-derived vault data
+  const [vaultDerived, setVaultDerived] = useState<TimelineMedication[] | null>(null);
+  useEffect(() => {
+    if (activeMeds && activeMeds.length > 0) {
+      setVaultDerived(null);
+      return;
+    }
+    const pid = deriveOverlayPatientId();
+    if (!pid) { setVaultDerived(null); return; }
+    try {
+      const meds = localVault.getMedications(pid, 'active');
+      if (meds.length > 0) {
+        setVaultDerived(meds.slice(0, 6).map(vaultMedToTimeline));
+      } else {
+        setVaultDerived(null);
+      }
+    } catch { setVaultDerived(null); }
+  }, [activeMeds, minTime, maxTime]);
+  // Built-in rich timeline medications covering the longitudinal 2022-2026 timeline — vault-derived when available, fallback only for empty vault
+  const fallbackTimelineMeds: TimelineMedication[] = [
     {
       id: 'med_lisinopril',
       name: 'Lisinopril',
@@ -138,6 +201,8 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
     }
   ];
 
+  // Effective timeline: vault-derived when available (AI propagations), else fallback rich timeline for empty vault
+  const effectiveTimelineMeds = vaultDerived && vaultDerived.length > 0 ? vaultDerived : fallbackTimelineMeds;
   const [visibleMeds, setVisibleMeds] = useState<Record<string, boolean>>({
     med_lisinopril: true,
     med_metformin: true,
@@ -146,6 +211,15 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
     med_ibuprofen: true,
     med_apixaban: true
   });
+  // Keep visibleMeds in sync when effective list changes (vault-derived ids may differ)
+  useEffect(() => {
+    const ids = effectiveTimelineMeds.map(m => m.id);
+    setVisibleMeds(prev => {
+      const next: Record<string, boolean> = { ...prev };
+      for (const id of ids) if (!(id in next)) next[id] = true;
+      return next;
+    });
+  }, [effectiveTimelineMeds.map(m=>m.id).join(',')]);
 
   const [selectedMed, setSelectedMed] = useState<TimelineMedication | null>(null);
 
@@ -194,7 +268,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
 
         {/* Legend / Toggles with >=44px Touch Targets */}
         <div className="flex items-center gap-2 flex-wrap">
-          {defaultTimelineMeds.map((med) => {
+          {effectiveTimelineMeds.map((med) => {
             const isVis = visibleMeds[med.id] !== false;
             return (
               <button
@@ -231,7 +305,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
           <div className="w-px h-full bg-canvas-border/60" />
         </div>
 
-        {defaultTimelineMeds
+        {effectiveTimelineMeds
           .filter((m) => visibleMeds[m.id] !== false)
           .map((med) => {
             const leftPct = getPositionPercent(med.startDate);

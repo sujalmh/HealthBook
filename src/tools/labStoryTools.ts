@@ -1,13 +1,19 @@
 /**
- * CareCanvas WebMCP Tools: LabStory Longitudinal Biomarker Causal Engine — CLEAN (M1)
+ * CareCanvas WebMCP Tools: LabStory Longitudinal Biomarker Causal Engine — AI Intelligence (M1)
  * Tools: extract_labs, correlate_meds
- * No mock fixture branching — reads from context.vault for context.patientId.
+ * AI panel extraction via generic AI when enabled, preserving BIOMARKER_STANDARDS normalization.
+ * Fallback regex only when disabled (Q10).
+ * Never hardcoded provider literals — reads via config.
  */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import type { LabRecord } from '../types/vault.ts';
 import type { LongitudinalLabDataPoint } from '../fixtures/longitudinal_labs.ts';
 import { convertToLabRecords } from '../fixtures/longitudinal_labs.ts';
+import { extractWithAI } from '../core/ai/client.ts';
+import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from '../core/ai/config.ts';
+import { buildChatMessages, buildResponsesInput } from '../core/ai/vision.ts';
+import { buildStructuredParams, parseJsonContent, extractTextFromProviderResponse } from '../core/ai/structured.ts';
 
 // Standard reference and optimal ranges for biomarker normalizer
 export const BIOMARKER_STANDARDS: Record<
@@ -246,6 +252,175 @@ export function normalizeLabBiomarker(
   };
 }
 
+function isVisionImage(value?: string): boolean {
+  if (!value || typeof value !== 'string') return false;
+  return value.startsWith('data:image');
+}
+
+// Helper: fallback regex extraction (preserved for when AI disabled)
+function fallbackRegexExtract(text: string, patientId: string, documentId: string): LabRecord[] {
+  const patterns: { regex: RegExp; marker: string; unit: string }[] = [
+    { regex: /creatinine[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Creatinine', unit: 'mg/dL' },
+    { regex: /eGFR[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'eGFR', unit: 'mL/min/1.73m2' },
+    { regex: /potassium[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Potassium', unit: 'mEq/L' },
+    { regex: /HbA1c[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'HbA1c', unit: '%' },
+    { regex: /glucose[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Glucose Fasting', unit: 'mg/dL' }
+  ];
+  const parsed: LabRecord[] = [];
+  for (const p of patterns) {
+    const m = text.match(p.regex);
+    if (m) {
+      const val = Number(m[1]);
+      if (!isNaN(val)) {
+        parsed.push(normalizeLabBiomarker(p.marker, val, p.unit, new Date().toISOString(), patientId, documentId));
+      }
+    }
+  }
+  return parsed;
+}
+
+async function aiExtractLabsViaClient(rawText: string, imageDataUrl: string | undefined, patientId: string, documentId: string): Promise<LabRecord[]> {
+  const docType = 'lab_report';
+  try {
+    const aiFacts = await extractWithAI(rawText || '', imageDataUrl, docType, { patientId, documentId });
+    // Filter for lab-relevant facts and convert via BIOMARKER_STANDARDS normalization (preserving standards)
+    const labFacts = aiFacts.filter((f) => {
+      const cat = (f.category || '').toLowerCase();
+      const nameLower = (f.name || '').toLowerCase();
+      if (cat === 'lab') return true;
+      // also include known biomarker names even if mis-categorized
+      return ['creatinine','egfr','gfr','potassium','hba1c','a1c','glucose','hemoglobin','cholesterol','ldl','hdl','triglyceride'].some(k => nameLower.includes(k));
+    });
+    if (labFacts.length === 0) return [];
+    const labRecords: LabRecord[] = labFacts.map((f) => {
+      // Derive numeric value robustly
+      let rawVal: number = 0;
+      if (typeof f.value === 'number' && Number.isFinite(f.value)) rawVal = f.value;
+      else if (f.value && typeof f.value === 'object' && typeof (f.value as any).numericValue === 'number' && Number.isFinite((f.value as any).numericValue)) rawVal = (f.value as any).numericValue;
+      else if (f.value && typeof f.value === 'object' && typeof (f.value as any).value === 'number' && Number.isFinite((f.value as any).value)) rawVal = (f.value as any).value;
+      else {
+        const str = typeof f.value === 'string' ? f.value : JSON.stringify(f.value ?? '');
+        const m = str.match(/([0-9]+\.?[0-9]*)/);
+        rawVal = m ? Number(m[1]) : 0;
+      }
+      if (!Number.isFinite(rawVal)) rawVal = 0;
+      const unit = f.unit || '';
+      const drawDate = (f as any).drawDate || f.timestamp || new Date().toISOString();
+      const rec = normalizeLabBiomarker(f.name, rawVal, unit, drawDate, patientId, documentId);
+      // Preserve grounded bbox if provided by AI (normalized 0-1000)
+      if (f.boundingBox) rec.boundingBox = f.boundingBox as any;
+      // Preserve confidence if present
+      if ((f as any).confidence) (rec as any).confidence = (f as any).confidence;
+      return rec;
+    });
+    return labRecords;
+  } catch (err) {
+    console.warn('[labStoryTools] AI lab extraction failed', (err as any)?.message || err);
+    throw err;
+  }
+}
+
+// AI causal narrative for correlate_meds via generic configurable provider (vision+text not needed, text only)
+async function aiCorrelateNarrative(
+  biomarker: string,
+  filteredLabs: LabRecord[],
+  correlatedMeds: string[],
+  startVal: number,
+  endVal: number,
+  delta: number,
+  percentChange: number
+): Promise<{ trajectory: string; narrative: string; doctorQuestion: string; correlated: string[] } | null> {
+  const config = getAIConfig();
+  if (!isAIEnabled(config)) return null;
+  const endpoint = getAIEndpoint(config);
+  const model = getAIModel(config, false);
+  if (!endpoint || !model) return null;
+  try {
+    const labsSummary = filteredLabs.slice(0, 8).map(l => `${l.marker}: ${l.normalizedValue} ${l.normalizedUnit} on ${l.drawDate} flag:${l.flag}`).join('; ');
+    const medsSummary = correlatedMeds.join(', ') || 'none';
+    const systemPrompt = `You are a clinical causal biomarker assistant. Given longitudinal lab data and medications, generate a concise causal narrative. Return ONLY valid JSON with shape {"trajectory": string, "causalStorySentence": string, "recommendedDoctorQuestion": string, "correlatedMedications": string[], "confidenceScore": number}. Trajectory should be one of declining_renal_function, improving_renal_function, elevated_creatinine, elevated_glucose, potassium_shift, lipid_reduction, stable etc. Causal story should reference direction and medication correlation plainly. No markdown.`;
+    const userText = `Biomarker: ${biomarker}\nStart: ${startVal} End: ${endVal} Delta: ${delta} Percent: ${percentChange}% Points: ${filteredLabs.length}\nLabs: ${labsSummary}\nMedications: ${medsSummary}\nGenerate JSON only.`;
+    const structuredSchema = {
+      type: 'object',
+      properties: {
+        trajectory: { type: 'string' },
+        causalStorySentence: { type: 'string' },
+        recommendedDoctorQuestion: { type: 'string' },
+        correlatedMedications: { type: 'array', items: { type: 'string' } },
+        confidenceScore: { type: 'number' }
+      },
+      required: ['trajectory', 'causalStorySentence', 'recommendedDoctorQuestion'],
+      additionalProperties: false,
+    } as any;
+    const useStructured = config.structuredOutputs;
+    const structuredParams = buildStructuredParams(config.provider, useStructured, structuredSchema);
+    let body: any;
+    if (config.provider === 'responses') {
+      const input = buildResponsesInput(systemPrompt, userText);
+      body = { model, input, temperature: config.temperature, max_output_tokens: config.maxTokens, ...structuredParams };
+    } else {
+      const messages = buildChatMessages(systemPrompt, userText);
+      body = { model, messages, temperature: config.temperature, max_tokens: config.maxTokens, ...structuredParams };
+    }
+    const AbortCtor: typeof AbortController =
+      typeof globalThis !== 'undefined' && (globalThis as any).AbortController ? (globalThis as any).AbortController : AbortController;
+    const controller = new AbortCtor();
+    const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
+    let fetchSignal: AbortSignal | undefined = controller.signal;
+    try {
+      const isTestEnvSignal =
+        typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test') ||
+        typeof (globalThis as any).__vitest_worker__ !== 'undefined';
+      const GlobalAbortSignal = typeof globalThis !== 'undefined' ? (globalThis as any).AbortSignal : undefined;
+      const WindowAbortSignal = typeof window !== 'undefined' ? (window as any).AbortSignal : undefined;
+      const validGlobal = GlobalAbortSignal ? fetchSignal instanceof GlobalAbortSignal : true;
+      const validWindow = WindowAbortSignal ? fetchSignal instanceof WindowAbortSignal : true;
+      if (isTestEnvSignal) fetchSignal = undefined;
+      else if (!validGlobal && !validWindow) fetchSignal = undefined;
+    } catch {}
+    let response: Response;
+    try {
+      const fetchOpts: RequestInit = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
+        body: JSON.stringify(body),
+      };
+      if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
+      response = await fetch(endpoint, fetchOpts);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (!response.ok) {
+      const t = await response.text().catch(() => '');
+      throw new Error(`AI correlate failed ${response.status} ${t.slice(0, 300)}`);
+    }
+    const json = await response.json().catch(() => null);
+    if (!json) return null;
+    const textContent = extractTextFromProviderResponse(json, config.provider);
+    if (!textContent) {
+      if (json.trajectory && json.causalStorySentence) {
+        return { trajectory: json.trajectory, narrative: json.causalStorySentence, doctorQuestion: json.recommendedDoctorQuestion, correlated: json.correlatedMedications || correlatedMeds };
+      }
+      return null;
+    }
+    const parsed = parseJsonContent(textContent);
+    if (!parsed) return null;
+    const data = parsed.trajectory ? parsed : parsed;
+    if (data.trajectory && data.causalStorySentence) {
+      return {
+        trajectory: data.trajectory,
+        narrative: data.causalStorySentence,
+        doctorQuestion: data.recommendedDoctorQuestion || `Why has my ${biomarker} shifted and should we adjust my medications?`,
+        correlated: Array.isArray(data.correlatedMedications) ? data.correlatedMedications : correlatedMeds,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.warn('[labStoryTools] AI correlate narrative failed, falling back to heuristic', (err as any)?.message || err);
+    return null;
+  }
+}
+
 export const extractLabsTool: WebMCPToolDefinition = {
   name: 'extract_labs',
   description:
@@ -273,7 +448,7 @@ export const extractLabsTool: WebMCPToolDefinition = {
     }
   },
   execute: async (
-    params: { documentId: string; patientId?: string; rawLabData?: any[]; rawText?: string },
+    params: { documentId: string; patientId?: string; rawLabData?: any[]; rawText?: string; imageBlob?: string; imageDataUrl?: string },
     context: WebMCPExecutionContext
   ): Promise<WebMCPToolResult> => {
     if (!params.documentId) {
@@ -294,18 +469,20 @@ export const extractLabsTool: WebMCPToolDefinition = {
     const patientId = params.patientId || context.patientId;
     let labRecords: LabRecord[] = [];
 
+    // Detect imageDataUrl for vision+text single request if provided (e.g., lab slip photo)
+    const candidateImage = (params as any).imageDataUrl || (params as any).imageBlob || (params as any).image_blob;
+    const imageDataUrl = typeof candidateImage === 'string' && isVisionImage(candidateImage) ? candidateImage : undefined;
+    const hasImage = !!imageDataUrl;
+
     // Case 1: Custom raw lab data provided — normalize and store for real patient (M3 NaN guard)
     if (params.rawLabData && Array.isArray(params.rawLabData) && params.rawLabData.length > 0) {
       const filtered = params.rawLabData.filter((item) => {
-        const raw = Number(item.value ?? item.numericValue);
-        // Allow 0 as valid; reject NaN / Infinity for malformed strings like "abc"
         return item.marker || item.name; // keep structural check; numeric guard below
       });
       labRecords = filtered
         .map((item) => {
           const rawNum = Number(item.value ?? item.numericValue);
           const safeVal = Number.isFinite(rawNum) ? rawNum : 0;
-          // If original was malformed NaN string, still create record with 0 but mark as handled (no NaN)
           return normalizeLabBiomarker(
             item.marker || item.name || 'Unknown',
             safeVal,
@@ -316,32 +493,43 @@ export const extractLabsTool: WebMCPToolDefinition = {
           );
         })
         .filter((rec) => Number.isFinite(rec.normalizedValue));
-    } else if (params.rawText && params.rawText.trim().length > 0) {
-      // Case 2: Parse rawText for biomarker values (real OCR text) — no mock fallback
-      // Simple heuristic: look for patterns like "Creatinine 1.9 mg/dL" or "eGFR 28"
-      // For now, create a single generic normalized record if parsing fails — vault-derived
-      const text = params.rawText;
-      const patterns: { regex: RegExp; marker: string; unit: string }[] = [
-        { regex: /creatinine[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Creatinine', unit: 'mg/dL' },
-        { regex: /eGFR[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'eGFR', unit: 'mL/min/1.73m2' },
-        { regex: /potassium[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Potassium', unit: 'mEq/L' },
-        { regex: /HbA1c[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'HbA1c', unit: '%' },
-        { regex: /glucose[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Glucose Fasting', unit: 'mg/dL' }
-      ];
-      const parsed: LabRecord[] = [];
-      for (const p of patterns) {
-        const m = text.match(p.regex);
-        if (m) {
-          const val = Number(m[1]);
-          if (!isNaN(val)) {
-            parsed.push(normalizeLabBiomarker(p.marker, val, p.unit, new Date().toISOString(), patientId, params.documentId));
+    } else if ((params.rawText && params.rawText.trim().length > 0) || hasImage) {
+      // Case 2: AI panel extraction when enabled, preserving BIOMARKER_STANDARDS normalization; fallback regex only when disabled
+      const text = (params.rawText || '').trim();
+      const config = getAIConfig();
+      const aiEnabled = isAIEnabled(config);
+      if (aiEnabled) {
+        try {
+          // Single multimodal request where applicable: rawText + imageDataUrl together
+          const aiLabs = await aiExtractLabsViaClient(text, imageDataUrl, patientId, params.documentId);
+          if (aiLabs.length > 0) {
+            labRecords = aiLabs;
+          } else {
+            // AI returned empty — for image per Q10 return empty not heuristic placeholder, for text fallback to regex
+            if (hasImage) {
+              labRecords = [];
+            } else {
+              labRecords = fallbackRegexExtract(text, patientId, params.documentId);
+            }
+          }
+        } catch {
+          // AI failed — fallback regex only for text never for images per Q10
+          if (hasImage) {
+            labRecords = [];
+          } else {
+            labRecords = fallbackRegexExtract(text, patientId, params.documentId);
           }
         }
-      }
-      if (parsed.length > 0) {
-        labRecords = parsed;
       } else {
-        // No parseable markers — do not seed mock; create empty and inform caller
+        // AI disabled — fallback regex only for text never for images
+        if (hasImage) {
+          // image OCR must be via AI, return empty when disabled
+          labRecords = [];
+        } else {
+          labRecords = fallbackRegexExtract(text, patientId, params.documentId);
+        }
+      }
+      if (labRecords.length === 0 && !text && !hasImage) {
         labRecords = [];
       }
     } else {
@@ -351,6 +539,17 @@ export const extractLabsTool: WebMCPToolDefinition = {
 
     // If no records parsed and no raw data, return informative result without mock insertion
     if (labRecords.length === 0) {
+      // Distinguish image case for Q10 messaging
+      if (hasImage && isAIEnabled(getAIConfig()) === false) {
+        return {
+          success: true,
+          tool: 'extract_labs',
+          timestamp: new Date().toISOString(),
+          data: [],
+          plainLanguageSummary: 'Vision extraction requested but AI disabled — no heuristic for images per Q10. Enable AI to process images.',
+          humanApprovalRequired: false
+        };
+      }
       return {
         success: true,
         tool: 'extract_labs',
@@ -487,24 +686,60 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     const delta = Math.round((endVal - startVal) * 100) / 100;
     const percentChange = startVal !== 0 ? Math.round(((endVal - startVal) / startVal) * 100) : 0;
 
-    // Generic narrative derived from real vault data (no hardcoded Shanti timelines)
+    // Derive correlatedMeds from vault medications for this patient (real data)
+    let correlatedMeds: string[] = [];
+    try {
+      const meds = context.vault.getMedications(patientId) || [];
+      correlatedMeds = meds.slice(0, 3).map((m: any) => m.genericName || m.name || 'Medication');
+    } catch {
+      correlatedMeds = [];
+    }
+
+    // Try AI causal narrative when enabled, preserving BIOMARKER_STANDARDS metrics but using AI for story
+    let aiNarrative: { trajectory: string; narrative: string; doctorQuestion: string; correlated: string[] } | null = null;
+    if (isAIEnabled(getAIConfig())) {
+      aiNarrative = await aiCorrelateNarrative(biomarker, filteredLabs, correlatedMeds, startVal, endVal, delta, percentChange);
+    }
+
+    if (aiNarrative) {
+      const resultDataAI = {
+        biomarker,
+        trajectory: aiNarrative.trajectory,
+        correlatedMedications: aiNarrative.correlated,
+        causalStorySentence: aiNarrative.narrative,
+        recommendedDoctorQuestion: aiNarrative.doctorQuestion,
+        trendMetrics: {
+          startValue: startVal,
+          endValue: endVal,
+          delta,
+          percentChange,
+          dataPointsCount: filteredLabs.length
+        },
+        timeWindow: {
+          start: firstPoint?.drawDate || new Date().toISOString(),
+          end: lastPoint?.drawDate || new Date().toISOString()
+        },
+        confidenceScore: 0.92
+      };
+      return {
+        success: true,
+        tool: 'correlate_meds',
+        timestamp: new Date().toISOString(),
+        data: resultDataAI,
+        plainLanguageSummary: aiNarrative.narrative,
+        humanApprovalRequired: false
+      };
+    }
+
+    // Fallback heuristic template (preserved for when AI disabled per Q10)
     const bLower = biomarker.toLowerCase();
     let narrative = '';
-    let correlatedMeds: string[] = [];
     let trajectory = 'stable';
     let doctorQuestion = '';
 
     if (filteredLabs.length >= 2) {
       const direction = delta > 0 ? 'increased' : delta < 0 ? 'decreased' : 'remained stable';
       const changeDesc = delta !== 0 ? ` from ${startVal} to ${endVal} (${delta > 0 ? '+' : ''}${delta}, ${percentChange}%)` : ' with no net change';
-      // Derive correlatedMeds from vault medications for this patient (real data)
-      try {
-        const meds = context.vault.getMedications(patientId) || [];
-        correlatedMeds = meds.slice(0, 3).map((m: any) => m.genericName || m.name || 'Medication');
-      } catch {
-        correlatedMeds = [];
-      }
-
       if (bLower.includes('egfr')) {
         trajectory = delta < 0 ? 'declining_renal_function' : delta > 0 ? 'improving_renal_function' : 'stable';
         narrative = `eGFR ${direction}${changeDesc} over ${filteredLabs.length} data points for your patient. Review medications that affect kidney function.`;
@@ -533,15 +768,8 @@ export const correlateMedsTool: WebMCPToolDefinition = {
       narrative = `Single data point for ${biomarker}: ${endVal} on ${lastPoint.drawDate}. Upload more reports to see trends.`;
       trajectory = 'single_point';
       doctorQuestion = `I have one result for ${biomarker} (${endVal}). When should we recheck it?`;
-      try {
-        const meds = context.vault.getMedications(patientId) || [];
-        correlatedMeds = meds.slice(0, 2).map((m: any) => m.genericName || 'Medication');
-      } catch {
-        correlatedMeds = [];
-      }
     } else {
       narrative = `Biomarker "${biomarker}" demonstrated steady longitudinal trajectory with no sharp drug-induced anomalies detected.`;
-      correlatedMeds = [];
       trajectory = 'stable';
       doctorQuestion = `Why has my ${biomarker} shifted recently and should we adjust my medications accordingly?`;
     }

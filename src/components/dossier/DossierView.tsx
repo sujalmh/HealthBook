@@ -46,10 +46,29 @@ interface DossierViewProps {
   };
 }
 
+function deriveDossierPatientId(passed: string, fallback?: string): string {
+  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
+  if (fallback && fallback.trim() !== '' && fallback !== 'patient-s-devi') return fallback.trim();
+  try {
+    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
+    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+    if (ls) {
+      const raw = ls.getItem('carecanvas_active_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
+      }
+    }
+  } catch {}
+  return passed || fallback || '';
+}
+
 export const DossierView: React.FC<DossierViewProps> = ({
   patientId,
   activeProfile
 }) => {
+  const effectivePatientId = deriveDossierPatientId(patientId, activeProfile.userId);
   const [activeTab, setActiveTab] = useState<'timeline' | 'snapshot' | 'source_inspector' | 'doctor_access'>('timeline');
   const [dossier, setDossier] = useState<CompiledHealthRecord | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +86,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
       const res = await webMCPEngine.execute(
         'compile_health_record',
         {
-          patientId,
+          patientId: effectivePatientId,
           sections: ['all']
         }
       );
@@ -92,12 +111,12 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
     const guard = (p: any) => {
       const pid = p?.patientId ?? p?.patient_id ?? p?.details?.patientId ?? p?.fact?.patientId;
-      if (pid) return pid === patientId;
+      if (pid) return pid === effectivePatientId;
       return false;
     };
     const auditGuard = (p: any) => {
       const pid = p?.patientId ?? p?.patient_id ?? p?.details?.patientId ?? p?.fact?.patientId;
-      if (pid) return pid === patientId;
+      if (pid) return pid === effectivePatientId;
       return true; // audit_logged without patientId is still relevant to Dossier timeline
     };
     const mk = (h: () => void) => (payload: any) => { if (guard(payload)) h(); };
@@ -123,7 +142,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
       u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9(); u10();
       u11(); u12(); u13(); u14(); u15();
     };
-  }, [patientId]);
+  }, [effectivePatientId]);
 
   const handleOpenSourceViewer = async (item: DossierTimelineItem) => {
     try {
@@ -378,11 +397,11 @@ export const DossierView: React.FC<DossierViewProps> = ({
         </div>
       )}
 
-      {/* Doctor Access Modal */}
+      {/* Doctor Access Modal — patient isolation via effectivePatientId */}
       <DoctorAccessModal
         isOpen={isDoctorAccessModalOpen}
         onClose={() => setIsDoctorAccessModalOpen(false)}
-        patientId={patientId}
+        patientId={effectivePatientId}
         grants={dossier?.doctorAccessGrants || []}
         onGrantsUpdated={loadCompiledDossier}
       />

@@ -1,11 +1,89 @@
 /**
- * CareCanvas WebMCP Tools: Safety Alerts, Doctor Remote Pillbox & Calendar (M5)
+ * CareCanvas WebMCP Tools: Safety Alerts, Doctor Remote Pillbox & Calendar (M5) — AI Triage Enhanced
  * Tools: report_danger_sign, notify_doctor, doctor_add_medication, doctor_remove_medication, doctor_change_dose,
  *        approve_pillmap_change, schedule_followup, schedule_lab, sync_to_calendar
+ * AI triage via AI vision+text assessment (send freeText + photoBlob data URL single multimodal request to AI when enabled, return severity assessment).
  */
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
 import type {  DangerSignReport, DangerSymptomTag  } from '../types/safety.ts';
+import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from '../core/ai/config.ts';
+import { buildChatMessages, buildResponsesInput } from '../core/ai/vision.ts';
+import { buildStructuredParams, parseJsonContent, extractTextFromProviderResponse } from '../core/ai/structured.ts';
+
+function isTestEnvSafety(): boolean {
+  try {
+    if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
+    if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
+    if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
+  } catch {}
+  return false;
+}
+
+async function callSafetyAI(
+  systemPrompt: string,
+  userText: string,
+  jsonSchema: any,
+  imageDataUrl?: string
+): Promise<any | null> {
+  if (isTestEnvSafety()) return null;
+  const config = getAIConfig();
+  if (!isAIEnabled(config)) return null;
+  const endpoint = getAIEndpoint(config);
+  const forVision = !!imageDataUrl && imageDataUrl.startsWith('data:image');
+  const model = getAIModel(config, forVision);
+  if (!endpoint || !model) return null;
+  const structuredParams = buildStructuredParams(config.provider, config.structuredOutputs, jsonSchema);
+  let body: any;
+  if (config.provider === 'responses') {
+    const input = buildResponsesInput(systemPrompt, userText, imageDataUrl);
+    body = { model, input, temperature: config.temperature, max_output_tokens: config.maxTokens, ...structuredParams };
+  } else {
+    const messages = buildChatMessages(systemPrompt, userText, imageDataUrl);
+    body = { model, messages, temperature: config.temperature, max_tokens: config.maxTokens, ...structuredParams };
+  }
+  const AbortCtor: typeof AbortController =
+    typeof globalThis !== 'undefined' && (globalThis as any).AbortController ? (globalThis as any).AbortController : AbortController;
+  const controller = new AbortCtor();
+  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
+  let fetchSignal: AbortSignal | undefined = controller.signal;
+  try {
+    const isTestEnvSignal =
+      typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test') ||
+      typeof (globalThis as any).__vitest_worker__ !== 'undefined';
+    const GlobalAbortSignal = typeof globalThis !== 'undefined' ? (globalThis as any).AbortSignal : undefined;
+    const WindowAbortSignal = typeof window !== 'undefined' ? (window as any).AbortSignal : undefined;
+    const validGlobal = GlobalAbortSignal ? fetchSignal instanceof GlobalAbortSignal : true;
+    const validWindow = WindowAbortSignal ? fetchSignal instanceof WindowAbortSignal : true;
+    if (isTestEnvSignal) fetchSignal = undefined;
+    else if (!validGlobal && !validWindow) fetchSignal = undefined;
+  } catch {}
+  let response: Response;
+  try {
+    const fetchOpts: RequestInit = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
+      body: JSON.stringify(body),
+    };
+    if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
+    response = await fetch(endpoint, fetchOpts);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+  if (!response.ok) {
+    const t = await response.text().catch(() => '');
+    throw new Error(`Safety AI failed ${response.status} ${t.slice(0, 400)}`);
+  }
+  const json = await response.json().catch(() => null);
+  if (!json) return null;
+  const textContent = extractTextFromProviderResponse(json, config.provider);
+  if (!textContent) {
+    if (json.triagePriority || json.severityRating) return json;
+    return null;
+  }
+  const parsed = parseJsonContent(textContent);
+  return parsed;
+}
 
 export const reportDangerSignTool: WebMCPToolDefinition = {
   name: 'report_danger_sign',
@@ -34,22 +112,81 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { symptomTags: string[]; freeText?: string; severityRating?: 'mild' | 'moderate' | 'severe' | 'critical'; vitalSigns?: any; photoBlob?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    const isSevere = params.severityRating === 'severe' || params.severityRating === 'critical' || params.symptomTags.includes('chest_pain') || params.symptomTags.includes('dyspnea');
+    // AI triage via AI vision+text assessment (send freeText + photoBlob data URL single multimodal request to AI when enabled, return severity assessment)
+    let triagePriority: 'URGENT' | 'ROUTINE' | 'EMERGENCY' = 'ROUTINE';
+    let assessedSeverity: 'mild' | 'moderate' | 'severe' | 'critical' = params.severityRating || 'severe';
+    let firstAidAdvice: string | undefined;
+    let aiConfidence: number | undefined;
+
+    const cfg = getAIConfig();
+    const aiEnabled = !isTestEnvSafety() && isAIEnabled(cfg);
+    const hasPhoto = !!params.photoBlob && params.photoBlob.startsWith('data:image');
+    const freeText = params.freeText || 'Patient reported acute symptoms.';
+
+    if (aiEnabled) {
+      try {
+        const schema = {
+          type: 'object',
+          properties: {
+            triagePriority: { type: 'string', enum: ['URGENT', 'EMERGENCY', 'ROUTINE'] },
+            severityRating: { type: 'string', enum: ['mild', 'moderate', 'severe', 'critical'] },
+            firstAidAdvice: { type: 'string' },
+            confidence: { type: 'number', minimum: 0, maximum: 1 },
+            reasoning: { type: 'string' }
+          },
+          required: ['triagePriority', 'severityRating', 'firstAidAdvice', 'confidence', 'reasoning'],
+          additionalProperties: false,
+        } as any;
+        const systemPrompt = `You are an emergency triage nurse AI. Assess danger signs given symptom tags, free text description, self-rated severity, vital signs, and optional photo (e.g., swollen ankles). Consider chest pain, dyspnea, edema, vital instability. Return ONLY valid JSON with shape {"triagePriority": "URGENT"|"ROUTINE"|"EMERGENCY", "severityRating": string, "firstAidAdvice": string, "confidence": number, "reasoning": string}. Provide grounded reasoning and confidence 0-1. Use vision+text together when photo provided (single multimodal request). No markdown.`;
+        const userText = `Symptom tags: ${JSON.stringify(params.symptomTags)}\nFree text: "${freeText}"\nSelf severity: ${params.severityRating || 'not rated'}\nVitals: ${JSON.stringify(params.vitalSigns || {})}\n${hasPhoto ? 'Photo provided: analyze visual signs with text together in single assessment.' : 'No photo.'}\nReturn JSON only with severity assessment.`;
+        const parsed = await callSafetyAI(systemPrompt, userText, schema, hasPhoto ? params.photoBlob : undefined);
+        if (parsed && parsed.triagePriority && parsed.severityRating && parsed.firstAidAdvice) {
+          triagePriority = parsed.triagePriority;
+          assessedSeverity = parsed.severityRating;
+          firstAidAdvice = parsed.firstAidAdvice;
+          aiConfidence = parsed.confidence;
+        } else {
+          // AI did not return valid, fall through to heuristic
+          throw new Error('AI triage returned invalid shape');
+        }
+      } catch (e) {
+        console.warn('[safetyTools] AI triage failed, fallback to heuristic', (e as any)?.message || e);
+      }
+    }
+
+    if (!firstAidAdvice) {
+      // Fallback heuristic only when AI disabled or AI failed — text fallback allowed, but image OCR must be via AI (Q10)
+      // For photoBlob, if AI enabled we already attempted AI and failed, we still fallback but log warning (AI primary)
+      // Generic fallback preserving behavior
+      const severeRatings: string[] = ['severe', 'critical'];
+      const urgentTags: string[] = ['chest_pain', 'dyspnea'];
+      const hasSevereRating = params.severityRating ? severeRatings.includes(params.severityRating) : false;
+      const hasUrgentTag = params.symptomTags.some((t) => urgentTags.includes(t));
+      const isSevere = hasSevereRating || hasUrgentTag;
+
+      triagePriority = isSevere ? 'URGENT' : 'ROUTINE';
+      assessedSeverity = params.severityRating || (isSevere ? 'severe' : 'moderate');
+      firstAidAdvice = isSevere
+        ? "Report sent to your care team's urgent triage queue. If you experience severe chest pain or sudden inability to breathe, call 911 immediately."
+        : 'Report logged for clinician review.';
+    }
 
     const report: DangerSignReport = {
       reportId: `danger_${Date.now()}`,
       patientId: context.patientId,
       symptomTags: params.symptomTags as DangerSymptomTag[],
       freeText: params.freeText || 'Patient reported acute symptoms.',
-      severityRating: params.severityRating || 'severe',
+      severityRating: assessedSeverity,
       vitalSigns: params.vitalSigns,
       photoAttachment: params.photoBlob ? { id: `photo_${Date.now()}`, fileName: 'edema_feet.jpg' } : undefined,
       timestamp: new Date().toISOString(),
-      triagePriority: isSevere ? 'URGENT' : 'ROUTINE',
-      firstAidAdvice: isSevere
+      triagePriority,
+      firstAidAdvice: firstAidAdvice || (triagePriority === 'URGENT'
         ? "Report sent to your care team's urgent triage queue. If you experience severe chest pain or sudden inability to breathe, call 911 immediately."
-        : 'Report logged for clinician review.'
-    };
+        : 'Report logged for clinician review.'),
+      // Include AI confidence if available for audit
+      ...(aiConfidence !== undefined ? { aiConfidence, aiTriageSource: 'ai_vision_text_multimodal' } : {}),
+    } as any;
 
     context.vault.addDangerReport(report);
 
@@ -63,7 +200,7 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
         role: context.activeProfile.role,
         onBehalfOf: context.activeProfile.onBehalfOf
       },
-      { symptoms: params.symptomTags, severity: report.severityRating }
+      { symptoms: params.symptomTags, severity: report.severityRating, triagePriority, aiConfidence }
     );
 
     return {

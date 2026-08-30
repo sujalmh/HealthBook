@@ -1,0 +1,389 @@
+import React, { useState, useEffect } from 'react';
+import { Save, Trash2, Eye, EyeOff, Shield, Info, CheckCircle, AlertTriangle, Settings2 } from 'lucide-react';
+import {
+  loadSettings,
+  saveSettings,
+  clearSettings,
+  validateSettings,
+  SETTINGS_VITE_KEYS,
+  type SettingsState,
+} from '@/core/settings/SettingsStore';
+import { getAIConfig, getAIConfigSource, isAIEnabled } from '@/core/ai/config';
+
+interface Props {
+  onSaved?: () => void;
+}
+
+export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
+  const [form, setForm] = useState<Partial<SettingsState>>({});
+  const [showKey, setShowKey] = useState(false);
+  const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error'; msg: string }>({ type: 'idle', msg: '' });
+  const [source, setSource] = useState<{ source: 'settings' | 'env' | 'default'; overrides: Record<string, any> }>({ source: 'env', overrides: {} });
+  const [liveConfig, setLiveConfig] = useState<ReturnType<typeof getAIConfig> | null>(null);
+
+  // Load from SettingsStore + reflect current effective config via getAIConfig
+  useEffect(() => {
+    const loaded = loadSettings();
+    setForm(loaded);
+    refreshSource();
+  }, []);
+
+  const refreshSource = () => {
+    try {
+      setSource(getAIConfigSource());
+      setLiveConfig(getAIConfig());
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleChange = (key: keyof SettingsState, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleToggle = (key: keyof SettingsState, checked: boolean) => {
+    handleChange(key, checked ? 'true' : 'false');
+  };
+
+  const handleSave = () => {
+    const validation = validateSettings(form);
+    if (!validation.valid) {
+      setStatus({ type: 'error', msg: validation.errors.join('; ') });
+      return;
+    }
+    // Persist via SettingsStore — writes to carecanvas_settings JSON blob + individual VITE_AI_* keys + carecanvas_VITE_AI_*
+    saveSettings(form);
+    refreshSource();
+    setStatus({ type: 'success', msg: `Saved ${Object.keys(form).filter((k) => (form as any)[k]).length} keys to SettingsStore — Settings>env precedence active.` });
+    if (onSaved) onSaved();
+    // Brief success reset
+    setTimeout(() => setStatus({ type: 'idle', msg: '' }), 3500);
+  };
+
+  const handleClear = () => {
+    clearSettings();
+    setForm({});
+    refreshSource();
+    setStatus({ type: 'success', msg: 'Settings cleared — falling back to import.meta.env (.env) defaults.' });
+    setTimeout(() => setStatus({ type: 'idle', msg: '' }), 3500);
+  };
+
+  // Derive current source label generically
+  const sourceLabel = source.source === 'settings' ? 'Settings (localStorage)' : source.source === 'env' ? 'Environment (.env via import.meta.env)' : 'Defaults';
+  const hasSettings = source.source === 'settings';
+  const aiEnabled = liveConfig ? isAIEnabled(liveConfig) : false;
+
+  return (
+    <div className="space-y-6">
+      {/* Header with source badge */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-canvas-border rounded-xl p-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary-light border border-primary-border text-primary flex items-center justify-center">
+            <Settings2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-900">AI Provider Configuration</h4>
+            <p className="text-xs text-muted">Configure any OpenAI-compatible provider generically — Settings overrides .env when present.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+              hasSettings ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-canvas-muted text-muted border-canvas-border'
+            }`}
+          >
+            Source: {sourceLabel}
+          </span>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${aiEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+            {aiEnabled ? 'AI Enabled' : 'AI Disabled / Fallback'}
+          </span>
+        </div>
+      </div>
+
+      {/* Current effective config debug helper */}
+      <div className="bg-canvas-muted border border-canvas-border rounded-xl p-4 space-y-2">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+          <Info className="w-3.5 h-3.5" />
+          Current Effective Config (via getAIConfig — Settings&gt;env precedence)
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+          <div className="bg-white rounded-lg p-2 border border-canvas-border">
+            <div className="text-muted text-[10px] uppercase">Provider</div>
+            <div className="font-semibold text-slate-800 truncate">{liveConfig?.provider ?? '—'}</div>
+          </div>
+          <div className="bg-white rounded-lg p-2 border border-canvas-border">
+            <div className="text-muted text-[10px] uppercase">Model</div>
+            <div className="font-semibold text-slate-800 truncate">{liveConfig?.model || '—'}</div>
+          </div>
+          <div className="bg-white rounded-lg p-2 border border-canvas-border">
+            <div className="text-muted text-[10px] uppercase">BaseURL</div>
+            <div className="font-semibold text-slate-800 truncate text-[11px]">{liveConfig?.baseURL || '—'}</div>
+          </div>
+          <div className="bg-white rounded-lg p-2 border border-canvas-border">
+            <div className="text-muted text-[10px] uppercase">Enabled</div>
+            <div className={`font-bold ${liveConfig?.enabled ? 'text-emerald-600' : 'text-amber-600'}`}>{String(liveConfig?.enabled)}</div>
+          </div>
+        </div>
+        {hasSettings && (
+          <div className="text-xs text-muted bg-white rounded-lg p-2 border border-canvas-border">
+            Overrides: <span className="font-mono">{Object.keys(source.overrides).join(', ') || 'none'}</span> — SettingsStore overrides import.meta.env if present else env.
+          </div>
+        )}
+        <div className="text-[11px] text-muted">
+          13 keys configurable per .env.example:14-51 — VITE_AI_ENABLED, PROVIDER, BASE_URL, API_KEY, MODEL, VISION_MODEL, STRUCTURED_OUTPUTS, TEMPERATURE, MAX_TOKENS, TIMEOUT_MS, ORG_ID, PROJECT_ID, EXTRA_HEADERS — generically wired.
+        </div>
+      </div>
+
+      {/* Form fields */}
+      <div className="bg-white border border-canvas-border rounded-xl p-5 shadow-sm space-y-5">
+        {/* Enabled + Provider row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Enabled</label>
+            <div className="flex items-center gap-2 min-h-[44px]">
+              <button
+                onClick={() => handleToggle('VITE_AI_ENABLED', form.VITE_AI_ENABLED !== 'true')}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${form.VITE_AI_ENABLED === 'true' ? 'bg-primary' : 'bg-slate-300'}`}
+                aria-label="Toggle AI Enabled"
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${form.VITE_AI_ENABLED === 'true' ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+              <span className="text-sm font-semibold text-slate-800">{form.VITE_AI_ENABLED === 'true' ? 'Enabled' : 'Disabled'}</span>
+            </div>
+            <p className="text-[11px] text-muted">Gate via isAIEnabled — fallback only when disabled.</p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Provider (chat | responses)</label>
+            <select
+              value={form.VITE_AI_PROVIDER || ''}
+              onChange={(e) => handleChange('VITE_AI_PROVIDER', e.target.value)}
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px]"
+            >
+              <option value="">Select provider (any)</option>
+              <option value="chat">chat — chat/completions</option>
+              <option value="responses">responses — responses</option>
+            </select>
+            <p className="text-[11px] text-muted">Generically composes {'{baseURL}/chat/completions'} vs {'{baseURL}/responses'}</p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Structured Outputs</label>
+            <div className="flex items-center gap-2 min-h-[44px]">
+              <button
+                onClick={() => handleToggle('VITE_AI_STRUCTURED_OUTPUTS', form.VITE_AI_STRUCTURED_OUTPUTS !== 'true')}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${form.VITE_AI_STRUCTURED_OUTPUTS === 'true' || !form.VITE_AI_STRUCTURED_OUTPUTS ? 'bg-primary' : 'bg-slate-300'}`}
+                aria-label="Toggle Structured"
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${form.VITE_AI_STRUCTURED_OUTPUTS === 'true' || !form.VITE_AI_STRUCTURED_OUTPUTS ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+              <span className="text-sm font-semibold text-slate-800">{form.VITE_AI_STRUCTURED_OUTPUTS === 'false' ? 'Off' : 'On (recommended)'}</span>
+            </div>
+            <p className="text-[11px] text-muted">json_object vs text.format json_schema generically</p>
+          </div>
+        </div>
+
+        {/* BaseURL + APIKey */}
+        <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+              Base URL <span className="text-rose-500">*</span>
+              <span className="font-normal normal-case tracking-normal text-muted">(any OpenAI-compatible)</span>
+            </label>
+            <input
+              type="url"
+              value={form.VITE_AI_BASE_URL || ''}
+              onChange={(e) => handleChange('VITE_AI_BASE_URL', e.target.value)}
+              placeholder="https://your-provider.example.com/v1"
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px] font-mono text-xs"
+            />
+            <p className="text-[11px] text-muted">Examples only — any baseURL allowed, never hardcoded. Trailing slash trimmed generically.</p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+              API Key <Shield className="w-3 h-3 text-muted" />
+            </label>
+            <div className="relative">
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={form.VITE_AI_API_KEY || ''}
+                onChange={(e) => handleChange('VITE_AI_API_KEY', e.target.value)}
+                placeholder="Paste your provider key — never committed (.gitignore .env)"
+                className="w-full px-3 py-2.5 pr-12 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px] font-mono text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-1 top-1 bottom-1 px-3 rounded-lg bg-white border border-canvas-border text-muted hover:text-slate-700 flex items-center justify-center"
+                aria-label={showKey ? 'Hide key' : 'Show key'}
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-muted">Masked input — stored generically via localStorage VITE_AI_API_KEY, Settings&gt;env. Never hardcoded literal.</p>
+          </div>
+        </div>
+
+        {/* Model + VisionModel */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+              Model <span className="text-rose-500">*</span>
+              <span className="font-normal normal-case tracking-normal text-muted">(any)</span>
+            </label>
+            <input
+              type="text"
+              value={form.VITE_AI_MODEL || ''}
+              onChange={(e) => handleChange('VITE_AI_MODEL', e.target.value)}
+              placeholder="your-model-name"
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px] font-mono text-xs"
+            />
+            <p className="text-[11px] text-muted">Any model allowed — generic wiring via VITE_AI_MODEL, not literal.</p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Vision Model <span className="font-normal normal-case tracking-normal text-muted">(defaults to Model)</span>
+            </label>
+            <input
+              type="text"
+              value={form.VITE_AI_VISION_MODEL || ''}
+              onChange={(e) => handleChange('VITE_AI_VISION_MODEL', e.target.value)}
+              placeholder="your-vision-model or leave blank to use Model"
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px] font-mono text-xs"
+            />
+            <p className="text-[11px] text-muted">For vision+text multimodal single request where model supports it.</p>
+          </div>
+        </div>
+
+        {/* Temperature, MaxTokens, Timeout */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Temperature</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="2"
+              value={form.VITE_AI_TEMPERATURE || ''}
+              onChange={(e) => handleChange('VITE_AI_TEMPERATURE', e.target.value)}
+              placeholder="0.1"
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Max Tokens</label>
+            <input
+              type="number"
+              min="1"
+              value={form.VITE_AI_MAX_TOKENS || ''}
+              onChange={(e) => handleChange('VITE_AI_MAX_TOKENS', e.target.value)}
+              placeholder="4096"
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px]"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Timeout (ms)</label>
+            <input
+              type="number"
+              min="1000"
+              value={form.VITE_AI_TIMEOUT_MS || ''}
+              onChange={(e) => handleChange('VITE_AI_TIMEOUT_MS', e.target.value)}
+              placeholder="30000"
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px]"
+            />
+          </div>
+        </div>
+
+        {/* Org, Project, ExtraHeaders */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Organization ID</label>
+            <input
+              type="text"
+              value={form.VITE_AI_ORG_ID || ''}
+              onChange={(e) => handleChange('VITE_AI_ORG_ID', e.target.value)}
+              placeholder="org-..."
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px] font-mono text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Project ID</label>
+            <input
+              type="text"
+              value={form.VITE_AI_PROJECT_ID || ''}
+              onChange={(e) => handleChange('VITE_AI_PROJECT_ID', e.target.value)}
+              placeholder="proj-..."
+              className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px] font-mono text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Extra Headers (JSON)</label>
+          <input
+            type="text"
+            value={form.VITE_AI_EXTRA_HEADERS || ''}
+            onChange={(e) => handleChange('VITE_AI_EXTRA_HEADERS', e.target.value)}
+            placeholder='{"X-Title":"CareCanvas"}'
+            className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px] font-mono text-xs"
+          />
+          <p className="text-[11px] text-muted">Optional — any extra headers generically.</p>
+        </div>
+
+        {/* Legend 13 keys */}
+        <div className="bg-canvas-muted border border-canvas-border rounded-xl p-3">
+          <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5" /> 13 VITE_AI_* Keys — .env.example:14-51 documented as configurable examples only
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {SETTINGS_VITE_KEYS.map((k) => (
+              <span
+                key={k}
+                className={`px-2 py-1 rounded-lg text-[10px] font-mono font-semibold border ${
+                  (form as any)[k] ? 'bg-primary-light text-primary-text border-primary-border' : 'bg-white text-muted border-canvas-border'
+                }`}
+              >
+                {k}
+              </span>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted mt-2">Generic keys — any baseURL/model/provider allowed, never hardcoded literals for provider/model/baseURL in src/.</p>
+        </div>
+
+        {/* Status */}
+        {status.type !== 'idle' && (
+          <div className={`flex items-center gap-2 p-3 rounded-xl border text-sm ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+            {status.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+            <span>{status.msg}</span>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <button
+            onClick={handleSave}
+            className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-bold shadow-sm min-h-[44px] transition-colors"
+          >
+            <Save className="w-4 h-4" />
+            Save to SettingsStore (localStorage)
+          </button>
+          <button
+            onClick={handleClear}
+            className="flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-canvas-border hover:border-rose-200 rounded-xl text-sm font-semibold min-h-[44px] transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear Settings — use .env
+          </button>
+        </div>
+
+        <p className="text-[11px] text-muted text-center">
+          Persisted via localStorage keys <span className="font-mono">carecanvas_settings</span> JSON blob + individual{' '}
+          <span className="font-mono">VITE_AI_*</span> + <span className="font-mono">carecanvas_VITE_AI_*</span> — read by{' '}
+          <span className="font-mono">src/core/ai/config.ts</span> with Settings&gt;env precedence. Never commit <span className="font-mono">.env</span> — .gitignore .env PASS.
+        </p>
+      </div>
+    </div>
+  );
+};

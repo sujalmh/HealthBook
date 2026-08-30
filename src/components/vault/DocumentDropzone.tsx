@@ -23,26 +23,38 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
     return '';
   })() || 'patient-unknown';
 
-  const handleRealExtract = async (file: File, rawText: string) => {
+  const handleRealExtract = async (file: File, rawText: string, imageDataUrl?: string) => {
     setIsExtracting(true);
     try {
       const documentId = `doc_${Date.now()}_${file.name.replace(/[^a-z0-9.-]/gi, '_')}`;
+      const docType = file.type.includes('pdf') ? 'general_pdf' : file.type.includes('image') ? 'lab_slip_photo' : 'general_pdf';
       await localVault.addDocument({
         id: documentId,
         patientId: effectivePatientId,
         fileName: file.name,
         name: file.name,
-        docType: (file.type.includes('pdf') ? 'general_pdf' : file.type.includes('image') ? 'lab_slip_photo' : 'general_pdf') as any,
+        docType: docType as any,
         pageCount: 1,
         uploadTimestamp: new Date().toISOString(),
         extractedFactIds: [],
       });
 
-      const result = await webMCPEngine.execute('extract_fact', {
+      // Wire FileReader real file — if image (data URL) send as imageDataUrl + text together to extract_fact via AI multimodal; if PDF/text send rawText; call webMCPEngine.execute('extract_fact', {documentId, rawText, imageBlob?, docType}) with vision
+      // Single multimodal request when image present: rawText + imageDataUrl together (image_url vs input_image handled generically by AI client based on VITE_AI_PROVIDER)
+      const execParams: any = {
         documentId,
-        rawText,
+        rawText: rawText || '',
+        docType,
         documentType: file.type,
-      });
+      };
+      if (imageDataUrl && (imageDataUrl.startsWith('data:image') || imageDataUrl.length > 5000)) {
+        execParams.imageBlob = imageDataUrl;
+        execParams.imageDataUrl = imageDataUrl;
+        // Also include rawText alongside image for vision+text single response where model supports it
+        if (rawText && rawText.trim().length > 0) execParams.rawText = rawText;
+      }
+
+      const result = await webMCPEngine.execute('extract_fact', execParams);
 
       eventBus.dispatchToast({
         type: 'success',
@@ -77,27 +89,59 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const result = reader.result as string;
-      // For PDFs, read as text; for images, get dataURL treated as imageBlob stub
-      const rawText = result || file.name;
-      await handleRealExtract(file, rawText);
-    };
-    reader.onerror = () => {
-      eventBus.dispatchToast({
-        type: 'error',
-        title: 'Read Error',
-        message: 'Could not read file.',
-      });
-    };
+    const isImage = file.type.startsWith('image/') || file.name.match(/\.(jpe?g|png)$/i);
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
-    // For text/pdf try readAsText, for images readAsDataURL
-    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-      reader.readAsText(file);
-    } else if (file.type.startsWith('image/')) {
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const result = reader.result as string;
+        // For images, result is data URL (vision input) — send as imageDataUrl + text together single multimodal request
+        // If image contains embedded text, we could also attempt OCR text extraction via reading as text? But vision+text single response handles both
+        const imageDataUrl = result || '';
+        // Send empty rawText plus imageDataUrl for AI multimodal single request (client will compose image_url or input_image generically)
+        await handleRealExtract(file, '', imageDataUrl);
+      };
+      reader.onerror = () => {
+        eventBus.dispatchToast({
+          type: 'error',
+          title: 'Read Error',
+          message: 'Could not read file.',
+        });
+      };
       reader.readAsDataURL(file);
+    } else if (isPdf) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const result = reader.result as string;
+        // For PDFs, attempt to read as text; if binary, fallback to name
+        // Note: readAsText for PDF will be garbled binary; we treat as rawText but AI vision not needed for PDFs (text path)
+        const rawText = result || file.name;
+        await handleRealExtract(file, rawText);
+      };
+      reader.onerror = () => {
+        eventBus.dispatchToast({
+          type: 'error',
+          title: 'Read Error',
+          message: 'Could not read file.',
+        });
+      };
+      // Try readAsText for PDFs; if fails, readAsDataURL could be used for vision but PDF text path preferred per spec: if PDF/text send rawText
+      reader.readAsText(file);
     } else {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const result = reader.result as string;
+        const rawText = result || file.name;
+        await handleRealExtract(file, rawText);
+      };
+      reader.onerror = () => {
+        eventBus.dispatchToast({
+          type: 'error',
+          title: 'Read Error',
+          message: 'Could not read file.',
+        });
+      };
       reader.readAsText(file);
     }
   };
