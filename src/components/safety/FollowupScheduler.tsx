@@ -14,6 +14,7 @@ import {
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface FollowupSchedulerProps {
   isOpen: boolean;
@@ -98,8 +99,8 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-xl w-full shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+    <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Order direct clinical follow-up">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-canvas-border bg-canvas-card gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -257,6 +258,6 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

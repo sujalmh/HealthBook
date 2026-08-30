@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { Utensils, X, AlertCircle, Info, Sparkles } from 'lucide-react';
 import type { DietBadge } from '../../types/pillmap.ts';
+import { ModalPortal } from '../common/ModalPortal';
 
 export interface MealBadgesProps {
   withFood?: boolean;
@@ -179,12 +180,9 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
       </div>
 
       {/* Modal on click */}
-      {selectedBadge && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
+      <ModalPortal isOpen={!!selectedBadge} onClose={() => setSelectedBadge(null)} ariaLabel={selectedBadge?.title || 'Dietary guidance'}>
+        {selectedBadge && (
+          <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
             <div className="p-4 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{selectedBadge.icon}</span>
@@ -214,8 +212,8 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </ModalPortal>
     </>
   );
 };

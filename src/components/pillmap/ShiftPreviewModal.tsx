@@ -7,6 +7,7 @@
 import React from 'react';
 import { Clock, ArrowRight, CheckCircle2, XCircle, Sparkles, ShieldCheck, AlertCircle } from 'lucide-react';
 import type { ScheduleSuggestionResult, Chronotype } from '../../types/pillmap.ts';
+import { ModalPortal } from '../common/ModalPortal';
 
 export interface ShiftPreviewModalProps {
   suggestion: ScheduleSuggestionResult;
@@ -26,8 +27,8 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-canvas-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
+    <ModalPortal isOpen={true} onClose={onReject} ariaLabel="Intelligent Schedule Optimizer">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
         {/* Header */}
         <div className="p-4 sm:p-6 bg-gradient-to-r from-emerald-50 via-canvas-muted to-sky-50 border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -127,6 +128,6 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

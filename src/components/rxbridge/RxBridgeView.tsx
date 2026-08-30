@@ -309,19 +309,19 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Module Title */}
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/25">
+            <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
               <FileCheck2 className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-black tracking-tight text-slate-900">
+                <h2 className="text-xl font-bold tracking-tight text-slate-900">
                   Medicine Review
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono font-bold text-xs border border-purple-500/40">
+                <span className="px-2.5 py-0.5 rounded-full bg-primary-light text-primary-text font-bold text-caption border border-primary-border">
                   Before / Hospital / Now
                 </span>
               </div>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-muted">
                 Check what changed after your hospital stay — approve each medicine in plain language before it goes to your weekly box.
               </p>
             </div>
@@ -361,21 +361,21 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           </div>
 
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-            <div className="text-caption font-mono text-clinical-emerald uppercase font-bold">Approved status</div>
-            <div className="text-base font-black text-clinical-emerald mt-1">
-              {totalApproved}/{reconciledItems.length} ({progressPercent}%)
-            </div>
+            <div className="text-caption font-mono text-clinical-emerald uppercase font-bold">Approved</div>
+            <div className="text-xl font-black text-clinical-emerald mt-0.5">{totalApproved}/{reconciledItems.length}</div>
           </div>
         </div>
+      </div>
 
-        {/* Action & View Mode Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-canvas-border">
-          {/* View Mode Toggle */}
-          <div className="flex items-center bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm">
+      {/* Main Mode Switcher + Action Bar */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Table vs Walk mode toggle */}
+          <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm shadow-xs">
             <button
               onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold transition-all min-h-[40px] ${
-                viewMode === 'table' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold transition-all min-h-[36px] ${
+                viewMode === 'table' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
               <TableIcon className="w-4 h-4" />
@@ -383,17 +383,18 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             </button>
             <button
               onClick={() => setViewMode('walk')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold transition-all min-h-[40px] ${
-                viewMode === 'walk' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold transition-all min-h-[36px] ${
+                viewMode === 'walk' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
               <Bot className="w-4 h-4" />
               <span>Step-by-Step</span>
             </button>
           </div>
+        </div>
 
-          {/* Key Actions */}
-          <div className="flex flex-wrap items-center gap-2">
+        {/* Key Actions */}
+        <div className="flex flex-wrap items-center gap-2">
             {/* Teach-Back Button */}
             <button
               onClick={() => setIsTeachBackOpen(true)}
@@ -432,7 +433,6 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             </button>
           </div>
         </div>
-      </div>
 
       {/* Main View Mode Component */}
       {viewMode === 'table' ? (

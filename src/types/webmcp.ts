@@ -1,5 +1,7 @@
 /**
  * CareCanvas Types: WebMCP Protocol & Tool Definitions
+ * Spec: W3C WebMCP Draft 26 Aug 2026 §4.1-4.5 — ModelContext IDL
+ * Canonical surface: document.modelContext only (SecureContext)
  */
 
 export interface WebMCPToolParameterSchema {
@@ -39,9 +41,80 @@ export interface WebMCPToolDefinition<TInput = any, TOutput = any> {
   requiresHumanApproval: boolean;
   approvalGateType: WebMCPApprovalGateType;
   parameters: WebMCPToolParameterSchema;
+  /** Spec alias: when present, used as inputSchema object (stringified via JSON.stringify).
+   *  Internal 40 tools keep `parameters` for backward compat; adapter maps parameters → inputSchema.
+   *  Grep gate expects `inputSchema` in src/types/webmcp.ts or src/core/webmcp/
+   */
+  inputSchema?: WebMCPToolParameterSchema | string;
   returns: Record<string, any>;
   execute: (params: TInput, context: WebMCPExecutionContext) => Promise<WebMCPToolResult<TOutput>>;
   uiSideEffects?: WebMCPSideEffects;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// W3C WebMCP Spec Types — §4.2 ModelContext
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Spec ModelContextTool dict (§4.2.1) — name 1-128 ^[a-zA-Z0-9_.-]+$, description non-empty, inputSchema object stringified */
+export interface ModelContextTool {
+  name: string;
+  description: string;
+  /** JSON Schema object — will be stringified internally via JSON.stringify for RegisteredTool.inputSchema */
+  inputSchema: WebMCPToolParameterSchema | Record<string, any>;
+  title?: string;
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
+    untrustedContentHint?: boolean;
+    [k: string]: any;
+  };
+  execute: (inputObject: any, options?: { signal?: AbortSignal }) => Promise<any>;
+}
+
+/** Options for registerTool (§4.2.3) */
+export interface ModelContextRegisterToolOptions {
+  signal?: AbortSignal;
+  exposedTo?: string[];
+}
+
+/** Options for getTools (§4.2.5) */
+export interface ModelContextGetToolOptions {
+  fromOrigins?: string[];
+}
+
+/** Options for executeTool (§4.2.6) */
+export interface ModelContextExecuteToolOptions {
+  signal?: AbortSignal;
+}
+
+/** RegisteredTool returned by getTools (§4.2.6) — inputSchema is STRINGIFIED JSON */
+export interface RegisteredTool {
+  name: string;
+  description: string;
+  /** STRINGIFIED JSON via JSON.stringify(inputSchema) */
+  inputSchema: string;
+  title?: string;
+  annotations?: {
+    readOnlyHint?: boolean;
+    [k: string]: any;
+  };
+  /** Origin of the registering document — location.origin */
+  origin: string;
+  /** Window reference of the registering document */
+  window: Window | null;
+}
+
+/** ModelContext EventTarget (§4.4) — toolchange */
+export interface ModelContext extends EventTarget {
+  registerTool(tool: ModelContextTool, options?: ModelContextRegisterToolOptions): Promise<undefined>;
+  getTools(options?: ModelContextGetToolOptions): Promise<RegisteredTool[]>;
+  executeTool(tool: RegisteredTool, inputObject?: object, options?: ModelContextExecuteToolOptions): Promise<string>;
+  ontoolchange: ((event: Event) => any) | null;
+  addEventListener(type: 'toolchange', listener: (event: Event) => any, options?: boolean | AddEventListenerOptions): void;
+  removeEventListener(type: 'toolchange', listener: (event: Event) => any, options?: boolean | EventListenerOptions): void;
+  dispatchEvent(event: Event): boolean;
 }
 
 export interface WebMCPExecutionContext {

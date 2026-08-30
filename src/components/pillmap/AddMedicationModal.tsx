@@ -4,8 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { Pill, Plus, X, Sparkles, Check, Clock, Utensils } from 'lucide-react';
+import { Pill, X, Plus } from 'lucide-react';
 import type { TimeSlot, DayOfWeek } from '../../types/pillmap.ts';
+import { ModalPortal } from '../common/ModalPortal';
 import { DAYS_OF_WEEK, TIME_SLOTS } from '../../types/pillmap.ts';
 import { ClinicalInteractionEngine } from '../../core/knowledge/interactionEngine.ts';
 
@@ -102,8 +103,8 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
+    <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Add Medication to Pillbox">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-primary to-accent border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -269,6 +270,6 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Printer, Copy, Check, X, FileText, ShieldAlert, CheckCircle2, Award } from 'lucide-react';
 import type { PharmacistExportBundle, PillboxGrid } from '../../types/pillmap.ts';
 import { DAYS_OF_WEEK, TIME_SLOTS } from '../../types/pillmap.ts';
+import { ModalPortal } from '../common/ModalPortal';
 
 export interface PharmacistExportModalProps {
   bundle: PharmacistExportBundle;
@@ -30,8 +31,8 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-canvas-border rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-lg overflow-hidden animate-scale-up">
+    <ModalPortal isOpen={true} onClose={onClose} ariaLabel="1-Page Pharmacist Consultation & Regimen Map">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden mx-auto">
         {/* Modal Top Control Bar */}
         <div className="p-3.5 sm:p-4 bg-canvas-muted border-b border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -204,6 +205,6 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

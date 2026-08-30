@@ -16,6 +16,7 @@ import {
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface UploadLabModalProps {
   isOpen: boolean;
@@ -156,8 +157,8 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-canvas-border rounded-2xl max-w-2xl w-full shadow-lg overflow-hidden flex flex-col max-h-[90vh]">
+    <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Upload Remote Lab Slip">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] mx-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-canvas-border bg-white">
           <div className="flex items-center gap-3">
@@ -345,6 +346,6 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

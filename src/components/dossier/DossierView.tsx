@@ -171,8 +171,8 @@ export const DossierView: React.FC<DossierViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-heading-lg text-slate-900">For My Doctor</h2>
-              <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border uppercase">
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">For My Doctor</h2>
+              <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
                 Share all at once
               </span>
             </div>
@@ -255,13 +255,13 @@ export const DossierView: React.FC<DossierViewProps> = ({
       </div>
 
       {/* Navigation Sub-Tabs — pill, tokenized */}
-      <div className="flex items-center gap-1 bg-canvas-card p-1 rounded-xl border border-canvas-border text-body-sm max-w-full overflow-x-auto scrollbar-none shadow-sm">
+      <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm max-w-full overflow-x-auto scrollbar-none shadow-xs">
         <button
           onClick={() => setActiveTab('timeline')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[36px] ${
             activeTab === 'timeline'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
-              : 'text-slate-600 hover:text-slate-800'
+              ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+              : 'text-muted hover:text-slate-900 border border-transparent'
           }`}
         >
           <Clock className="w-4 h-4" />
@@ -270,10 +270,10 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
         <button
           onClick={() => setActiveTab('snapshot')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[36px] ${
             activeTab === 'snapshot'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
-              : 'text-slate-600 hover:text-slate-800'
+              ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+              : 'text-muted hover:text-slate-900 border border-transparent'
           }`}
         >
           <AlertOctagon className="w-4 h-4" />
@@ -282,10 +282,10 @@ export const DossierView: React.FC<DossierViewProps> = ({
 
         <button
           onClick={() => setActiveTab('source_inspector')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[36px] ${
             activeTab === 'source_inspector'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
-              : 'text-slate-600 hover:text-slate-800'
+              ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+              : 'text-muted hover:text-slate-900 border border-transparent'
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -296,7 +296,7 @@ export const DossierView: React.FC<DossierViewProps> = ({
           onClick={() => {
             setIsDoctorAccessModalOpen(true);
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all text-slate-600 hover:text-slate-800 whitespace-nowrap min-h-[40px]`}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-bold transition-all text-muted hover:text-slate-900 whitespace-nowrap min-h-[36px] border border-transparent`}
         >
           <KeyRound className="w-4 h-4" />
           <span>Share Settings</span>

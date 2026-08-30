@@ -64,26 +64,22 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
 
   const pageUrl = href || origin || 'https://carecanvas.local';
   const mcpEndpoint = pageUrl;
-  const globalObjects = ['window.modelContext', 'navigator.modelContext', 'document.modelContext', 'window.__CareCanvas_WebMCP__'];
-  const codeList = `// 1. Check availability
-if (window.modelContext || navigator.modelContext) {
-  console.log('WebMCP ready');
+  const globalObjects = ['document.modelContext'];
+  const codeList = `if (typeof document !== 'undefined' && document.modelContext) {
+  console.log('WebMCP ready via document.modelContext');
 }
-
-// 2. List all tools (${toolCount} registered)
-const tools = await (window.modelContext || window.__CareCanvas_WebMCP__).getRegisteredTools();
+// List all tools (${toolCount} registered)
+const tools = await document.modelContext.getTools();
 console.log(tools.map(t => t.name));
+// Execute a tool (example: extract_fact)
+const t = tools.find(x=>x.name==='extract_fact');
+const raw = await document.modelContext.executeTool(t, {documentId:'doc-example-001', rawText:'Apixaban 5mg twice daily...'});
+console.log(JSON.parse(raw));`;
 
-// 3. Execute a tool (example: extract_fact)
-const result = await (window.modelContext || window.__CareCanvas_WebMCP__).executeTool(
-  'extract_fact',
-  { documentId: 'doc-example-001', rawText: 'Apixaban 5mg twice daily...' }
-);`;
-
-  const codeExecute = `await window.modelContext.executeTool('compile_health_record', {
-  patientId: 'your-patient-id',
-  sections: ['all']
-});`;
+  const codeExecute = `const tools = await document.modelContext.getTools();
+const t = tools.find(x=>x.name==='compile_health_record');
+const raw = await document.modelContext.executeTool(t, {patientId:'your-patient-id', sections:['all']});
+console.log(JSON.parse(raw));`;
 
   return (
     <div
@@ -180,7 +176,7 @@ const result = await (window.modelContext || window.__CareCanvas_WebMCP__).execu
               <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 space-y-2 shadow-sm">
                 <div className="w-7 h-7 rounded-lg bg-primary-light border border-primary-border text-primary flex items-center justify-center font-bold text-xs">2</div>
                 <p className="text-body-sm font-bold text-slate-900">Access modelContext</p>
-                <p className="text-caption text-muted leading-relaxed">In DevTools console or AI agent, check <code className="font-mono bg-canvas-muted px-1 rounded">window.modelContext</code>.</p>
+                <p className="text-caption text-muted leading-relaxed">In DevTools console or AI agent, check <code className="font-mono bg-canvas-muted px-1 rounded">document.modelContext</code>.</p>
               </div>
               <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 space-y-2 shadow-sm">
                 <div className="w-7 h-7 rounded-lg bg-primary-light border border-primary-border text-primary flex items-center justify-center font-bold text-xs">3</div>

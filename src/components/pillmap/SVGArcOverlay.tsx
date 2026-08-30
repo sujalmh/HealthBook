@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { AlertCircle, AlertTriangle, Info, X, ShieldAlert, Sparkles } from 'lucide-react';
 import type { InteractionArc, ArcCoordinate, DayOfWeek, TimeSlot } from '../../types/pillmap.ts';
+import { ModalPortal } from '../common/ModalPortal';
 
 /**
  * Pure helper to compute an SVG cubic bezier path string between two 2D points.
@@ -244,9 +245,9 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
       </svg>
 
       {/* Slide-over / Modal Clinical Mechanism Sheet */}
-      {selectedArc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
+      <ModalPortal isOpen={!!selectedArc} onClose={() => setSelectedArc(null)} ariaLabel="Drug Interaction Details">
+        {selectedArc && (
+          <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
             {/* Header */}
             <div
               className={`p-4 border-b flex items-center justify-between ${
@@ -286,17 +287,17 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             </div>
 
             {/* Content */}
-            <div className="p-4 sm:p-6 space-y-4 text-slate-800 text-body">
-              <div className="bg-canvas-muted p-3.5 rounded-xl border border-canvas-border space-y-1">
-                <span className="text-caption tracking-wide uppercase text-muted font-bold">
+            <div className="p-4 sm:p-6 space-y-4 text-body text-slate-800">
+              <div className="bg-canvas-muted p-3.5 sm:p-4 rounded-xl border border-canvas-border">
+                <span className="text-caption uppercase tracking-wider text-muted font-bold block mb-1">
                   Clinical Mechanism
                 </span>
-                <p className="text-slate-900 leading-relaxed font-medium text-body-sm sm:text-body">
+                <p className="text-body-sm sm:text-body text-slate-900 leading-relaxed font-medium">
                   {selectedArc.mechanism}
                 </p>
               </div>
 
-              <div className="bg-sky-50 p-3.5 rounded-xl border border-sky-200 space-y-1">
+              <div className="bg-sky-50 p-3.5 sm:p-4 rounded-xl border border-sky-200 space-y-1.5">
                 <span className="text-caption tracking-wide uppercase text-sky-700 font-bold flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" /> Recommended Clinical Action
                 </span>
@@ -323,8 +324,8 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </ModalPortal>
     </>
   );
 };

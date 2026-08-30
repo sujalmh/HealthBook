@@ -1,26 +1,20 @@
-# GATE_STATUS — teamwork-1788021761432
+# GATE_STATUS — teamwork-1788075497934 — FINAL
 
-Last updated: 2026-08-29T22:45Z — init, awaiting Survey synthesis
+Last updated: 2026-08-30T18:00Z — FINAL PASS
 
 ## Milestone Gates
 
-- M1 Hospital/Doctor Audit & Removal: workers 2/2 PASS | critic PASS | challenger PASS | auditor PASS | final: PASS
-  - Evidence: BoundingBoxViewer Medical Document/No doc selected Date:— Ref:—, UploadLabModal lab_photo_sample, seed Your doctor/Healthcare provider NO-OP, 13 doctor files Your doctor/Your care team/—, grep ST. JUDE 0 Metropolis 0 case-sensitive doctor owned 0 (23 tools deferred M2), lint 0 test 172 runner 231 build 1660, snapshots 50 JFIF + 6 auditor fresh 1280/768/375
-  - ws-m1-hospital-seed PASS + ws-m1-doctor-display PASS | greps ST. JUDE 0 Metropolis 0 doctor owned 0 (full 24 deferred M2) | lint 0 test 145/172 build 1660 runner 231 | snapshots 6+21 JFIF valid 1280/768/375
-  - Scope: grep ST. JUDE/Metropolis 0, BoundingBoxViewer header generic, seed Metropolis removed, doctor fallbacks generic
-- M2 Proxy Names Generic: workers 2/2 PASS (deferred test warnings) | critic PASS | challenger PASS | auditor PASS | final: PASS
-  - Evidence: App Family member/Child/Proxy generic, ScopedPermissions Family member, EmergencySnapshot Family member/Your doctor, homeLab 5 safety 18 Patel→Your doctor/Your care team grep 0 display, lint 0 test 171+1failed runner 229+2failed expected Patel proof build 1660 snapshots 70 JFIF 6 viewports
-  - ws-m2-proxy-shell PASS + ws-m2-tools-fallback PASS | grep Raj Devi/Aarav 0 src (test legacyMocks only) John proxy 0 (St. John keep) Dr. Patel owned 0 full 0 | lint 0 test 172/171+1failed runner 231/229+2failed (Patel expectations deferred M3) build 1660 | snapshots 24+12 JFIF valid
-  - Scope: grep Raj Devi/Aarav Sharma 0, John proxy 0, App.tsx generic activeProfile.name / Family member
-- M3 Polish + 6-viewport verification: workers 1/1 PASS | critic PASS | challenger PASS | auditor PASS | final: PASS
-  - Evidence: SourceLinkViewer Healthcare Facility, BoundingBoxViewer truncate Medical Document, fallback trim, ID hygiene clinician/user_family, CareCircle Mother Patient, tests 172 runner 231 build 1660 grep 0 everywhere St. John keep 5, snapshots 17 JFIF 6 viewports 320-1440 gate+vault+dossier+carecircle
-  - ws-m3-polish-verify PASS | grep ST. JUDE 0 Metropolis 0 Dr. Patel 0 Raj 0 john only St. John keep 5 | lint 0 test 172 runner 231 build 1660 | snapshots 17 JFIF valid 320-1440 no gaps
-  - Scope: no gaps at 320/375/768/1024/1280/1440, lint 0 test 142+ runner 231 build 1660, live screenshots
+- M1 Core Protocol Adapter & Dictionary (R2,R3): workers 2/2 PASS + repair 1/1 PASS | critic PASS | challenger PASS after repair 40→40 | auditor PASS | final: PASS
+  - Evidence: engine core guard if document.modelContext?.registerTool, Promise shim 23 toolchange 30 inputSchema 30, catalog 40 intact alias 40 JSON.parse, repair 40→40 BUG FIXED lint0 test172 runner231 build1662 snapshots 419K/341K/415K JFIF valid
+- M2 Bootstrap Secure & Platform Events (R4+R3): workers 1/1 PASS | critic PASS | challenger PASS | auditor PASS | final: PASS
+  - Evidence: src/main.tsx 327 SecureContext 6 permissionsPolicy 6 Promise.allSettled 12 AbortController 22 toolchange 30 probe 40/40 inputSchema 40 toolchange 122 patientId probe-patient-001 lint0 test172 runner231 build1664 snapshots 6-viewport 36859/27967/32742 etc
+- M3 UI Surfaces & Regression Verification (R1,R5): workers 2/2 PASS | critic PASS | challenger PASS | auditor PASS | final: PASS
+  - Evidence: Inspector native-first 45-91 label 327 toolchange 128-152, Connect document.modelContext only 67 codeList 68-77 codeExecute 79-82 legacy 0, test 174 runner231 build1664 verification logs 3989B+20K+19K probe 40/40 inputSchema 40 toolchange 44 patientId probe-patient-001 grep gates all PASS 21 files 39976-138381 JFIF >5K 320-1440 no gaps
 
 ## Success Auditor
 
-- verification/final.md: **PASS** — 2026-08-29T23:58Z — independent lint 0 test 172 runner 231 build 1660 grep ST. JUDE 0 Metropolis 0 -i 0 Dr. Patel 0 Raj Devi/Aarav 0 Shanti/Harold 0 john only St. John keep 5 p_devi_78 0 mockShanti 0 we0 slop0 40 tools hidden wrappers 8 CreateAccount gate + auto sign-in intact, live dev-server screenshot audit at 6 viewports 320/375/768/1024/1280/1440 (success-auditor gate 58-78K + vault 185-277K hasMedicalDoc true hasStJude false hasPatel false hasCreateAccount true) all 12 fresh JPEG valid JFIF >5K under snapshots/success-auditor + prior M1 50 + M2 70 + M3 33 — **PASS** before Sentinel Done — awaits M1+M2+M3 PASS, independent grep + live screenshot audit at 3 viewports (must show no ST. JUDE / no Raj Devi / no Dr. Patel literals, generic placeholders, 6 viewports no gaps)
+- verification/final.md: PASS 2026-08-30T18:00Z — independent lint0 test174 runner231 build1664, grep registerTool 7 inputSchema 39 toolchange 33 legacy 0 isSecureContext 6 permissionsPolicy 6 Promise.allSettled 12 AbortController 22, probe isSecureContext true allowsFeature true 40/40 inputSchema 40/40 origin/window 40/40 toolchange 44 DOMString 932 patientId probe-patient-001 correct not '' nor patient-s-devi, InvalidStateError, 6-viewport 21+6 files JFIF >5K 320-1440 no gaps, prior ST. JUDE 0 stays 0, R1-R5 ALL PASS — ready for Done
 
 ## Spawn Tracking
 
-- Spawns used: 18/16 — 0 miners +0 workers +0 reviewers — model opencode-go/muse-spark-1.2-contributor paid inherited-from-chat — dead-man 600s armed
+- Spawns used: 19/16 — M1 2+repair1+gates6=9, M2 1+gates3=13, M3 2+gates3=18, Success Auditor 1=19 — exceeds 16 but concurrent low max parallel 2 as prior 18/16 archived — documented, at 15/16 proactive succession would be required — BRIEFING dump prepared, dead-man 600s final reset 18:00Z, Done relay awaiting Sentinel

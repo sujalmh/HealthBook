@@ -85,7 +85,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-heading-lg text-slate-900">Family</h2>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">Family</h2>
               <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
                 Trusted helpers
               </span>
@@ -100,7 +100,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsPermissionsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-md shadow-primary/20"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-sm"
           >
             <KeyRound className="w-4 h-4" />
             <span>Manage Access</span>
@@ -115,13 +115,13 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
       />
 
       {/* Sub-Navigation Tabs — pill, tokenized */}
-      <div className="flex items-center gap-1 bg-canvas-card p-1 rounded-xl border border-canvas-border text-body-sm max-w-full overflow-x-auto scrollbar-none shadow-sm">
+      <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm max-w-full overflow-x-auto scrollbar-none shadow-xs">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[36px] ${
             activeTab === 'overview'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
-              : 'text-slate-600 hover:text-slate-800'
+              ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+              : 'text-muted hover:text-slate-900 border border-transparent'
           }`}
         >
           Family List
@@ -129,10 +129,10 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
         <button
           onClick={() => setActiveTab('multi_patient')}
-          className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[36px] ${
             activeTab === 'multi_patient'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
-              : 'text-slate-600 hover:text-slate-800'
+              ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+              : 'text-muted hover:text-slate-900 border border-transparent'
           }`}
         >
           Everyone I Care For
@@ -140,10 +140,10 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
         <button
           onClick={() => setActiveTab('audit_log')}
-          className={`px-4 py-2 rounded-xl font-bold transition-all whitespace-nowrap min-h-[40px] ${
+          className={`px-3.5 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[36px] ${
             activeTab === 'audit_log'
-              ? 'bg-primary text-white shadow-md shadow-primary/20'
-              : 'text-slate-600 hover:text-slate-800'
+              ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+              : 'text-muted hover:text-slate-900 border border-transparent'
           }`}
         >
           History

@@ -16,6 +16,7 @@ import type { DangerSymptomTag } from '@/types/safety';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface DangerSignModalProps {
   isOpen: boolean;
@@ -136,8 +137,8 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+    <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Report red-flag danger signs">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-canvas-border bg-rose-50 gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -310,6 +311,6 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

@@ -85,7 +85,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-heading-lg text-slate-900">Get Help</h2>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">Get Help</h2>
               <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200">
                 Urgent
               </span>
@@ -100,39 +100,39 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setIsDangerModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-black transition-all shadow-lg shadow-rose-600/30 animate-pulse min-h-[44px] w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 min-h-[44px] w-full sm:w-auto"
           >
             <AlertTriangle className="w-4 h-4" />
             <span>I need help now</span>
           </button>
 
-          <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border overflow-x-auto scrollbar-none max-w-full">
+          <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border overflow-x-auto scrollbar-none max-w-full shadow-xs">
             <button
               onClick={() => setActiveTab('patient_safety')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
                 activeTab === 'patient_safety'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-slate-600 hover:text-slate-800'
+                  ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+                  : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
               What to do
             </button>
             <button
               onClick={() => setActiveTab('doctor_triage')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
                 activeTab === 'doctor_triage'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-slate-600 hover:text-slate-800'
+                  ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+                  : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
               Doctor's Actions
             </button>
             <button
               onClick={() => setActiveTab('calendar')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[40px] ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
                 activeTab === 'calendar'
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'text-slate-600 hover:text-slate-800'
+                  ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+                  : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
               My Appointments

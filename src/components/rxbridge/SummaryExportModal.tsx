@@ -21,6 +21,7 @@ import {
   Check
 } from 'lucide-react';
 import type { PatientHomeSummaryExport } from '../../types/rxbridge.ts';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface SummaryExportModalProps {
   summary: PatientHomeSummaryExport;
@@ -52,8 +53,8 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in print:p-0 print:bg-white">
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-xl space-y-6 max-h-[90vh] overflow-y-auto print:max-h-none print:border-none print:shadow-none print:p-0 print:bg-white print:text-black">
+    <ModalPortal isOpen={true} onClose={onClose} ariaLabel="1-Page Patient Discharge Home Summary">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto print:max-h-none print:border-none print:shadow-none print:p-0 print:bg-white print:text-black mx-auto">
         {/* Action Header (Hidden in Print) */}
         <div className="border-b border-slate-200 pb-4 space-y-3 print:hidden">
           <div className="flex items-start justify-between gap-3">
@@ -281,6 +282,6 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

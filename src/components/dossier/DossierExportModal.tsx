@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { CompiledHealthRecord } from '@/types/dossier';
 import { eventBus } from '@/core/events/eventBus';
+import { ModalPortal } from '../common/ModalPortal';
 
 interface DossierExportModalProps {
   isOpen: boolean;
@@ -125,8 +126,8 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-3xl w-full p-4 sm:p-8 shadow-xl space-y-5 sm:space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto">
+    <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Export clinical dossier package">
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-3xl w-full p-4 sm:p-8 shadow-2xl space-y-5 sm:space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4 gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -287,6 +288,6 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </ModalPortal>
   );
 };

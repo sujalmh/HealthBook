@@ -42,8 +42,53 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
   const [catalogFilterModule, setCatalogFilterModule] = useState<string>('all');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
-  const refreshData = () => {
-    setTools(webMCPEngine.getRegisteredTools());
+  const refreshData = async () => {
+    // Try native first: document.modelContext.getTools() Promise spec §4.2, fallback to engine sync for polyfill parity
+    let nextTools: WebMCPToolDefinition[] | null = null;
+    try {
+      if (typeof document !== 'undefined' && (document as any).modelContext?.getTools) {
+        const nativeTools: any[] = await (document as any).modelContext.getTools();
+        if (Array.isArray(nativeTools) && nativeTools.length > 0) {
+          const byName = new Map(webMCPEngine.getRegisteredTools().map((t) => [t.name, t]));
+          nextTools = nativeTools.map((rt: any) => {
+            const cached = byName.get(rt.name);
+            if (cached) return cached;
+            let params: any = {};
+            try {
+              const parsed = rt.inputSchema ? JSON.parse(rt.inputSchema) : {};
+              params = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+            } catch {}
+            if (!params || !params.properties) {
+              if (params && typeof params === 'object' && !params.properties) {
+                // already object schema, wrap if needed
+                params = { type: 'object', properties: params.properties || params, required: params.required || [] };
+                if (!params.properties || typeof params.properties !== 'object') params.properties = {};
+              } else {
+                params = { type: 'object', properties: {}, required: [] };
+              }
+            }
+            return {
+              name: rt.name,
+              description: rt.description || '',
+              moduleOwner: 'vault',
+              category: 'general',
+              requiresHumanApproval: rt.annotations ? rt.annotations.readOnlyHint === false : false,
+              parameters: params,
+              execute: async () => ({
+                success: true,
+                tool: rt.name,
+                timestamp: new Date().toISOString(),
+                data: null,
+                plainLanguageSummary: '',
+                humanApprovalRequired: false,
+              }),
+            } as unknown as WebMCPToolDefinition;
+          });
+        }
+      }
+    } catch {}
+    if (nextTools) setTools(nextTools);
+    else setTools(webMCPEngine.getRegisteredTools());
     setTelemetryLogs(webMCPEngine.getTelemetryLogs());
     // Real pending approvals — combine engine queue with vault pending facts/proposals (no mock).
     let pending = webMCPEngine.getPendingApprovals();
@@ -80,6 +125,21 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     const u4 = eventBus.on('telemetry_updated', refreshData);
     const u5 = eventBus.on('approval_queued', refreshData);
     const u6 = eventBus.on('approval_resolved', refreshData);
+    // Native toolchange listener per W3C §4.4 — observe browser ModelContext EventTarget
+    let removeNative: (() => void) | null = null;
+    try {
+      if (typeof document !== 'undefined' && (document as any).modelContext?.addEventListener) {
+        const handler = () => {
+          refreshData();
+        };
+        (document as any).modelContext.addEventListener('toolchange', handler);
+        removeNative = () => {
+          try {
+            (document as any).modelContext?.removeEventListener('toolchange', handler);
+          } catch {}
+        };
+      }
+    } catch {}
 
     return () => {
       u1();
@@ -88,6 +148,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
       u4();
       u5();
       u6();
+      if (removeNative) removeNative();
     };
   }, []);
 
@@ -263,7 +324,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-heading-md sm:text-lg font-bold text-slate-900">CareCanvas WebMCP Inspector</h2>
                 <span className="text-caption px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                  {webMCPEngine.isNative ? 'Native WebMCP' : 'Polyfill Adapter'}
+                  {typeof document !== 'undefined' && (document as any).modelContext?.registerTool ? 'Native WebMCP' : 'Polyfill Adapter'}
                 </span>
               </div>
               <p className="text-xs text-muted hidden sm:block">

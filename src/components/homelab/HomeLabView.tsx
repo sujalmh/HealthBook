@@ -107,13 +107,13 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
       {/* Top Banner & Mode Toggle — consistent card style */}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
+          <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
             <HeartPulse className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-heading-lg text-slate-900 tracking-tight">Tests to Do</h2>
-              <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-semibold border border-rose-200">
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">Tests to Do</h2>
+              <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
                 From your doctor
               </span>
             </div>
@@ -124,19 +124,19 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
         </div>
 
         {/* View Mode Tabs: Patient Remote Loop vs Doctor Review */}
-        <div className="flex items-center bg-canvas-muted p-1 rounded-2xl border border-canvas-border self-start md:self-auto">
+        <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border self-start md:self-auto shadow-xs">
           <button
             onClick={() => setActiveTab('patient_loop')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-body-sm font-semibold transition-all min-h-[44px] ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-body-sm font-bold transition-all min-h-[36px] ${
               activeTab === 'patient_loop'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-muted hover:text-slate-800'
+                ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+                : 'text-muted hover:text-slate-900 border border-transparent'
             }`}
           >
             <Calendar className="w-4 h-4" />
             <span>My Tasks</span>
             {activeDueCards.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-white text-caption font-mono">
+              <span className="px-1.5 py-0.5 rounded-full bg-primary-light text-primary-text text-caption font-bold border border-primary-border">
                 {activeDueCards.length}
               </span>
             )}
@@ -144,16 +144,16 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
 
           <button
             onClick={() => setActiveTab('doctor_inbox')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-body-sm font-semibold transition-all min-h-[44px] ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-body-sm font-bold transition-all min-h-[36px] ${
               activeTab === 'doctor_inbox'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-muted hover:text-slate-800'
+                ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
+                : 'text-muted hover:text-slate-900 border border-transparent'
             }`}
           >
             <Stethoscope className="w-4 h-4" />
             <span>Doctor's View</span>
             {pendingProposals.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-caption font-mono border border-amber-200">
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-caption font-mono border border-amber-200 font-bold">
                 {pendingProposals.length}
               </span>
             )}

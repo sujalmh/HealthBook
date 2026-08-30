@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Bell, Clock, Check, X, ShieldCheck, Sun, CloudSun, Sunset, Moon } from 'lucide-react';
 import type { TimeSlot, Chronotype } from '../../types/pillmap.ts';
+import { ModalPortal } from '../common/ModalPortal';
 import { CHRONOTYPE_TIMES } from '../../types/pillmap.ts';
 
 export interface ReminderConfigModalProps {
@@ -41,8 +42,8 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
+    <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Daily Medication Reminders">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-primary to-accent border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -156,6 +157,6 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

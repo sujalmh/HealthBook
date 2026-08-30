@@ -17,6 +17,7 @@ import { PrivacyBadge } from '@/components/common/PrivacyBadge';
 import { QuestionBank } from '@/components/common/QuestionBank';
 import { WebMCPInspector } from '@/components/common/WebMCPInspector';
 import { ConnectWebMCPModal } from '@/components/common/ConnectWebMCPModal';
+import { ModalPortal } from '@/components/common/ModalPortal';
 import { ToastContainer } from '@/components/common/ToastContainer';
 import { BoundingBoxViewer } from '@/components/common/BoundingBoxViewer';
 import { DocumentDropzone } from '@/components/vault/DocumentDropzone';
@@ -486,7 +487,7 @@ export const App: React.FC = () => {
       </div>
 
       {/* Main Content Area — empty vault until upload (0 facts/meds/labs) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 transition-all duration-200 overflow-x-hidden max-w-full">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 overflow-x-hidden">
         {/* MODULE 0: APPROVED FACT VAULT */}
         <div className={activeModule === 'vault' ? 'block space-y-6' : 'hidden'}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -611,13 +612,11 @@ export const App: React.FC = () => {
       </nav>
 
       {/* Global Modals — cohesive backdrop, responsive padding, scrollable */}
-      {isQuestionBankOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/30 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="max-w-2xl w-full my-auto max-h-[90vh] overflow-y-auto rounded-2xl">
-            <QuestionBank patientId={activeProfile.userId} onClose={() => setIsQuestionBankOpen(false)} />
-          </div>
+      <ModalPortal isOpen={isQuestionBankOpen} onClose={() => setIsQuestionBankOpen(false)} ariaLabel="Doctor Question Bank">
+        <div className="max-w-2xl w-full mx-auto">
+          <QuestionBank patientId={activeProfile.userId} onClose={() => setIsQuestionBankOpen(false)} />
         </div>
-      )}
+      </ModalPortal>
 
       <WebMCPInspector isOpen={isInspectorOpen} onClose={() => setIsInspectorOpen(false)} />
       <ConnectWebMCPModal isOpen={isConnectOpen} onClose={() => setIsConnectOpen(false)} />

@@ -4,8 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { HelpCircle, AlertTriangle, ShieldAlert, Activity, ArrowRight, Check, X, Sparkles, PlusCircle } from 'lucide-react';
+import { AlertTriangle, Clock, ShieldAlert, Check, X, PlusCircle, Activity, Sparkles } from 'lucide-react';
 import type { MissedDoseSimulationResult, DayOfWeek, TimeSlot } from '../../types/pillmap.ts';
+import { ModalPortal } from '../common/ModalPortal';
 import { ClinicalInteractionEngine } from '../../core/knowledge/interactionEngine.ts';
 import { DAYS_OF_WEEK, TIME_SLOTS } from '../../types/pillmap.ts';
 
@@ -61,8 +62,8 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white border border-canvas-border rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-lg animate-scale-up">
+    <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Missed Dose Adherence Simulator">
+      <div className="bg-white border border-canvas-border rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
         {/* Header */}
         <div className="p-4 sm:p-6 bg-gradient-to-r from-amber-50 via-canvas-muted to-rose-50 border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -215,6 +216,6 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
           </button>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };

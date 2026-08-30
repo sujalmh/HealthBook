@@ -27,6 +27,7 @@ import { StorySentence } from './StorySentence';
 import { localVault } from '@/core/vault/LocalVault';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { eventBus } from '@/core/events/eventBus';
+import { ModalPortal } from '../common/ModalPortal';
 import type { LabRecord } from '@/types/vault';
 
 interface LabStoryViewProps {
@@ -217,12 +218,12 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       {/* Top Header & Quick Actions */}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-md shadow-primary/20 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
             <Activity className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-heading-lg font-black text-slate-900 tracking-tight">Lab Results</h2>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">Lab Results</h2>
               <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
                 Trends over time
               </span>
@@ -440,179 +441,175 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         )}
       </div>
 
-      {/* Modal: Multi-Doc Timeline Ingestion (LS1) with max-h-[90vh] overflow-y-auto */}
-      {isDropzoneOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-canvas-border pb-3">
-              <div className="flex items-center gap-2 text-primary font-bold text-heading-md">
-                <UploadCloud className="w-5 h-5" />
-                <span>Multi-Year Lab Ingestion</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsDropzoneOpen(false)}
-                className="text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-canvas-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Close"
-              >
-                ✕
-              </button>
+      {/* Modal: Multi-Doc Timeline Ingestion (LS1) */}
+      <ModalPortal isOpen={isDropzoneOpen} onClose={() => setIsDropzoneOpen(false)} ariaLabel="Multi-Year Lab Ingestion">
+        <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto mx-auto">
+          <div className="flex items-center justify-between border-b border-canvas-border pb-3">
+            <div className="flex items-center gap-2 text-primary font-bold text-heading-md">
+              <UploadCloud className="w-5 h-5" />
+              <span>Multi-Year Lab Ingestion</span>
             </div>
+            <button
+              type="button"
+              onClick={() => setIsDropzoneOpen(false)}
+              className="text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-canvas-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
 
-            <p className="text-body-sm text-muted leading-relaxed">
-              Upload multi-year laboratory PDF packets, smartphone photo result slips, or select a pre-verified longitudinal cohort to auto-normalize units and place points on the timeline.
-            </p>
+          <p className="text-body-sm text-muted leading-relaxed">
+            Upload multi-year laboratory PDF packets, smartphone photo result slips, or select a pre-verified longitudinal cohort to auto-normalize units and place points on the timeline.
+          </p>
 
-            <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => handleIngestDataset('shanti')}
-                disabled={isLoading}
-                className="w-full text-left p-3.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle border border-canvas-border hover:border-primary-border/50 transition-all flex items-center justify-between group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 min-h-[44px]"
-              >
-                <div>
-                  <div className="text-body-sm font-bold text-slate-900 group-hover:text-primary">
-                    Longitudinal History (2022–2026)
-                  </div>
-                  <div className="text-caption text-muted leading-relaxed">
-                    Includes CKD 3b, Metformin initiation, Prednisone burst spike, and Atorvastatin titration.
-                  </div>
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={() => handleIngestDataset('shanti')}
+              disabled={isLoading}
+              className="w-full text-left p-3.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle border border-canvas-border hover:border-primary-border/50 transition-all flex items-center justify-between group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 min-h-[44px]"
+            >
+              <div>
+                <div className="text-body-sm font-bold text-slate-900 group-hover:text-primary">
+                  Longitudinal History (2022–2026)
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted group-hover:text-primary shrink-0" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleIngestDataset('jenkins')}
-                disabled={isLoading}
-                className="w-full text-left p-3.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle border border-canvas-border hover:border-primary-border/50 transition-all flex items-center justify-between group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 min-h-[44px]"
-              >
-                <div>
-                  <div className="text-body-sm font-bold text-slate-900 group-hover:text-primary">
-                    Patient Renal AKI & Diabetes Panel
-                  </div>
-                  <div className="text-caption text-muted leading-relaxed">
-                    Features acute eGFR decline to 28 mL/min post-discharge and Ketorolac gout course.
-                  </div>
+                <div className="text-caption text-muted leading-relaxed">
+                  Includes CKD 3b, Metformin initiation, Prednisone burst spike, and Atorvastatin titration.
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted group-hover:text-primary shrink-0" />
-              </button>
-            </div>
-            {isLoading && (
-              <div className="flex items-center gap-2 text-body-sm text-primary font-medium py-1">
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" /> Ingesting & normalizing…
               </div>
-            )}
+              <ChevronRight className="w-4 h-4 text-muted group-hover:text-primary shrink-0" />
+            </button>
 
-            <div className="border-t border-canvas-border pt-3 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsDropzoneOpen(false)}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] text-body-sm flex items-center justify-center"
-              >
-                Cancel
-              </button>
+            <button
+              type="button"
+              onClick={() => handleIngestDataset('jenkins')}
+              disabled={isLoading}
+              className="w-full text-left p-3.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle border border-canvas-border hover:border-primary-border/50 transition-all flex items-center justify-between group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 min-h-[44px]"
+            >
+              <div>
+                <div className="text-body-sm font-bold text-slate-900 group-hover:text-primary">
+                  Patient Renal AKI & Diabetes Panel
+                </div>
+                <div className="text-caption text-muted leading-relaxed">
+                  Features acute eGFR decline to 28 mL/min post-discharge and Ketorolac gout course.
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted group-hover:text-primary shrink-0" />
+            </button>
+          </div>
+          {isLoading && (
+            <div className="flex items-center gap-2 text-body-sm text-primary font-medium py-1">
+              <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" /> Ingesting & normalizing…
             </div>
+          )}
+
+          <div className="border-t border-canvas-border pt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsDropzoneOpen(false)}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] text-body-sm flex items-center justify-center"
+            >
+              Cancel
+            </button>
           </div>
         </div>
-      )}
+      </ModalPortal>
 
-      {/* Modal: Manual Lab Data Entry with max-h-[90vh] overflow-y-auto */}
-      {isManualAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <form
-            onSubmit={handleManualAddSubmit}
-            className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 shadow-xl text-body-sm max-h-[90vh] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between border-b border-canvas-border pb-3">
-              <div className="flex items-center gap-2 text-primary font-bold text-heading-md">
-                <Plus className="w-4 h-4" />
-                <span>Add Lab Result Point</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsManualAddOpen(false)}
-                className="text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-canvas-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Close"
+      {/* Modal: Manual Lab Data Entry */}
+      <ModalPortal isOpen={isManualAddOpen} onClose={() => setIsManualAddOpen(false)} ariaLabel="Add Lab Result Point">
+        <form
+          onSubmit={handleManualAddSubmit}
+          className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 max-w-md w-full space-y-4 shadow-2xl text-body-sm max-h-[90vh] overflow-y-auto mx-auto"
+        >
+          <div className="flex items-center justify-between border-b border-canvas-border pb-3">
+            <div className="flex items-center gap-2 text-primary font-bold text-heading-md">
+              <Plus className="w-4 h-4" />
+              <span>Add Lab Result Point</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsManualAddOpen(false)}
+              className="text-muted hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-canvas-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-muted mb-1 font-semibold text-caption">Biomarker Name</label>
+              <select
+                value={manualMarker}
+                onChange={(e) => setManualMarker(e.target.value)}
+                className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary min-h-[44px]"
               >
-                ✕
-              </button>
+                <option value="Creatinine">Creatinine (mg/dL)</option>
+                <option value="eGFR">eGFR (mL/min/1.73m2)</option>
+                <option value="HbA1c">HbA1c (%)</option>
+                <option value="Glucose Fasting">Glucose Fasting (mg/dL)</option>
+                <option value="Potassium">Potassium (mEq/L)</option>
+                <option value="Cholesterol Total">Cholesterol Total (mg/dL)</option>
+                <option value="LDL">LDL (mg/dL)</option>
+                <option value="HDL">HDL (mg/dL)</option>
+                <option value="Triglycerides">Triglycerides (mg/dL)</option>
+              </select>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-muted mb-1 font-semibold text-caption">Biomarker Name</label>
-                <select
-                  value={manualMarker}
-                  onChange={(e) => setManualMarker(e.target.value)}
-                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary min-h-[44px]"
-                >
-                  <option value="Creatinine">Creatinine (mg/dL)</option>
-                  <option value="eGFR">eGFR (mL/min/1.73m2)</option>
-                  <option value="HbA1c">HbA1c (%)</option>
-                  <option value="Glucose Fasting">Glucose Fasting (mg/dL)</option>
-                  <option value="Potassium">Potassium (mEq/L)</option>
-                  <option value="Cholesterol Total">Cholesterol Total (mg/dL)</option>
-                  <option value="LDL">LDL (mg/dL)</option>
-                  <option value="HDL">HDL (mg/dL)</option>
-                  <option value="Triglycerides">Triglycerides (mg/dL)</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted mb-1 font-semibold text-caption">Numeric Value</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={manualValue}
-                    onChange={(e) => setManualValue(e.target.value)}
-                    required
-                    className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted min-h-[44px]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted mb-1 font-semibold text-caption">Units</label>
-                  <input
-                    type="text"
-                    value={manualUnit}
-                    onChange={(e) => setManualUnit(e.target.value)}
-                    required
-                    className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-muted mb-1 font-semibold text-caption">Draw Date</label>
+                <label className="block text-muted mb-1 font-semibold text-caption">Numeric Value</label>
                 <input
-                  type="date"
-                  value={manualDate}
-                  onChange={(e) => setManualDate(e.target.value)}
+                  type="number"
+                  step="any"
+                  value={manualValue}
+                  onChange={(e) => setManualValue(e.target.value)}
+                  required
+                  className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-muted min-h-[44px]"
+                />
+              </div>
+              <div>
+                <label className="block text-muted mb-1 font-semibold text-caption">Units</label>
+                <input
+                  type="text"
+                  value={manualUnit}
+                  onChange={(e) => setManualUnit(e.target.value)}
                   required
                   className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
                 />
               </div>
             </div>
 
-            <div className="border-t border-canvas-border pt-3 flex flex-col-reverse sm:flex-row justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsManualAddOpen(false)}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center"
-              >
-                Add to Timeline
-              </button>
+            <div>
+              <label className="block text-muted mb-1 font-semibold text-caption">Draw Date</label>
+              <input
+                type="date"
+                value={manualDate}
+                onChange={(e) => setManualDate(e.target.value)}
+                required
+                className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px]"
+              />
             </div>
-          </form>
-        </div>
-      )}
+          </div>
+
+          <div className="border-t border-canvas-border pt-3 flex flex-col-reverse sm:flex-row justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsManualAddOpen(false)}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 font-semibold border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center"
+            >
+              Add to Timeline
+            </button>
+          </div>
+        </form>
+      </ModalPortal>
     </div>
   );
 };

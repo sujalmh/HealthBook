@@ -447,14 +447,19 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Module Title & Badge */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md">
-              <Pill className="w-5 h-5" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
+              <Pill className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-heading-lg tracking-tight text-slate-900">
-                My Medicines
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                  My Medicines
+                </h2>
+                <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
+                  Weekly Planner
+                </span>
+              </div>
               <p className="text-body-sm text-muted">
                 Your medicines for the week — drag to change times, see warnings, and check food rules.
               </p>
@@ -464,19 +469,19 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           {/* Right Toolbar: View Toggle, Chronotype, Actions */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* View Mode Toggle (Full Grid vs Elder Mode) */}
-            <div className="flex items-center bg-canvas-muted p-1 rounded-2xl border border-canvas-border text-body-sm">
+            <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm shadow-xs">
               <button
                 onClick={() => setViewMode('canvas')}
-                className={`px-3.5 py-2 rounded-xl font-semibold transition-all min-h-[44px] flex items-center justify-center ${
-                  viewMode === 'canvas' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-slate-900'
+                className={`px-3.5 py-1.5 rounded-lg font-bold transition-all min-h-[36px] flex items-center justify-center ${
+                  viewMode === 'canvas' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
                 }`}
               >
                 Week View
               </button>
               <button
                 onClick={() => setViewMode('elder')}
-                className={`px-3.5 py-2 rounded-xl font-semibold transition-all min-h-[44px] flex items-center justify-center ${
-                  viewMode === 'elder' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-slate-900'
+                className={`px-3.5 py-1.5 rounded-lg font-bold transition-all min-h-[36px] flex items-center justify-center ${
+                  viewMode === 'elder' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
                 }`}
               >
                 Simple View 👵
@@ -484,7 +489,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             </div>
 
             {/* Chronotype Selector */}
-            <div className="flex items-center bg-canvas-muted px-3 py-2 rounded-2xl border border-canvas-border text-body-sm gap-2 min-h-[44px]">
+            <div className="flex items-center bg-canvas-muted px-3 py-1.5 rounded-xl border border-canvas-border text-body-sm gap-2 min-h-[36px] shadow-xs">
               <Clock className="w-4 h-4 text-amber-500 shrink-0" />
               <select
                 value={chronotype}
