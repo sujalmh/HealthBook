@@ -61,10 +61,6 @@ function resolveOCRApiKey(): string {
 }
 
 function resolveOCREndpoint(): string {
-  const isBrowser = typeof window !== "undefined" && typeof window.document !== "undefined";
-  if (isBrowser) {
-    return "/api/ocr-proxy/v1/ocr";
-  }
   return "https://api.mistral.ai/v1/ocr";
 }
 
