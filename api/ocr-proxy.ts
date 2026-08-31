@@ -82,7 +82,7 @@ async function handleProxy(req: Request) {
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
     });
-  } catch (err) {
+  } catch (err: any) {
     const isTimeout = err?.name === "AbortError" || err?.message?.includes("timeout") || err?.message?.includes("aborted");
     return new Response(
       JSON.stringify({
