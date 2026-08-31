@@ -29,7 +29,7 @@ export const FACT_EXTRACTION_JSON_SCHEMA = {
           confidence: { type: 'number', minimum: 0, maximum: 1, description: 'Confidence 0-1' },
           plainExplanation: { type: 'string', description: 'Plain language explanation' },
         },
-        required: ['name', 'category', 'value', 'confidence', 'plainExplanation'],
+        required: ['name', 'category', 'value', 'unit', 'confidence', 'plainExplanation'],
         additionalProperties: false,
       },
     },
