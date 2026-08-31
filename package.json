@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "NODE_NO_WARNINGS=1 tsc && NODE_NO_WARNINGS=1 vite build",
     "test": "vitest run",
     "test:all": "node test/test-runner.ts",
     "test:tools": "node test/test-runner.ts --tier1",
