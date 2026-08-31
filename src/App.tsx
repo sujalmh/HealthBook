@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Shield,
   Activity,
@@ -68,6 +68,8 @@ export const App: React.FC = () => {
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isQuestionBankOpen, setIsQuestionBankOpen] = useState(false);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
+  const [isMCPMenuOpen, setIsMCPMenuOpen] = useState(false);
+  const mcpMenuRef = useRef<HTMLDivElement | null>(null);
   const [activeProfile, setActiveProfile] = useState<ActiveProfile | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [authMode, setAuthMode] = useState<'create' | 'signin'>('create');
@@ -129,6 +131,23 @@ export const App: React.FC = () => {
       u5();
     };
   }, [activeProfile?.userId]);
+
+  // Close MCP dropdown on outside click / ESC — grouped MCP stuff for phone top bar
+  useEffect(() => {
+    if (!isMCPMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (mcpMenuRef.current && !mcpMenuRef.current.contains(e.target as Node)) setIsMCPMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMCPMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isMCPMenuOpen]);
 
   const handleCreated = (profile: any) => {
     const normalized: ActiveProfile = {
@@ -340,9 +359,9 @@ export const App: React.FC = () => {
             <PrivacyBadge patientId={activeProfile.userId} />
           </div>
 
-          {/* Right Action Bar: Profile Switcher, Question Bank, Inspector, Settings, Sign Out */}
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            {/* Mobile Profile Switch Button (<sm) — dedicated 44x44px target with role & avatar indicator */}
+          {/* Right Action Bar: Profile Switcher, Questions (prominent), MCP grouped, Settings, Sign Out */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Mobile Profile Switch Button (<sm) — dedicated 44x44px target */}
             <button
               onClick={() => handleSwitchProfile(activeProfile.isProxy ? 'patient' : 'caregiver')}
               className="sm:hidden flex items-center justify-center min-h-[44px] min-w-[44px] px-2 rounded-xl bg-white border border-canvas-border hover:bg-canvas-muted text-slate-700 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary relative"
@@ -379,41 +398,108 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Question Bank Button */}
+            {/* Questions — PROMINENT feature: amber solid, always visible label even on phone, larger, shadow */}
             <button
               onClick={() => setIsQuestionBankOpen(true)}
-              className="relative flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-xs font-semibold border border-canvas-border shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary"
+              className="relative flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-black border border-amber-600 shadow-md transition-all duration-200 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
               aria-label={`Questions${questionCount > 0 ? `, ${questionCount} active` : ''}`}
-              title="Doctor Question Bank"
+              title="Doctor Question Bank — prominent, tap to view your doctor questions"
             >
-              <HelpCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span className="hidden md:inline">Questions</span>
-              {questionCount > 0 && (
-                <span className="absolute -top-1 -right-1 md:static md:top-auto md:right-auto bg-amber-500 text-white font-bold text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center shrink-0 leading-none shadow-xs">
+              <HelpCircle className="w-5 h-5 text-white shrink-0" aria-hidden="true" />
+              <span className="inline">Questions</span>
+              {questionCount > 0 ? (
+                <span className="bg-white text-amber-700 font-black text-xs min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0 leading-none shadow-sm border border-amber-600">
                   {questionCount > 99 ? '99+' : questionCount}
+                </span>
+              ) : (
+                <span className="hidden sm:inline-flex bg-white/20 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full leading-none">
+                  Ask
                 </span>
               )}
             </button>
 
-            {/* Connect WebMCP Button */}
+            {/* MCP GROUP — phone: single dropdown grouping Connect + Activity; desktop: keep separate for space */}
+            {/* Mobile MCP dropdown trigger */}
+            <div className="relative sm:hidden" ref={mcpMenuRef}>
+              <button
+                onClick={() => setIsMCPMenuOpen((v) => !v)}
+                className="relative flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold border border-slate-800 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
+                aria-label={`MCP tools${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
+                aria-expanded={isMCPMenuOpen}
+                aria-haspopup="menu"
+                title="MCP tools — Connect + Activity"
+              >
+                <Plug className="w-4 h-4 text-emerald-300 shrink-0" aria-hidden="true" />
+                <Terminal className="w-3.5 h-3.5 text-slate-300 shrink-0" aria-hidden="true" />
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-black border-2 border-white leading-none shadow-xs">
+                    {pendingCount > 99 ? '99+' : pendingCount}
+                  </span>
+                )}
+              </button>
+              {isMCPMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-64 bg-white border border-canvas-border rounded-2xl shadow-xl p-2 z-50 animate-fade-in"
+                  role="menu"
+                  aria-label="MCP tools menu"
+                >
+                  <div className="px-3 py-2 border-b border-canvas-border mb-1">
+                    <p className="text-caption font-black tracking-wider uppercase text-muted">MCP Tools</p>
+                    <p className="text-caption text-muted">Connect device & view activity</p>
+                  </div>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setIsConnectOpen(true); setIsMCPMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 text-emerald-700 text-sm font-bold transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                  >
+                    <span className="w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
+                      <Plug className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+                    </span>
+                    <span className="flex-1 text-left">
+                      <span className="block leading-none">Connect</span>
+                      <span className="block text-caption font-medium text-muted leading-none">Link WebMCP</span>
+                    </span>
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => { setIsInspectorOpen(true); setIsMCPMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-primary-light text-primary-text text-sm font-bold transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                  >
+                    <span className="w-8 h-8 rounded-lg bg-primary-light border border-primary-border flex items-center justify-center shrink-0">
+                      <Terminal className="w-4 h-4 text-primary-text" aria-hidden="true" />
+                    </span>
+                    <span className="flex-1 text-left">
+                      <span className="block leading-none">Activity</span>
+                      <span className="block text-caption font-medium text-muted leading-none">Tools & logs</span>
+                    </span>
+                    {pendingCount > 0 && (
+                      <span className="bg-rose-500 text-white text-xs min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center font-black">
+                        {pendingCount > 99 ? '99+' : pendingCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop: separate Connect + Activity buttons (grouped only on phone) */}
             <button
               onClick={() => setIsConnectOpen(true)}
-              className="relative flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="hidden sm:flex relative items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500"
               title="Connect to WebMCP — get link & code"
               aria-label="Connect WebMCP"
             >
-              <Plug className="w-4 h-4 text-emerald-600 shrink-0" />
+              <Plug className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
               <span className="hidden md:inline">Connect</span>
             </button>
 
-            {/* Activity Log Toggle */}
             <button
               onClick={() => setIsInspectorOpen(true)}
-              className="relative flex items-center justify-center gap-1 sm:gap-2 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-primary-light hover:brightness-95 text-primary-text text-xs font-bold border border-primary-border transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
+              className="hidden sm:flex relative items-center justify-center gap-1 sm:gap-2 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-primary-light hover:brightness-95 text-primary-text text-xs font-bold border border-primary-border transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
               title="See what's happening behind the scenes"
               aria-label={`Activity${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
             >
-              <Terminal className="w-4 h-4 text-primary-text shrink-0" />
+              <Terminal className="w-4 h-4 text-primary-text shrink-0" aria-hidden="true" />
               <span className="hidden md:inline">Activity</span>
               {pendingCount > 0 && (
                 <span className="absolute -top-1 -right-1 md:static md:top-auto md:right-auto bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1.5 rounded-full font-bold animate-pulse shrink-0 flex items-center justify-center leading-none shadow-xs">
