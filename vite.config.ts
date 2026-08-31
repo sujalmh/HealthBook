@@ -12,10 +12,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/ai': {
-        target: 'https://opencode.ai/zen/go/v1',
+      '/api/ai-proxy': {
+        target: 'https://opencode.ai',
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api\/ai/, ''),
+        rewrite: (path) => path.replace(/^\/api\/ai-proxy/, ''),
       },
     },
   },

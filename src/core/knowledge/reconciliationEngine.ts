@@ -21,20 +21,10 @@ import type {
   Patient3ListDischargeDataset
 } from '../../types/rxbridge.ts';
 import type { TimeSlot } from '../../types/pillmap.ts';
-import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from '../ai/config.ts';
-import { buildChatMessages, buildResponsesInput } from '../ai/vision.ts';
-import { buildStructuredParams, parseJsonContent, extractTextFromProviderResponse } from '../ai/structured.ts';
+import { getAIConfig, isAIEnabled } from '../ai/config.ts';
+import { callAI } from '../ai/client.ts';
 
-function isTestEnv(): boolean {
-  try {
-    if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
-    if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
-    if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
-  } catch {}
-  return false;
-}
 function isReconciliationAIEnabled(): boolean {
-  if (isTestEnv()) return false;
   try {
     const cfg = getAIConfig();
     return isAIEnabled(cfg);
@@ -43,70 +33,22 @@ function isReconciliationAIEnabled(): boolean {
   }
 }
 
+// Unified AI caller for medication reconciliation reasoning
 async function callReconciliationAI(
   systemPrompt: string,
   userText: string,
   jsonSchema: any,
   imageDataUrl?: string
 ): Promise<any | null> {
-  const config = getAIConfig();
-  if (!isAIEnabled(config)) return null;
-  const endpoint = getAIEndpoint(config);
-  const forVision = !!imageDataUrl && imageDataUrl.startsWith('data:image');
-  const model = getAIModel(config, forVision);
-  if (!endpoint || !model) return null;
-  const structuredParams = buildStructuredParams(config.provider, config.structuredOutputs, jsonSchema);
-  let body: any;
-  if (config.provider === 'responses') {
-    const input = buildResponsesInput(systemPrompt, userText, imageDataUrl);
-    body = { model, input, temperature: config.temperature, max_output_tokens: config.maxTokens, ...structuredParams };
-  } else {
-    const messages = buildChatMessages(systemPrompt, userText, imageDataUrl);
-    body = { model, messages, temperature: config.temperature, max_tokens: config.maxTokens, ...structuredParams };
-  }
-  const AbortCtor: typeof AbortController =
-    typeof globalThis !== 'undefined' && (globalThis as any).AbortController ? (globalThis as any).AbortController : AbortController;
-  const controller = new AbortCtor();
-  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
-  let fetchSignal: AbortSignal | undefined = controller.signal;
   try {
-    const isTestEnvSignal =
-      typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test') ||
-      typeof (globalThis as any).__vitest_worker__ !== 'undefined';
-    const GlobalAbortSignal = typeof globalThis !== 'undefined' ? (globalThis as any).AbortSignal : undefined;
-    const WindowAbortSignal = typeof window !== 'undefined' ? (window as any).AbortSignal : undefined;
-    const validGlobal = GlobalAbortSignal ? fetchSignal instanceof GlobalAbortSignal : true;
-    const validWindow = WindowAbortSignal ? fetchSignal instanceof WindowAbortSignal : true;
-    if (isTestEnvSignal) fetchSignal = undefined;
-    else if (!validGlobal && !validWindow) fetchSignal = undefined;
-  } catch {}
-  let response: Response;
-  try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (config.apiKey && config.apiKey.trim() !== '') headers.Authorization = `Bearer ${config.apiKey}`;
-    const fetchOpts: RequestInit = {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    };
-    if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
-    response = await fetch(endpoint, fetchOpts);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-  if (!response.ok) {
-    const t = await response.text().catch(() => '');
-    throw new Error(`Reconciliation AI failed ${response.status} ${t.slice(0, 400)}`);
-  }
-  const json = await response.json().catch(() => null);
-  if (!json) return null;
-  const textContent = extractTextFromProviderResponse(json, config.provider);
-  if (!textContent) {
-    if (json.plainExplanation || json.questions || json.explanation) return json;
+    return await callAI<any>(systemPrompt, userText, {
+      schema: jsonSchema,
+      imageDataUrl,
+    });
+  } catch (err) {
+    console.warn('[reconciliationEngine] AI call failed, falling back to clinical rules:', (err as any)?.message || err);
     return null;
   }
-  const parsed = parseJsonContent(textContent);
-  return parsed;
 }
 
 // Fallback helpers (original hardcoded templates) — used only when AI disabled (Q10)

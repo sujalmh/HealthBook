@@ -1,12 +1,21 @@
 {
-  "headers": [
+  "functions": {
+    "api/ai-proxy.ts": {
+      "maxDuration": 120
+    }
+  },
+  "rewrites": [
     {
-      "source": "/api/ai/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With, x-api-key, x-goog-api-key" }
-      ]
+      "source": "/api/ai-proxy/(.*)",
+      "destination": "/api/ai-proxy"
+    },
+    {
+      "source": "/api/ai-proxy",
+      "destination": "/api/ai-proxy"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

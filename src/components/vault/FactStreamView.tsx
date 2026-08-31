@@ -3,6 +3,7 @@ import { FactEntity } from '@/types/vault';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { FactApprovalCard } from './FactApprovalCard';
+import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { CheckCircle, ShieldAlert, Eye, FileText, Sparkles } from 'lucide-react';
 
 export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) => {
@@ -69,32 +70,126 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
         </div>
       )}
 
-      {/* 1. Human-in-the-Loop Trust Gate: Pending Facts Stage */}
+      {/* 1. Human-in-the-Loop Trust Gate: Unified Document Review & Batch Accept/Reject */}
       {!isLoading && pendingFacts.length > 0 && (
-        <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 border border-amber-200 rounded-xl text-amber-700 shrink-0">
-                <ShieldAlert className="w-6 h-6" />
+        <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 border-2 border-amber-300/80 rounded-2xl p-6 shadow-md space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-200/60 pb-4">
+            <div className="flex items-start gap-3.5">
+              <div className="p-3 bg-amber-100 border border-amber-300/80 rounded-2xl text-amber-800 shrink-0 shadow-sm">
+                <ShieldAlert className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-heading-md font-bold text-amber-900 tracking-tight">
-                  Review extracted details ({pendingFacts.length})
-                </h3>
-                <p className="text-body-sm text-amber-800/80 leading-relaxed">
-                  Details extracted from your document. Check before they update medicines and labs.
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-heading-md font-bold text-amber-950 tracking-tight">
+                    Document Extracted ({pendingFacts.length} Items)
+                  </h3>
+                  <span className="text-caption font-bold text-amber-900 bg-amber-200/70 px-2.5 py-0.5 rounded-full border border-amber-300">
+                    Awaiting 1-Click Confirmation
+                  </span>
+                </div>
+                <p className="text-body-sm text-amber-900/80 leading-relaxed mt-0.5">
+                  AI extracted all health data from your document. Confirm once to fill your medicines, lab charts, diagnoses, and doctor's pack across the website.
                 </p>
               </div>
             </div>
-            <span className="text-caption font-bold text-amber-800 px-3 py-1 bg-amber-100 rounded-full border border-amber-200 animate-pulse-subtle shrink-0">
-              Needs your okay
-            </span>
+
+            {/* Master Accept All / Reject All Action Buttons */}
+            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+              <button
+                onClick={async () => {
+                  try {
+                    await webMCPEngine.execute('confirm_fact', { factId: 'all', action: 'reject' });
+                    eventBus.dispatchToast({
+                      type: 'info',
+                      message: `Rejected all ${pendingFacts.length} extracted items.`,
+                    });
+                    loadFacts();
+                  } catch (e: any) {
+                    eventBus.dispatchToast({ type: 'error', message: e?.message || 'Rejection failed' });
+                  }
+                }}
+                className="px-4 py-2.5 text-body-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition-all shadow-sm hover:shadow active:scale-98 flex items-center gap-2 min-h-[44px]"
+              >
+                <ShieldAlert className="w-4 h-4 text-slate-500" />
+                <span>Reject All</span>
+              </button>
+
+              <button
+                onClick={async () => {
+                  try {
+                    await webMCPEngine.execute('confirm_fact', { factId: 'all', action: 'approve' });
+                    eventBus.dispatchToast({
+                      type: 'success',
+                      message: `Successfully approved all ${pendingFacts.length} items! Medicines, labs, and health summaries are now populated.`,
+                    });
+                    loadFacts();
+                  } catch (e: any) {
+                    eventBus.dispatchToast({ type: 'error', message: e?.message || 'Approval failed' });
+                  }
+                }}
+                className="px-6 py-2.5 text-body-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-98 flex items-center gap-2 min-h-[44px]"
+              >
+                <CheckCircle className="w-5 h-5" />
+                <span>Accept All & Populate Website</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pendingFacts.map((fact) => (
-              <FactApprovalCard key={fact.id} fact={fact} onResolved={loadFacts} />
-            ))}
+          {/* Categorical Breakdown Badges */}
+          <div className="flex items-center gap-2 flex-wrap text-caption font-semibold">
+            {(() => {
+              const meds = pendingFacts.filter(f => f.category.includes('med')).length;
+              const labs = pendingFacts.filter(f => f.category.includes('lab')).length;
+              const conds = pendingFacts.filter(f => f.category.includes('cond') || f.category.includes('diagnos')).length;
+              const allgs = pendingFacts.filter(f => f.category.includes('allerg')).length;
+              const follow = pendingFacts.filter(f => f.category.includes('follow') || f.category.includes('due')).length;
+              const diets = pendingFacts.filter(f => f.category.includes('diet') || f.category.includes('vital')).length;
+
+              return (
+                <>
+                  {meds > 0 && (
+                    <span className="px-3 py-1 bg-primary-light text-primary-text border border-primary-border rounded-full">
+                      💊 {meds} Medicines
+                    </span>
+                  )}
+                  {labs > 0 && (
+                    <span className="px-3 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-full">
+                      🧪 {labs} Lab Tests
+                    </span>
+                  )}
+                  {conds > 0 && (
+                    <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full">
+                      🩺 {conds} Diagnoses
+                    </span>
+                  )}
+                  {allgs > 0 && (
+                    <span className="px-3 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full">
+                      🛡️ {allgs} Allergies
+                    </span>
+                  )}
+                  {follow > 0 && (
+                    <span className="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full">
+                      📅 {follow} Follow-ups & Due Labs
+                    </span>
+                  )}
+                  {diets > 0 && (
+                    <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full">
+                      🥗 {diets} Diet & Vitals
+                    </span>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Itemized Review List */}
+          <div className="space-y-3 pt-2">
+            <h4 className="text-body-sm font-bold text-slate-800">Itemized Extracted Details</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {pendingFacts.map((fact) => (
+                <FactApprovalCard key={fact.id} fact={fact} onResolved={loadFacts} />
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -39,28 +39,10 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
   const [extractedValues, setExtractedValues] = useState<any[]>([]);
   const [plainNarration, setPlainNarration] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  // AI-extracted values derived from AI after extraction, not hardcoded defaults
-  const [editForm, setEditForm] = useState<{ creatinine: string; egfr: string; potassium: string }>({
-    creatinine: '',
-    egfr: '',
-    potassium: ''
-  });
   const [lastDocumentId, setLastDocumentId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
-
-  const populateEditFormFromExtracted = (values: any[]) => {
-    const findVal = (key: string) => values.find((v: any) => (v.marker || v.name || '').toLowerCase().includes(key))?.value;
-    const creat = findVal('creatinine');
-    const egfr = findVal('egfr') ?? findVal('gfr');
-    const potassium = findVal('potassium');
-    setEditForm({
-      creatinine: creat !== undefined && creat !== null && !isNaN(Number(creat)) ? String(creat) : '',
-      egfr: egfr !== undefined && egfr !== null && !isNaN(Number(egfr)) ? String(egfr) : '',
-      potassium: potassium !== undefined && potassium !== null && !isNaN(Number(potassium)) ? String(potassium) : ''
-    });
-  };
 
   const doExtractWithBlob = async (imageBlob: string, fileName: string) => {
     setIsProcessing(true);
@@ -86,10 +68,8 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
         setExtractedValues(vals);
         setPlainNarration(result.plainLanguageSummary || result.data.plainNarration || '');
         setLastDocumentId(result.data.documentId || `doc_homelab_${Date.now()}`);
-        populateEditFormFromExtracted(vals);
         setIsExtracted(true);
       } else {
-        // AI disabled for image will return empty per Q10 — fallback empty
         setExtractedValues([]);
         setPlainNarration(result.plainLanguageSummary || 'No values extracted — AI required for vision.');
         setLastDocumentId((result.data as any)?.documentId || '');
@@ -104,90 +84,30 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
   };
 
   const handleFileSelected = (file: File) => {
-    const isImage = file.type.startsWith('image/') || file.name.match(/\.(jpe?g|png)$/i);
-    if (isImage) {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const dataUrl = reader.result as string;
-        await doExtractWithBlob(dataUrl, file.name);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const text = reader.result as string;
-        await doExtractWithBlob(text || file.name, file.name);
-      };
-      reader.readAsText(file);
-    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      await doExtractWithBlob(dataUrl, file.name);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSimulateUpload = async (preset: 'photo_slip' | 'pdf_report' = 'photo_slip') => {
-    // Use real file if selected via input, otherwise use AI defaults via vision extraction
-    // If file input has a file, use it; else create a synthetic data URL for demo that will go through AI vision path (single request image+text)
     if (fileInputRef.current?.files && fileInputRef.current.files.length > 0) {
       handleFileSelected(fileInputRef.current.files[0]);
       return;
     }
-    // No real file selected — use AI-extracted values path with generic sample image+text
-    // Create a tiny valid image data URL plus accompanying text for vision+text single request
-    // This ensures image OCR goes via AI (client will send image_url/input_image + text together) and not heuristic placeholder
-    const syntheticImageDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
-    const syntheticText = preset === 'photo_slip' ? 'Lab slip photo: Serum Creatinine and eGFR and Potassium values present' : 'Lab report PDF: creatinine eGFR potassium';
-    // For vision, send imageDataUrl + text together as single multimodal request via extractWithAI
-    // Use the synthetic image plus text
-    setIsProcessing(true);
-    setSelectedFile(preset === 'photo_slip' ? 'lab_photo_sample.jpg' : 'lab_report_aug2026.pdf');
-    try {
-      // Combine synthetic image and text to trigger vision+text single request
-      const result = await webMCPEngine.execute(
-        'upload_lab_image',
-        {
-          imageBlob: syntheticImageDataUrl,
-          rawText: syntheticText,
-          patientId,
-          linkedDueCardId
-        } as any,
-        {
-          patientId,
-          activeProfile: { userId: patientId, name: 'Patient', role: 'patient', isProxy: false },
-          vault: localVault,
-          eventBus
-        } as any
-      );
-      if (result.success && result.data) {
-        const vals = result.data.extractedValues || [];
-        setExtractedValues(vals);
-        setPlainNarration(result.plainLanguageSummary || result.data.plainNarration || '');
-        setLastDocumentId(result.data.documentId || `doc_homelab_${Date.now()}`);
-        // AI-extracted values (empty when AI disabled per fallback empty when disabled)
-        if (vals.length > 0) {
-          populateEditFormFromExtracted(vals);
-        } else {
-          setEditForm({ creatinine: '', egfr: '', potassium: '' });
-        }
-        setIsExtracted(true);
-      }
-    } catch (err) {
-      console.error('Error extracting lab image:', err);
-    } finally {
-      setIsProcessing(false);
-    }
+    setSelectedFile('No file selected');
+    setExtractedValues([]);
+    eventBus.dispatchToast({ type: 'error', title: 'No file selected', message: 'Please select a file' });
+    return;
   };
 
   const handleApproveAndCommit = () => {
-    // Ensure approve writes AI values not synthetic placeholder when approving without edit; fallback empty when disabled
-    const creatVal = editForm.creatinine.trim() !== '' ? parseFloat(editForm.creatinine) : NaN;
-    const egfrVal = editForm.egfr.trim() !== '' ? parseFloat(editForm.egfr) : NaN;
-    const kVal = editForm.potassium.trim() !== '' ? parseFloat(editForm.potassium) : NaN;
     const drawDate = new Date().toISOString();
     const sourceDocId = lastDocumentId || `doc_homelab_${Date.now()}`;
 
-    const hasCreat = Number.isFinite(creatVal);
-    const hasEgfr = Number.isFinite(egfrVal);
-    const hasK = Number.isFinite(kVal);
-
-    if (!hasCreat && !hasEgfr && !hasK) {
+    if (extractedValues.length === 0) {
       eventBus.dispatchToast({
         type: 'error',
         title: 'No values to commit',
@@ -196,64 +116,30 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
       return;
     }
 
-    if (hasCreat) {
-      localVault.addLab({
-        id: `lab_creat_${Date.now()}`,
-        patientId,
-        marker: 'Creatinine',
-        value: creatVal,
-        unit: 'mg/dL',
-        normalizedValue: creatVal,
-        normalizedUnit: 'mg/dL',
-        drawDate,
-        referenceRange: { low: 0.6, high: 1.2 },
-        optimalRange: { low: 0.7, high: 1.0 },
-        isBorderline: false,
-        isCritical: creatVal > 2.0,
-        flag: creatVal > 1.2 ? 'HIGH' : 'NORMAL',
-        sourceDocId
-      } as any);
+    let addedCount = 0;
+    for (const item of extractedValues) {
+      const numVal = typeof item.value === 'number' ? item.value : parseFloat(String(item.value).replace(/[^0-9.]/g, ''));
+      if (Number.isFinite(numVal)) {
+        localVault.addLab({
+          id: `lab_${item.marker.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+          patientId,
+          marker: item.marker,
+          value: numVal,
+          unit: item.unit || '',
+          normalizedValue: numVal,
+          normalizedUnit: item.unit || '',
+          drawDate,
+          referenceRange: undefined as any,
+          optimalRange: undefined as any,
+          isBorderline: false,
+          isCritical: item.flag?.includes('CRITICAL') || false,
+          flag: item.flag || 'NORMAL',
+          sourceDocId
+        } as any);
+        addedCount++;
+      }
     }
 
-    if (hasEgfr) {
-      localVault.addLab({
-        id: `lab_egfr_${Date.now()}`,
-        patientId,
-        marker: 'eGFR',
-        value: egfrVal,
-        unit: 'mL/min/1.73m2',
-        normalizedValue: egfrVal,
-        normalizedUnit: 'mL/min/1.73m2',
-        drawDate,
-        referenceRange: { low: 60, high: 120 },
-        optimalRange: { low: 90, high: 120 },
-        isBorderline: false,
-        isCritical: egfrVal < 30,
-        flag: egfrVal < 30 ? 'CRITICAL_LOW' : egfrVal < 60 ? 'LOW' : 'NORMAL',
-        sourceDocId
-      } as any);
-    }
-
-    if (hasK) {
-      localVault.addLab({
-        id: `lab_k_${Date.now()}`,
-        patientId,
-        marker: 'Potassium',
-        value: kVal,
-        unit: 'mEq/L',
-        normalizedValue: kVal,
-        normalizedUnit: 'mEq/L',
-        drawDate,
-        referenceRange: { low: 3.5, high: 5.1 },
-        optimalRange: { low: 4.0, high: 4.8 },
-        isBorderline: false,
-        isCritical: false,
-        flag: 'NORMAL',
-        sourceDocId
-      } as any);
-    }
-
-    // Mark due card as completed if linked
     if (linkedDueCardId) {
       localVault.updateDueCard(linkedDueCardId, {
         status: 'completed',
@@ -261,10 +147,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
       });
     }
 
-    const summaryParts: string[] = [];
-    if (hasCreat) summaryParts.push(`Creatinine: ${creatVal} mg/dL`);
-    if (hasEgfr) summaryParts.push(`eGFR: ${egfrVal} mL/min`);
-    if (hasK) summaryParts.push(`Potassium: ${kVal} mEq/L`);
+    const summaryParts = extractedValues.map((v) => `${v.marker}: ${v.value} ${v.unit || ''}`);
     eventBus.dispatchToast({
       type: 'success',
       title: 'Lab Result Ingested',
@@ -420,55 +303,47 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                 </div>
 
                 {!isEditing ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-canvas-muted rounded-2xl p-3 border border-canvas-border space-y-1">
-                      <span className="text-caption text-muted">Creatinine</span>
-                      <div className="text-heading-md text-amber-600">{editForm.creatinine ? `${editForm.creatinine} mg/dL` : '—'}</div>
-                      <span className="text-caption font-bold text-amber-700">{editForm.creatinine ? (parseFloat(editForm.creatinine) > 1.2 ? 'HIGH' : 'NORMAL') : '—'}</span>
-                    </div>
-                    <div className="bg-rose-50 rounded-2xl p-3 border border-rose-200 space-y-1">
-                      <span className="text-caption text-muted">eGFR</span>
-                      <div className="text-heading-md text-rose-600">{editForm.egfr ? `${editForm.egfr} mL/min` : '—'}</div>
-                      <span className="text-caption font-bold text-rose-700">{editForm.egfr ? (parseFloat(editForm.egfr) < 30 ? 'STAGE 4 STRAIN' : parseFloat(editForm.egfr) < 60 ? 'LOW' : 'NORMAL') : '—'}</span>
-                    </div>
-                    <div className="bg-canvas-muted rounded-2xl p-3 border border-canvas-border space-y-1">
-                      <span className="text-caption text-muted">Potassium</span>
-                      <div className="text-heading-md text-emerald-600">{editForm.potassium ? `${editForm.potassium} mEq/L` : '—'}</div>
-                      <span className="text-caption font-bold text-emerald-700">{editForm.potassium ? 'NORMAL' : '—'}</span>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {extractedValues.length > 0 ? (
+                      extractedValues.map((item, idx) => (
+                        <div key={idx} className="bg-canvas-muted rounded-2xl p-3.5 border border-canvas-border space-y-1">
+                          <span className="text-caption text-muted font-medium">{item.marker}</span>
+                          <div className="text-heading-md font-bold text-slate-900">{item.value} {item.unit}</div>
+                          <span className={`text-caption font-bold px-2 py-0.5 rounded-full inline-block ${
+                            item.flag?.includes('CRITICAL') || item.flag === 'HIGH'
+                              ? 'bg-rose-100 text-rose-800'
+                              : item.flag?.includes('LOW')
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {item.flag || 'NORMAL'}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-3 text-muted text-body-sm p-4 text-center bg-canvas-muted rounded-xl">
+                        No biomarkers extracted yet.
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-caption text-muted">Creatinine (mg/dL)</label>
-                      <input
-                        type="text"
-                        value={editForm.creatinine}
-                        onChange={(e) => setEditForm({ ...editForm, creatinine: e.target.value })}
-                        placeholder="AI extracted"
-                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-caption text-muted">eGFR (mL/min)</label>
-                      <input
-                        type="text"
-                        value={editForm.egfr}
-                        onChange={(e) => setEditForm({ ...editForm, egfr: e.target.value })}
-                        placeholder="AI extracted"
-                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-caption text-muted">Potassium (mEq/L)</label>
-                      <input
-                        type="text"
-                        value={editForm.potassium}
-                        onChange={(e) => setEditForm({ ...editForm, potassium: e.target.value })}
-                        placeholder="AI extracted"
-                        className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2.5 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {extractedValues.map((item, idx) => (
+                      <div key={idx} className="space-y-1 bg-white p-3 rounded-xl border border-canvas-border shadow-sm">
+                        <label className="text-caption text-slate-700 font-bold">{item.marker} ({item.unit || 'value'})</label>
+                        <input
+                          type="text"
+                          value={item.value}
+                          onChange={(e) => {
+                            const updated = [...extractedValues];
+                            updated[idx] = { ...updated[idx], value: e.target.value };
+                            setExtractedValues(updated);
+                          }}
+                          placeholder="Extracted value"
+                          className="w-full bg-canvas-muted border border-canvas-border rounded-xl px-3.5 py-2 text-body-sm text-slate-900 font-semibold focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[40px]"
+                        />
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

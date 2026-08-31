@@ -10,73 +10,17 @@ import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } f
 import type { Fact, FactCategory, AllergyRecord } from '../types/vault.ts';
 import { buildFHIRR4Bundle } from '../core/vault/fhirExporter.ts';
 import { extractWithAI } from '../core/ai/client.ts';
-import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
+import { getAIConfig, getAIConfigSource, isAIEnabled } from '../core/ai/config.ts';
 
-function vaultHeuristicFallback(rawText: string, docType: string | undefined, patientId: string, documentId: string): Fact[] {
-  const text = (rawText || '').trim();
-  if (text.length === 0) return [];
-  // Decimal-aware split: period not between digits preserves decimals while still splitting sentences; \n and ; always split (mirrors fallback.ts:95)
-  const lines = text
-    .split(/(?<!\d)\.(?!\d)|[\n;]+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 6)
-    .slice(0, 3);
-  const effectiveLines = lines.length > 0 ? lines : [text.slice(0, 120)];
-  const inferCategory = (line: string): FactCategory => {
-    const l = line.toLowerCase();
-    if (/(creatinine|egfr|gfr|potassium|hba1c|glucose|hemoglobin|cholesterol|ldl|hdl|triglyceride)/i.test(l)) return 'lab';
-    if (/(allergy|allergic|reaction|anaphylaxis)/i.test(l)) return 'allergy';
-    if (/(apixaban|warfarin|lisinopril|metformin|atorvastatin|medication|dosage|mg|dose|bid|qd|twice daily|daily)/i.test(l)) return 'medication';
-    if (/(diabetes|hypertension|ckd|kidney|asthma|cancer|stroke|condition)/i.test(l)) return 'condition';
-    if (/(vital|blood pressure|heart rate)/i.test(l)) return 'vital_sign';
-    return 'medication';
-  };
-  return effectiveLines.map((line, idx) => {
-    const category = inferCategory(line);
-    const name = line.slice(0, 40) || `Extracted Fact ${idx + 1}`;
-    let h = 0;
-    for (let i = 0; i < line.length; i++) h = (h + line.charCodeAt(i)) % 100;
-    const confidence = 0.65 + (h % 23) / 100;
-    const unit = category === 'lab' ? (line.toLowerCase().includes('mg/dl') ? 'mg/dL' : line.toLowerCase().includes('meq') ? 'mEq/L' : line.toLowerCase().includes('ml/min') ? 'mL/min/1.73m2' : line.toLowerCase().includes('%') ? '%' : '') : '';
-    return {
-      id: `fact_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
-      patientId,
-      category,
-      name,
-      value: { rawSnippet: line.slice(0, 120), sourceExcerpt: line.slice(0, 80) },
-      unit,
-      confidence: Math.round(confidence * 100) / 100,
-      status: 'unconfirmed' as const,
-      sourceDocId: documentId,
-      plainExplanation: line.slice(0, 120),
-      author: 'system_heuristics',
-      timestamp: new Date().toISOString(),
-      metadata: docType ? { docType } : undefined,
-    };
-  });
-}
-
-function isVisionImage(value?: string): boolean {
-  if (!value || typeof value !== 'string') return false;
-  // Support image, pdf, video directly via model file input (many models support pdf/video via file_data)
-  return value.startsWith('data:');
-}
-
-function detectImageDataUrl(params: any, rawText: string): string | undefined {
-  const candidates: any[] = [
-    params.imageDataUrl,
-    params.imageBlob,
-    params.image_blob,
-    params.imageUrl,
-    params.image,
-    params.image_data_url,
-    params.fileDataUrl,
-    params.pdfDataUrl,
-    params.file_data_url,
-  ];
-  for (const c of candidates) {
-    if (typeof c === 'string' && c.length > 0 && isVisionImage(c)) return c;
-  }
+function resolveFileDataUrl(params: any, rawText?: string): string | undefined {
+  const candidate =
+    params.imageDataUrl ||
+    params.fileDataUrl ||
+    params.imageBlob ||
+    params.image_blob ||
+    params.imageUrl ||
+    params.dataUrl;
+  if (typeof candidate === 'string' && candidate.startsWith('data:')) return candidate;
   if (typeof rawText === 'string' && rawText.startsWith('data:')) return rawText;
   return undefined;
 }
@@ -94,7 +38,8 @@ export const extractFactTool: WebMCPToolDefinition = {
       documentId: { type: 'string', description: 'ID of the document record in vault' },
       docType: { type: 'string', description: 'Type of document (e.g. discharge_summary, lab_slip_photo, clinic_note)' },
       targetCategories: { type: 'array', items: { type: 'string' }, description: 'Categories to extract' },
-      rawText: { type: 'string', description: 'Raw OCR or file text content to derive facts from' }
+      rawText: { type: 'string', description: 'Raw OCR or file text content to derive facts from' },
+      imageDataUrl: { type: 'string', description: 'Optional base64 data URL of document/image file' }
     },
     required: ['documentId']
   },
@@ -106,58 +51,52 @@ export const extractFactTool: WebMCPToolDefinition = {
       messageTemplate: 'Clinical facts extracted from document. Staged for patient review.'
     }
   },
-  execute: async (params: { documentId: string; docType?: string; targetCategories?: string[]; rawText?: string; imageBlob?: string; imageDataUrl?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
+  execute: async (
+    params: { documentId: string; docType?: string; targetCategories?: string[]; rawText?: string; imageBlob?: string; imageDataUrl?: string },
+    context: WebMCPExecutionContext
+  ): Promise<WebMCPToolResult> => {
     const { documentId } = params;
-    const rawTextParam: string = (params as any).rawText || (params as any).raw_text || '';
-    const docTypeParam: string | undefined = (params as any).docType || (params as any).documentType || (params as any).doc_type || (params as any).documentType || undefined;
-    const imageDataUrl = detectImageDataUrl(params as any, rawTextParam);
-    const hasImage = !!imageDataUrl && isVisionImage(imageDataUrl);
-    // Effective rawText for AI: if hasImage and rawTextParam is image data url, send empty text but keep image
-    const effectiveRawText = hasImage && rawTextParam === imageDataUrl ? '' : rawTextParam;
-
-    let extractedFacts: Fact[] = [];
+    const rawTextParam: string = params.rawText || (params as any).raw_text || '';
+    const docTypeParam: string | undefined = params.docType || (params as any).documentType || (params as any).doc_type || undefined;
+    const fileDataUrl = resolveFileDataUrl(params, rawTextParam);
+    const hasFileData = !!fileDataUrl;
+    const effectiveRawText = hasFileData && rawTextParam === fileDataUrl ? '' : rawTextParam;
 
     const config = getAIConfig();
     const aiEnabled = isAIEnabled(config);
+    let extractedFacts: Fact[] = [];
 
     if (aiEnabled) {
       try {
-        // Generic AI intelligence via consuming src/core/ai/client.ts extractWithAI (vision+text single multimodal request)
-        // Pass rawText + imageDataUrl together single request, receive Fact[] with grounded bbox not fixed, confidence>0, categories typed via structured outputs
-        const aiFacts = await extractWithAI(effectiveRawText || '', hasImage ? imageDataUrl : undefined, docTypeParam, {
-          patientId: context.patientId,
-          documentId,
-        });
-        // Ensure patientId/documentId correctness and grounded bbox already via client
-        // aiFacts already have Fact shape with confidence>0 and bbox grounded not fixed
-        extractedFacts = aiFacts;
+        extractedFacts = await extractWithAI(
+          effectiveRawText,
+          hasFileData ? fileDataUrl : undefined,
+          docTypeParam,
+          {
+            patientId: context.patientId,
+            documentId,
+          }
+        );
       } catch (err: any) {
-        if (hasImage) {
-          // Q10 fallback rule for text never for images — image OCR must be via AI, return empty or error if AI fails for image, not heuristic placeholder
-          console.warn('[vaultTools] AI vision extraction failed for image, returning empty per Q10', err?.message || err);
-          extractedFacts = [];
-          return {
-            success: true,
-            tool: 'extract_fact',
-            timestamp: new Date().toISOString(),
-            data: extractedFacts,
-            plainLanguageSummary: `Vision extraction for document "${documentId}" attempted via AI but failed — no heuristic for images per Q10. ${err?.message || 'AI error'}`,
-            humanApprovalRequired: false,
-          };
-        } else {
-          // For text, fallback to heuristic if AI fails (graceful) — but primary path was AI
-          console.warn('[vaultTools] AI extraction failed for text, falling back to heuristic', err?.message || err);
-          extractedFacts = vaultHeuristicFallback(effectiveRawText || '', docTypeParam, context.patientId, documentId);
-        }
+        console.error('[vaultTools] AI extraction error:', err?.message || err);
+        return {
+          success: false,
+          tool: 'extract_fact',
+          timestamp: new Date().toISOString(),
+          data: [],
+          plainLanguageSummary: `AI extraction failed for document "${documentId}": ${err?.message || 'Unknown AI error'}`,
+          humanApprovalRequired: false,
+        };
       }
     } else {
-      // Fallback to heuristic only when disabled (Q10 fallback rule for text never for images — image OCR must be via AI, return empty or error if AI fails for image, not heuristic placeholder)
-      if (hasImage) {
-        // image OCR must be via AI, return empty when AI disabled, not heuristic placeholder
-        extractedFacts = [];
-      } else {
-        extractedFacts = vaultHeuristicFallback(effectiveRawText || '', docTypeParam, context.patientId, documentId);
-      }
+      return {
+        success: true,
+        tool: 'extract_fact',
+        timestamp: new Date().toISOString(),
+        data: [],
+        plainLanguageSummary: `AI extraction is disabled in settings. Enable AI to extract clinical facts from document "${documentId}".`,
+        humanApprovalRequired: false,
+      };
     }
 
     // Save to Vault with status 'unconfirmed' for the authenticated patientId
@@ -173,7 +112,7 @@ export const extractFactTool: WebMCPToolDefinition = {
       tool: 'extract_fact',
       timestamp: new Date().toISOString(),
       data: extractedFacts,
-      plainLanguageSummary: `Successfully extracted ${extractedFacts.length} clinical facts from document "${documentId}". All items are staged awaiting your approval.`,
+      plainLanguageSummary: `Successfully extracted ${extractedFacts.length} clinical facts via AI from document "${documentId}". All items are staged awaiting your approval.`,
       humanApprovalRequired: false
     };
   }
@@ -189,24 +128,257 @@ export const confirmFactTool: WebMCPToolDefinition = {
   parameters: {
     type: 'object',
     properties: {
-      factId: { type: 'string', description: 'Unique identifier of the fact' },
+      factId: { type: 'string', description: 'Unique identifier of the fact, or "all" to confirm all pending facts' },
       action: { type: 'string', enum: ['approve', 'reject', 'edit'], description: 'Action to take' },
       edits: { type: 'object', description: 'Patient-modified fields if action is edit' }
     },
     required: ['factId', 'action']
   },
-  returns: { type: 'object', description: 'Updated fact record' },
+  returns: { type: 'object', description: 'Updated fact record or list of updated records' },
   uiSideEffects: {
-    canvasRerenders: ['pillmap', 'labstory', 'dossier', 'question_bank'],
+    canvasRerenders: ['pillmap', 'labstory', 'dossier', 'question_bank', 'homelab', 'calendar'],
     toastNotification: {
       type: 'success',
-      messageTemplate: 'Fact status updated in Approved Fact Vault.'
+      messageTemplate: 'Facts updated and propagated across CareCanvas.'
     }
   },
   execute: async (params: { factId: string; action: 'approve' | 'reject' | 'edit'; edits?: any }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const { factId, action, edits } = params;
-    const fact = context.vault.getFact(factId);
 
+    // Helper to propagate confirmed categorical facts to respective module stores
+    const propagateFact = (fact: any) => {
+      const cat = (fact.category || '').toLowerCase().trim();
+      const name = fact.name || 'Clinical Item';
+      const val = fact.value;
+      const unit = fact.unit || '';
+      const plain = fact.plainExplanation || '';
+      const patientId = context.patientId;
+      const userAudit = {
+        userId: context.activeProfile.userId,
+        userName: context.activeProfile.name,
+        role: context.activeProfile.role
+      };
+
+      // 1. Medications
+      if (cat.includes('med') || cat === 'medication' || cat === 'medications') {
+        const valObj = typeof val === 'object' && val !== null ? val : {};
+        const doseStr = valObj.dose || valObj.rawSnippet || (typeof val === 'string' ? val : '') || plain;
+        const matchDose = doseStr.match(/(\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|units?|iu|tab|capsule)?)/i);
+        const dosage = matchDose ? matchDose[1] : (valObj.dosage || 'Standard');
+
+        const lowerDose = (doseStr + ' ' + plain).toLowerCase();
+        const frequency =
+          lowerDose.includes('twice') || lowerDose.includes('bid') ? 'BID' :
+          lowerDose.includes('three') || lowerDose.includes('tid') ? 'TID' :
+          lowerDose.includes('night') || lowerDose.includes('bedtime') || lowerDose.includes('qhs') ? 'QHS' :
+          lowerDose.includes('morning') || lowerDose.includes('qam') ? 'QAM' :
+          'Once daily';
+
+        const timingSlots: string[] = [];
+        if (lowerDose.includes('morning') || frequency === 'BID' || frequency === 'TID' || lowerDose.includes('qam')) timingSlots.push('morning');
+        if (frequency === 'TID') timingSlots.push('afternoon');
+        if (lowerDose.includes('evening') || frequency === 'BID' || frequency === 'TID') timingSlots.push('evening');
+        if (lowerDose.includes('bedtime') || lowerDose.includes('night') || frequency === 'QHS') timingSlots.push('bedtime');
+        if (timingSlots.length === 0) timingSlots.push('morning');
+
+        const withFood = lowerDose.includes('with food') || lowerDose.includes('with meal') || lowerDose.includes('after food');
+        const isStopped = lowerDose.includes('stopped') || lowerDose.includes('discontinued') || lowerDose.includes('held') || lowerDose.includes('prior');
+
+        context.vault.addMedication(
+          {
+            id: `med_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+            patientId,
+            brandName: valObj.brand || undefined,
+            genericName: name,
+            dosage: dosage,
+            unit: unit || 'mg',
+            frequency: frequency,
+            timingSlots: timingSlots as any,
+            withFood: withFood,
+            status: isStopped ? 'discontinued' : 'active',
+            source: fact.sourceDocId
+          },
+          userAudit
+        );
+      }
+
+      // 2. Laboratory Tests
+      else if (cat.includes('lab') || cat === 'laboratory_tests') {
+        let labVal = 0;
+        if (typeof val === 'number' && Number.isFinite(val)) labVal = val;
+        else if (val && typeof (val as any).numericValue === 'number') labVal = (val as any).numericValue;
+        else {
+          const s = typeof val === 'string' ? val : JSON.stringify(val ?? '');
+          const m = s.match(/([0-9]+\.?[0-9]*)/);
+          labVal = m ? Number(m[1]) : 0;
+        }
+
+        const lowerName = name.toLowerCase();
+        let flag: 'NORMAL' | 'HIGH' | 'LOW' | 'CRITICAL_HIGH' | 'CRITICAL_LOW' = 'NORMAL';
+        if (lowerName.includes('creatinine') && labVal > 1.2) flag = labVal > 3.0 ? 'CRITICAL_HIGH' : 'HIGH';
+        else if (lowerName.includes('egfr') && labVal < 60) flag = labVal < 15 ? 'CRITICAL_LOW' : 'LOW';
+        else if (lowerName.includes('potassium') && (labVal > 5.0 || labVal < 3.5)) flag = labVal > 5.0 ? 'HIGH' : 'LOW';
+        else if (lowerName.includes('glucose') && labVal > 140) flag = 'HIGH';
+        else if (lowerName.includes('hba1c') && labVal > 6.5) flag = 'HIGH';
+
+        context.vault.addLab(
+          {
+            id: `lab_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+            patientId,
+            marker: name,
+            value: labVal,
+            unit: unit || '',
+            normalizedValue: labVal,
+            normalizedUnit: unit || '',
+            drawDate: fact.timestamp || new Date().toISOString(),
+            referenceRange: undefined as any,
+            optimalRange: undefined as any,
+            isBorderline: false,
+            isCritical: flag.startsWith('CRITICAL'),
+            flag: flag,
+            sourceDocId: fact.sourceDocId
+          },
+          userAudit
+        );
+      }
+
+      // 3. Conditions & Diagnoses
+      else if (cat.includes('condition') || cat.includes('diagnos')) {
+        context.vault.addCondition(
+          {
+            id: `cond_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+            patientId,
+            name: name,
+            icd10: typeof val === 'string' && val.match(/^[A-Z]\d{2}/) ? val : undefined,
+            status: 'active',
+            diagnosedDate: fact.timestamp || new Date().toISOString(),
+            notes: plain || undefined
+          },
+          userAudit
+        );
+      }
+
+      // 4. Allergies
+      else if (cat.includes('allerg')) {
+        context.vault.addAllergy(
+          {
+            id: `allg_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+            patientId,
+            allergen: name,
+            reaction: typeof val === 'string' && val !== 'NKDA' ? val : 'Documented Allergy',
+            severity: 'moderate',
+            status: 'active'
+          },
+          userAudit
+        );
+      }
+
+      // 5. Follow-ups & Scheduled Appointments
+      else if (cat.includes('followup') || cat.includes('appointment')) {
+        context.vault.addCalendarEvent(
+          {
+            id: `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+            patientId,
+            title: name || 'Follow-up Clinic Appointment',
+            type: 'followup',
+            scheduledDate: new Date(Date.now() + 14 * 86400000).toISOString(),
+            description: plain || String(val || ''),
+            status: 'scheduled',
+            alertOffsetMinutes: 1440
+          },
+          userAudit
+        );
+      }
+
+      // 6. Due Labs & Monitoring Panels
+      else if (cat.includes('due') || cat.includes('panel')) {
+        context.vault.addDueCard({
+          id: `due_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+          patientId,
+          testPanel: name || 'Prescribed Monitoring Lab',
+          biomarkers: [name],
+          dueDate: new Date(Date.now() + 14 * 86400000).toISOString(),
+          prescribedBy: 'Care Team',
+          prescribedDate: new Date().toISOString(),
+          instructions: plain || 'Repeat test as prescribed.',
+          status: 'due_soon'
+        });
+      }
+
+      // 7. Questions for Doctor
+      else if (cat.includes('question')) {
+        context.vault.addQuestion({
+          id: `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+          patientId,
+          questionText: plain || name,
+          category: 'general_care',
+          priority: 'high',
+          status: 'active',
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      // 8. Patient Demographics & Profile
+      else if (cat.includes('demograph') || cat.includes('patient')) {
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const raw = window.localStorage.getItem('carecanvas_active_user');
+            if (raw) {
+              const user = JSON.parse(raw);
+              if (name && (!user.name || user.name === 'Patient' || user.name === 'User')) {
+                user.name = name;
+                window.localStorage.setItem('carecanvas_active_user', JSON.stringify(user));
+              }
+            }
+          }
+        } catch {}
+      }
+    };
+
+    // Batch confirmation / rejection for all pending facts
+    if (factId === 'all' || factId === '*' || !factId) {
+      const pending = context.vault.getPendingFacts(context.patientId);
+      const updatedFacts: any[] = [];
+
+      for (const f of pending) {
+        const newStatus = action === 'reject' ? 'rejected' : 'confirmed';
+        const updated = context.vault.updateFactStatus(
+          f.id,
+          newStatus,
+          {
+            userId: context.activeProfile.userId,
+            userName: context.activeProfile.name,
+            role: context.activeProfile.role,
+            onBehalfOf: context.activeProfile.onBehalfOf
+          },
+          edits
+        );
+        if (updated) {
+          if (newStatus === 'confirmed') {
+            propagateFact(updated);
+          }
+          updatedFacts.push(updated);
+        }
+      }
+
+      const summary =
+        action === 'reject'
+          ? `Rejected all ${updatedFacts.length} extracted facts.`
+          : `Approved all ${updatedFacts.length} extracted items and populated companion canvases.`;
+
+      return {
+        success: true,
+        tool: 'confirm_fact',
+        timestamp: new Date().toISOString(),
+        data: updatedFacts,
+        plainLanguageSummary: summary,
+        humanApprovalRequired: false,
+        approvalStatus: action === 'reject' ? 'rejected' : 'approved'
+      };
+    }
+
+    // Individual fact confirmation
+    const fact = context.vault.getFact(factId);
     if (!fact) {
       return {
         success: false,
@@ -232,46 +404,8 @@ export const confirmFactTool: WebMCPToolDefinition = {
       edits
     );
 
-    // If confirmed, propagate to respective module store
     if (newStatus === 'confirmed' && updatedFact) {
-      if (updatedFact.category === 'medication') {
-        const val = updatedFact.value || {};
-        context.vault.addMedication(
-          {
-            id: `med_${updatedFact.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
-            patientId: context.patientId,
-            brandName: val.brand,
-            genericName: updatedFact.name,
-            dosage: val.dose || 'Standard',
-            unit: updatedFact.unit || 'mg',
-            frequency: val.frequency || 'Once daily',
-            timingSlots: ['morning'],
-            withFood: false,
-            status: 'active',
-            source: updatedFact.sourceDocId
-          },
-          { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role }
-        );
-      } else if (updatedFact.category === 'lab') {
-        context.vault.addLab(
-          {
-            id: `lab_${updatedFact.name.toLowerCase()}_${Date.now()}`,
-            patientId: context.patientId,
-            marker: updatedFact.name,
-            value: Number(updatedFact.value) || 0,
-            unit: updatedFact.unit || '',
-            normalizedValue: Number(updatedFact.value) || 0,
-            normalizedUnit: updatedFact.unit || '',
-            drawDate: updatedFact.timestamp,
-            referenceRange: undefined as unknown as { low: number; high: number },
-            optimalRange: undefined as unknown as { low: number; high: number },
-            isBorderline: false,
-            isCritical: false,
-            sourceDocId: updatedFact.sourceDocId
-          },
-          { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role }
-        );
-      }
+      propagateFact(updatedFact);
     }
 
     const narration =

@@ -7,79 +7,8 @@
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
 import type {  LinkedCareProfile, CaregiverPermissionLevel, DoctorAccessGrant  } from '../types/carecircle.ts';
-import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from '../core/ai/config.ts';
-import { buildChatMessages, buildResponsesInput } from '../core/ai/vision.ts';
-import { buildStructuredParams, parseJsonContent, extractTextFromProviderResponse } from '../core/ai/structured.ts';
-
-function isTestEnvCareCircle(): boolean {
-  try {
-    if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
-    if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
-    if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
-  } catch {}
-  return false;
-}
-
-async function callCareCircleAI(
-  systemPrompt: string,
-  userText: string,
-  jsonSchema: any
-): Promise<any | null> {
-  if (isTestEnvCareCircle()) return null;
-  const config = getAIConfig();
-  if (!isAIEnabled(config)) return null;
-  const endpoint = getAIEndpoint(config);
-  const model = getAIModel(config, false);
-  if (!endpoint || !model) return null;
-  const structuredParams = buildStructuredParams(config.provider, config.structuredOutputs, jsonSchema);
-  let body: any;
-  if (config.provider === 'responses') {
-    const input = buildResponsesInput(systemPrompt, userText);
-    body = { model, input, temperature: config.temperature, max_output_tokens: config.maxTokens, ...structuredParams };
-  } else {
-    const messages = buildChatMessages(systemPrompt, userText);
-    body = { model, messages, temperature: config.temperature, max_tokens: config.maxTokens, ...structuredParams };
-  }
-  const AbortCtor: typeof AbortController =
-    typeof globalThis !== 'undefined' && (globalThis as any).AbortController ? (globalThis as any).AbortController : AbortController;
-  const controller = new AbortCtor();
-  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
-  let fetchSignal: AbortSignal | undefined = controller.signal;
-  try {
-    const isTestEnvSignal =
-      typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test') ||
-      typeof (globalThis as any).__vitest_worker__ !== 'undefined';
-    const GlobalAbortSignal = typeof globalThis !== 'undefined' ? (globalThis as any).AbortSignal : undefined;
-    const WindowAbortSignal = typeof window !== 'undefined' ? (window as any).AbortSignal : undefined;
-    const validGlobal = GlobalAbortSignal ? fetchSignal instanceof GlobalAbortSignal : true;
-    const validWindow = WindowAbortSignal ? fetchSignal instanceof WindowAbortSignal : true;
-    if (isTestEnvSignal) fetchSignal = undefined;
-    else if (!validGlobal && !validWindow) fetchSignal = undefined;
-  } catch {}
-  let response: Response;
-  try {
-    const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-    if (config.apiKey && config.apiKey.trim() !== '') headers.Authorization = `Bearer ${config.apiKey}`;
-    const fetchOpts: RequestInit = { method: 'POST', headers, body: JSON.stringify(body) };
-    if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
-    response = await fetch(endpoint, fetchOpts);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-  if (!response.ok) {
-    const t = await response.text().catch(() => '');
-    throw new Error(`CareCircle AI failed ${response.status} ${t.slice(0, 300)}`);
-  }
-  const json = await response.json().catch(() => null);
-  if (!json) return null;
-  const textContent = extractTextFromProviderResponse(json, config.provider);
-  if (!textContent) {
-    if (json.enrichedPatientContext || json.relationship) return json;
-    return null;
-  }
-  const parsed = parseJsonContent(textContent);
-  return parsed;
-}
+import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
+import { callAI } from '../core/ai/client.ts';
 
 export const linkPatientTool: WebMCPToolDefinition = {
   name: 'link_patient',
@@ -119,7 +48,7 @@ export const linkPatientTool: WebMCPToolDefinition = {
 
     // AI enrichment for patient linking when enabled (generic configurable via Settings>env, vision+text not needed)
     const cfg = getAIConfig();
-    if (!isTestEnvCareCircle() && isAIEnabled(cfg)) {
+    if (isAIEnabled(cfg)) {
       try {
         const schema = {
           type: 'object',
@@ -134,10 +63,9 @@ export const linkPatientTool: WebMCPToolDefinition = {
           additionalProperties: false,
         } as any;
         const systemPrompt = `You are a care coordination AI. Validate and enrich patient-caregiver linkage given patient ID, relationship, and caregiver context. Return ONLY valid JSON with shape {"enrichedPatientName": string, "relationshipValidation": string, "enrichedContext": string, "confidence": number}. Provide grounded reasoning and confidence. No markdown.`;
-        const userText = `Patient ID: ${params.patientId}\nRelationship: ${params.relationship}\nCaregiver: ${context.activeProfile.name} (${context.activeProfile.userId})\nVault patient name hint: ${resolvedPatientName}\nReturn JSON only.`;
-        const parsed = await callCareCircleAI(systemPrompt, userText, schema);
+        const userText = `Patient ID: ${params.patientId}\nRelationship: ${params.relationship}\nCaregiver: ${context.activeProfile.name} (${context.activeProfile.userId})\nVault patient name hint: ${resolvedPatientName}`;
+        const parsed = await callAI<any>(systemPrompt, userText, { schema });
         if (parsed && typeof parsed.enrichedPatientName === 'string' && parsed.enrichedPatientName.trim().length > 1) {
-          // Use AI-enriched name only if it is not hardcoded literal and provides confidence >0.5
           if (parsed.confidence === undefined || parsed.confidence > 0.5) {
             resolvedPatientName = parsed.enrichedPatientName.trim();
           }

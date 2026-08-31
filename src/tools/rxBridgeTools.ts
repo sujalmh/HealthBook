@@ -8,81 +8,9 @@
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
 import { ClinicalReconciliationEngine } from '../core/knowledge/reconciliationEngine.ts';
-import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from '../core/ai/config.ts';
-import { buildChatMessages, buildResponsesInput } from '../core/ai/vision.ts';
-import { buildStructuredParams, parseJsonContent, extractTextFromProviderResponse } from '../core/ai/structured.ts';
+import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
+import { callAI } from '../core/ai/client.ts';
 import type { Patient3ListDischargeDataset } from '../types/rxbridge.ts';
-
-function isTestEnvRx(): boolean {
-  try {
-    if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
-    if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
-    if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
-  } catch {}
-  return false;
-}
-async function callRxBridgeAI(
-  systemPrompt: string,
-  userText: string,
-  jsonSchema: any,
-  imageDataUrl?: string
-): Promise<any | null> {
-  if (isTestEnvRx()) return null;
-  const config = getAIConfig();
-  if (!isAIEnabled(config)) return null;
-  const endpoint = getAIEndpoint(config);
-  const forVision = !!imageDataUrl && imageDataUrl.startsWith('data:image');
-  const model = getAIModel(config, forVision);
-  if (!endpoint || !model) return null;
-  const structuredParams = buildStructuredParams(config.provider, config.structuredOutputs, jsonSchema);
-  let body: any;
-  if (config.provider === 'responses') {
-    const input = buildResponsesInput(systemPrompt, userText, imageDataUrl);
-    body = { model, input, temperature: config.temperature, max_output_tokens: config.maxTokens, ...structuredParams };
-  } else {
-    const messages = buildChatMessages(systemPrompt, userText, imageDataUrl);
-    body = { model, messages, temperature: config.temperature, max_tokens: config.maxTokens, ...structuredParams };
-  }
-  const AbortCtor: typeof AbortController =
-    typeof globalThis !== 'undefined' && (globalThis as any).AbortController ? (globalThis as any).AbortController : AbortController;
-  const controller = new AbortCtor();
-  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
-  let fetchSignal: AbortSignal | undefined = controller.signal;
-  try {
-    const isTestEnvSignal =
-      typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test') ||
-      typeof (globalThis as any).__vitest_worker__ !== 'undefined';
-    const GlobalAbortSignal = typeof globalThis !== 'undefined' ? (globalThis as any).AbortSignal : undefined;
-    const WindowAbortSignal = typeof window !== 'undefined' ? (window as any).AbortSignal : undefined;
-    const validGlobal = GlobalAbortSignal ? fetchSignal instanceof GlobalAbortSignal : true;
-    const validWindow = WindowAbortSignal ? fetchSignal instanceof WindowAbortSignal : true;
-    if (isTestEnvSignal) fetchSignal = undefined;
-    else if (!validGlobal && !validWindow) fetchSignal = undefined;
-  } catch {}
-  let response: Response;
-  try {
-    const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-    if (config.apiKey && config.apiKey.trim() !== '') headers.Authorization = `Bearer ${config.apiKey}`;
-    const fetchOpts: RequestInit = { method: 'POST', headers, body: JSON.stringify(body) };
-    if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
-    response = await fetch(endpoint, fetchOpts);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-  if (!response.ok) {
-    const t = await response.text().catch(() => '');
-    throw new Error(`RxBridge AI failed ${response.status} ${t.slice(0, 400)}`);
-  }
-  const json = await response.json().catch(() => null);
-  if (!json) return null;
-  const textContent = extractTextFromProviderResponse(json, config.provider);
-  if (!textContent) {
-    if (json.questionText || json.questions) return json;
-    return null;
-  }
-  const parsed = parseJsonContent(textContent);
-  return parsed;
-}
 
 export const explainMedChangeTool: WebMCPToolDefinition = {
   name: 'explain_med_change',
@@ -130,7 +58,7 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
     let explanation: string;
     let suggestedQuestions: string[];
     const cfg = getAIConfig();
-    if (!isTestEnvRx() && isAIEnabled(cfg)) {
+    if (isAIEnabled(cfg)) {
       try {
         // Try AI for explanation and questions via reconciliation engine AI helpers
         explanation = await ClinicalReconciliationEngine.generatePlainLanguageExplanationAI(
@@ -242,7 +170,7 @@ export const flagInteractionTool: WebMCPToolDefinition = {
     let rawArcs;
     try {
       const cfg = getAIConfig();
-      if (!isTestEnvRx() && isAIEnabled(cfg) && typeof ClinicalInteractionEngine.checkDrugInteractionsAI === 'function') {
+      if (isAIEnabled(cfg) && typeof ClinicalInteractionEngine.checkDrugInteractionsAI === 'function') {
         rawArcs = await ClinicalInteractionEngine.checkDrugInteractionsAI(allMeds);
       } else {
         rawArcs = ClinicalInteractionEngine.checkDrugInteractions(allMeds);
@@ -359,7 +287,7 @@ export const flagDietInteractionTool: WebMCPToolDefinition = {
     let badges;
     try {
       const cfg = getAIConfig();
-      if (!isTestEnvRx() && isAIEnabled(cfg) && typeof ClinicalInteractionEngine.checkDietInteractionsAI === 'function') {
+      if (isAIEnabled(cfg) && typeof ClinicalInteractionEngine.checkDietInteractionsAI === 'function') {
         badges = await ClinicalInteractionEngine.checkDietInteractionsAI(params.dischargeMeds, diet);
       } else {
         badges = ClinicalInteractionEngine.checkDietInteractions(params.dischargeMeds, diet);
@@ -417,7 +345,7 @@ export const suggestQuestionForDoctorTool: WebMCPToolDefinition = {
     context: WebMCPExecutionContext
   ): Promise<WebMCPToolResult> => {
     const cfg = getAIConfig();
-    const aiEnabled = !isTestEnvRx() && isAIEnabled(cfg);
+    const aiEnabled = isAIEnabled(cfg);
 
     let qText = '';
 
@@ -448,8 +376,8 @@ export const suggestQuestionForDoctorTool: WebMCPToolDefinition = {
           additionalProperties: false,
         } as any;
         const systemPrompt = `You are a clinical care coordinator. Given patient context, medication name, actual discharge medication list, recent labs, and optional document image/text, generate a single targeted question for the doctor that is specific, actionable, and grounded. Consider stopped meds kidney monitoring, blood thinner bleeding risks, dose changes, diet interactions. Return ONLY valid JSON with shape {"questionText": string, "confidence": number, "reasoning": string}. Provide confidence 0-1 and grounded reasoning. Use vision+text together when image provided. No markdown.`;
-        const userText = `Context: "${params.context}"\nMed: ${params.medName || 'unknown'}\nActual discharge meds: ${JSON.stringify(dischargeMedsFromVault || params.dischargeMeds || [])}\nRecent labs: ${JSON.stringify(labsFromVault)}\nDocument context: ${docContext.slice(0, 1500)}\nGenerate JSON only.`;
-        const parsed = await callRxBridgeAI(systemPrompt, userText, schema, imageDataUrl);
+        const userText = `Context: "${params.context}"\nMed: ${params.medName || 'unknown'}\nActual discharge meds: ${JSON.stringify(dischargeMedsFromVault || params.dischargeMeds || [])}\nRecent labs: ${JSON.stringify(labsFromVault)}\nDocument context: ${docContext.slice(0, 1500)}`;
+        const parsed = await callAI<any>(systemPrompt, userText, { schema, imageDataUrl });
         if (parsed && typeof parsed.questionText === 'string' && parsed.questionText.trim().length > 10) {
           qText = parsed.questionText.trim();
         }

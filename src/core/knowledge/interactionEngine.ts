@@ -24,22 +24,10 @@ import type {
   TimeSlot,
   DayOfWeek
 } from '../../types/pillmap.ts';
-import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from '../ai/config.ts';
-import { buildChatMessages, buildResponsesInput } from '../ai/vision.ts';
-import { buildStructuredParams, parseJsonContent, extractTextFromProviderResponse } from '../ai/structured.ts';
+import { getAIConfig, isAIEnabled } from '../ai/config.ts';
+import { callAI } from '../ai/client.ts';
 
-// Helper: check AI enabled via generic Config (Settings>env precedence, never literal)
-// In test env (vitest/jsdom), skip AI to avoid network timeouts — fallback to fixture quickly (Q10 fallback for text)
-function isTestEnv(): boolean {
-  try {
-    if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
-    if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
-    if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
-  } catch {}
-  return false;
-}
 function isKnowledgeAIEnabled(): boolean {
-  if (isTestEnv()) return false;
   try {
     const cfg = getAIConfig();
     return isAIEnabled(cfg);
@@ -48,71 +36,18 @@ function isKnowledgeAIEnabled(): boolean {
   }
 }
 
-// Generic AI caller for knowledge reasoning (configurable provider/model/baseURL via getAIConfig, never literal)
+// Unified AI caller for knowledge reasoning via central AI client
 async function callKnowledgeAI(
   systemPrompt: string,
   userText: string,
-  jsonSchema: any,
-  forVision: boolean = false
+  jsonSchema: any
 ): Promise<any | null> {
-  const config = getAIConfig();
-  if (!isAIEnabled(config)) return null;
-  const endpoint = getAIEndpoint(config);
-  const model = getAIModel(config, forVision);
-  if (!endpoint || !model) return null;
-  const structuredParams = buildStructuredParams(config.provider, config.structuredOutputs, jsonSchema);
-  let body: any;
-  if (config.provider === 'responses') {
-    const input = buildResponsesInput(systemPrompt, userText);
-    body = { model, input, temperature: config.temperature, max_output_tokens: config.maxTokens, ...structuredParams };
-  } else {
-    const messages = buildChatMessages(systemPrompt, userText);
-    body = { model, messages, temperature: config.temperature, max_tokens: config.maxTokens, ...structuredParams };
-  }
-  const AbortCtor: typeof AbortController =
-    typeof globalThis !== 'undefined' && (globalThis as any).AbortController ? (globalThis as any).AbortController : AbortController;
-  const controller = new AbortCtor();
-  const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
-  let fetchSignal: AbortSignal | undefined = controller.signal;
   try {
-    const isTestEnvSignal =
-      typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test') ||
-      typeof (globalThis as any).__vitest_worker__ !== 'undefined';
-    const GlobalAbortSignal = typeof globalThis !== 'undefined' ? (globalThis as any).AbortSignal : undefined;
-    const WindowAbortSignal = typeof window !== 'undefined' ? (window as any).AbortSignal : undefined;
-    const validGlobal = GlobalAbortSignal ? fetchSignal instanceof GlobalAbortSignal : true;
-    const validWindow = WindowAbortSignal ? fetchSignal instanceof WindowAbortSignal : true;
-    if (isTestEnvSignal) fetchSignal = undefined;
-    else if (!validGlobal && !validWindow) fetchSignal = undefined;
-  } catch {}
-  let response: Response;
-  try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (config.apiKey && config.apiKey.trim() !== '') headers.Authorization = `Bearer ${config.apiKey}`;
-    const fetchOpts: RequestInit = {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    };
-    if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
-    response = await fetch(endpoint, fetchOpts);
-  } finally {
-    clearTimeout(timeoutId);
-  }
-  if (!response.ok) {
-    const t = await response.text().catch(() => '');
-    throw new Error(`Knowledge AI failed ${response.status} ${t.slice(0, 400)}`);
-  }
-  const json = await response.json().catch(() => null);
-  if (!json) return null;
-  const textContent = extractTextFromProviderResponse(json, config.provider);
-  if (!textContent) {
-    // Direct shape fallback (mock network)
-    if (json.interactions || json.dietInteractions || json.duplicateAlerts || json.proposedShifts || json.generic) return json;
+    return await callAI<any>(systemPrompt, userText, { schema: jsonSchema });
+  } catch (err) {
+    console.warn('[interactionEngine] AI knowledge call failed, falling back to clinical rules:', (err as any)?.message || err);
     return null;
   }
-  const parsed = parseJsonContent(textContent);
-  return parsed;
 }
 
 function severityToArcColor(severity: string): string {

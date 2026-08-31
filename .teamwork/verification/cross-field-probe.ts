@@ -32,6 +32,14 @@ async function run() {
   const testPatient = 'test-patient-intel-001';
   const otherPatient = 'patient-s-devi';
   setActiveUser(testPatient);
+  // Ensure AI disabled for deterministic heuristic path (avoid real network)
+  try{
+    if(typeof (globalThis as any).localStorage !== 'undefined'){
+      (globalThis as any).localStorage.setItem('VITE_AI_ENABLED','false');
+      (globalThis as any).localStorage.removeItem('carecanvas_settings');
+    }
+    if(typeof process !== 'undefined') (process as any).env.VITE_AI_ENABLED='false';
+  }catch{}
   const { engine, vault, eventBus: bus, context } = createTestHarness(testPatient, 'patient');
 
   // Isolation pre-check: '' should be 0

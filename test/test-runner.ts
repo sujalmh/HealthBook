@@ -1,7 +1,3 @@
-/**
- * CareCanvas WebMCP Challenge Test Runner & Suite Orchestrator
- */
-
 // Tier 1 Feature Suites
 import { runVaultToolsTests } from './tier1-feature/vault-tools.spec.ts';
 import { runLabStoryToolsTests } from './tier1-feature/labstory-tools.spec.ts';

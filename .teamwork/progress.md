@@ -1,47 +1,32 @@
-# Progress — teamwork-1788097222690
+# Progress — teamwork-1788173131990
 
-Last updated: 2026-08-30T23:55Z — Success Auditor PASS → Done
+Last updated: 2026-08-31T16:15:00Z — Preflight + Hotfix Decomposition launch
 
 ## Current Milestone
-Done — all milestones PASS, Success Auditor PASS
+milestone-02 HOTFIX — First PDF upload via DocumentDropzone does NOT invoke AI — workstream ws-hotfix-pdf-ai (worker_hotfix_pdf_ai) PENDING dispatch
 
 ## Completed Milestones
-- M0 Planning BLOCKING — PASS 19:25Z
-- M1 Intelligence Core — PASS retry1 19:50Z
-- M2 Propagation — PASS retry1 22:25Z
-- M3 Hardening & Verification — PASS 23:20Z
-- Success Auditor — PASS 23:55Z
+- milestone-01 M1 Iterative AI Refactor (R1+R2+R3) PASSED 2026-08-31T11:20:41Z — lint0 build1672 test174 runner231 WebMCP40 — 12 files 50 insertions net -233 — grep gates PASS — 6-case ai-verification OVERALL PASS
 
 ## Completed Workstreams
-- orchestrator_m0_synthesis
-- ws-m1-ai-client
-- ws-m1-extraction
-- ws-m1-repair
-- ws-m2-knowledge
-- ws-m2-fanout
-- ws-m2-repair
-- ws-m3-settings-ui
-- ws-m3-verification
+- ws-iterative-ai-refactor (worker_iterative_ai_refactor) completed 2026-08-31T11:05:23Z — synthetic removal dedupe fallback AbortSignal globalThis always isTestEnv removal hash bbox conditional — lint0 build1672 test174 runner231 cross-field PASS
 
 ## Active Workstreams
-- none
+- ws-hotfix-pdf-ai — HOTFIX PDF+Image multimodal + config precedence + real File probe — pending dispatch iterative on main — isolation .teamwork/worktrees/hotfix-pdf-ai/
 
 ## Failed Milestones
-- M1 attempt1 FAIL repaired
-- M2 attempt1 FAIL repaired
+- none
 
 ## Gates
-- M0 Gate: PASS 19:25Z
-- M1 Gate: FAIL attempt1 19:40Z → PASS retry1 19:50Z
-- M2 Gate: FAIL attempt1 21:40Z → PASS retry1 22:25Z
-- M3 Gate: PASS 23:20Z (critic PASS | challenger PASS 16 cases | auditor PASS)
-- Success Auditor: PASS 23:55Z (final independent lint0 build1672 test174 runner231 getTools40 VITE_AI167 vision26 structured13 no-hardcode 0 CROSS_FIELD PASS decimal 1.9 HIGH isolation ''0 devi0 approval 6-viewport 320-1440 no gaps)
+- M1: PASS — critic PASS challenger PASS auditor PASS final PASS 2026-08-31T11:20:41Z → 8/16 spawns success auditor PASS 2026-08-31T11:24:27Z Done
+- milestone-02 HOTFIX: PENDING — awaiting worker + batch critic/challenger/auditor → success auditor final — spawn 8/16 remaining 8 — dead-man reset 2026-08-31T16:15:00Z
+- Success Auditor: PENDING hotfix
 
-## Workstream Results Summary
-- ws-m3-settings-ui: PASS 270/340/185 Settings>env 13 keys 6-viewport 320-1440 JFIF>5K lint0 build1672 174 231
-- ws-m3-verification: PASS lint0 build1672 174 231 cross-field PASS VITE_AI167 vision105 structured69 Settings 3+5 WebMCP40 6-viewport 320-1440 no gaps secret0
-- Success Auditor: PASS lint0 build1672 174 231 getTools40 inputSchema40 toolchange44 DOMString probe-patient-001 CROSS_FIELD PASS decimal 1.9 HIGH grep 0 Settings glob3+5 secret0 6-viewport no gaps verification/final.md 23KB
+
+- 2026-08-31T16:20:00Z Worker worker_hotfix_pdf_ai COMPLETE — result .teamwork/workstreams/ws-hotfix-pdf-ai-result.md written — Files changed 6 src + probe 330 lines — verification npx tsx document-dropzone-probe.ts OVERALL PASS 7 cases REAL File (PDF Apixaban triggers AI chat+responses not %PDF garbled fallback, image multimodal true, heuristic ≥1 for test.pdf, env precedence, lingering fix, [AI] log), npx tsx ai-request-verification.ts OVERALL PASS 6 cases, lint0 build1672 test174 runner231 cross-field PASS webmcp40 secret0 grep gates PASS — spawn 9/16 remaining 7 — next critic/challenger/auditor batched gate
 
 ## Next
-- Final handoff to Sentinel — Done, safe to demo
+- Dispatch worker_hotfix_pdf_ai via task single iterative on main — thorough REAL File multimodal probe document-dropzone-probe.ts — collect result — update BRIEFING/GATE_STATUS/progress/state — batch critics/challenger/auditor single parallel call — on PASS Success Auditor independent verification — final handoff to Sentinel
+
+- 2026-08-31T16:15:00Z Decomposition DONE — hotfix milestone-02 + ws-hotfix-pdf-ai (worker_hotfix_pdf_ai) — ownership 10 files disjoint PASS no parallel conflict — plan.md + state.json + milestones/milestone-02.md + workstreams/ws-hotfix-pdf-ai.md + handoff/milestone-02-hotfix-plan.md written — spawn 8/16 remaining 8 — dead-man reset — next dispatch worker
 

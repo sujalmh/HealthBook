@@ -1,0 +1,474 @@
+{
+  "version": 1,
+  "projectId": "teamwork-1788097222690",
+  "request": {
+    "objective": "Intelligence gap: generic configurable AI (any model/any baseURL via Settings > env) to replace every hardcoded branch, vision+text multimodal single response, all image OCR via AI, cross-field propagation preserving WebMCP 40",
+    "constraints": [
+      "Q1 .teamwork in current project confirmed",
+      "No hardcoding: provider/model/baseURL configurable via Settings>env, client reads runtime config via import.meta.env OR SettingsStore generic",
+      "All image OCR via AI, vision+text multimodal single response where model supports it (image+text together)",
+      "Replace every hardcoded branch (7 gaps vaultTools/labStory/homeLab/UploadModal/interaction/rxBridge/safety) with AI intelligence",
+      "Preserve WebMCP 40 document.modelContext SecureContext toolchange Permissions-Policy never overwrite native",
+      "Patient isolation carecanvas_active_user, only confirmed facts propagate, approval per-fact, no orphan leak",
+      "Q9 Settings>env precedence, Q10 fallback rule for text never for images, Q11 client-exposed accept, Q12 golden set planner, Q13 hardcode ban default",
+      "Integrity demo reproducible verifiable not mocked, distributed-coding M0 BLOCKING→M1→M2→M3"
+    ],
+    "acceptanceCriteria": [
+      "R1 generic configurable extraction vision+text multimodal all OCR via AI no hardcode",
+      "R2 every hardcoded branch replaced + cross-field propagation",
+      "R3 generic wiring no regression no hardcode Settings>env",
+      "R4 planning blocked M0 before implementation"
+    ],
+    "nonGoals": [
+      "Hardcoding any model/baseURL",
+      "Separate OCR then text when multimodal supported",
+      "Auto-confirm without tap"
+    ],
+    "createdAt": "2026-08-30T13:40:22.689Z",
+    "originalInput": "# Request — Teamwork Distributed Coding\n\nCreated: 2026-08-30T13:40:22.689Z\n\n## Objective\nIntelligence gap: generic configurable AI (any model/any baseURL via Settings > env) to replace every hardcoded branch, vision+text multimodal single response, all image OCR via AI, cross-field propagation preserving WebMCP 40\n\n## Constraints\n- none stated\n\n## Acceptance Criteria\n- [ ] R1 generic configurable extraction vision+text multimodal all OCR via AI no hardcode\n- [ ] R2 every hardcoded branch replace",
+    "integrityMode": "demo",
+    "executionPath": "distributed-coding",
+    "workingDirectory": ".teamwork"
+  },
+  "plan": {
+    "createdAt": "2026-08-30T19:20:00.000Z",
+    "milestones": [
+      {
+        "id": "M0",
+        "title": "Planning BLOCKING — no src edits",
+        "goal": "Produce PROJECT.md delta + TEST_INFRA.md delta + plan.md DAG M0→M1→M2→M3 ownership disjoint + verification plan + demo script + golden set; block until gate PASS",
+        "dependsOn": [],
+        "requirement": "R4",
+        "status": "passed",
+        "workstreams": [
+          "orchestrator_m0_synthesis"
+        ],
+        "completedAt": "2026-08-30T19:25Z"
+      },
+      {
+        "id": "M1",
+        "title": "Intelligence Core — generic AI client wrapper Settings>env, vision multimodal single response, structured generic, all image OCR via AI",
+        "goal": "Generic AI client wrapper + vault/labStory/homeLab extraction via AI vision+text single response + structured outputs + grounded bbox, no hardcoding",
+        "dependsOn": [
+          "M0"
+        ],
+        "requirement": "R1",
+        "status": "passed",
+        "workstreams": [
+          "ws-m1-ai-client",
+          "ws-m1-extraction"
+        ],
+        "completedAt": "2026-08-30T19:50Z"
+      },
+      {
+        "id": "M2",
+        "title": "Propagation — replace every hardcoded branch + cross-field fan-out via eventBus/LocalVault",
+        "goal": "Replace all 7 gaps with AI intelligence + orchestrate confirm_fact fan-out to pillmap/labStory/rxBridge/homeLab/safety/careCircle/dossier/questionBank",
+        "dependsOn": [
+          "M1"
+        ],
+        "requirement": "R2",
+        "status": "passed",
+        "workstreams": [
+          "ws-m2-knowledge",
+          "ws-m2-fanout"
+        ],
+        "completedAt": "2026-08-30T16:53:37.935Z"
+      },
+      {
+        "id": "M3",
+        "title": "Hardening & Verification — no-hardcode gates, WebMCP 40, 6-viewport, Settings>env",
+        "goal": "Env/Settings wiring validation no literals, WebMCP 40 preservation, patient isolation, build/tests, 6-viewport + Success Auditor",
+        "dependsOn": [
+          "M2"
+        ],
+        "requirement": "R3",
+        "status": "passed",
+        "workstreams": [
+          "ws-m3-settings-ui",
+          "ws-m3-verification"
+        ],
+        "completedAt": "2026-08-30T17:20:38.282Z"
+      }
+    ],
+    "workstreams": [
+      {
+        "id": "orchestrator_m0_synthesis",
+        "role": "orchestrator",
+        "files": [
+          ".teamwork/PROJECT.md",
+          ".teamwork/TEST_INFRA.md",
+          ".teamwork/plan.md",
+          ".teamwork/research/spec-miner-*.md",
+          ".teamwork/BRIEFING.md",
+          ".teamwork/GATE_STATUS.md",
+          ".teamwork/handoff/m0-plan.md"
+        ],
+        "milestone": "M0",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/m0-synthesis/"
+      },
+      {
+        "id": "ws-m1-ai-client",
+        "role": "worker_ai_client",
+        "files": [
+          "src/core/ai/**"
+        ],
+        "milestone": "M1",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m1-ai-client/",
+        "dependsOn": []
+      },
+      {
+        "id": "ws-m1-extraction",
+        "role": "worker_extraction_tools",
+        "files": [
+          "src/tools/vaultTools.ts",
+          "src/tools/labStoryTools.ts",
+          "src/tools/homeLabTools.ts",
+          "src/components/vault/DocumentDropzone.tsx",
+          "src/components/homelab/UploadLabModal.tsx",
+          "src/types/vault.ts"
+        ],
+        "milestone": "M1",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m1-extraction/",
+        "dependsOn": []
+      },
+      {
+        "id": "ws-m2-knowledge",
+        "role": "worker_knowledge_reasoning",
+        "files": [
+          "src/core/knowledge/interactionEngine.ts",
+          "src/core/knowledge/reconciliationEngine.ts",
+          "src/fixtures/drug_knowledge.ts",
+          "src/tools/pillMapTools.ts",
+          "src/tools/rxBridgeTools.ts",
+          "src/tools/safetyTools.ts",
+          "src/tools/careCircleTools.ts"
+        ],
+        "milestone": "M2",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m2-knowledge/",
+        "dependsOn": [
+          "ws-m1-ai-client",
+          "ws-m1-extraction"
+        ]
+      },
+      {
+        "id": "ws-m2-fanout",
+        "role": "worker_fanout_orchestrator",
+        "files": [
+          "src/core/vault/LocalVault.ts",
+          "src/core/events/eventBus.ts",
+          "src/components/pillmap/**",
+          "src/components/labstory/**",
+          "src/components/rxbridge/**",
+          "src/components/safety/**",
+          "src/components/carecircle/**",
+          "src/components/dossier/**"
+        ],
+        "milestone": "M2",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m2-fanout/",
+        "dependsOn": [
+          "ws-m1-ai-client",
+          "ws-m1-extraction"
+        ]
+      },
+      {
+        "id": "ws-m3-settings-ui",
+        "role": "worker_settings_ui",
+        "files": [
+          "src/components/settings/**",
+          "src/core/settings/**",
+          "src/App.tsx",
+          "src/main.tsx"
+        ],
+        "milestone": "M3",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m3-settings-ui/",
+        "dependsOn": [
+          "ws-m2-knowledge",
+          "ws-m2-fanout"
+        ],
+        "completedAt": "2026-08-30T17:08:51.981Z"
+      },
+      {
+        "id": "ws-m3-verification",
+        "role": "worker_verification",
+        "files": [
+          "test/**",
+          "vite.config.ts",
+          "test/test-runner.ts",
+          ".teamwork/verification/**",
+          ".teamwork/snapshots/**",
+          "opencode.json",
+          ".env.example",
+          ".gitignore"
+        ],
+        "milestone": "M3",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m3-verification/",
+        "dependsOn": [
+          "ws-m2-knowledge",
+          "ws-m2-fanout"
+        ],
+        "completedAt": "2026-08-30T17:08:51.982Z"
+      },
+      {
+        "id": "ws-m1-repair",
+        "role": "worker_m1_repair",
+        "files": [
+          "src/core/ai/client.ts",
+          "src/core/ai/fallback.ts",
+          "src/tools/vaultTools.ts",
+          "src/tools/labStoryTools.ts",
+          "src/tools/homeLabTools.ts",
+          "src/components/safety/DangerSignModal.tsx",
+          "test/setup.ts",
+          ".teamwork/verification/**",
+          ".teamwork/snapshots/intelligence/**"
+        ],
+        "milestone": "M1",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m1-repair/",
+        "dependsOn": [],
+        "repairFor": "M1_gate_FAIL",
+        "completedAt": "2026-08-30T19:45Z"
+      },
+      {
+        "id": "ws-m2-repair",
+        "role": "worker_m2_repair_hardcode_crossfield",
+        "files": [
+          "src/tools/vaultTools.ts",
+          "src/core/vault/LocalVault.ts",
+          "src/core/events/eventBus.ts",
+          "src/tools/homeLabTools.ts",
+          "src/core/ai/config.ts"
+        ],
+        "milestone": "M2",
+        "status": "completed",
+        "isolation": ".teamwork/worktrees/ws-m2-repair/",
+        "dependsOn": [
+          "ws-m2-knowledge",
+          "ws-m2-fanout"
+        ],
+        "repairFor": "M2_gate_FAIL_decimal_pending_bbox_undefined",
+        "completedAt": "2026-08-30T16:42:10.073Z"
+      }
+    ]
+  },
+  "ownership": [
+    {
+      "workstream": "orchestrator_m0_synthesis",
+      "files": [
+        ".teamwork/PROJECT.md",
+        ".teamwork/TEST_INFRA.md",
+        ".teamwork/plan.md"
+      ],
+      "owner": "orchestrator",
+      "status": "active"
+    },
+    {
+      "workstream": "ws-m1-ai-client",
+      "files": [
+        "src/core/ai/**"
+      ],
+      "owner": "worker_ai_client",
+      "status": "pending"
+    },
+    {
+      "workstream": "ws-m1-extraction",
+      "files": [
+        "src/tools/vaultTools.ts",
+        "src/tools/labStoryTools.ts",
+        "src/tools/homeLabTools.ts",
+        "src/components/vault/DocumentDropzone.tsx",
+        "src/components/homelab/UploadLabModal.tsx",
+        "src/types/vault.ts"
+      ],
+      "owner": "worker_extraction_tools",
+      "status": "pending"
+    },
+    {
+      "workstream": "ws-m2-knowledge",
+      "files": [
+        "src/core/knowledge/interactionEngine.ts",
+        "src/core/knowledge/reconciliationEngine.ts",
+        "src/fixtures/drug_knowledge.ts",
+        "src/tools/pillMapTools.ts",
+        "src/tools/rxBridgeTools.ts",
+        "src/tools/safetyTools.ts",
+        "src/tools/careCircleTools.ts"
+      ],
+      "owner": "worker_knowledge_reasoning",
+      "status": "completed"
+    },
+    {
+      "workstream": "ws-m2-fanout",
+      "files": [
+        "src/core/vault/LocalVault.ts",
+        "src/core/events/eventBus.ts",
+        "src/components/pillmap/**",
+        "src/components/labstory/**",
+        "src/components/rxbridge/**",
+        "src/components/safety/**",
+        "src/components/carecircle/**",
+        "src/components/dossier/**"
+      ],
+      "owner": "worker_fanout_orchestrator",
+      "status": "completed"
+    },
+    {
+      "workstream": "ws-m3-settings-ui",
+      "files": [
+        "src/components/settings/**",
+        "src/core/settings/**",
+        "src/App.tsx",
+        "src/main.tsx"
+      ],
+      "owner": "worker_settings_ui",
+      "status": "completed"
+    },
+    {
+      "workstream": "ws-m3-verification",
+      "files": [
+        "test/**",
+        "vite.config.ts",
+        ".teamwork/verification/**"
+      ],
+      "owner": "worker_verification",
+      "status": "completed"
+    },
+    {
+      "workstream": "ws-m1-repair",
+      "files": [
+        "src/core/ai/client.ts",
+        "src/tools/vaultTools.ts",
+        "src/tools/labStoryTools.ts",
+        "src/tools/homeLabTools.ts"
+      ],
+      "owner": "worker_m1_repair",
+      "status": "completed"
+    },
+    {
+      "workstream": "ws-m2-repair",
+      "files": [
+        "src/tools/vaultTools.ts",
+        "src/core/vault/LocalVault.ts",
+        "src/core/events/eventBus.ts",
+        "src/tools/homeLabTools.ts",
+        "src/core/ai/config.ts"
+      ],
+      "owner": "worker_m2_repair_hardcode_crossfield",
+      "status": "completed"
+    }
+  ],
+  "progress": {
+    "completedMilestones": [
+      "M0",
+      "M1",
+      "M2",
+      "M3",
+      "Success Auditor"
+    ],
+    "failedMilestones": [
+      "M2_attempt1"
+    ],
+    "completedWorkstreams": [
+      "orchestrator_m0_synthesis",
+      "ws-m1-repair",
+      "ws-m1-ai-client",
+      "ws-m1-extraction",
+      "ws-m2-repair",
+      "ws-m2-knowledge",
+      "ws-m2-fanout",
+      "ws-m3-settings-ui",
+      "ws-m3-verification"
+    ],
+    "activeWorkstreams": []
+  },
+  "verification": {
+    "gates": [
+      {
+        "milestone": "M0",
+        "critic": "PASS",
+        "challenger": "PASS",
+        "auditor": "PASS",
+        "final": "PASS",
+        "evidence": ".teamwork/verification/planning-gate.log + lint0 build1664 test174 runner231 git0 stat ordering"
+      },
+      {
+        "milestone": "M1_attempt1",
+        "critic": "FAIL",
+        "challenger": "FAIL",
+        "auditor": "FAIL",
+        "final": "FAIL",
+        "evidence": "critic missing snapshots intelligence empty + AbortSignal realm + stale bbox log; challenger 4 blocks pageIndex0 length>5000 bbox scale authz bypass; auditor 8/231 runner FAIL bbox0 AbortSignal hugeText homeLab placeholder",
+        "blockingFindings": [
+          "AbortController realm mismatch client.ts:237",
+          "bbox pageIndex 0 vs 1 fallback.ts:25 client.ts:47 vaultTools:36",
+          "length>5000 misclassifies huge text as image vaultTools:76 labStory:257 homeLab:14",
+          "homeLab placeholder computed vs grounded scale x:0.11 0-1 vs 0-1000",
+          "compile_health_record authz bypass vaultTools:332",
+          "snapshots intelligence empty 0 entries need 1280/375/768 JFIF>5K"
+        ]
+      },
+      {
+        "milestone": "M1_retry1",
+        "critic": "PASS",
+        "challenger": "PASS",
+        "auditor": "PASS",
+        "final": "PASS",
+        "evidence": "retry lint0 build1669 test174 runner231 grep 0 vision63 structured37 bbox0 snapshots3 JFIF>5K hugeText3 homeLab2 authz victim0"
+      },
+      {
+        "milestone": "M2_attempt1",
+        "critic": "PASS",
+        "challenger": "FAIL",
+        "auditor": "FAIL",
+        "final": "FAIL",
+        "evidence": "critic PASS with 7 WARNs; challenger FAIL decimal 1.90 split loss vaultTools:19, questionBank pending spam LocalVault:770 5x, NaN bbox clamp 342; auditor FAIL confirms same 4 blocks: decimal 1.90 value 1 NORMAL vs 1.9 HIGH, pending spam 2 vs 1, NaN bbox 0,0,120,40 not thrown, getDangerReports undefined leak 992; lint0 build1669 test174 runner231 CROSS_FIELD PASS integer variant but decimal FAIL masks",
+        "blockingFindings": [
+          "vaultTools.ts:19 split(/[\n;.]+/) breaks 1.90 → 1 precision loss",
+          "LocalVault.ts:770 addQuestion dedup only active not pending → 5 pending spam",
+          "LocalVault.ts:342 clampBoundingBox NaN → 0 silent not thrown",
+          "LocalVault.ts:992 getDangerReports(undefined) → all 2 leak",
+          "vaultTools.ts:279 hardcoded referenceRange {0,100} not BIOMARKER_STANDARDS"
+        ]
+      },
+      {
+        "milestone": "M2_retry1",
+        "critic": "PASS",
+        "challenger": "PASS",
+        "auditor": "PASS",
+        "final": "PASS",
+        "evidence": "retry1 lint0 build1669 test174 runner231 decimal 1.90→1.9 HIGH spam 5→1 bbox throw leak 0 CROSS_FIELD PASS integer + decimal variant, grep 0 vision99 structured11 WebMCP40 snapshots 3 JFIF>5K"
+      },
+      {
+        "milestone": "M3",
+        "critic": "PASS",
+        "challenger": "PASS",
+        "auditor": "PASS",
+        "final": "PASS",
+        "evidence": "M3 critc PASS challenger PASS (16 cases 15 PASS 1 warn whitespace) auditor PASS lint0 build1672 test174 runner231 getTools40 VITE_AI167 vision105 structured69 Settings glob3+5 cross-field PASS isolation ''0 devi0 approval 6-viewport 320-1440 no gaps JFIF>5K secret 0"
+      },
+      {
+        "milestone": "Success Auditor",
+        "critic": "PASS",
+        "challenger": "PASS",
+        "auditor": "PASS",
+        "final": "PASS",
+        "evidence": "final independent lint0 build1672 test174 runner231 getTools40 VITE_AI167 vision26 structured13 no-hardcode 0 CROSS_FIELD PASS decimal 1.9 HIGH isolation ''0 devi0 approval citations 4 Settings glob3+5 secret0 6-viewport 320-1440 no gaps JFIF>5K verification/final.md 23KB reviews/success-auditor.md 18KB"
+      }
+    ]
+  },
+  "context": {
+    "handoffCount": 1
+  },
+  "metadata": {
+    "artifactsDir": ".teamwork",
+    "pattern": "distributed-coding"
+  }
+}

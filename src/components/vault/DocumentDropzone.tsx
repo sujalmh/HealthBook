@@ -23,11 +23,12 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
     return '';
   })() || 'patient-unknown';
 
-  const handleRealExtract = async (file: File, rawText: string, imageDataUrl?: string) => {
+  const handleRealExtract = async (file: File, fileDataUrl: string, rawText?: string) => {
     setIsExtracting(true);
     try {
       const documentId = `doc_${Date.now()}_${file.name.replace(/[^a-z0-9.-]/gi, '_')}`;
       const docType = file.type.includes('pdf') ? 'general_pdf' : file.type.includes('image') ? 'lab_slip_photo' : 'general_pdf';
+
       await localVault.addDocument({
         id: documentId,
         patientId: effectivePatientId,
@@ -39,28 +40,22 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
         extractedFactIds: [],
       });
 
-      // Wire FileReader real file — if image/pdf/file (data URL) send as file data + text together to extract_fact via AI multimodal; many models support PDF/image/video directly via file_data
-      // Single multimodal request when file present: rawText + fileDataUrl together (image_url vs input_image vs input_file handled generically by AI client based on VITE_AI_PROVIDER)
+      // Send the uploaded file data URL directly to AI fact extraction
       const execParams: any = {
         documentId,
-        rawText: rawText || '',
+        rawText: rawText || file.name,
+        imageDataUrl: fileDataUrl,
+        imageBlob: fileDataUrl,
         docType,
         documentType: file.type,
       };
-      if (imageDataUrl && imageDataUrl.startsWith('data:')) {
-        execParams.imageBlob = imageDataUrl;
-        execParams.imageDataUrl = imageDataUrl;
-        execParams.fileDataUrl = imageDataUrl;
-        // Also include rawText alongside file for multimodal single response where model supports it
-        if (rawText && rawText.trim().length > 0) execParams.rawText = rawText;
-      }
 
       const result = await webMCPEngine.execute('extract_fact', execParams);
 
       eventBus.dispatchToast({
         type: 'success',
         title: 'Extraction Complete',
-        message: (result as any).plainLanguageSummary || (result as any).plainLanguageExplanation || 'Facts extracted successfully',
+        message: (result as any).plainLanguageSummary || (result as any).plainLanguageExplanation || 'Facts extracted successfully by AI',
       });
 
       if (onExtracted) onExtracted();
@@ -68,7 +63,7 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
       eventBus.dispatchToast({
         type: 'error',
         title: 'Extraction Error',
-        message: err?.message || 'Failed to extract facts',
+        message: err?.message || 'Failed to extract facts via AI',
       });
     } finally {
       setIsExtracting(false);
@@ -78,6 +73,7 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
+
     // Validate type
     const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     const isAllowed = allowed.some((t) => file.type.includes(t.split('/')[1]) || file.name.match(/\.(pdf|jpe?g|png)$/i));
@@ -90,60 +86,20 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
       return;
     }
 
-    const isImage = file.type.startsWith('image/') || file.name.match(/\.(jpe?g|png)$/i);
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-
-    if (isImage) {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const result = reader.result as string;
-        // For images, result is data URL (vision input) — send as imageDataUrl + text together single multimodal request
-        // If image contains embedded text, we could also attempt OCR text extraction via reading as text? But vision+text single response handles both
-        const imageDataUrl = result || '';
-        // Send empty rawText plus imageDataUrl for AI multimodal single request (client will compose image_url or input_image generically)
-        await handleRealExtract(file, '', imageDataUrl);
-      };
-      reader.onerror = () => {
-        eventBus.dispatchToast({
-          type: 'error',
-          title: 'Read Error',
-          message: 'Could not read file.',
-        });
-      };
-      reader.readAsDataURL(file);
-    } else if (isPdf) {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const result = reader.result as string;
-        // For PDFs, send PDF directly as base64 file_data (many models support pdf input directly — text/image/video/pdf)
-        // Do not use readAsText (garbled binary). Use data URL so model can parse PDF natively via input_file/file.
-        const pdfDataUrl = result || '';
-        await handleRealExtract(file, '', pdfDataUrl);
-      };
-      reader.onerror = () => {
-        eventBus.dispatchToast({
-          type: 'error',
-          title: 'Read Error',
-          message: 'Could not read file.',
-        });
-      };
-      reader.readAsDataURL(file);
-    } else {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const result = reader.result as string;
-        const rawText = result || file.name;
-        await handleRealExtract(file, rawText);
-      };
-      reader.onerror = () => {
-        eventBus.dispatchToast({
-          type: 'error',
-          title: 'Read Error',
-          message: 'Could not read file.',
-        });
-      };
-      reader.readAsText(file);
-    }
+    // Read the file as a Data URL to upload directly to AI
+    const reader = new FileReader();
+    reader.onerror = () => {
+      eventBus.dispatchToast({
+        type: 'error',
+        title: 'Read Error',
+        message: 'Could not read file.',
+      });
+    };
+    reader.onload = async () => {
+      const dataUrl = (reader.result as string) || '';
+      await handleRealExtract(file, dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -188,42 +144,40 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-          isDragging ? 'border-primary bg-primary-light/50' : 'border-canvas-border bg-canvas-muted/30 hover:border-primary-border hover:bg-canvas-muted/50'
-        }`}
+        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+          isDragging
+            ? 'border-primary bg-primary-light/50 shadow-inner'
+            : 'border-canvas-border hover:border-primary/50 hover:bg-slate-50/50'
+        } ${isExtracting ? 'opacity-50 pointer-events-none' : ''}`}
       >
-        <div className="flex flex-col items-center gap-3">
-          <div className="p-3 bg-white border border-canvas-border rounded-xl shadow-sm">
-            <FileText className="w-6 h-6 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-body-sm font-semibold text-slate-900">Drop a PDF or photo here, or click to browse</p>
-            <p className="text-caption text-muted">PDF, JPG, PNG — your file is processed locally and staged for your review</p>
-          </div>
-          <span className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-body-sm font-bold shadow-sm min-h-[44px] min-w-[120px] justify-center">
-            Browse Files <ArrowRight className="w-3.5 h-3.5" />
-          </span>
-        </div>
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
           className="hidden"
+          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
           onChange={(e) => handleFiles(e.target.files)}
         />
+        <div className="flex flex-col items-center justify-center space-y-3">
+          <div className="p-3 bg-canvas-surface rounded-full text-primary border border-canvas-border shadow-xs">
+            <FileText className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-body-sm font-semibold text-slate-900">Drop a PDF or photo here, or click to browse</p>
+            <p className="text-caption text-muted">PDF, JPG, PNG — your file is processed by AI and staged for your review</p>
+          </div>
+          <div className="inline-flex items-center gap-1.5 text-caption font-semibold text-primary">
+            <span>Select file</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-        <p className="text-body-sm text-muted">Important details appear for review</p>
-        <span className="text-caption text-muted hidden sm:inline">Files are read with FileReader and sent to your vault for {effectivePatientId === 'patient-unknown' ? 'your account' : 'your patient'}</span>
-      </div>
-
-      {/* Loading skeleton while extracting */}
       {isExtracting && (
-        <div className="rounded-xl border border-canvas-border bg-canvas-muted p-4 space-y-3 animate-pulse">
-          <div className="h-3 w-2/3 bg-muted/20 rounded" />
-          <div className="h-3 w-full bg-muted/10 rounded" />
-          <div className="h-3 w-5/6 bg-muted/10 rounded" />
+        <div className="p-4 bg-primary-light/40 border border-primary-border rounded-xl flex items-center gap-3 animate-pulse">
+          <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-body-sm font-medium text-primary">
+            AI is analyzing your document and extracting clinical facts...
+          </p>
         </div>
       )}
     </div>

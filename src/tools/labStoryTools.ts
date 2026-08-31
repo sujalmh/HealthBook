@@ -10,10 +10,8 @@ import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } f
 import type { LabRecord } from '../types/vault.ts';
 import type { LongitudinalLabDataPoint } from '../fixtures/longitudinal_labs.ts';
 import { convertToLabRecords } from '../fixtures/longitudinal_labs.ts';
-import { extractWithAI } from '../core/ai/client.ts';
-import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from '../core/ai/config.ts';
-import { buildChatMessages, buildResponsesInput } from '../core/ai/vision.ts';
-import { buildStructuredParams, parseJsonContent, extractTextFromProviderResponse } from '../core/ai/structured.ts';
+import { extractWithAI, callAI } from '../core/ai/client.ts';
+import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 
 // Standard reference and optimal ranges for biomarker normalizer
 export const BIOMARKER_STANDARDS: Record<
@@ -254,7 +252,7 @@ export function normalizeLabBiomarker(
 
 function isVisionImage(value?: string): boolean {
   if (!value || typeof value !== 'string') return false;
-  return value.startsWith('data:');
+  return value.startsWith('data:image');
 }
 
 // Helper: fallback regex extraction (preserved for when AI disabled)
@@ -320,7 +318,7 @@ async function aiExtractLabsViaClient(rawText: string, imageDataUrl: string | un
   }
 }
 
-// AI causal narrative for correlate_meds via generic configurable provider (vision+text not needed, text only)
+// AI causal narrative for correlate_meds via unified AI client
 async function aiCorrelateNarrative(
   biomarker: string,
   filteredLabs: LabRecord[],
@@ -332,9 +330,7 @@ async function aiCorrelateNarrative(
 ): Promise<{ trajectory: string; narrative: string; doctorQuestion: string; correlated: string[] } | null> {
   const config = getAIConfig();
   if (!isAIEnabled(config)) return null;
-  const endpoint = getAIEndpoint(config);
-  const model = getAIModel(config, false);
-  if (!endpoint || !model) return null;
+
   try {
     const labsSummary = filteredLabs.slice(0, 8).map(l => `${l.marker}: ${l.normalizedValue} ${l.normalizedUnit} on ${l.drawDate} flag:${l.flag}`).join('; ');
     const medsSummary = correlatedMeds.join(', ') || 'none';
@@ -351,60 +347,10 @@ async function aiCorrelateNarrative(
       },
       required: ['trajectory', 'causalStorySentence', 'recommendedDoctorQuestion'],
       additionalProperties: false,
-    } as any;
-    const useStructured = config.structuredOutputs;
-    const structuredParams = buildStructuredParams(config.provider, useStructured, structuredSchema);
-    let body: any;
-    if (config.provider === 'responses') {
-      const input = buildResponsesInput(systemPrompt, userText);
-      body = { model, input, temperature: config.temperature, max_output_tokens: config.maxTokens, ...structuredParams };
-    } else {
-      const messages = buildChatMessages(systemPrompt, userText);
-      body = { model, messages, temperature: config.temperature, max_tokens: config.maxTokens, ...structuredParams };
-    }
-    const AbortCtor: typeof AbortController =
-      typeof globalThis !== 'undefined' && (globalThis as any).AbortController ? (globalThis as any).AbortController : AbortController;
-    const controller = new AbortCtor();
-    const timeoutId = setTimeout(() => controller.abort(), config.timeoutMs || 30000);
-    let fetchSignal: AbortSignal | undefined = controller.signal;
-    try {
-      const isTestEnvSignal =
-        typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test') ||
-        typeof (globalThis as any).__vitest_worker__ !== 'undefined';
-      const GlobalAbortSignal = typeof globalThis !== 'undefined' ? (globalThis as any).AbortSignal : undefined;
-      const WindowAbortSignal = typeof window !== 'undefined' ? (window as any).AbortSignal : undefined;
-      const validGlobal = GlobalAbortSignal ? fetchSignal instanceof GlobalAbortSignal : true;
-      const validWindow = WindowAbortSignal ? fetchSignal instanceof WindowAbortSignal : true;
-      if (isTestEnvSignal) fetchSignal = undefined;
-      else if (!validGlobal && !validWindow) fetchSignal = undefined;
-    } catch {}
-    let response: Response;
-    try {
-      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
-      if (config.apiKey && config.apiKey.trim() !== '') headers.Authorization = `Bearer ${config.apiKey}`;
-      const fetchOpts: RequestInit = { method: 'POST', headers, body: JSON.stringify(body) };
-      if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
-      response = await fetch(endpoint, fetchOpts);
-    } finally {
-      clearTimeout(timeoutId);
-    }
-    if (!response.ok) {
-      const t = await response.text().catch(() => '');
-      throw new Error(`AI correlate failed ${response.status} ${t.slice(0, 300)}`);
-    }
-    const json = await response.json().catch(() => null);
-    if (!json) return null;
-    const textContent = extractTextFromProviderResponse(json, config.provider);
-    if (!textContent) {
-      if (json.trajectory && json.causalStorySentence) {
-        return { trajectory: json.trajectory, narrative: json.causalStorySentence, doctorQuestion: json.recommendedDoctorQuestion, correlated: json.correlatedMedications || correlatedMeds };
-      }
-      return null;
-    }
-    const parsed = parseJsonContent(textContent);
-    if (!parsed) return null;
-    const data = parsed.trajectory ? parsed : parsed;
-    if (data.trajectory && data.causalStorySentence) {
+    };
+
+    const data = await callAI<any>(systemPrompt, userText, { schema: structuredSchema });
+    if (data?.trajectory && data?.causalStorySentence) {
       return {
         trajectory: data.trajectory,
         narrative: data.causalStorySentence,

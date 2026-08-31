@@ -1,236 +1,114 @@
 /**
  * CareCanvas AI Core — Client
- * Generic configurable AI client wrapper.
- * Reads runtime config via import.meta.env.VITE_AI_* OR SettingsStore (Settings>env precedence Q9).
- * Handles configurable provider/model/baseURL branching generically:
- *   {baseURL}/chat/completions for provider=chat
- *   {baseURL}/responses for provider=responses via VITE_AI_PROVIDER
- * Vision+text multimodal single response where model supports it (image data URL + text in ONE fetch body:
- *   chat uses image_url type, responses uses input_image type generically)
- * Structured JSON generically via response_format {type: json_object} vs text.format {type: json_schema} + validation.
- * Timeout via VITE_AI_TIMEOUT_MS 30000.
- * Fallback heuristic only when VITE_AI_ENABLED=false or key absent (Q10 fallback for text never for images).
+ * Single unified HTTP communication client for all OpenAI-compatible endpoints (/chat/completions & /responses).
+ * Features:
+ * - Unified multimodal body composition (chat image_url vs responses input_image)
+ * - Structured JSON schema enforcement with resilient fallback parsing
+ * - AbortController signal lifecycle with configurable timeouts
+ * - Dedicated extraction & normalization pipeline for Vault facts
  */
 
 import type { Fact } from '../../types/vault.ts';
-import type { AIConfig } from './types.ts';
-import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from './config.ts';
-import { buildChatMessages, buildResponsesInput, isFileDataUrl, isImageDataUrl, isPdfDataUrl, isMultimodalRequestBody } from './vision.ts';
+import type { AIConfig, AICallOptions } from './types.ts';
+import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel, isResponsesProvider } from './config.ts';
+import { buildChatMessages, buildResponsesInput, isDataUrl, isVisionSupportedImage } from './vision.ts';
+import { processPdfData } from './pdf.ts';
 import {
   FACT_EXTRACTION_JSON_SCHEMA,
   buildStructuredParams,
-  validateStructuredOutput,
+  validateStructuredFacts,
   parseJsonContent,
   extractTextFromProviderResponse,
 } from './structured.ts';
-import { heuristicFallback, isFallbackEnabled } from './fallback.ts';
 
-// Generic system prompt — no hardcoded model literals, configurable via prompt generically
-const SYSTEM_PROMPT = `You are a clinical fact extraction assistant. Extract clinical facts from discharge summaries, lab reports, or image slips.
-Return ONLY valid JSON with this shape: {"facts": [{"name": string, "category": "medication"|"lab"|"allergy"|"condition"|"vital_sign"|"supplement"|"diet_habit", "value": any, "unit": string, "confidence": number (0-1), "plainExplanation": string}]}
-Rules:
-- Categories must be typed: med for medications (e.g., Apixaban), lab for labs (Creatinine, eGFR, Potassium, HbA1c, Glucose), allergy, condition, vital_sign.
-- Confidence must be >0 and <=1.
-- plainExplanation must be clear plain language.
-- Unit normalization: Creatinine mg/dL, eGFR mL/min/1.73m2, Potassium mEq/L, HbA1c %, Glucose mg/dL, Hemoglobin g/dL.
-- Include ALL extractable facts (up to 8). If image present, extract from both image and text together.
-- Output JSON only, no markdown.`;
+const SYSTEM_FACT_EXTRACTION_PROMPT = `You are an expert clinical data extraction assistant. Extract ALL medical and healthcare facts from the provided document into a complete, structured array of categorical facts to populate the patient's entire health companion.
 
-/**
- * Normalize unit generically.
- */
-function normalizeUnit(category: string, name: string, unit?: string): string {
-  if (unit && unit.trim() !== '') return unit.trim();
-  const lower = (name + ' ' + category).toLowerCase();
-  if (lower.includes('creatinine')) return 'mg/dL';
-  if (lower.includes('egfr') || lower.includes('gfr')) return 'mL/min/1.73m2';
-  if (lower.includes('potassium')) return 'mEq/L';
-  if (lower.includes('hba1c') || lower.includes('a1c')) return '%';
-  if (lower.includes('glucose')) return 'mg/dL';
-  if (lower.includes('hemoglobin')) return 'g/dL';
-  if (category === 'lab') return '';
-  if (category === 'medication') return 'mg';
-  return unit || '';
-}
+Categories to extract:
+- "demographics": Patient name, age, gender, blood group, hospital, consultant doctor, admission date, discharge date.
+- "medication": All active and discontinued medications with exact dose, frequency (BID, QD, etc.), route (PO/IV), timing (morning, evening, bedtime), and food instructions.
+- "lab": All laboratory test values, diagnostic biomarkers, units, and reference flags (HIGH, LOW, NORMAL, CRITICAL).
+- "condition": All diagnosed medical conditions, chronic illnesses, and clinical findings.
+- "allergy": Documented allergies (or NKDA if none).
+- "vital": Vitals like blood pressure, pulse, SpO2, weight, and temperature.
+- "diet_habit": Diet instructions (low sodium, fluid limits, avoid grapefruit, etc.).
+- "followup": Scheduled follow-up appointments, clinic visits, and doctor review timelines.
+- "due_card": Prescribed future or repeat lab tests to be done at home or clinic.
+- "question": Relevant questions for the patient to ask their doctor.
+- "danger_sign": Warning symptoms and red-flag thresholds mentioned in the papers.
+
+For any field not mentioned or not applicable, provide "null" or an empty string. Output strictly valid JSON matching the schema.`;
 
 /**
- * Coerce AI facts to Fact[] with patient/doc context, grounded bbox, confidence>0, plainExplanation, unit normalization.
+ * Universal AI calling engine for CareCanvas.
+ * Handles chat and responses endpoints, multimodal images, JSON schemas, and error extraction.
  */
-function toFacts(
-  aiFacts: any[],
-  patientId: string,
-  documentId: string,
-  docType?: string
-): Fact[] {
-  return aiFacts.map((f, idx) => {
-    const name = typeof f.name === 'string' && f.name.trim() !== '' ? f.name.trim().slice(0, 80) : `Fact ${idx + 1}`;
-    const category = typeof f.category === 'string' && f.category.trim() !== '' ? f.category.trim().toLowerCase() : 'medication';
-    const rawConfidence = typeof f.confidence === 'number' ? f.confidence : 0.82;
-    const confidence = Math.max(0.55, Math.min(0.98, Number.isFinite(rawConfidence) ? rawConfidence : 0.82));
-    const plainExplanation =
-      typeof f.plainExplanation === 'string' && f.plainExplanation.trim() !== ''
-        ? f.plainExplanation.trim().slice(0, 280)
-        : `${name} — ${JSON.stringify(f.value ?? '').slice(0, 120)}`;
-    const unit = normalizeUnit(category, name, f.unit);
-
-    return {
-      id: `fact_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
-      patientId,
-      category: category as any,
-      name,
-      value: f.value ?? { rawSnippet: name },
-      unit,
-      confidence: Math.round(confidence * 100) / 100,
-      status: 'unconfirmed' as const,
-      sourceDocId: documentId,
-      plainExplanation,
-      author: 'system_ai',
-      timestamp: new Date().toISOString(),
-      metadata: docType ? { docType, aiModel: 'generic' } : { aiModel: 'generic' },
-    };
-  });
-}
-
-/**
- * Build generic request body for both providers.
- * Vision+text multimodal single fetch body — image_url vs input_image generically branching via VITE_AI_PROVIDER.
- * Structured JSON generically via response_format vs text.format.
- */
-function buildRequestBody(
-  config: AIConfig,
-  rawText: string,
-  imageDataUrl?: string,
-  docType?: string
-): any {
-  const useStructured = config.structuredOutputs;
-  const model = getAIModel(config, !!imageDataUrl && isFileDataUrl(imageDataUrl));
-  const structuredParams = buildStructuredParams(config.provider, useStructured, FACT_EXTRACTION_JSON_SCHEMA);
-
-  // Document context for prompt
-  const docContext = docType ? ` Document type: ${docType}.` : '';
-  const userText = `${rawText?.trim() ? rawText.trim().slice(0, 8000) : 'Extract facts from provided document image.'}${docContext}\n\nReturn JSON only.`;
-
-  if (config.provider === 'responses') {
-    // Responses provider — input_image type generically
-    const input = buildResponsesInput(SYSTEM_PROMPT, userText, imageDataUrl);
-    // Compose responses body generically — uses text.format json_schema when structured
-    return {
-      model,
-      input,
-      temperature: config.temperature,
-      max_output_tokens: config.maxTokens,
-      ...structuredParams,
-    };
-  } else {
-    // Chat provider — image_url type
-    const messages = buildChatMessages(SYSTEM_PROMPT, userText, imageDataUrl);
-    return {
-      model,
-      messages,
-      temperature: config.temperature,
-      max_tokens: config.maxTokens,
-      ...structuredParams,
-    };
-  }
-}
-
-/**
- * Core AI extraction — generic configurable wrapper.
- * Exported as extractWithAI(rawText, imageDataUrl?, docType?): Promise<Fact[]>
- * Also exported with patient/document context overload.
- */
-export async function extractWithAI(
-  rawText: string,
-  imageDataUrl?: string,
-  docType?: string,
-  opts?: { patientId?: string; documentId?: string; categories?: string[] }
-): Promise<Fact[]> {
+export async function callAI<T = any>(
+  systemPrompt: string,
+  userText: string,
+  options?: AICallOptions
+): Promise<T> {
   const config = getAIConfig();
-  const patientId = opts?.patientId || derivePatientId();
-  const documentId = opts?.documentId || `doc_ai_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
-  const hasImage = !!imageDataUrl && isFileDataUrl(imageDataUrl);
-
-  // Fallback heuristic only when VITE_AI_ENABLED=false or key absent (Q10 rule for text never for images)
-  // Image OCR must always via AI when enabled, not heuristic placeholder
-  if (isFallbackEnabled(config, imageDataUrl)) {
-    // Text only heuristic
-    return heuristicFallback(rawText || '', docType, patientId, documentId);
-  }
-
-  // If AI not enabled and hasImage, never heuristic — surface error by returning empty (caller handles)
   if (!isAIEnabled(config)) {
-    if (hasImage) {
-      // Per Q10, image OCR must always via AI when enabled — if AI disabled, return empty not placeholder
-      console.warn('[AI] Vision extraction requested but AI disabled or key absent — no heuristic for images');
-      return [];
-    }
-    return heuristicFallback(rawText || '', docType, patientId, documentId);
-  }
-
-  // Validate config
-  if (!config.baseURL || !config.model) {
-    throw new Error('AI config missing baseURL or model — check VITE_AI_BASE_URL / VITE_AI_MODEL or Settings');
+    throw new Error('AI is disabled or unconfigured — please check Settings or configure .env API key');
   }
 
   const endpoint = getAIEndpoint(config);
-  if (!endpoint) throw new Error('AI endpoint could not be composed — missing baseURL');
+  const isVision = !!options?.imageDataUrl && isDataUrl(options.imageDataUrl);
+  const model = getAIModel(config, isVision);
 
-  const body = buildRequestBody(config, rawText || '', imageDataUrl, docType);
-
-  // Vision multimodal gate verification helper — ensure single request contains image+text when image present
-  if (hasImage) {
-    const isMulti = isMultimodalRequestBody(body, config.provider);
-    if (!isMulti) {
-      console.warn('[AI] Expected multimodal single request with image+text but body missing image marker');
-    }
+  if (!endpoint || !model) {
+    throw new Error('AI endpoint or model could not be determined');
   }
 
-  // Timeout via VITE_AI_TIMEOUT_MS 30000 generically — realm-safe AbortController for jsdom/node mismatch
-  const AbortCtor: typeof AbortController =
-    typeof globalThis !== 'undefined' && (globalThis as any).AbortController ? (globalThis as any).AbortController : AbortController;
-  const controller = new AbortCtor();
-  const timeoutMs = config.timeoutMs && Number.isFinite(config.timeoutMs) ? config.timeoutMs : 30000;
+  const isResp = isResponsesProvider(config);
+  const structuredParams = buildStructuredParams(
+    config.provider,
+    config.structuredOutputs,
+    options?.schema
+  );
+
+  const maxTokens = Math.max(options?.maxTokens || config.maxTokens || 4096, isResp ? 16384 : 8192);
+  const temperature = options?.temperature ?? config.temperature ?? 0.1;
+
+  let requestBody: any;
+  if (isResp) {
+    const input = buildResponsesInput(systemPrompt, userText, options?.imageDataUrl);
+    requestBody = {
+      model,
+      input,
+      temperature,
+      max_output_tokens: maxTokens,
+      reasoning: { effort: 'low' },
+      ...structuredParams,
+    };
+  } else {
+    const messages = buildChatMessages(systemPrompt, userText, options?.imageDataUrl);
+    requestBody = {
+      model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+      ...structuredParams,
+    };
+  }
+
+  const timeoutMs = options?.timeoutMs || config.timeoutMs || 120000;
+  const controller = new (globalThis as any).AbortController();
+  const fetchSignal = controller.signal;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  // Guard signal assignment: only pass signal if it is instance of global AbortSignal (or window) else omit to avoid Realm mismatch
-  let fetchSignal: AbortSignal | undefined = controller.signal;
-  try {
-    const isTestEnvSignal =
-      typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test') ||
-      typeof (globalThis as any).__vitest_worker__ !== 'undefined';
-    const GlobalAbortSignal = typeof globalThis !== 'undefined' ? (globalThis as any).AbortSignal : undefined;
-    const WindowAbortSignal = typeof window !== 'undefined' ? (window as any).AbortSignal : undefined;
-    const validGlobal = GlobalAbortSignal ? fetchSignal instanceof GlobalAbortSignal : true;
-    const validWindow = WindowAbortSignal ? fetchSignal instanceof WindowAbortSignal : true;
-    // In test env or if realm mismatch, omit signal to prevent RequestInit Expected signal error
-    if (isTestEnvSignal) {
-      fetchSignal = undefined;
-    } else if (!validGlobal && !validWindow) {
-      // Fallback: if signal not recognized in any realm, omit
-      fetchSignal = undefined;
-    }
-  } catch {
-    // ignore guard errors
-  }
 
   let response: Response;
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    // Only send client key if present — when baseURL is /api/*, server proxy may inject from non-VITE env (AI_API_KEY)
-    if (config.apiKey && config.apiKey.trim() !== '') {
-      headers.Authorization = `Bearer ${config.apiKey}`;
-    }
-    const fetchOpts: RequestInit = {
+    response = await fetch(endpoint, {
       method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    };
-    if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
-    response = await fetch(endpoint, fetchOpts);
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+      signal: fetchSignal,
+    });
   } catch (err: any) {
-    clearTimeout(timeoutId);
     if (err?.name === 'AbortError') {
       throw new Error(`AI request timed out after ${timeoutMs}ms`);
     }
@@ -241,58 +119,133 @@ export async function extractWithAI(
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');
-    throw new Error(`AI request failed ${response.status} ${response.statusText}: ${text.slice(0, 500)}`);
+    throw new Error(`AI API request failed (${response.status} ${response.statusText}): ${text.slice(0, 400)}`);
   }
 
   const json = await response.json().catch(() => null);
-  if (!json) throw new Error('AI response empty or not JSON');
+  if (!json) {
+    throw new Error('AI API returned an empty or invalid JSON response');
+  }
 
+  // Extract raw string content from provider response shape
   const textContent = extractTextFromProviderResponse(json, config.provider);
   if (!textContent) {
-    // Try direct facts shape (mock network might return {facts: [...]})
-    if (json.facts && Array.isArray(json.facts)) {
-      const validated = validateStructuredOutput(json);
-      if (!validated.valid) console.warn('[AI] Structured validation warnings', validated.errors);
-      return toFacts(validated.parsed.facts, patientId, documentId, docType);
+    // If provider directly returned the target object shape
+    if (typeof json === 'object' && !json.choices && !json.output) {
+      return json as T;
     }
-    throw new Error('AI response missing content — no text extracted from provider response');
+    console.error('[AI Text Extraction Failed. Raw JSON:]', JSON.stringify(json, null, 2));
+    throw new Error('No text content could be extracted from the AI response payload');
   }
 
-  const parsed = parseJsonContent(textContent);
+  // Parse JSON from text
+  const parsed = parseJsonContent<T>(textContent);
   if (!parsed) {
-    throw new Error('AI response content is not valid JSON — parsing failed');
+    throw new Error('AI response text content could not be parsed into valid JSON');
   }
 
-  // Normalize shape: {facts: [...]} or [...] directly
-  const dataForValidation = Array.isArray(parsed) ? { facts: parsed } : parsed;
-  const validated = validateStructuredOutput(dataForValidation);
-  if (!validated.valid) {
-    // If structuredOutputs enabled, strict fail; otherwise log and try to coerce
-    if (config.structuredOutputs) {
-      console.warn('[AI] Structured validation failed', validated.errors);
-      // Still try to return what we can if facts present
-      if (validated.parsed?.facts?.length) {
-        return toFacts(validated.parsed.facts, patientId, documentId, docType);
-      }
-      throw new Error(`AI structured validation failed: ${validated.errors.join('; ')}`);
-    }
-  }
-
-  const factsArray = validated.parsed?.facts ?? (Array.isArray(parsed) ? parsed : parsed.facts ?? []);
-  if (!Array.isArray(factsArray)) throw new Error('AI response facts is not array');
-
-  // Unit normalization + grounded bbox + confidence>0 plainExplanation already in toFacts
-  return toFacts(factsArray, patientId, documentId, docType);
+  return parsed;
 }
 
-// Overload that supports explicit patient/document context for vault integration
-export async function extractWithAIForVault(
+/**
+ * Standardized Clinical Fact Extraction.
+ * Extracts medications, labs, conditions, and vitals from document text and/or images.
+ */
+export async function extractWithAI(
   rawText: string,
-  opts: { patientId: string; documentId: string; imageDataUrl?: string; docType?: string }
+  imageDataUrl?: string,
+  docType?: string,
+  context?: { patientId?: string; documentId?: string }
 ): Promise<Fact[]> {
-  return extractWithAI(rawText, opts.imageDataUrl, opts.docType, {
-    patientId: opts.patientId,
-    documentId: opts.documentId,
+  const patientId = context?.patientId || derivePatientId();
+  const documentId = context?.documentId || `doc_ai_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
+
+  let effectiveText = rawText?.trim() || '';
+  let effectiveImageDataUrl: string | undefined = undefined;
+
+  if (imageDataUrl) {
+    if (imageDataUrl.startsWith('data:application/pdf') || imageDataUrl.includes('application/pdf')) {
+      try {
+        const pdfResult = await processPdfData(imageDataUrl);
+        if (pdfResult.text) {
+          effectiveText = effectiveText ? `${effectiveText}\n\n${pdfResult.text}` : pdfResult.text;
+        }
+        if (pdfResult.imagePreviewDataUrl && isVisionSupportedImage(pdfResult.imagePreviewDataUrl)) {
+          effectiveImageDataUrl = pdfResult.imagePreviewDataUrl;
+        }
+      } catch (err) {
+        console.warn('[extractWithAI] PDF extraction notice:', err);
+      }
+    } else if (isVisionSupportedImage(imageDataUrl)) {
+      effectiveImageDataUrl = imageDataUrl;
+    }
+  }
+
+  const promptDocContext = docType ? ` Document type: ${docType}.` : '';
+  const userText = `${effectiveText ? effectiveText.slice(0, 15000) : 'Extract all clinical facts from this document image.'}${promptDocContext}`;
+
+  const response = await callAI<{ facts: any[] }>(
+    SYSTEM_FACT_EXTRACTION_PROMPT,
+    userText,
+    {
+      imageDataUrl: effectiveImageDataUrl,
+      schema: FACT_EXTRACTION_JSON_SCHEMA,
+      docType,
+      patientId,
+      documentId,
+    }
+  );
+
+  const validated = validateStructuredFacts(response);
+  const extractedFacts = validated.facts.length > 0 ? validated.facts : (Array.isArray(response) ? response : response.facts || []);
+
+  return mapToVaultFacts(extractedFacts, patientId, documentId, docType);
+}
+
+function normalizeUnit(category: string, name: string, unit?: string): string {
+  if (unit && unit.trim() !== '') return unit.trim();
+  const lower = (name + ' ' + category).toLowerCase();
+  if (lower.includes('creatinine')) return 'mg/dL';
+  if (lower.includes('egfr') || lower.includes('gfr')) return 'mL/min/1.73m2';
+  if (lower.includes('potassium')) return 'mEq/L';
+  if (lower.includes('hba1c') || lower.includes('a1c')) return '%';
+  if (lower.includes('glucose')) return 'mg/dL';
+  if (lower.includes('hemoglobin')) return 'g/dL';
+  if (category === 'medication') return 'mg';
+  return unit || '';
+}
+
+function mapToVaultFacts(
+  aiFacts: any[],
+  patientId: string,
+  documentId: string,
+  docType?: string
+): Fact[] {
+  return aiFacts.map((f, idx) => {
+    const name = typeof f.name === 'string' && f.name.trim() ? f.name.trim().slice(0, 100) : `Fact ${idx + 1}`;
+    const category = typeof f.category === 'string' && f.category.trim() ? f.category.trim().toLowerCase() : 'medication';
+    const rawConfidence = typeof f.confidence === 'number' ? f.confidence : 0.88;
+    const confidence = Math.max(0.2, Math.min(1.0, Number.isFinite(rawConfidence) ? rawConfidence : 0.88));
+    const plainExplanation = typeof f.plainExplanation === 'string' && f.plainExplanation.trim()
+      ? f.plainExplanation.trim().slice(0, 300)
+      : `${name} noted.`;
+    const unit = normalizeUnit(category, name, f.unit);
+
+    return {
+      id: `fact_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
+      patientId,
+      category: category as any,
+      name,
+      value: f.value ?? name,
+      unit,
+      confidence: Math.round(confidence * 100) / 100,
+      status: 'unconfirmed' as const,
+      sourceDocId: documentId,
+      plainExplanation,
+      author: 'system_ai',
+      timestamp: new Date().toISOString(),
+      metadata: docType ? { docType } : undefined,
+    };
   });
 }
 
@@ -308,7 +261,3 @@ function derivePatientId(): string {
   } catch {}
   return 'patient-unknown';
 }
-
-// Export helpers for testing / consumption
-export { getAIConfig, isAIEnabled, getAIEndpoint, isImageDataUrl, isFileDataUrl, isPdfDataUrl };
-export type { AIConfig };

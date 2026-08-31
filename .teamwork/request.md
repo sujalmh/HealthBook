@@ -1,18 +1,17 @@
 # Request — Teamwork Distributed Coding
 
-Created: 2026-08-30T13:40:22.689Z
+Created: 2026-08-31T10:45:31.990Z
 
 ## Objective
-Intelligence gap: generic configurable AI (any model/any baseURL via Settings > env) to replace every hardcoded branch, vision+text multimodal single response, all image OCR via AI, cross-field propagation preserving WebMCP 40
+Refactor AI implementation: 1. Lot of hardcoded ai responses 2. AI Requests not verified, it doesnt work 3. Written to pass tests, not proper code — Dont overcomplicate it, use iterative coding and fix it quick — generic multimodal file inputs for completions and responses, thorough testing
 
 ## Constraints
 - none stated
 
 ## Acceptance Criteria
-- [ ] R1 generic configurable extraction vision+text multimodal all OCR via AI no hardcode
-- [ ] R2 every hardcoded branch replaced + cross-field propagation
-- [ ] R3 generic wiring no regression no hardcode Settings>env
-- [ ] R4 planning blocked M0 before implementation
+- [ ] R1 No hardcoded AI responses
+- [ ] R2 AI requests verified completions and responses multimodal file inputs
+- [ ] R3 Proper code iterative quick fix thorough testing
 
 ## Non-Goals
 - none

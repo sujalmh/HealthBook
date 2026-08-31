@@ -85,18 +85,20 @@ function findLocalStandard(markerName: string) {
   return null;
 }
 
-function isVaultTestEnv(): boolean {
-  try {
-    if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
-    if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
-    if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
-  } catch {}
-  return false;
-}
-
 function normalizeLabRecord(lab: LabRecord): LabRecord {
   const std = findLocalStandard(lab.marker);
-  if (!std) return lab;
+  if (!std) {
+    const val = typeof lab.normalizedValue === 'number' && Number.isFinite(lab.normalizedValue) ? lab.normalizedValue : (typeof lab.value === 'number' && Number.isFinite(lab.value) ? lab.value : 0);
+    return {
+      ...lab,
+      marker: lab.marker || 'Lab Marker',
+      normalizedUnit: lab.unit || lab.normalizedUnit || '',
+      normalizedValue: val,
+      isBorderline: false,
+      isCritical: lab.isCritical || false,
+      flag: lab.flag || 'NORMAL',
+    };
+  }
   const canonicalMarker = std.canonicalName;
   const normalizedUnit = std.standardUnit;
   // keep original value but ensure normalizedValue present; if not, use value
@@ -449,34 +451,30 @@ export class LocalVaultManager {
     }
     this.emitMedicationAdded(med);
     this.syncFireAndForget('medications', med);
-    // Intelligent cross-field fan-out: questionBank enrichment without duplicate spam via AI deduplication
-    // Skip in test env to keep supabase sync counts deterministic (test expects 10 meds -> 10 upserts)
-    if (!isVaultTestEnv()) {
-      try {
-        const qText = `Question about ${med.genericName || med.brandName || med.name} ${med.dosage}: What is the purpose and any food or interaction precautions for this new medication?`;
-        const exists = Array.from(this.questionBank.values()).some(q => q.patientId === med.patientId && q.linkedMedName === (med.genericName || med.brandName) && q.status === 'active');
-        if (!exists) {
-          const qbItem: QuestionBankItem = {
-            id: `q_med_${med.id}_${Date.now()}`,
-            patientId: med.patientId,
-            questionText: qText,
-            category: 'medication_clarification',
-            sourceModule: 'rxbridge' as any,
-            linkedMedName: med.genericName || med.brandName || med.name,
-            priority: 'high',
-            status: 'active',
-            createdAt: new Date().toISOString()
-          };
-          // Use addQuestion path (will emit question_added) but bypass supabase sync duplication in test env by direct set
-          this.questionBank.set(qbItem.id, qbItem);
-          if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
-            (this.eventBus as any).emitQuestionAdded(qbItem);
-          } else {
-            this.eventBus?.emit('question_added', qbItem);
-          }
+    // Intelligent cross-field fan-out: questionBank enrichment without duplicate spam
+    try {
+      const qText = `Question about ${med.genericName || med.brandName || med.name} ${med.dosage}: What is the purpose and any food or interaction precautions for this new medication?`;
+      const exists = Array.from(this.questionBank.values()).some(q => q.patientId === med.patientId && q.linkedMedName === (med.genericName || med.brandName) && q.status === 'active');
+      if (!exists) {
+        const qbItem: QuestionBankItem = {
+          id: `q_med_${med.id}_${Date.now()}`,
+          patientId: med.patientId,
+          questionText: qText,
+          category: 'medication_clarification',
+          sourceModule: 'rxbridge' as any,
+          linkedMedName: med.genericName || med.brandName || med.name,
+          priority: 'high',
+          status: 'active',
+          createdAt: new Date().toISOString()
+        };
+        this.questionBank.set(qbItem.id, qbItem);
+        if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
+          (this.eventBus as any).emitQuestionAdded(qbItem);
+        } else {
+          this.eventBus?.emit('question_added', qbItem);
         }
-      } catch {}
-    }
+      }
+    } catch {}
     return med;
   }
 
@@ -559,34 +557,32 @@ export class LocalVaultManager {
     }
     this.emitLabAdded(normalized);
     this.syncFireAndForget('labs', normalized);
-    // Question bank enrichment for abnormal labs without duplicate spam — skip in test env for deterministic counts
-    if (!isVaultTestEnv()) {
-      try {
-        if (normalized.flag !== 'NORMAL' || normalized.isCritical || normalized.isBorderline) {
-          const qText = `My ${normalized.marker} is ${normalized.normalizedValue} ${normalized.normalizedUnit} (${normalized.flag}) on ${normalized.drawDate.slice(0,10)} — what does this trend mean and should we adjust medications?`;
-          const exists = Array.from(this.questionBank.values()).some(q => q.patientId === normalized.patientId && q.linkedLabMarker === normalized.marker && q.questionText.includes(String(normalized.normalizedValue)));
-          if (!exists) {
-            const qbItem: QuestionBankItem = {
-              id: `q_lab_${normalized.id}_${Date.now()}`,
-              patientId: normalized.patientId,
-              questionText: qText,
-              category: 'lab_trend',
-              sourceModule: 'labstory' as any,
-              linkedLabMarker: normalized.marker,
-              priority: normalized.isCritical ? 'urgent' : 'high',
-              status: 'active',
-              createdAt: new Date().toISOString()
-            };
-            this.questionBank.set(qbItem.id, qbItem);
-            if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
-              (this.eventBus as any).emitQuestionAdded(qbItem);
-            } else {
-              this.eventBus?.emit('question_added', qbItem);
-            }
+    // Question bank enrichment for abnormal labs without duplicate spam
+    try {
+      if (normalized.flag !== 'NORMAL' || normalized.isCritical || normalized.isBorderline) {
+        const qText = `My ${normalized.marker} is ${normalized.normalizedValue} ${normalized.normalizedUnit} (${normalized.flag}) on ${normalized.drawDate.slice(0,10)} — what does this trend mean and should we adjust medications?`;
+        const exists = Array.from(this.questionBank.values()).some(q => q.patientId === normalized.patientId && q.linkedLabMarker === normalized.marker && q.questionText.includes(String(normalized.normalizedValue)));
+        if (!exists) {
+          const qbItem: QuestionBankItem = {
+            id: `q_lab_${normalized.id}_${Date.now()}`,
+            patientId: normalized.patientId,
+            questionText: qText,
+            category: 'lab_trend',
+            sourceModule: 'labstory' as any,
+            linkedLabMarker: normalized.marker,
+            priority: normalized.isCritical ? 'urgent' : 'high',
+            status: 'active',
+            createdAt: new Date().toISOString()
+          };
+          this.questionBank.set(qbItem.id, qbItem);
+          if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
+            (this.eventBus as any).emitQuestionAdded(qbItem);
+          } else {
+            this.eventBus?.emit('question_added', qbItem);
           }
         }
-      } catch {}
-    }
+      }
+    } catch {}
     return normalized;
   }
 

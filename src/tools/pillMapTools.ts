@@ -9,16 +9,7 @@ import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.t
 import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 import type {  TimeSlot, DayOfWeek  } from '../types/pillmap.ts';
 
-function isTestEnvPillMap(): boolean {
-  try {
-    if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
-    if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
-    if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
-  } catch {}
-  return false;
-}
 function shouldUseAI(): boolean {
-  if (isTestEnvPillMap()) return false;
   try { return isAIEnabled(getAIConfig()); } catch { return false; }
 }
 
