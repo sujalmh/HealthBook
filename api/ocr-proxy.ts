@@ -6,17 +6,33 @@
 
 export const maxDuration = 120; // 120 seconds execution limit
 
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
+
+export async function POST(req: Request) {
+  return handleProxy(req);
+}
+
+export async function GET(req: Request) {
+  return handleProxy(req);
+}
+
 export default async function handler(req: Request) {
+  return handleProxy(req);
+}
+
+async function handleProxy(req: Request) {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-        "Access-Control-Max-Age": "86400",
-      },
-    });
+    return OPTIONS();
   }
 
   try {
