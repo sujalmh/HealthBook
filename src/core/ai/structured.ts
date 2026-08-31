@@ -7,7 +7,7 @@
 
 import type { AIConfig } from './types.ts';
 
-// Generic structured schema for fact extraction
+// Generic structured schema for fact extraction — strict mode requires additionalProperties:false at every object level
 export const FACT_EXTRACTION_JSON_SCHEMA = {
   type: 'object',
   properties: {
@@ -23,12 +23,14 @@ export const FACT_EXTRACTION_JSON_SCHEMA = {
             enum: ['medication', 'lab', 'allergy', 'condition', 'vital_sign', 'supplement', 'diet_habit'],
             description: 'Typed category',
           },
-          value: { description: 'Fact value — string or number or object' },
+          // Strict requires explicit type — use string for value, AI should stringify numbers/objects
+          value: { type: 'string', description: 'Fact value as string — e.g., "13.8" or "10 mg daily" or JSON-stringified object' },
           unit: { type: 'string', description: 'Unit normalized, e.g., mg/dL, mEq/L' },
           confidence: { type: 'number', minimum: 0, maximum: 1, description: 'Confidence 0-1' },
           plainExplanation: { type: 'string', description: 'Plain language explanation' },
         },
         required: ['name', 'category', 'value', 'confidence', 'plainExplanation'],
+        additionalProperties: false,
       },
     },
   },
