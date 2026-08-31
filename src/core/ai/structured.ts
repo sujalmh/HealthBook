@@ -87,42 +87,82 @@ export function buildStructuredParams(
   };
 }
 
+function cleanJsonString(raw: string): string {
+  let s = raw.trim();
+  // Strip thought/reasoning tags from reasoning models
+  s = s.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  s = s.replace(/<thought>[\s\S]*?<\/thought>/gi, '').trim();
+  s = s.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '').trim();
+
+  // Strip markdown code fences
+  const fenceMatch = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenceMatch && fenceMatch[1]) {
+    s = fenceMatch[1].trim();
+  }
+
+  // Remove trailing commas before closing braces/brackets
+  s = s.replace(/,\s*([}\]])/g, '$1');
+
+  return s;
+}
+
 export function parseJsonContent<T = any>(content: string): T | null {
   if (!content || typeof content !== 'string') return null;
-  let s = content.trim();
 
-  // Strip markdown code fences if present
-  if (s.startsWith('```')) {
-    const firstNewline = s.indexOf('\n');
-    const lastFence = s.lastIndexOf('```');
-    if (firstNewline !== -1 && lastFence !== -1 && lastFence > firstNewline) {
-      s = s.slice(firstNewline + 1, lastFence).trim();
-    }
-  }
+  const cleaned = cleanJsonString(content);
 
+  // 1. Direct parse attempt
   try {
-    return JSON.parse(s) as T;
-  } catch {
-    // Extract first valid JSON object
-    const startObj = s.indexOf('{');
-    const endObj = s.lastIndexOf('}');
-    if (startObj !== -1 && endObj !== -1 && endObj > startObj) {
+    return JSON.parse(cleaned) as T;
+  } catch {}
+
+  // 2. Try all fenced code blocks in original text
+  const fenceRegex = /```(?:json)?\s*([\s\S]*?)\s*```/gi;
+  let match;
+  while ((match = fenceRegex.exec(content)) !== null) {
+    if (match[1]) {
+      const blockClean = cleanJsonString(match[1]);
       try {
-        return JSON.parse(s.slice(startObj, endObj + 1)) as T;
+        return JSON.parse(blockClean) as T;
       } catch {}
     }
-
-    // Extract first valid JSON array
-    const startArr = s.indexOf('[');
-    const endArr = s.lastIndexOf(']');
-    if (startArr !== -1 && endArr !== -1 && endArr > startArr) {
-      try {
-        return JSON.parse(s.slice(startArr, endArr + 1)) as T;
-      } catch {}
-    }
-
-    return null;
   }
+
+  // 3. Extract substring between outermost { and }
+  const startObj = cleaned.indexOf('{');
+  const endObj = cleaned.lastIndexOf('}');
+  if (startObj !== -1 && endObj !== -1 && endObj > startObj) {
+    const candidate = cleaned.slice(startObj, endObj + 1).replace(/,\s*([}\]])/g, '$1');
+    try {
+      return JSON.parse(candidate) as T;
+    } catch {}
+  }
+
+  // 4. Extract substring between outermost [ and ]
+  const startArr = cleaned.indexOf('[');
+  const endArr = cleaned.lastIndexOf(']');
+  if (startArr !== -1 && endArr !== -1 && endArr > startArr) {
+    const candidate = cleaned.slice(startArr, endArr + 1).replace(/,\s*([}\]])/g, '$1');
+    try {
+      return JSON.parse(candidate) as T;
+    } catch {}
+  }
+
+  // 5. Fallback for simple key-value objects like { generic: "...", confidence: 0.95 }
+  try {
+    const genericMatch = cleaned.match(/"generic"\s*:\s*"([^"]+)"/i);
+    if (genericMatch) {
+      const confMatch = cleaned.match(/"confidence"\s*:\s*([\d.]+)/i);
+      const reasonMatch = cleaned.match(/"reasoning"\s*:\s*"([^"]+)"/i);
+      return {
+        generic: genericMatch[1],
+        confidence: confMatch ? parseFloat(confMatch[1]) : 0.95,
+        reasoning: reasonMatch ? reasonMatch[1] : 'Extracted by AI',
+      } as any;
+    }
+  } catch {}
+
+  return null;
 }
 
 export function extractTextFromProviderResponse(json: any, provider?: AIConfig['provider']): string | null {

@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileText, ArrowRight, Zap, Eye, Sparkles } from 'lucide-react';
+import { UploadCloud, FileText, ArrowRight, Zap, Eye, Sparkles, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { runDocumentOCR, type OCRResult } from '@/core/ai/ocr';
 
 export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () => void }> = ({
   patientId,
@@ -12,6 +13,9 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
   const [isDragging, setIsDragging] = useState(false);
   const [extractionPath, setExtractionPath] = useState<'ocr_then_ai' | 'direct_vision'>('ocr_then_ai');
   const [currentStage, setCurrentStage] = useState<'ocr' | 'ai' | 'idle'>('idle');
+  const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
+  const [isOcrExpanded, setIsOcrExpanded] = useState(true);
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const effectivePatientId = patientId || (() => {
@@ -28,9 +32,21 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
   const handleRealExtract = async (file: File, fileDataUrl: string, rawText?: string) => {
     setIsExtracting(true);
     setCurrentStage(extractionPath === 'ocr_then_ai' ? 'ocr' : 'ai');
+    setOcrResult(null);
     try {
       const documentId = `doc_${Date.now()}_${file.name.replace(/[^a-z0-9.-]/gi, '_')}`;
       const docType = file.type.includes('pdf') ? 'general_pdf' : file.type.includes('image') ? 'lab_slip_photo' : 'general_pdf';
+
+      let ocrOutputText = rawText || '';
+
+      // Step 1: Pre-process with OCR if on Path A
+      if (extractionPath === 'ocr_then_ai') {
+        const ocr = await runDocumentOCR(fileDataUrl);
+        if (ocr.markdown) {
+          setOcrResult(ocr);
+          ocrOutputText = ocr.markdown;
+        }
+      }
 
       await localVault.addDocument({
         id: documentId,
@@ -38,20 +54,19 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
         fileName: file.name,
         name: file.name,
         docType: docType as any,
-        pageCount: 1,
+        pageCount: ocrResult?.pageCount || 1,
         uploadTimestamp: new Date().toISOString(),
+        extractedText: ocrOutputText,
         extractedFactIds: [],
       });
 
-      // Switch stage to AI after brief OCR processing indication
-      if (extractionPath === 'ocr_then_ai') {
-        setTimeout(() => setCurrentStage('ai'), 1800);
-      }
+      // Switch stage to AI
+      setCurrentStage('ai');
 
-      // Send the uploaded file data URL to AI fact extraction with selected path
+      // Send to AI fact extraction
       const execParams: any = {
         documentId,
-        rawText: rawText || file.name,
+        rawText: ocrOutputText || file.name,
         imageDataUrl: fileDataUrl,
         imageBlob: fileDataUrl,
         docType,
@@ -78,6 +93,13 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
       setIsExtracting(false);
       setCurrentStage('idle');
     }
+  };
+
+  const copyOcrToClipboard = () => {
+    if (!ocrResult?.markdown) return;
+    navigator.clipboard.writeText(ocrResult.markdown);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleFiles = (files: FileList | null) => {
@@ -244,6 +266,58 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
               ? 'Converting document text and tables into structured Markdown...'
               : 'Extracting medications, labs, conditions, allergies, and daily schedule...'}
           </p>
+        </div>
+      )}
+
+      {/* OCR Results Display (Markdown Output Preview) */}
+      {ocrResult && (
+        <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm space-y-3 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-body-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>Document OCR Text (Markdown)</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 bg-emerald-100/80 text-emerald-800 rounded-full border border-emerald-200">
+                    {ocrResult.pageCount} {ocrResult.pageCount === 1 ? 'Page' : 'Pages'} • {ocrResult.durationMs}ms
+                  </span>
+                </h4>
+                <p className="text-caption text-muted">
+                  High-fidelity Markdown extracted via Mistral OCR with tables and clinical sections preserved.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={copyOcrToClipboard}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors border border-slate-200"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? 'Copied' : 'Copy Text'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsOcrExpanded(!isOcrExpanded)}
+                className="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
+                title={isOcrExpanded ? 'Collapse OCR Preview' : 'Expand OCR Preview'}
+              >
+                {isOcrExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {isOcrExpanded && (
+            <div className="relative mt-2">
+              <div className="bg-slate-950 text-slate-100 font-mono text-xs p-4 rounded-xl max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-slate-800 selection:bg-emerald-500 selection:text-white">
+                {ocrResult.markdown}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -4,12 +4,15 @@ import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { FactApprovalCard } from './FactApprovalCard';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
-import { CheckCircle, ShieldAlert, Eye, FileText, Sparkles } from 'lucide-react';
+import { CheckCircle, ShieldAlert, Eye, FileText, Sparkles, X, Copy, Check } from 'lucide-react';
 
 export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) => {
   const [facts, setFacts] = useState<FactEntity[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [activeOcrText, setActiveOcrText] = useState<string | null>(null);
+  const [activeDocName, setActiveDocName] = useState<string>('');
 
   // Resolve real patientId from prop or authenticated session (no hardcoded fallback)
   const effectivePatientId = patientId || (() => {
@@ -27,11 +30,14 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
     setIsLoading(true);
     if (!effectivePatientId) {
       setFacts([]);
+      setDocuments([]);
       setIsLoading(false);
       return;
     }
     const all = await localVault.getFacts(effectivePatientId);
+    const docs = await localVault.getDocuments(effectivePatientId);
     setFacts(all);
+    setDocuments(docs);
     setIsLoading(false);
   };
 
@@ -177,6 +183,22 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                       🥗 {diets} Diet & Vitals
                     </span>
                   )}
+                  {documents.some((d) => d.extractedText) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const docWithOcr = documents.find((d) => d.extractedText);
+                        if (docWithOcr) {
+                          setActiveOcrText(docWithOcr.extractedText);
+                          setActiveDocName(docWithOcr.fileName || docWithOcr.name || 'Document');
+                        }
+                      }}
+                      className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-caption font-semibold transition-all shadow-xs"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>View Source OCR Text</span>
+                    </button>
+                  )}
                 </>
               );
             })()}
@@ -292,6 +314,63 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
           </div>
         )}
       </div>
+
+      {/* Source Document OCR Text Modal */}
+      {activeOcrText && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-body-sm font-bold text-slate-900">Extracted Document OCR Text</h3>
+                  <p className="text-caption text-muted">{activeDocName || 'Source Medical Record'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(activeOcrText);
+                    eventBus.dispatchToast({ type: 'success', message: 'OCR Markdown copied to clipboard' });
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 text-caption font-semibold bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 shadow-2xs transition-colors"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveOcrText(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1 bg-slate-950">
+              <pre className="text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed selection:bg-emerald-500 selection:text-white">
+                {activeOcrText}
+              </pre>
+            </div>
+
+            <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-caption text-muted">
+              <span>High-Precision Mistral OCR Result</span>
+              <button
+                type="button"
+                onClick={() => setActiveOcrText(null)}
+                className="px-4 py-1.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
