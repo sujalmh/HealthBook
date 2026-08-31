@@ -17,6 +17,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ai-proxy/, ''),
       },
+      '/api/ocr-proxy': {
+        target: 'https://api.mistral.ai',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ocr-proxy/, ''),
+      },
     },
   },
   test: {

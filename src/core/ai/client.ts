@@ -13,6 +13,7 @@ import type { AIConfig, AICallOptions } from './types.ts';
 import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel, isResponsesProvider } from './config.ts';
 import { buildChatMessages, buildResponsesInput, isDataUrl, isVisionSupportedImage } from './vision.ts';
 import { processPdfData } from './pdf.ts';
+import { runDocumentOCR } from './ocr.ts';
 import {
   FACT_EXTRACTION_JSON_SCHEMA,
   buildStructuredParams,
@@ -155,20 +156,52 @@ export async function extractWithAI(
   rawText: string,
   imageDataUrl?: string,
   docType?: string,
-  context?: { patientId?: string; documentId?: string }
+  context?: {
+    patientId?: string;
+    documentId?: string;
+    extractionPath?: 'ocr_then_ai' | 'direct_vision';
+    onStepProgress?: (step: 'ocr' | 'ai' | 'done', message: string) => void;
+    timeoutMs?: number;
+  }
 ): Promise<Fact[]> {
   const patientId = context?.patientId || derivePatientId();
   const documentId = context?.documentId || `doc_ai_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
+  const config = getAIConfig();
+  const extractionPath = context?.extractionPath || config.extractionPath || 'ocr_then_ai';
 
   let effectiveText = rawText?.trim() || '';
   let effectiveImageDataUrl: string | undefined = undefined;
 
-  if (imageDataUrl) {
+  // Path A: High-Precision OCR Pre-Processing First (Mistral OCR with client-side fallback)
+  if (extractionPath === 'ocr_then_ai' && imageDataUrl) {
+    if (context?.onStepProgress) {
+      context.onStepProgress('ocr', 'Running high-precision Mistral OCR document pre-processing...');
+    }
+
+    try {
+      const ocrResult = await runDocumentOCR(imageDataUrl, {
+        apiKey: config.ocrApiKey,
+        model: config.ocrModel,
+        patientId,
+      });
+
+      if (ocrResult.markdown && ocrResult.markdown.trim().length > 0) {
+        effectiveText = effectiveText
+          ? `${effectiveText}\n\n${ocrResult.markdown}`
+          : ocrResult.markdown;
+      }
+    } catch (err) {
+      console.warn('[extractWithAI] OCR pre-processing notice:', err);
+    }
+  }
+
+  // Path B (or fallback when OCR returned no text): Direct Multimodal Vision
+  if ((extractionPath === 'direct_vision' || !effectiveText) && imageDataUrl) {
     if (imageDataUrl.startsWith('data:application/pdf') || imageDataUrl.includes('application/pdf')) {
       try {
         const pdfResult = await processPdfData(imageDataUrl);
-        if (pdfResult.text) {
-          effectiveText = effectiveText ? `${effectiveText}\n\n${pdfResult.text}` : pdfResult.text;
+        if (pdfResult.text && !effectiveText) {
+          effectiveText = pdfResult.text;
         }
         if (pdfResult.imagePreviewDataUrl && isVisionSupportedImage(pdfResult.imagePreviewDataUrl)) {
           effectiveImageDataUrl = pdfResult.imagePreviewDataUrl;
@@ -181,8 +214,12 @@ export async function extractWithAI(
     }
   }
 
+  if (context?.onStepProgress) {
+    context.onStepProgress('ai', 'Synthesizing categorical clinical facts with AI...');
+  }
+
   const promptDocContext = docType ? ` Document type: ${docType}.` : '';
-  const userText = `${effectiveText ? effectiveText.slice(0, 15000) : 'Extract all clinical facts from this document image.'}${promptDocContext}`;
+  const userText = `${effectiveText ? effectiveText.slice(0, 16000) : 'Extract all clinical facts from this document image.'}${promptDocContext}`;
 
   const response = await callAI<{ facts: any[] }>(
     SYSTEM_FACT_EXTRACTION_PROMPT,
@@ -193,11 +230,16 @@ export async function extractWithAI(
       docType,
       patientId,
       documentId,
+      timeoutMs: context?.timeoutMs,
     }
   );
 
   const validated = validateStructuredFacts(response);
   const extractedFacts = validated.facts.length > 0 ? validated.facts : (Array.isArray(response) ? response : response.facts || []);
+
+  if (context?.onStepProgress) {
+    context.onStepProgress('done', `Extracted ${extractedFacts.length} clinical facts.`);
+  }
 
   return mapToVaultFacts(extractedFacts, patientId, documentId, docType);
 }

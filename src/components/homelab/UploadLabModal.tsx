@@ -35,6 +35,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
 }) => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [stage, setStage] = useState<'ocr' | 'ai' | 'idle'>('idle');
   const [isExtracted, setIsExtracted] = useState(false);
   const [extractedValues, setExtractedValues] = useState<any[]>([]);
   const [plainNarration, setPlainNarration] = useState('');
@@ -46,7 +47,9 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
 
   const doExtractWithBlob = async (imageBlob: string, fileName: string) => {
     setIsProcessing(true);
+    setStage('ocr');
     setSelectedFile(fileName);
+    setTimeout(() => setStage('ai'), 1800);
     try {
       const result = await webMCPEngine.execute(
         'upload_lab_image',
@@ -238,6 +241,32 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                   </button>
                 </div>
                 {selectedFile && <p className="text-caption text-muted">Selected: {selectedFile}</p>}
+
+                {/* Multi-stage Progress Status */}
+                {isProcessing && (
+                  <div className="p-4 bg-gradient-to-r from-primary-light/60 via-amber-50 to-emerald-50 border border-primary-border rounded-xl space-y-2 text-left animate-fade-in shadow-xs mt-2">
+                    <div className="flex items-center justify-between text-body-sm font-bold text-slate-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                        <span>
+                          {stage === 'ocr'
+                            ? 'Step 1/2: High-Precision OCR Processing (Mistral OCR)...'
+                            : 'Step 2/2: Biomarker Fact Extraction & Validation...'}
+                        </span>
+                      </div>
+                      <span className="text-caption font-semibold px-2 py-0.5 bg-white border border-canvas-border rounded-md text-primary">
+                        {stage === 'ocr' ? '50%' : '85%'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-700 ${
+                          stage === 'ocr' ? 'w-1/2 bg-amber-500' : 'w-5/6 bg-emerald-500'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Privacy Notice */}

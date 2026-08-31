@@ -28,6 +28,10 @@ export interface AIConfig {
   temperature: number;
   maxTokens: number;
   timeoutMs: number;
+  ocrEnabled?: boolean;
+  ocrApiKey?: string;
+  ocrModel?: string;
+  extractionPath?: 'ocr_then_ai' | 'direct_vision';
 }
 
 export interface AICallOptions {
@@ -39,6 +43,8 @@ export interface AICallOptions {
   docType?: string;
   patientId?: string;
   documentId?: string;
+  extractionPath?: 'ocr_then_ai' | 'direct_vision';
+  onStepProgress?: (step: 'ocr' | 'ai' | 'done', message: string) => void;
 }
 
 export interface AIExtractedFact {

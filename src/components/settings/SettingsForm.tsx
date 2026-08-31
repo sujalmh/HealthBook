@@ -332,6 +332,52 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           <p className="text-[11px] text-muted">Optional — any extra headers generically.</p>
         </div>
 
+        {/* Mistral OCR Configuration (Path A & Path B) */}
+        <div className="bg-emerald-50/50 border border-emerald-200/80 rounded-2xl p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-bold text-emerald-950 flex items-center gap-2">
+                <span>📄 Mistral Document OCR Pre-Processing (Fast & High-Precision)</span>
+              </h4>
+              <p className="text-xs text-emerald-900/80 mt-0.5">
+                Converts uploaded PDFs & images into structured Markdown before AI analysis, cutting timeouts and improving precision.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.VITE_OCR_ENABLED !== 'false'}
+                onChange={(e) => handleToggle('VITE_OCR_ENABLED', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Mistral OCR API Key</label>
+              <input
+                type="password"
+                value={form.VITE_OCR_API_KEY || form.OCR_API_KEY || ''}
+                onChange={(e) => handleChange('VITE_OCR_API_KEY', e.target.value)}
+                placeholder="BAT6GctMFgfm..."
+                className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 min-h-[44px] font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">OCR Model</label>
+              <input
+                type="text"
+                value={form.VITE_OCR_MODEL || 'mistral-ocr-latest'}
+                onChange={(e) => handleChange('VITE_OCR_MODEL', e.target.value)}
+                placeholder="mistral-ocr-latest"
+                className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 min-h-[44px] font-mono text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Legend 13 keys */}
         <div className="bg-canvas-muted border border-canvas-border rounded-xl p-3">
           <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">

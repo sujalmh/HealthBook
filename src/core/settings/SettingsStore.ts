@@ -24,9 +24,14 @@ export interface SettingsState {
   VITE_AI_ORG_ID?: string;
   VITE_AI_PROJECT_ID?: string;
   VITE_AI_EXTRA_HEADERS?: string;
+  VITE_OCR_ENABLED?: string;
+  VITE_OCR_API_KEY?: string;
+  OCR_API_KEY?: string;
+  VITE_OCR_MODEL?: string;
+  VITE_EXTRACTION_PATH?: string;
 }
 
-// All 13 VITE_AI_* keys — generic configurable, no hardcoded literals
+// All configurable keys — generic configurable, no hardcoded literals
 export const SETTINGS_VITE_KEYS: (keyof SettingsState)[] = [
   'VITE_AI_ENABLED',
   'VITE_AI_PROVIDER',
@@ -41,6 +46,11 @@ export const SETTINGS_VITE_KEYS: (keyof SettingsState)[] = [
   'VITE_AI_ORG_ID',
   'VITE_AI_PROJECT_ID',
   'VITE_AI_EXTRA_HEADERS',
+  'VITE_OCR_ENABLED',
+  'VITE_OCR_API_KEY',
+  'OCR_API_KEY',
+  'VITE_OCR_MODEL',
+  'VITE_EXTRACTION_PATH',
 ];
 
 // Storage blob keys — SettingsStore writes via same keys read by src/core/ai/config.ts:68-139

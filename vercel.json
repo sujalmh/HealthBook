@@ -2,6 +2,9 @@
   "functions": {
     "api/ai-proxy.ts": {
       "maxDuration": 120
+    },
+    "api/ocr-proxy.ts": {
+      "maxDuration": 120
     }
   },
   "rewrites": [
@@ -12,6 +15,14 @@
     {
       "source": "/api/ai-proxy",
       "destination": "/api/ai-proxy"
+    },
+    {
+      "source": "/api/ocr-proxy/(.*)",
+      "destination": "/api/ocr-proxy"
+    },
+    {
+      "source": "/api/ocr-proxy",
+      "destination": "/api/ocr-proxy"
     },
     {
       "source": "/(.*)",

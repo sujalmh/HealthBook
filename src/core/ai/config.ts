@@ -104,13 +104,20 @@ export function getAIConfig(): AIConfig {
   const enabledRaw = resolveValue(overrides, env, 'VITE_AI_ENABLED', 'false');
   const providerRaw = resolveValue(overrides, env, 'VITE_AI_PROVIDER', 'chat');
   const baseURLRaw = resolveValue(overrides, env, 'VITE_AI_BASE_URL', '');
-  const apiKeyRaw = resolveValue(overrides, env, 'VITE_AI_API_KEY', '');
+  const apiKeyRaw =
+    resolveValue(overrides, env, 'VITE_AI_API_KEY', '') ||
+    resolveValue(overrides, env, 'AI_API_KEY', '') ||
+    resolveValue(overrides, env, 'OPENAI_API_KEY', '');
   const modelRaw = resolveValue(overrides, env, 'VITE_AI_MODEL', '');
   const visionModelRaw = resolveValue(overrides, env, 'VITE_AI_VISION_MODEL', '');
   const structuredRaw = resolveValue(overrides, env, 'VITE_AI_STRUCTURED_OUTPUTS', 'true');
   const temperatureRaw = resolveValue(overrides, env, 'VITE_AI_TEMPERATURE', '0.1');
   const maxTokensRaw = resolveValue(overrides, env, 'VITE_AI_MAX_TOKENS', '8192');
   const timeoutRaw = resolveValue(overrides, env, 'VITE_AI_TIMEOUT_MS', '120000');
+  const ocrApiKeyRaw = resolveValue(overrides, env, 'VITE_OCR_API_KEY', '') || resolveValue(overrides, env, 'OCR_API_KEY', '') || resolveValue(overrides, env, 'MISTRAL_API_KEY', '');
+  const ocrModelRaw = resolveValue(overrides, env, 'VITE_OCR_MODEL', 'mistral-ocr-latest');
+  const ocrEnabledRaw = resolveValue(overrides, env, 'VITE_OCR_ENABLED', ocrApiKeyRaw ? 'true' : 'false');
+  const extractionPathRaw = resolveValue(overrides, env, 'VITE_EXTRACTION_PATH', 'ocr_then_ai');
 
   const enabled = parseBoolean(enabledRaw, false);
   const baseURL = String(baseURLRaw ?? '').trim().replace(/\/+$/, '');
@@ -125,6 +132,10 @@ export function getAIConfig(): AIConfig {
   const apiKey = String(apiKeyRaw ?? '').trim();
   const model = String(modelRaw ?? '').trim();
   const visionModel = String(visionModelRaw ?? '').trim() || model;
+  const ocrApiKey = String(ocrApiKeyRaw ?? '').trim();
+  const ocrModel = String(ocrModelRaw ?? 'mistral-ocr-latest').trim();
+  const ocrEnabled = parseBoolean(ocrEnabledRaw, !!ocrApiKey);
+  const extractionPath = extractionPathRaw === 'direct_vision' ? 'direct_vision' : 'ocr_then_ai';
 
   return {
     enabled,
@@ -137,6 +148,10 @@ export function getAIConfig(): AIConfig {
     temperature: parseNumber(temperatureRaw, 0.1),
     maxTokens: parseNumber(maxTokensRaw, provider === 'responses' ? 16384 : 8192),
     timeoutMs: parseNumber(timeoutRaw, 120000),
+    ocrEnabled,
+    ocrApiKey,
+    ocrModel,
+    extractionPath,
   };
 }
 
