@@ -22,22 +22,49 @@ import {
   extractTextFromProviderResponse,
 } from './structured.ts';
 
-const SYSTEM_FACT_EXTRACTION_PROMPT = `You are an expert clinical data extraction assistant. Extract ALL medical and healthcare facts from the provided document into a complete, structured array of categorical facts to populate the patient's entire health companion.
+const PROMPT_MEDICATIONS = `You are a clinical pharmacologist. Extract ALL active and discharge medications from this document.
+Extract each medication as an object with:
+- name: Medication generic/brand name
+- category: "medication"
+- value: Exact dosage, route (PO/IV), frequency (BID, QD, etc.), timing (morning, evening, bedtime), and food instructions
+- unit: Dosage unit (e.g. mg, mcg, mL)
+- confidence: 0.95
+- plainExplanation: Concise summary of route, frequency, and instructions.
+Return strictly JSON matching {"facts": [...]}. If none found, return {"facts": []}.`;
 
-Categories to extract:
-- "demographics": Patient name, age, gender, blood group, hospital, consultant doctor, admission date, discharge date.
-- "medication": All active and discontinued medications with exact dose, frequency (BID, QD, etc.), route (PO/IV), timing (morning, evening, bedtime), and food instructions.
-- "lab": All laboratory test values, diagnostic biomarkers, units, and reference flags (HIGH, LOW, NORMAL, CRITICAL).
-- "condition": All diagnosed medical conditions, chronic illnesses, and clinical findings.
-- "allergy": Documented allergies (or NKDA if none).
-- "vital": Vitals like blood pressure, pulse, SpO2, weight, and temperature.
-- "diet_habit": Diet instructions (low sodium, fluid limits, avoid grapefruit, etc.).
-- "followup": Scheduled follow-up appointments, clinic visits, and doctor review timelines.
-- "due_card": Prescribed future or repeat lab tests to be done at home or clinic.
-- "question": Relevant questions for the patient to ask their doctor.
-- "danger_sign": Warning symptoms and red-flag thresholds mentioned in the papers.
+const PROMPT_LABS = `You are a clinical pathologist. Extract ALL laboratory tests, numeric biomarker values, and diagnostic readings from this document.
+Extract each lab test as an object with:
+- name: Standard lab name (e.g. HbA1c, Serum Creatinine, NT-proBNP, Sodium, Potassium, ALT, AST, Hemoglobin)
+- category: "lab"
+- value: Measured numeric value or chronological readings (e.g. "1.1 mg/dL" or "06-Aug: 13.4, 11-Aug: 13.2")
+- unit: Standard clinical unit (e.g. mg/dL, %, pg/mL, mEq/L, g/dL)
+- confidence: 0.95
+- plainExplanation: Clear explanation of reading and normal/abnormal status.
+Return strictly JSON matching {"facts": [...]}. If none found, return {"facts": []}.`;
 
-For any field not mentioned or not applicable, provide "null" or an empty string. Output strictly valid JSON matching the schema.`;
+const PROMPT_CONDITIONS_VITALS = `You are an internal medicine physician. Extract ALL diagnosed conditions, cardiovascular findings, allergies, patient demographics, and vitals from this document.
+Categories:
+- "demographics": Patient name, age, gender, blood group, hospital, consultant doctor, admission/discharge dates.
+- "condition": Primary & secondary diagnoses, cardiac ejection fraction (e.g. LVEF 30-35%), CAD, Heart Failure, etc.
+- "allergy": Documented drug/food allergies (or NKDA).
+- "vital": Blood pressure, pulse, SpO2, weight, BMI, temperature.
+Return strictly JSON matching {"facts": [...]}. If none found, return {"facts": []}.`;
+
+const PROMPT_CARE_SAFETY = `You are a post-discharge care coordinator. Extract ALL diet/lifestyle rules, follow-up appointments, due tests, questions, and red-flag danger signs from this document.
+Categories:
+- "diet_habit": Low sodium rules, fluid limits, daily morning weight logging, etc.
+- "followup": Scheduled clinic visits, cardiology reviews, and doctor timelines.
+- "due_card": Prescribed future/repeat lab tests (e.g. Repeat Creatinine/K+ in 7 days).
+- "question": Recommended questions for the patient to ask their doctor.
+- "danger_sign": Warning symptoms (e.g. sudden weight gain >1.5kg, chest pain, worsening shortness of breath).
+Return strictly JSON matching {"facts": [...]}. If none found, return {"facts": []}.`;
+
+const CATEGORY_PROMPTS = [
+  { name: 'Medications', prompt: PROMPT_MEDICATIONS },
+  { name: 'Labs & Biomarkers', prompt: PROMPT_LABS },
+  { name: 'Diagnoses, Vitals & Allergies', prompt: PROMPT_CONDITIONS_VITALS },
+  { name: 'Diet, Follow-ups & Safety', prompt: PROMPT_CARE_SAFETY },
+];
 
 /**
  * Universal AI calling engine for CareCanvas.
@@ -215,33 +242,57 @@ export async function extractWithAI(
   }
 
   if (context?.onStepProgress) {
-    context.onStepProgress('ai', 'Synthesizing categorical clinical facts with AI...');
+    context.onStepProgress('ai', 'Synthesizing categorical clinical facts with AI (4 parallel categories)...');
   }
 
   const promptDocContext = docType ? ` Document type: ${docType}.` : '';
-  const userText = `${effectiveText ? effectiveText.slice(0, 16000) : 'Extract all clinical facts from this document image.'}${promptDocContext}`;
+  const userText = `${effectiveText ? effectiveText.slice(0, 16000) : 'Extract clinical facts from this document image.'}${promptDocContext}`;
 
-  const response = await callAI<{ facts: any[] }>(
-    SYSTEM_FACT_EXTRACTION_PROMPT,
-    userText,
-    {
-      imageDataUrl: effectiveImageDataUrl,
-      schema: FACT_EXTRACTION_JSON_SCHEMA,
-      docType,
-      patientId,
-      documentId,
-      timeoutMs: context?.timeoutMs,
+  // Execute all 4 category extractions in parallel for maximum speed and accuracy
+  const categoryTasks = CATEGORY_PROMPTS.map(async (cat) => {
+    try {
+      const response = await callAI<{ facts: any[] }>(
+        cat.prompt,
+        userText,
+        {
+          imageDataUrl: effectiveImageDataUrl,
+          schema: FACT_EXTRACTION_JSON_SCHEMA,
+          docType,
+          patientId,
+          documentId,
+          timeoutMs: context?.timeoutMs || 45000,
+        }
+      );
+      const validated = validateStructuredFacts(response);
+      return validated.facts.length > 0 ? validated.facts : (Array.isArray(response) ? response : response.facts || []);
+    } catch (err) {
+      console.warn(`[extractWithAI] Parallel category "${cat.name}" extraction notice:`, (err as any)?.message || err);
+      return [];
     }
-  );
+  });
 
-  const validated = validateStructuredFacts(response);
-  const extractedFacts = validated.facts.length > 0 ? validated.facts : (Array.isArray(response) ? response : response.facts || []);
+  const settledResults = await Promise.allSettled(categoryTasks);
+  const aggregatedFacts: any[] = [];
+  const seenFactKeys = new Set<string>();
 
-  if (context?.onStepProgress) {
-    context.onStepProgress('done', `Extracted ${extractedFacts.length} clinical facts.`);
+  for (const res of settledResults) {
+    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+      for (const f of res.value) {
+        if (!f || typeof f !== 'object') continue;
+        const key = `${(f.category || '').toLowerCase()}_${(f.name || '').toLowerCase()}`;
+        if (!seenFactKeys.has(key)) {
+          seenFactKeys.add(key);
+          aggregatedFacts.push(f);
+        }
+      }
+    }
   }
 
-  return mapToVaultFacts(extractedFacts, patientId, documentId, docType);
+  if (context?.onStepProgress) {
+    context.onStepProgress('done', `Extracted ${aggregatedFacts.length} clinical facts across 4 categories.`);
+  }
+
+  return mapToVaultFacts(aggregatedFacts, patientId, documentId, docType);
 }
 
 function normalizeUnit(category: string, name: string, unit?: string): string {

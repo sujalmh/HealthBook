@@ -191,19 +191,35 @@ export function extractTextFromProviderResponse(json: any, provider?: AIConfig['
     if (typeof choice?.text === 'string' && choice.text.trim()) return choice.text.trim();
   }
 
-  // 3. Responses API format
+  // 3. Responses API format (OpenAI / OpenCode Responses API)
   if (typeof json.output === 'string' && json.output.trim()) {
     return json.output.trim();
   }
   if (Array.isArray(json.output)) {
+    // 3a. Primary: search specifically for message / assistant items (ignoring reasoning/thought traces)
     for (const item of json.output) {
       if (!item) continue;
+      if (item.type === 'message' || item.role === 'assistant') {
+        if (typeof item.content === 'string' && item.content.trim()) return item.content.trim();
+        if (typeof item.text === 'string' && item.text.trim()) return item.text.trim();
+        if (Array.isArray(item.content)) {
+          const parts = item.content
+            .map((p: any) => (typeof p === 'string' ? p : (p?.text ?? p?.content ?? '')))
+            .filter(Boolean);
+          if (parts.length > 0) return parts.join('\n').trim();
+        }
+      }
+    }
+
+    // 3b. Secondary: inspect items that are NOT reasoning/thought
+    for (const item of json.output) {
+      if (!item || item.type === 'reasoning' || item.type === 'thought' || item.role === 'thought') continue;
       if (typeof item === 'string' && item.trim()) return item.trim();
       if (typeof item.text === 'string' && item.text.trim()) return item.text.trim();
       if (typeof item.content === 'string' && item.content.trim()) return item.content.trim();
       if (Array.isArray(item.content)) {
         for (const part of item.content) {
-          if (!part) continue;
+          if (!part || part.type === 'reasoning' || part.type === 'thought') continue;
           if (typeof part === 'string' && part.trim()) return part.trim();
           if (typeof part.text === 'string' && part.text.trim()) return part.text.trim();
           if (typeof part.content === 'string' && part.content.trim()) return part.content.trim();
