@@ -36,7 +36,17 @@ import { SettingsView } from '@/components/settings/SettingsView';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
-export type ActiveModule = 'vault' | 'labstory' | 'pillmap' | 'rxbridge' | 'homelab' | 'safety' | 'carecircle' | 'dossier' | 'settings';
+// Grouped navigation: 9 items combined into 5 groups (minimal grouping, keeps UI elements)
+// Records = My Records (vault) + For My Doctor (dossier)
+// Labs     = Lab Results (labstory) + Tests to Do (homelab)
+// Medicines= My Medicines (pillmap) + Medicine Review (rxbridge)
+// Help     = Get Help (safety) - single
+// Family   = Family (carecircle) - single
+// Settings stays as header gear, not in main nav, reducing clutter especially on mobile.
+export type ActiveModule = 'records' | 'labs' | 'medicines' | 'safety' | 'family' | 'settings';
+export type RecordsSub = 'vault' | 'dossier';
+export type LabsSub = 'labstory' | 'homelab';
+export type MedicinesSub = 'pillmap' | 'rxbridge';
 
 export interface ActiveProfile {
   userId: string;
@@ -51,7 +61,10 @@ export interface ActiveProfile {
 }
 
 export const App: React.FC = () => {
-  const [activeModule, setActiveModule] = useState<ActiveModule>('vault');
+  const [activeModule, setActiveModule] = useState<ActiveModule>('records');
+  const [recordsSub, setRecordsSub] = useState<RecordsSub>('vault');
+  const [labsSub, setLabsSub] = useState<LabsSub>('labstory');
+  const [medicinesSub, setMedicinesSub] = useState<MedicinesSub>('pillmap');
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isQuestionBankOpen, setIsQuestionBankOpen] = useState(false);
   const [isConnectOpen, setIsConnectOpen] = useState(false);
@@ -60,46 +73,6 @@ export const App: React.FC = () => {
   const [authMode, setAuthMode] = useState<'create' | 'signin'>('create');
   const [pendingCount, setPendingCount] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
-
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  const navContainerRef = React.useRef<HTMLDivElement | null>(null);
-  const navItemRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
-
-  const checkScrollPositions = () => {
-    const el = navContainerRef.current;
-    if (!el) return;
-    const sl = el.scrollLeft;
-    const max = el.scrollWidth - el.clientWidth;
-    setCanScrollLeft(sl > 4);
-    setCanScrollRight(sl < max - 4);
-  };
-
-  useEffect(() => {
-    const el = navContainerRef.current;
-    if (!el) return;
-    checkScrollPositions();
-    el.addEventListener('scroll', checkScrollPositions, { passive: true });
-    window.addEventListener('resize', checkScrollPositions, { passive: true });
-    return () => {
-      el.removeEventListener('scroll', checkScrollPositions);
-      window.removeEventListener('resize', checkScrollPositions);
-    };
-  }, [isHydrated, activeProfile]);
-
-  // Auto-scroll active tab into view on change
-  useEffect(() => {
-    const activeEl = navItemRefs.current[activeModule];
-    if (activeEl && navContainerRef.current) {
-      activeEl.scrollIntoView({
-        behavior: 'smooth',
-        inline: 'center',
-        block: 'nearest',
-      });
-      const timer = setTimeout(checkScrollPositions, 350);
-      return () => clearTimeout(timer);
-    }
-  }, [activeModule]);
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -286,19 +259,16 @@ export const App: React.FC = () => {
     }
   };
 
+  // Grouped nav items — only 5 primary items + Settings as header gear.
+  // Reduces 9 buttons → 5, eliminates horizontal scroll on mobile, 44px targets, accessible.
   const navItems = [
-    { id: 'vault', label: 'My Records', shortLabel: 'Records', icon: Shield, badge: pendingCount > 0 ? `${pendingCount}` : null },
-    { id: 'labstory', label: 'Lab Results', shortLabel: 'Labs', icon: Activity },
-    { id: 'pillmap', label: 'My Medicines', shortLabel: 'Meds', icon: Pill },
-    { id: 'rxbridge', label: 'Medicine Review', shortLabel: 'Review', icon: FileCheck2 },
-    { id: 'homelab', label: 'Tests to Do', shortLabel: 'Tests', icon: HeartPulse },
-    { id: 'safety', label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle },
-    { id: 'carecircle', label: 'Family', shortLabel: 'Family', icon: Users },
-    { id: 'dossier', label: 'For My Doctor', shortLabel: 'Doctor', icon: FolderLock },
-    { id: 'settings', label: 'Settings', shortLabel: 'Settings', icon: Settings },
+    { id: 'records' as ActiveModule, label: 'Records', shortLabel: 'Records', icon: Shield, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: 'My Records + For Doctor' },
+    { id: 'labs' as ActiveModule, label: 'Labs', shortLabel: 'Labs', icon: Activity, badge: null, desc: 'Results + Tests to Do' },
+    { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: 'Weekly Box + Review' },
+    { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: 'Urgent help + appointments' },
+    { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: 'Trusted helpers' },
   ];
 
-  // Semantic primary tokens — indigo light palette (tokenized, no hard hex)
   const pastelActive = 'bg-primary-light text-primary-text border-primary-border shadow-sm';
   const pastelIconActive = 'text-primary-text';
   const pastelIconIdle = 'text-muted';
@@ -313,7 +283,6 @@ export const App: React.FC = () => {
   }
 
   // Create Account / Sign In Gate — cold start with no user must show centered auth view, not vault grids
-  // Automatically signs in if auth token (carecanvas_active_user) was saved — handled by restore useEffect above
   if (!activeProfile) {
     return (
       <div className="min-h-screen flex flex-col bg-canvas-bg">
@@ -337,14 +306,22 @@ export const App: React.FC = () => {
     ? activeProfile.onBehalfOf.split(' ')[0].slice(0, 6) || 'Patient'
     : activeProfile.name.split(' ')[0].slice(0, 8) || 'Patient';
 
+  const handleNav = (id: ActiveModule) => {
+    setActiveModule(id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-canvas-bg text-slate-900 flex flex-col antialiased w-full max-w-full overflow-x-hidden">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-xl focus:shadow-lg focus:border focus:border-canvas-border focus:outline-none focus:ring-2 focus:ring-primary">
+        Skip to main content
+      </a>
       {/* Top Application Bar — glass, soft shadow, tokenized */}
       <header className="border-b border-canvas-border bg-white/95 backdrop-blur-md sticky top-0 z-40 px-2.5 sm:px-6 py-2.5 sm:py-3 shadow-sm w-full max-w-full">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4">
           {/* Logo & Subtitle — refined typography, token gradient */}
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 shrink-0 ring-1 ring-primary/10">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 shrink-0 ring-1 ring-primary/10" aria-hidden="true">
               <HeartPulse className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="min-w-0">
@@ -363,7 +340,7 @@ export const App: React.FC = () => {
             <PrivacyBadge patientId={activeProfile.userId} />
           </div>
 
-          {/* Right Action Bar: Profile Switcher, Question Bank, Inspector, Sign Out */}
+          {/* Right Action Bar: Profile Switcher, Question Bank, Inspector, Settings, Sign Out */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {/* Mobile Profile Switch Button (<sm) — dedicated 44x44px target with role & avatar indicator */}
             <button
@@ -406,7 +383,7 @@ export const App: React.FC = () => {
             <button
               onClick={() => setIsQuestionBankOpen(true)}
               className="relative flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 text-xs font-semibold border border-canvas-border shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label="Questions"
+              aria-label={`Questions${questionCount > 0 ? `, ${questionCount} active` : ''}`}
               title="Doctor Question Bank"
             >
               <HelpCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -434,7 +411,7 @@ export const App: React.FC = () => {
               onClick={() => setIsInspectorOpen(true)}
               className="relative flex items-center justify-center gap-1 sm:gap-2 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-primary-light hover:brightness-95 text-primary-text text-xs font-bold border border-primary-border transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
               title="See what's happening behind the scenes"
-              aria-label="Activity"
+              aria-label={`Activity${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
             >
               <Terminal className="w-4 h-4 text-primary-text shrink-0" />
               <span className="hidden md:inline">Activity</span>
@@ -443,6 +420,22 @@ export const App: React.FC = () => {
                   {pendingCount > 99 ? '99+' : pendingCount}
                 </span>
               )}
+            </button>
+
+            {/* Settings — header gear, not in main nav, reduces clutter */}
+            <button
+              onClick={() => handleNav('settings')}
+              className={`flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold border shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary ${
+                activeModule === 'settings'
+                  ? 'bg-primary-light text-primary-text border-primary-border shadow-sm'
+                  : 'bg-white hover:bg-canvas-muted text-slate-700 border-canvas-border'
+              }`}
+              aria-label="Settings"
+              aria-current={activeModule === 'settings' ? 'page' : undefined}
+              title="Settings"
+            >
+              <Settings className={`w-4 h-4 shrink-0 ${activeModule === 'settings' ? 'text-primary-text' : 'text-muted'}`} />
+              <span className="hidden md:inline">Settings</span>
             </button>
 
             {/* Sign Out — clears localStorage and shows gate */}
@@ -459,27 +452,30 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Module Navigation Tabs — desktop only (bottom nav on mobile), pill active */}
-      <div className="hidden md:block bg-white border-b border-canvas-border px-3 sm:px-6 shadow-sm overflow-hidden">
-        <div className="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto py-2.5 scrollbar-none -mx-1 px-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* Primary Navigation — grouped 5 items (desktop: top pill bar, mobile: bottom fixed 5-column grid, no scroll) */}
+      {/* Desktop Top Nav — 5 grouped items + Settings handled in header */}
+      <nav className="hidden md:block bg-white border-b border-canvas-border px-3 sm:px-6 shadow-sm" aria-label="Primary">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-1.5 py-2.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeModule === item.id;
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveModule(item.id as ActiveModule)}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0 min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary ${
+                onClick={() => handleNav(item.id as ActiveModule)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none  ${
                   isActive
                     ? `${pastelActive}`
                     : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
+                aria-label={`${item.label}${item.badge ? `, ${item.badge} pending` : ''}`}
+                title={item.desc}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? pastelIconActive : pastelIconIdle}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? pastelIconActive : pastelIconIdle}`} aria-hidden="true" />
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="bg-amber-500 text-white text-[10px] min-w-[20px] h-5 px-1.5 rounded-full font-bold shrink-0 flex items-center justify-center leading-none">
+                  <span className="bg-amber-500 text-white text-[11px] min-w-[20px] h-5 px-1.5 rounded-full font-bold shrink-0 flex items-center justify-center leading-none">
                     {Number(item.badge) > 99 ? '99+' : item.badge}
                   </span>
                 )}
@@ -487,53 +483,158 @@ export const App: React.FC = () => {
             );
           })}
         </div>
-      </div>
+      </nav>
 
-      {/* Main Content Area — empty vault until upload (0 facts/meds/labs) */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 overflow-x-hidden">
-        {/* MODULE 0: APPROVED FACT VAULT */}
-        <div className={activeModule === 'vault' ? 'block space-y-6' : 'hidden'}>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Document Dropzone & Vault Stream */}
-            <div className="lg:col-span-7 space-y-6">
-              <DocumentDropzone patientId={activeProfile.userId} />
-              <FactStreamView patientId={activeProfile.userId} />
+      {/* Main Content Area — grouped pages with sub-navigation for combined items */}
+      <main id="main-content" tabIndex={-1} className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 overflow-x-hidden outline-none">
+        {/* GROUP: Records = My Records (vault) + For My Doctor (dossier) */}
+        <div className={activeModule === 'records' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'records'}>
+          {/* Sub-navigation — accessible tablist, 44px targets */}
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Records sections">
+            <div className="flex gap-1.5">
+              <button
+                role="tab"
+                aria-selected={recordsSub === 'vault'}
+                aria-controls="records-vault-panel"
+                id="records-vault-tab"
+                onClick={() => { setRecordsSub('vault'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  recordsSub === 'vault' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                }`}
+              >
+                <Shield className={`w-4 h-4 ${recordsSub === 'vault' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span>My Records</span>
+                {pendingCount > 0 && recordsSub !== 'vault' && (
+                  <span className="bg-amber-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full font-bold flex items-center justify-center">{pendingCount > 99 ? '99+' : pendingCount}</span>
+                )}
+              </button>
+              <button
+                role="tab"
+                aria-selected={recordsSub === 'dossier'}
+                aria-controls="records-dossier-panel"
+                id="records-dossier-tab"
+                onClick={() => { setRecordsSub('dossier'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  recordsSub === 'dossier' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                }`}
+              >
+                <FolderLock className={`w-4 h-4 ${recordsSub === 'dossier' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span>For My Doctor</span>
+              </button>
             </div>
+            <p className="px-2 pt-1.5 text-caption text-muted hidden sm:block">Your documents and a compiled summary to share — all in one place.</p>
+          </div>
 
-            {/* Right Column: Source Document Highlight Viewer — dynamic, no hardcoded doc id */}
-            <div className="lg:col-span-5">
-              <div className="sticky top-24">
-                <BoundingBoxViewer documentId={undefined} />
+          <div id="records-vault-panel" role="tabpanel" aria-labelledby="records-vault-tab" className={recordsSub === 'vault' ? 'block space-y-6' : 'hidden'}>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-7 space-y-6">
+                <DocumentDropzone patientId={activeProfile.userId} />
+                <FactStreamView patientId={activeProfile.userId} />
+              </div>
+              <div className="lg:col-span-5">
+                <div className="sticky top-24">
+                  <BoundingBoxViewer documentId={undefined} />
+                </div>
               </div>
             </div>
           </div>
+
+          <div id="records-dossier-panel" role="tabpanel" aria-labelledby="records-dossier-tab" className={recordsSub === 'dossier' ? 'block' : 'hidden'}>
+            <DossierView patientId={activeProfile.userId} activeProfile={activeProfile} />
+          </div>
         </div>
 
-        {/* MODULE 1: LABSTORY & LONGITUDINAL BIOMARKER CAUSAL ENGINE */}
-        <div className={activeModule === 'labstory' ? 'block' : 'hidden'}>
-          <LabStoryView patientId={activeProfile.userId} activeProfile={activeProfile} />
+        {/* GROUP: Labs = Lab Results (labstory) + Tests to Do (homelab) */}
+        <div className={activeModule === 'labs' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'labs'}>
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Labs sections">
+            <div className="flex gap-1.5">
+              <button
+                role="tab"
+                aria-selected={labsSub === 'labstory'}
+                aria-controls="labs-labstory-panel"
+                id="labs-labstory-tab"
+                onClick={() => { setLabsSub('labstory'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  labsSub === 'labstory' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                }`}
+              >
+                <Activity className={`w-4 h-4 ${labsSub === 'labstory' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span>Lab Results</span>
+              </button>
+              <button
+                role="tab"
+                aria-selected={labsSub === 'homelab'}
+                aria-controls="labs-homelab-panel"
+                id="labs-homelab-tab"
+                onClick={() => { setLabsSub('homelab'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  labsSub === 'homelab' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                }`}
+              >
+                <HeartPulse className={`w-4 h-4 ${labsSub === 'homelab' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span>Tests to Do</span>
+              </button>
+            </div>
+            <p className="px-2 pt-1.5 text-caption text-muted hidden sm:block">Results over time and the tests your doctor asked you to do — together.</p>
+          </div>
+
+          <div id="labs-labstory-panel" role="tabpanel" aria-labelledby="labs-labstory-tab" className={labsSub === 'labstory' ? 'block' : 'hidden'}>
+            <LabStoryView patientId={activeProfile.userId} activeProfile={activeProfile} />
+          </div>
+          <div id="labs-homelab-panel" role="tabpanel" aria-labelledby="labs-homelab-tab" className={labsSub === 'homelab' ? 'block' : 'hidden'}>
+            <HomeLabView patientId={activeProfile.userId} activeProfile={activeProfile} />
+          </div>
         </div>
 
-        <div className={activeModule === 'pillmap' ? 'block' : 'hidden'}>
-          <PillMapView patientId={activeProfile.userId} activeProfile={activeProfile} />
+        {/* GROUP: Medicines = Weekly Planner (pillmap) + Medicine Review (rxbridge) */}
+        <div className={activeModule === 'medicines' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'medicines'}>
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Medicines sections">
+            <div className="flex gap-1.5">
+              <button
+                role="tab"
+                aria-selected={medicinesSub === 'pillmap'}
+                aria-controls="meds-pillmap-panel"
+                id="meds-pillmap-tab"
+                onClick={() => { setMedicinesSub('pillmap'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  medicinesSub === 'pillmap' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                }`}
+              >
+                <Pill className={`w-4 h-4 ${medicinesSub === 'pillmap' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span>Weekly Planner</span>
+              </button>
+              <button
+                role="tab"
+                aria-selected={medicinesSub === 'rxbridge'}
+                aria-controls="meds-rxbridge-panel"
+                id="meds-rxbridge-tab"
+                onClick={() => { setMedicinesSub('rxbridge'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  medicinesSub === 'rxbridge' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                }`}
+              >
+                <FileCheck2 className={`w-4 h-4 ${medicinesSub === 'rxbridge' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span>Medicine Review</span>
+              </button>
+            </div>
+            <p className="px-2 pt-1.5 text-caption text-muted hidden sm:block">Your weekly pill box and the hospital list that fills it — one flow.</p>
+          </div>
+
+          <div id="meds-pillmap-panel" role="tabpanel" aria-labelledby="meds-pillmap-tab" className={medicinesSub === 'pillmap' ? 'block' : 'hidden'}>
+            <PillMapView patientId={activeProfile.userId} activeProfile={activeProfile} />
+          </div>
+          <div id="meds-rxbridge-panel" role="tabpanel" aria-labelledby="meds-rxbridge-tab" className={medicinesSub === 'rxbridge' ? 'block' : 'hidden'}>
+            <RxBridgeView patientId={activeProfile.userId} activeProfile={activeProfile} />
+          </div>
         </div>
 
-        <div className={activeModule === 'rxbridge' ? 'block' : 'hidden'}>
-          <RxBridgeView patientId={activeProfile.userId} activeProfile={activeProfile} />
-        </div>
-
-        {/* MODULE 4: HOMELAB REMOTE LOOP */}
-        <div className={activeModule === 'homelab' ? 'block' : 'hidden'}>
-          <HomeLabView patientId={activeProfile.userId} activeProfile={activeProfile} />
-        </div>
-
-        {/* MODULE 5: SAFETY ALERTS & TRIAGE */}
-        <div className={activeModule === 'safety' ? 'block' : 'hidden'}>
+        {/* SINGLE: Get Help (safety) — no sub-tabs, keeps original internal tabs */}
+        <div className={activeModule === 'safety' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'safety'}>
           <SafetyView patientId={activeProfile.userId} activeProfile={activeProfile} />
         </div>
 
-        {/* MODULE 6: FAMILY CARE CIRCLE & PROXY */}
-        <div className={activeModule === 'carecircle' ? 'block' : 'hidden'}>
+        {/* SINGLE: Family (carecircle) */}
+        <div className={activeModule === 'family' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'family'}>
           <CareCircleView
             patientId={activeProfile.userId}
             activeProfile={activeProfile}
@@ -541,85 +642,51 @@ export const App: React.FC = () => {
           />
         </div>
 
-        {/* MODULE 7: CONTINUITY DOSSIER & LIFETIME RECORD */}
-        <div className={activeModule === 'dossier' ? 'block' : 'hidden'}>
-          <DossierView patientId={activeProfile.userId} activeProfile={activeProfile} />
-        </div>
-
-        {/* MODULE 8: SETTINGS — Generic configurable LLM config via Settings>env */}
-        <div className={activeModule === 'settings' ? 'block' : 'hidden'}>
+        {/* SETTINGS — accessed via header gear */}
+        <div className={activeModule === 'settings' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'settings'}>
           <SettingsView />
         </div>
       </main>
 
-      {/* Bottom Navbar — mobile polished, safe-area, 44px targets, scroll fade indicators */}
+      {/* Mobile Bottom Nav — 5 items grid, no scroll, 44px+ targets, safe-area, accessible */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-canvas-border shadow-[0_-4px_12px_rgba(0,0,0,0.06)] z-40"
         style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom, 0px))' }}
-        aria-label="Mobile Navigation"
+        aria-label="Primary mobile"
       >
-        <div className="relative w-full max-w-full">
-          {/* Left visual scroll fade gradient mask indicator */}
-          <div
-            className={`pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white via-white/80 to-transparent z-10 transition-opacity duration-200 ${
-              canScrollLeft ? 'opacity-100' : 'opacity-0'
-            }`}
-            aria-hidden="true"
-          />
-
-          {/* Right visual scroll fade gradient mask indicator */}
-          <div
-            className={`pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white via-white/80 to-transparent z-10 transition-opacity duration-200 ${
-              canScrollRight ? 'opacity-100' : 'opacity-0'
-            }`}
-            aria-hidden="true"
-          />
-
-          <div
-            ref={navContainerRef}
-            className="overflow-x-auto scrollbar-none px-2 py-1.5"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            <div className="flex items-center gap-1 min-w-max mx-auto w-max px-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeModule === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    ref={(el) => {
-                      navItemRefs.current[item.id] = el;
-                    }}
-                    onClick={() => {
-                      setActiveModule(item.id as ActiveModule);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className={`flex flex-col items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-[10px] font-bold leading-none transition-all duration-200 min-w-[56px] sm:min-w-[62px] min-h-[48px] shrink-0 focus-visible:ring-2 focus-visible:ring-primary relative ${
-                      isActive
-                        ? 'bg-primary-light text-primary-text border border-primary-border shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                    }`}
-                    aria-current={isActive ? 'page' : undefined}
-                    aria-label={item.label}
-                  >
-                    <div className="relative">
-                      <Icon className={`w-5 h-5 ${isActive ? 'text-primary-text' : 'text-slate-500'}`} />
-                      {item.badge && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-black border-2 border-white leading-none">
-                          {Number(item.badge) > 99 ? '99+' : item.badge}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] tracking-tight text-center leading-tight whitespace-nowrap">{item.shortLabel}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        <div className="grid grid-cols-5 gap-0 px-1 py-1.5 max-w-md mx-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeModule === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNav(item.id as ActiveModule)}
+                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold leading-none transition-all duration-200 min-h-[56px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none relative ${
+                  isActive
+                    ? 'bg-primary-light text-primary-text border border-primary-border shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                }`}
+                aria-current={isActive ? 'page' : undefined}
+                aria-label={`${item.label}${item.badge ? `, ${item.badge} pending` : ''}`}
+                title={item.desc}
+              >
+                <span className="relative">
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-primary-text' : 'text-slate-500'}`} aria-hidden="true" />
+                  {item.badge && (
+                    <span className="absolute -top-1.5 -right-2 bg-amber-500 text-white text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-black border-2 border-white leading-none">
+                      {Number(item.badge) > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[10px] tracking-tight text-center leading-tight truncate w-full px-0.5">{item.shortLabel}</span>
+              </button>
+            );
+          })}
         </div>
       </nav>
 
-      {/* Global Modals — cohesive backdrop, responsive padding, scrollable */}
+      {/* Global Modals */}
       <ModalPortal isOpen={isQuestionBankOpen} onClose={() => setIsQuestionBankOpen(false)} ariaLabel="Doctor Question Bank">
         <div className="max-w-2xl w-full mx-auto">
           <QuestionBank patientId={activeProfile.userId} onClose={() => setIsQuestionBankOpen(false)} />

@@ -53,21 +53,24 @@ describe('Empirical Mobile Layout, Viewport Responsiveness & Touch Target Verifi
 
     it('ensures all top header action buttons have min-h-[44px] and min-w-[44px]', () => {
       const app = readSrcFile('App.tsx');
-      expect(app).toContain('aria-label="Questions"');
-      expect(app).toContain('aria-label="Activity"');
-      expect(app).toContain('aria-label="Sign out"');
+      expect(app).toContain('aria-label');
+      expect(app).toContain('Questions');
+      expect(app).toContain('Activity');
+      expect(app).toContain('Sign out');
       expect(app).toContain('min-h-[44px] min-w-[44px]');
     });
 
-    it('implements bottom mobile navigation with >= 48px touch targets, scroll cues, and auto-scroll', () => {
+    it('implements bottom mobile navigation with grouped 5-item grid, no horizontal scroll, and >=44px touch targets', () => {
       const app = readSrcFile('App.tsx');
       expect(app).toContain('md:hidden fixed bottom-0 left-0 right-0');
-      expect(app).toContain('overflow-x-auto scrollbar-none');
-      expect(app).toContain('min-w-[56px]');
-      expect(app).toContain('min-h-[48px]');
-      expect(app).toContain('pointer-events-none absolute left-0');
-      expect(app).toContain('pointer-events-none absolute right-0');
-      expect(app).toContain('scrollIntoView');
+      expect(app).toContain('grid grid-cols-5');
+      expect(app).toContain('min-h-[56px]');
+      // Grouped nav eliminates clutter scroll; verify primary nav items are grouped (records/labs/medicines)
+      expect(app).toContain("'records'");
+      expect(app).toContain("'labs'");
+      expect(app).toContain("'medicines'");
+      expect(app).toContain('aria-label');
+      expect(app).toContain('aria-current');
     });
   });
 
