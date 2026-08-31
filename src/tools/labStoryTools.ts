@@ -254,7 +254,7 @@ export function normalizeLabBiomarker(
 
 function isVisionImage(value?: string): boolean {
   if (!value || typeof value !== 'string') return false;
-  return value.startsWith('data:image');
+  return value.startsWith('data:');
 }
 
 // Helper: fallback regex extraction (preserved for when AI disabled)

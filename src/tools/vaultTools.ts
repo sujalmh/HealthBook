@@ -58,7 +58,8 @@ function vaultHeuristicFallback(rawText: string, docType: string | undefined, pa
 
 function isVisionImage(value?: string): boolean {
   if (!value || typeof value !== 'string') return false;
-  return value.startsWith('data:image');
+  // Support image, pdf, video directly via model file input (many models support pdf/video via file_data)
+  return value.startsWith('data:');
 }
 
 function detectImageDataUrl(params: any, rawText: string): string | undefined {
@@ -69,11 +70,14 @@ function detectImageDataUrl(params: any, rawText: string): string | undefined {
     params.imageUrl,
     params.image,
     params.image_data_url,
+    params.fileDataUrl,
+    params.pdfDataUrl,
+    params.file_data_url,
   ];
   for (const c of candidates) {
     if (typeof c === 'string' && c.length > 0 && isVisionImage(c)) return c;
   }
-  if (typeof rawText === 'string' && rawText.startsWith('data:image')) return rawText;
+  if (typeof rawText === 'string' && rawText.startsWith('data:')) return rawText;
   return undefined;
 }
 

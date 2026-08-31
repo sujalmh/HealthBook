@@ -12,7 +12,7 @@ import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 
 function isVisionImage(value?: string): boolean {
   if (!value || typeof value !== 'string') return false;
-  return value.startsWith('data:image');
+  return value.startsWith('data:');
 }
 
 function deriveHomeLabBbox(index: number, name: string) {

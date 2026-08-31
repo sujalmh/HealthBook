@@ -6,7 +6,7 @@
 
 import type { Fact, FactCategory } from '../../types/vault.ts';
 import type { AIConfig } from './types.ts';
-import { isImageDataUrl } from './vision.ts';
+import { isFileDataUrl } from './vision.ts';
 
 // Simple biomarker unit map for normalization
 const UNIT_MAP: Record<string, string> = {
@@ -43,9 +43,9 @@ function extractUnit(line: string, category: string): string {
 }
 
 function shouldUseHeuristicFallback(config: AIConfig, hasImage: boolean): boolean {
-  // Fallback heuristic only when VITE_AI_ENABLED=false or key absent — for text never for images
+  // Fallback heuristic only when VITE_AI_ENABLED=false or key absent — for text never for images/files
   // When baseURL is proxied via /api/, server may inject key from non-VITE env (AI_API_KEY), so don't require client key
-  if (hasImage) return false; // never heuristic for images (Q10)
+  if (hasImage) return false; // never heuristic for images/files (Q10) — many models support pdf/image/video via file_data
   if (!config.enabled) return true;
   const isProxy = typeof config.baseURL === 'string' && config.baseURL.startsWith('/api/');
   if (!isProxy && (!config.apiKey || config.apiKey.trim() === '')) return true;
@@ -55,7 +55,7 @@ function shouldUseHeuristicFallback(config: AIConfig, hasImage: boolean): boolea
 }
 
 export function isFallbackEnabled(config: AIConfig, imageDataUrl?: string): boolean {
-  const hasImage = !!imageDataUrl && isImageDataUrl(imageDataUrl);
+  const hasImage = !!imageDataUrl && isFileDataUrl(imageDataUrl);
   return shouldUseHeuristicFallback(config, hasImage);
 }
 

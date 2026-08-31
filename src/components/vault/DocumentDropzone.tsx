@@ -39,18 +39,19 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
         extractedFactIds: [],
       });
 
-      // Wire FileReader real file — if image (data URL) send as imageDataUrl + text together to extract_fact via AI multimodal; if PDF/text send rawText; call webMCPEngine.execute('extract_fact', {documentId, rawText, imageBlob?, docType}) with vision
-      // Single multimodal request when image present: rawText + imageDataUrl together (image_url vs input_image handled generically by AI client based on VITE_AI_PROVIDER)
+      // Wire FileReader real file — if image/pdf/file (data URL) send as file data + text together to extract_fact via AI multimodal; many models support PDF/image/video directly via file_data
+      // Single multimodal request when file present: rawText + fileDataUrl together (image_url vs input_image vs input_file handled generically by AI client based on VITE_AI_PROVIDER)
       const execParams: any = {
         documentId,
         rawText: rawText || '',
         docType,
         documentType: file.type,
       };
-      if (imageDataUrl && (imageDataUrl.startsWith('data:image') || imageDataUrl.length > 5000)) {
+      if (imageDataUrl && imageDataUrl.startsWith('data:')) {
         execParams.imageBlob = imageDataUrl;
         execParams.imageDataUrl = imageDataUrl;
-        // Also include rawText alongside image for vision+text single response where model supports it
+        execParams.fileDataUrl = imageDataUrl;
+        // Also include rawText alongside file for multimodal single response where model supports it
         if (rawText && rawText.trim().length > 0) execParams.rawText = rawText;
       }
 
@@ -114,10 +115,10 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
       const reader = new FileReader();
       reader.onload = async () => {
         const result = reader.result as string;
-        // For PDFs, attempt to read as text; if binary, fallback to name
-        // Note: readAsText for PDF will be garbled binary; we treat as rawText but AI vision not needed for PDFs (text path)
-        const rawText = result || file.name;
-        await handleRealExtract(file, rawText);
+        // For PDFs, send PDF directly as base64 file_data (many models support pdf input directly — text/image/video/pdf)
+        // Do not use readAsText (garbled binary). Use data URL so model can parse PDF natively via input_file/file.
+        const pdfDataUrl = result || '';
+        await handleRealExtract(file, '', pdfDataUrl);
       };
       reader.onerror = () => {
         eventBus.dispatchToast({
@@ -126,8 +127,7 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
           message: 'Could not read file.',
         });
       };
-      // Try readAsText for PDFs; if fails, readAsDataURL could be used for vision but PDF text path preferred per spec: if PDF/text send rawText
-      reader.readAsText(file);
+      reader.readAsDataURL(file);
     } else {
       const reader = new FileReader();
       reader.onload = async () => {

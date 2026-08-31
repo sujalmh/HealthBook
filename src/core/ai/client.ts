@@ -15,7 +15,7 @@
 import type { Fact } from '../../types/vault.ts';
 import type { AIConfig } from './types.ts';
 import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel } from './config.ts';
-import { buildChatMessages, buildResponsesInput, isImageDataUrl, isMultimodalRequestBody } from './vision.ts';
+import { buildChatMessages, buildResponsesInput, isFileDataUrl, isImageDataUrl, isPdfDataUrl, isMultimodalRequestBody } from './vision.ts';
 import {
   FACT_EXTRACTION_JSON_SCHEMA,
   buildStructuredParams,
@@ -103,7 +103,7 @@ function buildRequestBody(
   docType?: string
 ): any {
   const useStructured = config.structuredOutputs;
-  const model = getAIModel(config, !!imageDataUrl && isImageDataUrl(imageDataUrl));
+  const model = getAIModel(config, !!imageDataUrl && isFileDataUrl(imageDataUrl));
   const structuredParams = buildStructuredParams(config.provider, useStructured, FACT_EXTRACTION_JSON_SCHEMA);
 
   // Document context for prompt
@@ -148,7 +148,7 @@ export async function extractWithAI(
   const config = getAIConfig();
   const patientId = opts?.patientId || derivePatientId();
   const documentId = opts?.documentId || `doc_ai_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
-  const hasImage = !!imageDataUrl && isImageDataUrl(imageDataUrl);
+  const hasImage = !!imageDataUrl && isFileDataUrl(imageDataUrl);
 
   // Fallback heuristic only when VITE_AI_ENABLED=false or key absent (Q10 rule for text never for images)
   // Image OCR must always via AI when enabled, not heuristic placeholder
@@ -310,5 +310,5 @@ function derivePatientId(): string {
 }
 
 // Export helpers for testing / consumption
-export { getAIConfig, isAIEnabled, getAIEndpoint, isImageDataUrl };
+export { getAIConfig, isAIEnabled, getAIEndpoint, isImageDataUrl, isFileDataUrl, isPdfDataUrl };
 export type { AIConfig };
