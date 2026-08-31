@@ -44,9 +44,11 @@ function extractUnit(line: string, category: string): string {
 
 function shouldUseHeuristicFallback(config: AIConfig, hasImage: boolean): boolean {
   // Fallback heuristic only when VITE_AI_ENABLED=false or key absent — for text never for images
+  // When baseURL is proxied via /api/, server may inject key from non-VITE env (AI_API_KEY), so don't require client key
   if (hasImage) return false; // never heuristic for images (Q10)
   if (!config.enabled) return true;
-  if (!config.apiKey || config.apiKey.trim() === '') return true;
+  const isProxy = typeof config.baseURL === 'string' && config.baseURL.startsWith('/api/');
+  if (!isProxy && (!config.apiKey || config.apiKey.trim() === '')) return true;
   if (!config.baseURL || config.baseURL.trim() === '') return true;
   if (!config.model || config.model.trim() === '') return true;
   return false;

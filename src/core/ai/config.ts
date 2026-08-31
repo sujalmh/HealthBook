@@ -222,10 +222,16 @@ export function getAIConfig(): AIConfig {
 /**
  * Is AI enabled and has required credentials?
  * Fallback heuristic only when VITE_AI_ENABLED=false or key absent (Q10).
+ * When baseURL is proxied via /api/ai, apiKey may be injected server-side
+ * from non-VITE env (AI_API_KEY / OPENCODE_API_KEY), so allow missing client key in that mode.
  */
 export function isAIEnabled(config?: AIConfig): boolean {
   const c = config ?? getAIConfig();
-  return c.enabled === true && typeof c.apiKey === 'string' && c.apiKey.length > 0 && typeof c.baseURL === 'string' && c.baseURL.length > 0 && typeof c.model === 'string' && c.model.length > 0;
+  const isProxy = typeof c.baseURL === 'string' && c.baseURL.startsWith('/api/');
+  const hasKey = typeof c.apiKey === 'string' && c.apiKey.length > 0;
+  // If proxied, server may inject key — don't require client key
+  const keyOk = isProxy ? true : hasKey;
+  return c.enabled === true && keyOk && typeof c.baseURL === 'string' && c.baseURL.length > 0 && typeof c.model === 'string' && c.model.length > 0;
 }
 
 /**

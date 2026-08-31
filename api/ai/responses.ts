@@ -11,12 +11,18 @@ export default async function handler(req: any, res: any) {
   try {
     const headers: Record<string, string> = {};
     if (req.headers['content-type']) headers['Content-Type'] = String(req.headers['content-type']);
+    const serverKey = process.env.AI_API_KEY;
     if (req.headers['authorization']) headers['Authorization'] = String(req.headers['authorization']);
+    else if (serverKey) headers['Authorization'] = `Bearer ${serverKey}`;
     if (req.headers['x-api-key']) headers['x-api-key'] = String(req.headers['x-api-key']);
+    else if (serverKey) headers['x-api-key'] = serverKey;
     if (req.headers['x-goog-api-key']) headers['x-goog-api-key'] = String(req.headers['x-goog-api-key']);
     for (const [k, v] of Object.entries(req.headers)) {
       const lk = k.toLowerCase();
       if (lk.startsWith('x-') && !headers[k as string]) headers[k as string] = String(v);
+    }
+    if (!headers['Authorization'] && !headers['x-api-key']) {
+      console.warn('[proxy responses] no API key available — set AI_API_KEY (server-only, no VITE_ prefix) in Vercel env');
     }
     let body: any = undefined;
     if (req.method !== 'GET' && req.method !== 'HEAD') {

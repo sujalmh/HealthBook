@@ -215,12 +215,16 @@ export async function extractWithAI(
 
   let response: Response;
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    // Only send client key if present — when baseURL is /api/*, server proxy may inject from non-VITE env (AI_API_KEY)
+    if (config.apiKey && config.apiKey.trim() !== '') {
+      headers.Authorization = `Bearer ${config.apiKey}`;
+    }
     const fetchOpts: RequestInit = {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`,
-      },
+      headers,
       body: JSON.stringify(body),
     };
     if (fetchSignal) (fetchOpts as any).signal = fetchSignal;

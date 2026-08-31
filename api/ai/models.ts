@@ -10,7 +10,9 @@ export default async function handler(req: any, res: any) {
   const targetUrl = `${targetBase}/models${search}`;
   try {
     const headers: Record<string, string> = {};
+    const serverKey = process.env.AI_API_KEY;
     if (req.headers['authorization']) headers['Authorization'] = String(req.headers['authorization']);
+    else if (serverKey) headers['Authorization'] = `Bearer ${serverKey}`;
     const upstream = await fetch(targetUrl, { method: req.method, headers });
     res.status(upstream.status);
     const ct = upstream.headers.get('content-type');
