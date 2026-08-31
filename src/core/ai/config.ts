@@ -229,8 +229,10 @@ export function isAIEnabled(config?: AIConfig): boolean {
   const c = config ?? getAIConfig();
   const isProxy = typeof c.baseURL === 'string' && c.baseURL.startsWith('/api/');
   const hasKey = typeof c.apiKey === 'string' && c.apiKey.length > 0;
-  // If proxied, server may inject key — don't require client key
-  const keyOk = isProxy ? true : hasKey;
+  // If proxied in production, server may inject AI_API_KEY — don't require client key.
+  // In dev, require client key to avoid 401 spam when server key not set locally.
+  const isProd = (() => { try { return (import.meta as any)?.env?.PROD === true; } catch { return false; } })();
+  const keyOk = isProxy ? (isProd ? true : hasKey) : hasKey;
   return c.enabled === true && keyOk && typeof c.baseURL === 'string' && c.baseURL.length > 0 && typeof c.model === 'string' && c.model.length > 0;
 }
 

@@ -380,11 +380,9 @@ async function aiCorrelateNarrative(
     } catch {}
     let response: Response;
     try {
-      const fetchOpts: RequestInit = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.apiKey}` },
-        body: JSON.stringify(body),
-      };
+      const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+      if (config.apiKey && config.apiKey.trim() !== '') headers.Authorization = `Bearer ${config.apiKey}`;
+      const fetchOpts: RequestInit = { method: 'POST', headers, body: JSON.stringify(body) };
       if (fetchSignal) (fetchOpts as any).signal = fetchSignal;
       response = await fetch(endpoint, fetchOpts);
     } finally {

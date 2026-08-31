@@ -11,7 +11,8 @@ export default async function handler(req: any, res: any) {
   try {
     const headers: Record<string, string> = {};
     const serverKey = process.env.AI_API_KEY;
-    if (req.headers['authorization']) headers['Authorization'] = String(req.headers['authorization']);
+    const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).trim() : '';
+    if (authHeader && authHeader.length > 7 && authHeader.toLowerCase() !== 'bearer' && authHeader !== 'Bearer ') headers['Authorization'] = authHeader;
     else if (serverKey) headers['Authorization'] = `Bearer ${serverKey}`;
     const upstream = await fetch(targetUrl, { method: req.method, headers });
     res.status(upstream.status);

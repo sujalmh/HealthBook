@@ -12,9 +12,11 @@ export default async function handler(req: any, res: any) {
     const headers: Record<string, string> = {};
     if (req.headers['content-type']) headers['Content-Type'] = String(req.headers['content-type']);
     const serverKey = process.env.AI_API_KEY;
-    if (req.headers['authorization']) headers['Authorization'] = String(req.headers['authorization']);
+    const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).trim() : '';
+    if (authHeader && authHeader.length > 7 && authHeader.toLowerCase() !== 'bearer' && authHeader !== 'Bearer ') headers['Authorization'] = authHeader;
     else if (serverKey) headers['Authorization'] = `Bearer ${serverKey}`;
-    if (req.headers['x-api-key']) headers['x-api-key'] = String(req.headers['x-api-key']);
+    const xApi = req.headers['x-api-key'] ? String(req.headers['x-api-key']).trim() : '';
+    if (xApi) headers['x-api-key'] = xApi;
     else if (serverKey) headers['x-api-key'] = serverKey;
     if (req.headers['x-goog-api-key']) headers['x-goog-api-key'] = String(req.headers['x-goog-api-key']);
     for (const [k, v] of Object.entries(req.headers)) {

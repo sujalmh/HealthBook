@@ -32,6 +32,11 @@ export function isVisionInput(value?: string): boolean {
  * For chat use image_url for images, file for PDFs (many models support PDF directly via file_data).
  * Single response where model supports it — image/pdf + text in ONE fetch body.
  */
+function extractBase64(dataUrl: string): string {
+  const comma = dataUrl.indexOf(',');
+  return comma !== -1 ? dataUrl.slice(comma + 1) : dataUrl;
+}
+
 export function buildChatVisionContent(
   text: string,
   imageDataUrl?: string
@@ -39,7 +44,7 @@ export function buildChatVisionContent(
   if (imageDataUrl && isPdfDataUrl(imageDataUrl)) {
     return [
       { type: 'text', text: text || 'Extract clinical facts from this PDF document.' },
-      { type: 'file', file: { filename: 'document.pdf', file_data: imageDataUrl } } as any,
+      { type: 'file', file: { filename: 'document.pdf', file_data: extractBase64(imageDataUrl) } } as any,
     ];
   }
   if (imageDataUrl && isImageDataUrl(imageDataUrl)) {
@@ -53,7 +58,7 @@ export function buildChatVisionContent(
   if (imageDataUrl && isFileDataUrl(imageDataUrl)) {
     return [
       { type: 'text', text: text || 'Extract clinical facts from this document.' },
-      { type: 'file', file: { filename: 'document', file_data: imageDataUrl } } as any,
+      { type: 'file', file: { filename: 'document', file_data: extractBase64(imageDataUrl) } } as any,
     ];
   }
   return [{ type: 'text', text }];
@@ -70,7 +75,7 @@ export function buildResponsesVisionContent(
   if (imageDataUrl && isPdfDataUrl(imageDataUrl)) {
     return [
       { type: 'input_text', text: text || 'Extract clinical facts from this PDF document.' },
-      { type: 'input_file', filename: 'document.pdf', file_data: imageDataUrl } as any,
+      { type: 'input_file', filename: 'document.pdf', file_data: extractBase64(imageDataUrl) } as any,
     ];
   }
   if (imageDataUrl && isImageDataUrl(imageDataUrl)) {
@@ -83,7 +88,7 @@ export function buildResponsesVisionContent(
   if (imageDataUrl && isFileDataUrl(imageDataUrl)) {
     return [
       { type: 'input_text', text: text || 'Extract clinical facts from this document.' },
-      { type: 'input_file', filename: 'document', file_data: imageDataUrl } as any,
+      { type: 'input_file', filename: 'document', file_data: extractBase64(imageDataUrl) } as any,
     ];
   }
   return [{ type: 'input_text', text }];
