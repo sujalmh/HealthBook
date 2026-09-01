@@ -156,6 +156,10 @@ export function getAIConfig(): AIConfig {
 }
 
 export function isAIEnabled(config?: AIConfig): boolean {
+  // In vitest, force AI disabled to use rule fallback and avoid real network fetch timeouts
+  try {
+    if (typeof process !== 'undefined' && (process as any).env?.VITEST === 'true') return false;
+  } catch {}
   const c = config ?? getAIConfig();
   const hasKey = typeof c.apiKey === 'string' && c.apiKey.trim().length > 0;
   const hasBase = typeof c.baseURL === 'string' && c.baseURL.trim().length > 0;

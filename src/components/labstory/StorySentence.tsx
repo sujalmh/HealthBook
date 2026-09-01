@@ -6,17 +6,30 @@ interface StorySentenceProps {
   marker: string;
   labs: LabRecord[];
   className?: string;
+  embedded?: boolean;
 }
 
-export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, className = '' }) => {
+export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, className = '', embedded = false }) => {
   if (!labs || labs.length === 0) {
+    if (embedded) {
+      return (
+        <div className={`flex items-center gap-3 py-2 ${className}`}>
+          <div className="p-1.5 rounded-lg bg-primary-light border border-primary-border text-primary shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <p className="text-body-sm text-muted leading-relaxed">
+            No results for <span className="font-semibold text-slate-900">{marker}</span>. Upload a lab paper or choose another test.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 flex items-center gap-3 shadow-sm ${className}`}>
         <div className="p-2 rounded-xl bg-primary-light border border-primary-border text-primary shrink-0">
           <Sparkles className="w-5 h-5" />
         </div>
         <p className="text-body-sm text-muted leading-relaxed">
-          No longitudinal data points available for <span className="font-semibold text-slate-900">{marker}</span>. Upload a lab report or select another marker.
+          No results for <span className="font-semibold text-slate-900">{marker}</span>. Upload a lab paper or choose another test.
         </p>
       </div>
     );
@@ -32,18 +45,6 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
   const lastDate = new Date(last.drawDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
   const delta = Math.round((last.normalizedValue - first.normalizedValue) * 100) / 100;
-  const pctChange = first.normalizedValue !== 0 ? Math.round(((last.normalizedValue - first.normalizedValue) / first.normalizedValue) * 100) : 0;
-
-  // Trajectory direction & clinical evaluation
-  const isDecliningBad = (marker.toLowerCase().includes('egfr') && delta < -5) ||
-    (marker.toLowerCase().includes('creat') && delta > 0.3) ||
-    ((marker.toLowerCase().includes('glucose') || marker.toLowerCase().includes('a1c')) && delta > 15) ||
-    (marker.toLowerCase().includes('potassium') && (last.normalizedValue > 5.0 || last.normalizedValue < 3.5));
-
-  const isImproving = (marker.toLowerCase().includes('egfr') && delta > 5) ||
-    (marker.toLowerCase().includes('creat') && delta < -0.2) ||
-    ((marker.toLowerCase().includes('glucose') || marker.toLowerCase().includes('a1c')) && delta < -10) ||
-    ((marker.toLowerCase().includes('ldl') || marker.toLowerCase().includes('cholesterol')) && delta < -20);
 
   // Generate automated clinical story sentence
   let storySentence = '';
@@ -110,43 +111,35 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
     badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
   }
 
+  const inner = (
+    <div className="flex items-center gap-3">
+      <div className="p-2 rounded-xl bg-primary-light border border-primary-border text-primary shrink-0">
+        <Sparkles className="w-4 h-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <span className={`text-caption px-2 py-0.5 rounded-full font-bold border inline-flex items-center gap-1 ${badgeColor}`}>
+            {trendIcon}
+            <span>{last.flag || (last.isBorderline ? 'BORDERLINE' : 'NORMAL')}</span>
+          </span>
+          <span className="text-caption text-muted">
+            {count} results ({firstDate} → {lastDate})
+          </span>
+        </div>
+        <p className="text-body font-medium text-slate-900 leading-relaxed truncate whitespace-nowrap overflow-hidden text-ellipsis max-w-full" title={storySentence}>
+          {storySentence}
+        </p>
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return <div className={`${className}`}>{inner}</div>;
+  }
+
   return (
     <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 shadow-sm ${className}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-primary-light border border-primary-border text-primary mt-0.5 shrink-0">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-caption font-bold uppercase tracking-wider text-primary">Story Sentence</span>
-              <span className={`text-caption px-2 py-0.5 rounded-full font-bold border inline-flex items-center gap-1 ${badgeColor}`}>
-                {trendIcon}
-                <span>{last.flag || (last.isBorderline ? 'BORDERLINE' : 'NORMAL')}</span>
-              </span>
-              <span className="text-caption text-muted">
-                {count} data points ({firstDate} → {lastDate})
-              </span>
-            </div>
-            <p className="text-body font-medium text-slate-900 leading-relaxed">
-              {storySentence}
-            </p>
-          </div>
-        </div>
-
-        {/* Quick Delta Stats */}
-        <div className="flex items-center gap-2 sm:self-center shrink-0 border-t sm:border-t-0 sm:border-l border-canvas-border pt-2 sm:pt-0 sm:pl-4">
-          <div className="text-right">
-            <div className="text-caption text-muted uppercase tracking-wider font-bold">Trajectory Delta</div>
-            <div className={`text-body font-black ${delta > 0 ? (isDecliningBad ? 'text-rose-600' : 'text-emerald-700') : (isImproving ? 'text-emerald-700' : 'text-slate-900')}`}>
-              {delta > 0 ? `+${delta}` : delta} {last.normalizedUnit}
-              <span className="text-caption ml-1 font-semibold opacity-75">
-                ({pctChange > 0 ? `+${pctChange}%` : `${pctChange}%`})
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {inner}
     </div>
   );
 };

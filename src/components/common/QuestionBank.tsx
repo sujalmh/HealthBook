@@ -4,9 +4,10 @@ import { QuestionBankItem } from '@/types/vault';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
-export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }> = ({
+export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void; asPage?: boolean }> = ({
   patientId = '',
   onClose,
+  asPage = false,
 }) => {
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
   const [filterModule, setFilterModule] = useState<string>('all');
@@ -82,16 +83,16 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void }
   };
 
   return (
-    <div className="bg-white border border-canvas-border rounded-2xl p-3 sm:p-6 shadow-2xl space-y-5 sm:space-y-6 text-slate-800 max-h-[90vh] overflow-y-auto">
+    <div className={`bg-white border border-canvas-border rounded-2xl p-3 sm:p-6 space-y-5 sm:space-y-6 text-slate-800 ${asPage ? 'shadow-sm' : 'shadow-2xl max-h-[90vh] overflow-y-auto'}`}>
       <div className="flex items-center justify-between gap-3 border-b border-canvas-border pb-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2.5 bg-amber-500/10 border border-amber-200 rounded-xl text-amber-600 shrink-0">
             <HelpCircle className="w-6 h-6" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-heading-lg text-slate-900">Doctor Question Bank</h2>
+            <h2 className="text-heading-lg text-slate-900">Questions for your doctor</h2>
             <p className="text-xs text-muted leading-snug">
-              Aggregated questions from discharge reconciliation, lab anomalies, and dosage proposals.
+              Add questions you want to ask your doctor. They will be ready for your next visit.
             </p>
           </div>
         </div>

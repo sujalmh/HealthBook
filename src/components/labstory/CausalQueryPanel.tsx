@@ -35,34 +35,6 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
   const [causalResult, setCausalResult] = useState<any | null>(null);
   const [isQuestionAdded, setIsQuestionAdded] = useState(false);
 
-  const presetQueries = [
-    {
-      label: 'eGFR vs NSAIDs & Metformin',
-      marker: 'eGFR',
-      query: 'Why did my eGFR drop in August 2026 after hospital discharge?'
-    },
-    {
-      label: 'Glucose Spike vs Prednisone',
-      marker: 'Glucose Fasting',
-      query: 'What caused the fasting glucose spike in late 2023?'
-    },
-    {
-      label: 'Creatinine vs Ibuprofen',
-      marker: 'Creatinine',
-      query: 'Why did my creatinine increase to 1.9 mg/dL?'
-    },
-    {
-      label: 'Potassium vs ACE Inhibitors',
-      marker: 'Potassium',
-      query: 'Why is my potassium borderline elevated with my blood pressure pills?'
-    },
-    {
-      label: 'Lipids vs Atorvastatin',
-      marker: 'LDL',
-      query: 'What caused the sustained improvement in my cholesterol numbers?'
-    }
-  ];
-
   const handleExecuteQuery = async (customQuery?: string, targetMarker?: string) => {
     const text = customQuery !== undefined ? customQuery : queryText;
     const marker = targetMarker || activeMarker || 'eGFR';
@@ -150,36 +122,12 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
           </div>
           <div>
             <h3 className="text-heading-md font-bold text-slate-900 flex items-center gap-2 flex-wrap tracking-tight">
-              <span>"Ask Why" Causal Biomarker Engine</span>
-              <span className="text-caption px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
-                correlate_meds
-              </span>
+              <span>Ask why it changed</span>
             </h3>
             <p className="text-body-sm text-muted leading-relaxed">
-              Correlate biomarker fluctuations with medication timing, dosage titrations, and discharge events.
+              Ask about a test and see what medicines may be linked — in plain English.
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* Preset Query Chips with >=44px Touch Targets */}
-      <div className="space-y-2">
-        <div className="text-caption font-bold text-muted uppercase tracking-wider">Suggested Causal Queries</div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {presetQueries.map((preset, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => {
-                setQueryText(preset.query);
-                handleExecuteQuery(preset.query, preset.marker);
-              }}
-              className="text-caption px-3 py-2 rounded-xl bg-canvas-muted hover:bg-muted-subtle text-slate-700 hover:text-slate-900 border border-canvas-border hover:border-primary-border/40 font-semibold flex items-center gap-2 transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px]"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span>{preset.label}</span>
-            </button>
-          ))}
         </div>
       </div>
 
@@ -233,12 +181,12 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
             {causalResult.causalStorySentence}
           </p>
 
-          {/* Correlated Medications Callout */}
+          {/* Linked medicines */}
           {causalResult.correlatedMedications && causalResult.correlatedMedications.length > 0 && (
             <div className="bg-canvas-card border border-canvas-border rounded-xl p-2.5 flex items-center gap-2 flex-wrap shadow-sm">
               <span className="text-caption font-bold text-muted flex items-center gap-1">
                 <Pill className="w-3.5 h-3.5 text-primary shrink-0" />
-                Correlated Medications:
+                Linked medicines:
               </span>
               {causalResult.correlatedMedications.map((med: string, i: number) => (
                 <span

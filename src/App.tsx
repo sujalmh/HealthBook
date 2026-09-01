@@ -13,6 +13,7 @@ import {
   LogOut,
   Plug,
   Settings,
+  Layers,
 } from 'lucide-react';
 import { PrivacyBadge } from '@/components/common/PrivacyBadge';
 import { QuestionBank } from '@/components/common/QuestionBank';
@@ -20,9 +21,7 @@ import { WebMCPInspector } from '@/components/common/WebMCPInspector';
 import { ConnectWebMCPModal } from '@/components/common/ConnectWebMCPModal';
 import { ModalPortal } from '@/components/common/ModalPortal';
 import { ToastContainer } from '@/components/common/ToastContainer';
-import { BoundingBoxViewer } from '@/components/common/BoundingBoxViewer';
-import { DocumentDropzone } from '@/components/vault/DocumentDropzone';
-import { FactStreamView } from '@/components/vault/FactStreamView';
+import { MyRecordsView } from '@/components/vault/MyRecordsView';
 import { LabStoryView } from '@/components/labstory/LabStoryView';
 import { PillMapView } from '@/components/pillmap/PillMapView';
 import { RxBridgeView } from '@/components/rxbridge/RxBridgeView';
@@ -33,19 +32,18 @@ import { DossierView } from '@/components/dossier/DossierView';
 import { CreateAccountView } from '@/components/auth/CreateAccountView';
 import { SignInView } from '@/components/auth/SignInView';
 import { SettingsView } from '@/components/settings/SettingsView';
+import { AskWhyPanel } from '@/components/ask/AskWhyPanel';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
-// Grouped navigation: 9 items combined into 5 groups (minimal grouping, keeps UI elements)
-// Records = My Records (vault) + For My Doctor (dossier)
-// Labs     = Lab Results (labstory) + Tests to Do (homelab)
+// Merged navigation: Records+Labs → Health (4 sub-tabs), Ask (ex-Questions) centered + highlighted
+// Health   = My Records (vault) + Lab Results (labstory) + Tests to Do (homelab) + For My Doctor (dossier) — 4-in-1
+// Ask      = Doctor Questions (ex-Questions) — centered, amber highlight
 // Medicines= My Medicines (pillmap) + Medicine Review (rxbridge)
-// Help     = Get Help (safety) - single
-// Family   = Family (carecircle) - single
-// Settings stays as header gear, not in main nav, reducing clutter especially on mobile.
-export type ActiveModule = 'records' | 'labs' | 'medicines' | 'safety' | 'family' | 'settings';
-export type RecordsSub = 'vault' | 'dossier';
-export type LabsSub = 'labstory' | 'homelab';
+// Help     = Get Help (safety) | Family = Family (carecircle)
+// Settings stays header gear. 5-item bottom bar: Health | Medicines | Ask | Help | Family (Ask centered)
+export type ActiveModule = 'health' | 'medicines' | 'ask' | 'safety' | 'family' | 'settings';
+export type HealthSub = 'vault' | 'labstory' | 'homelab' | 'dossier';
 export type MedicinesSub = 'pillmap' | 'rxbridge';
 
 export interface ActiveProfile {
@@ -61,9 +59,8 @@ export interface ActiveProfile {
 }
 
 export const App: React.FC = () => {
-  const [activeModule, setActiveModule] = useState<ActiveModule>('records');
-  const [recordsSub, setRecordsSub] = useState<RecordsSub>('vault');
-  const [labsSub, setLabsSub] = useState<LabsSub>('labstory');
+  const [activeModule, setActiveModule] = useState<ActiveModule>('health');
+  const [healthSub, setHealthSub] = useState<HealthSub>('vault');
   const [medicinesSub, setMedicinesSub] = useState<MedicinesSub>('pillmap');
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isQuestionBankOpen, setIsQuestionBankOpen] = useState(false);
@@ -75,6 +72,8 @@ export const App: React.FC = () => {
   const [authMode, setAuthMode] = useState<'create' | 'signin'>('create');
   const [pendingCount, setPendingCount] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
+  const [isVaultBusy, setIsVaultBusy] = useState(false);
+  const [askWhyPrefill, setAskWhyPrefill] = useState<{ marker?: string; query?: string } | null>(null);
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -131,6 +130,22 @@ export const App: React.FC = () => {
       u5();
     };
   }, [activeProfile?.userId]);
+
+  // Navigate to Ask from Lab Results — prefill AskWhy panel
+  useEffect(() => {
+    const onNavigateAsk = (payload: any) => {
+      setAskWhyPrefill({ marker: payload?.marker, query: payload?.query });
+      setActiveModule('ask');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    const off1 = eventBus.on('navigate_ask' as any, onNavigateAsk);
+    const onWindow = (e: any) => onNavigateAsk(e.detail);
+    window.addEventListener('carecanvas_navigate_ask' as any, onWindow as any);
+    return () => {
+      off1();
+      window.removeEventListener('carecanvas_navigate_ask' as any, onWindow as any);
+    };
+  }, []);
 
   // Close MCP dropdown on outside click / ESC — grouped MCP stuff for phone top bar
   useEffect(() => {
@@ -193,20 +208,24 @@ export const App: React.FC = () => {
         return;
       }
       const baseName = activeProfile.isProxy ? activeProfile.onBehalfOf || activeProfile.name : activeProfile.name;
+      const firstLink = links[0];
+      const derivedName = firstLink?.caregiverName?.trim() || 'Family member';
+      const derivedRelationship = firstLink?.relationship || 'son';
+      const derivedPermission = (firstLink?.permissionLevel as any) || 'manage';
       const next: ActiveProfile = {
         ...activeProfile,
-        name: 'Family member',
+        name: derivedName,
         role: 'caregiver',
         isProxy: true,
-        relationship: 'son',
+        relationship: derivedRelationship,
         onBehalfOf: baseName,
-        permissionLevel: 'manage',
+        permissionLevel: derivedPermission,
       };
       setActiveProfile(next);
       eventBus.dispatchToast({
         type: 'info',
         title: 'Proxy Mode Active',
-        message: `Switched to ${next.name} (son) acting on behalf of ${baseName}.`,
+        message: `Switched to ${next.name} (${derivedRelationship}) acting on behalf of ${baseName}.`,
       });
     } else if (role === 'child') {
       const links = (() => {
@@ -220,20 +239,25 @@ export const App: React.FC = () => {
         });
         return;
       }
+      // vault-derived caregiverName — fallback to 'Family member' for legacy links
+      const childLink = links.find((l) => ['daughter', 'son', 'children', 'child'].includes((l.relationship || '').toLowerCase())) || links[0];
+      const derivedChildName = childLink?.caregiverName?.trim() || 'Family member';
+      const derivedChildRel = childLink?.relationship || 'father';
+      const derivedChildPerm = (childLink?.permissionLevel as any) || 'manage';
       const next: ActiveProfile = {
         ...activeProfile,
-        name: 'Family member',
+        name: derivedChildName,
         role: 'caregiver',
         isProxy: true,
-        relationship: 'father',
+        relationship: derivedChildRel,
         onBehalfOf: 'Child',
-        permissionLevel: 'manage',
+        permissionLevel: derivedChildPerm,
       };
       setActiveProfile(next);
       eventBus.dispatchToast({
         type: 'info',
         title: 'Proxy Mode Active',
-        message: `Switched to ${next.name} acting on behalf of ${next.onBehalfOf} (child).`,
+        message: `Switched to ${next.name} acting on behalf of ${next.onBehalfOf} (${derivedChildRel}).`,
       });
     } else {
       // Back to patient — restore from stored original
@@ -278,12 +302,11 @@ export const App: React.FC = () => {
     }
   };
 
-  // Grouped nav items — only 5 primary items + Settings as header gear.
-  // Reduces 9 buttons → 5, eliminates horizontal scroll on mobile, 44px targets, accessible.
+  // Merged nav: 5 items with Ask centered + highlighted. Health merges Records+Labs (4 sub-tabs).
   const navItems = [
-    { id: 'records' as ActiveModule, label: 'Records', shortLabel: 'Records', icon: Shield, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: 'My Records + For Doctor' },
-    { id: 'labs' as ActiveModule, label: 'Labs', shortLabel: 'Labs', icon: Activity, badge: null, desc: 'Results + Tests to Do' },
+    { id: 'health' as ActiveModule, label: 'Health', shortLabel: 'Health', icon: Layers, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: 'Records + Labs + For Doctor' },
     { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: 'Weekly Box + Review' },
+    { id: 'ask' as ActiveModule, label: 'Ask', shortLabel: 'Ask', icon: HelpCircle, badge: questionCount > 0 ? `${questionCount}` : null, desc: 'Doctor Questions — ask', highlight: true as const },
     { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: 'Urgent help + appointments' },
     { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: 'Trusted helpers' },
   ];
@@ -317,15 +340,13 @@ export const App: React.FC = () => {
     );
   }
 
-  // Derive display initials for proxy switcher (generic, no hardcode)
-  const patientInitial = activeProfile.isProxy && activeProfile.onBehalfOf
-    ? activeProfile.onBehalfOf.slice(0, 1).toUpperCase()
-    : activeProfile.name.slice(0, 1).toUpperCase();
-  const patientShort = activeProfile.isProxy && activeProfile.onBehalfOf
-    ? activeProfile.onBehalfOf.split(' ')[0].slice(0, 6) || 'Patient'
-    : activeProfile.name.split(' ')[0].slice(0, 8) || 'Patient';
+  // (proxy initials moved to Family page; kept for handleSwitchProfile logic)
 
   const handleNav = (id: ActiveModule) => {
+    if (isVaultBusy) {
+      eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'We are still reading your paper. Please wait until we finish.' });
+      return;
+    }
     setActiveModule(id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -335,9 +356,9 @@ export const App: React.FC = () => {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-xl focus:shadow-lg focus:border focus:border-canvas-border focus:outline-none focus:ring-2 focus:ring-primary">
         Skip to main content
       </a>
-      {/* Top Application Bar — glass, soft shadow, tokenized */}
-      <header className="border-b border-canvas-border bg-white/95 backdrop-blur-md sticky top-0 z-40 px-2.5 sm:px-6 py-2.5 sm:py-3 shadow-sm w-full max-w-full">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4">
+      {/* Top Application Bar — glass, soft shadow, full-width */}
+      <header className="border-b border-canvas-border bg-white/95 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 shadow-sm w-full">
+        <div className="w-full max-w-none flex items-center justify-between gap-1.5 sm:gap-4">
           {/* Logo & Subtitle — refined typography, token gradient */}
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 shrink-0 ring-1 ring-primary/10" aria-hidden="true">
@@ -359,64 +380,8 @@ export const App: React.FC = () => {
             <PrivacyBadge patientId={activeProfile.userId} />
           </div>
 
-          {/* Right Action Bar: Profile Switcher, Questions (prominent), MCP grouped, Settings, Sign Out */}
+          {/* Right Action Bar: MCP grouped, Settings, Sign Out — proxy moved to Family page, Ask centered in bottom nav */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {/* Mobile Profile Switch Button (<sm) — dedicated 44x44px target */}
-            <button
-              onClick={() => handleSwitchProfile(activeProfile.isProxy ? 'patient' : 'caregiver')}
-              className="sm:hidden flex items-center justify-center min-h-[44px] min-w-[44px] px-2 rounded-xl bg-white border border-canvas-border hover:bg-canvas-muted text-slate-700 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-primary relative"
-              aria-label={activeProfile.isProxy ? 'Switch to Patient' : 'Switch to Proxy'}
-              title={activeProfile.isProxy ? `Acting as ${activeProfile.name} (Caregiver) — tap to switch to Patient` : `Acting as ${patientShort} — tap to switch to Caregiver`}
-            >
-              <div className="flex items-center gap-1">
-                <span className="w-6 h-6 rounded-full bg-primary-light text-primary-text font-black text-xs flex items-center justify-center border border-primary-border">
-                  {activeProfile.isProxy ? activeProfile.name.slice(0, 1).toUpperCase() : patientInitial}
-                </span>
-                <Users className="w-3.5 h-3.5 text-muted" />
-              </div>
-            </button>
-
-            {/* Desktop/Tablet Segmented Switcher (>=sm) */}
-            <div className="hidden sm:flex items-center bg-white rounded-xl p-1 border border-canvas-border shadow-sm text-xs min-h-[44px]">
-              <button
-                onClick={() => handleSwitchProfile('patient')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary min-h-[36px] flex items-center justify-center ${
-                  !activeProfile.isProxy ? 'bg-primary-light text-primary-text font-bold border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
-                aria-label={`Switch to ${patientShort}`}
-              >
-                <span className="truncate max-w-[90px]">{patientShort}</span>
-              </button>
-              <button
-                onClick={() => handleSwitchProfile('caregiver')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary min-h-[36px] flex items-center justify-center ${
-                  activeProfile.isProxy ? 'bg-primary-light text-primary-text font-bold border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
-                aria-label="Switch to Proxy"
-              >
-                <span>Proxy</span>
-              </button>
-            </div>
-
-            {/* Questions — PROMINENT feature: amber solid, always visible label even on phone, larger, shadow */}
-            <button
-              onClick={() => setIsQuestionBankOpen(true)}
-              className="relative flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-black border border-amber-600 shadow-md transition-all duration-200 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
-              aria-label={`Questions${questionCount > 0 ? `, ${questionCount} active` : ''}`}
-              title="Doctor Question Bank — prominent, tap to view your doctor questions"
-            >
-              <HelpCircle className="w-5 h-5 text-white shrink-0" aria-hidden="true" />
-              <span className="inline">Questions</span>
-              {questionCount > 0 ? (
-                <span className="bg-white text-amber-700 font-black text-xs min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center shrink-0 leading-none shadow-sm border border-amber-600">
-                  {questionCount > 99 ? '99+' : questionCount}
-                </span>
-              ) : (
-                <span className="hidden sm:inline-flex bg-white/20 text-white font-bold text-[10px] px-1.5 py-0.5 rounded-full leading-none">
-                  Ask
-                </span>
-              )}
-            </button>
 
             {/* MCP GROUP — phone: single dropdown grouping Connect + Activity; desktop: keep separate for space */}
             {/* Mobile MCP dropdown trigger */}
@@ -538,30 +503,34 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Primary Navigation — grouped 5 items (desktop: top pill bar, mobile: bottom fixed 5-column grid, no scroll) */}
-      {/* Desktop Top Nav — 5 grouped items + Settings handled in header */}
-      <nav className="hidden md:block bg-white border-b border-canvas-border px-3 sm:px-6 shadow-sm" aria-label="Primary">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-1.5 py-2.5">
+      {/* Primary Navigation — full-width, 5 items, Ask highlighted centered */}
+      <nav className="hidden md:block bg-white border-b border-canvas-border px-3 sm:px-6 lg:px-8 shadow-sm" aria-label="Primary">
+        <div className="w-full max-w-none flex items-center justify-center gap-1.5 py-2.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeModule === item.id;
+            const isAsk = (item as any).highlight;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNav(item.id as ActiveModule)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none  ${
-                  isActive
-                    ? `${pastelActive}`
-                    : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 min-h-[44px] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
+                  isAsk
+                    ? isActive
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500 ring-offset-1 focus-visible:ring-amber-500'
+                      : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 shadow-sm focus-visible:ring-amber-500'
+                    : isActive
+                      ? `${pastelActive} focus-visible:ring-primary`
+                      : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent focus-visible:ring-primary'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={`${item.label}${item.badge ? `, ${item.badge} pending` : ''}`}
                 title={item.desc}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? pastelIconActive : pastelIconIdle}`} aria-hidden="true" />
+                <Icon className={`w-4 h-4 shrink-0 ${isAsk ? (isActive ? 'text-white' : 'text-amber-600') : isActive ? pastelIconActive : pastelIconIdle}`} aria-hidden="true" />
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="bg-amber-500 text-white text-[11px] min-w-[20px] h-5 px-1.5 rounded-full font-bold shrink-0 flex items-center justify-center leading-none">
+                  <span className={`text-[11px] min-w-[20px] h-5 px-1.5 rounded-full font-bold shrink-0 flex items-center justify-center leading-none border ${isAsk ? (isActive ? 'bg-white text-amber-700 border-amber-600' : 'bg-amber-500 text-white border-amber-600') : 'bg-amber-500 text-white border-transparent'}`}>
                     {Number(item.badge) > 99 ? '99+' : item.badge}
                   </span>
                 )}
@@ -571,104 +540,84 @@ export const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Main Content Area — grouped pages with sub-navigation for combined items */}
-      <main id="main-content" tabIndex={-1} className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6 pb-24 md:pb-6 overflow-x-hidden outline-none">
-        {/* GROUP: Records = My Records (vault) + For My Doctor (dossier) */}
-        <div className={activeModule === 'records' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'records'}>
-          {/* Sub-navigation — accessible tablist, 44px targets */}
-          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Records sections">
-            <div className="flex gap-1.5">
+      {/* Main Content Area — full-width desktop, stacked */}
+      <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-none px-3 sm:px-6 lg:px-8 py-3 sm:py-6 space-y-6 pb-24 md:pb-6 overflow-x-hidden outline-none">
+        {/* GROUP: Health = Records + Labs merged (4-in-1) — My Records + Lab Results + Tests to Do + For Doctor */}
+        <div className={activeModule === 'health' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'health'}>
+          {/* Sub-navigation — 4 tabs, responsive grid, 44px targets, accessible */}
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Health sections">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               <button
                 role="tab"
-                aria-selected={recordsSub === 'vault'}
-                aria-controls="records-vault-panel"
-                id="records-vault-tab"
-                onClick={() => { setRecordsSub('vault'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  recordsSub === 'vault' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                aria-selected={healthSub === 'vault'}
+                aria-controls="health-vault-panel"
+                id="health-vault-tab"
+                onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('vault'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  healthSub === 'vault' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >
-                <Shield className={`w-4 h-4 ${recordsSub === 'vault' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
-                <span>My Records</span>
-                {pendingCount > 0 && recordsSub !== 'vault' && (
-                  <span className="bg-amber-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full font-bold flex items-center justify-center">{pendingCount > 99 ? '99+' : pendingCount}</span>
+                <Shield className={`w-4 h-4 ${healthSub === 'vault' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span className="truncate">My Records</span>
+                {pendingCount > 0 && healthSub !== 'vault' && (
+                  <span className="bg-amber-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full font-bold flex items-center justify-center shrink-0">{pendingCount > 99 ? '99+' : pendingCount}</span>
                 )}
               </button>
               <button
                 role="tab"
-                aria-selected={recordsSub === 'dossier'}
-                aria-controls="records-dossier-panel"
-                id="records-dossier-tab"
-                onClick={() => { setRecordsSub('dossier'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  recordsSub === 'dossier' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                aria-selected={healthSub === 'labstory'}
+                aria-controls="health-labstory-panel"
+                id="health-labstory-tab"
+                onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('labstory'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  healthSub === 'labstory' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >
-                <FolderLock className={`w-4 h-4 ${recordsSub === 'dossier' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
-                <span>For My Doctor</span>
-              </button>
-            </div>
-            <p className="px-2 pt-1.5 text-caption text-muted hidden sm:block">Your documents and a compiled summary to share — all in one place.</p>
-          </div>
-
-          <div id="records-vault-panel" role="tabpanel" aria-labelledby="records-vault-tab" className={recordsSub === 'vault' ? 'block space-y-6' : 'hidden'}>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-7 space-y-6">
-                <DocumentDropzone patientId={activeProfile.userId} />
-                <FactStreamView patientId={activeProfile.userId} />
-              </div>
-              <div className="lg:col-span-5">
-                <div className="sticky top-24">
-                  <BoundingBoxViewer documentId={undefined} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="records-dossier-panel" role="tabpanel" aria-labelledby="records-dossier-tab" className={recordsSub === 'dossier' ? 'block' : 'hidden'}>
-            <DossierView patientId={activeProfile.userId} activeProfile={activeProfile} />
-          </div>
-        </div>
-
-        {/* GROUP: Labs = Lab Results (labstory) + Tests to Do (homelab) */}
-        <div className={activeModule === 'labs' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'labs'}>
-          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Labs sections">
-            <div className="flex gap-1.5">
-              <button
-                role="tab"
-                aria-selected={labsSub === 'labstory'}
-                aria-controls="labs-labstory-panel"
-                id="labs-labstory-tab"
-                onClick={() => { setLabsSub('labstory'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  labsSub === 'labstory' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
-              >
-                <Activity className={`w-4 h-4 ${labsSub === 'labstory' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
-                <span>Lab Results</span>
+                <Activity className={`w-4 h-4 ${healthSub === 'labstory' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span className="truncate">Lab Results</span>
               </button>
               <button
                 role="tab"
-                aria-selected={labsSub === 'homelab'}
-                aria-controls="labs-homelab-panel"
-                id="labs-homelab-tab"
-                onClick={() => { setLabsSub('homelab'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  labsSub === 'homelab' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                aria-selected={healthSub === 'homelab'}
+                aria-controls="health-homelab-panel"
+                id="health-homelab-tab"
+                onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('homelab'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  healthSub === 'homelab' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >
-                <HeartPulse className={`w-4 h-4 ${labsSub === 'homelab' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
-                <span>Tests to Do</span>
+                <HeartPulse className={`w-4 h-4 ${healthSub === 'homelab' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span className="truncate">Tests to Do</span>
+              </button>
+              <button
+                role="tab"
+                aria-selected={healthSub === 'dossier'}
+                aria-controls="health-dossier-panel"
+                id="health-dossier-tab"
+                onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('dossier'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                  healthSub === 'dossier' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                }`}
+              >
+                <FolderLock className={`w-4 h-4 ${healthSub === 'dossier' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span className="truncate">For Doctor</span>
               </button>
             </div>
-            <p className="px-2 pt-1.5 text-caption text-muted hidden sm:block">Results over time and the tests your doctor asked you to do — together.</p>
+            <p className="px-2 pt-1.5 text-caption text-muted hidden sm:block">Records, lab trends, tests to do, and shareable summary — one health hub.</p>
           </div>
 
-          <div id="labs-labstory-panel" role="tabpanel" aria-labelledby="labs-labstory-tab" className={labsSub === 'labstory' ? 'block' : 'hidden'}>
-            <LabStoryView patientId={activeProfile.userId} activeProfile={activeProfile} />
+          <div id="health-vault-panel" role="tabpanel" aria-labelledby="health-vault-tab" className={healthSub === 'vault' ? 'block space-y-6' : 'hidden'}>
+            <MyRecordsView patientId={activeProfile.userId} activeProfile={activeProfile} onBusyChange={setIsVaultBusy} />
           </div>
-          <div id="labs-homelab-panel" role="tabpanel" aria-labelledby="labs-homelab-tab" className={labsSub === 'homelab' ? 'block' : 'hidden'}>
+
+          <div id="health-labstory-panel" role="tabpanel" aria-labelledby="health-labstory-tab" className={healthSub === 'labstory' ? 'block' : 'hidden'}>
+            <LabStoryView patientId={activeProfile.userId} activeProfile={activeProfile} onBusyChange={setIsVaultBusy} />
+          </div>
+          <div id="health-homelab-panel" role="tabpanel" aria-labelledby="health-homelab-tab" className={healthSub === 'homelab' ? 'block' : 'hidden'}>
             <HomeLabView patientId={activeProfile.userId} activeProfile={activeProfile} />
+          </div>
+          <div id="health-dossier-panel" role="tabpanel" aria-labelledby="health-dossier-tab" className={healthSub === 'dossier' ? 'block' : 'hidden'}>
+            <DossierView patientId={activeProfile.userId} activeProfile={activeProfile} />
           </div>
         </div>
 
@@ -681,7 +630,7 @@ export const App: React.FC = () => {
                 aria-selected={medicinesSub === 'pillmap'}
                 aria-controls="meds-pillmap-panel"
                 id="meds-pillmap-tab"
-                onClick={() => { setMedicinesSub('pillmap'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setMedicinesSub('pillmap'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                   medicinesSub === 'pillmap' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
@@ -694,7 +643,7 @@ export const App: React.FC = () => {
                 aria-selected={medicinesSub === 'rxbridge'}
                 aria-controls="meds-rxbridge-panel"
                 id="meds-rxbridge-tab"
-                onClick={() => { setMedicinesSub('rxbridge'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setMedicinesSub('rxbridge'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                   medicinesSub === 'rxbridge' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
@@ -728,6 +677,26 @@ export const App: React.FC = () => {
           />
         </div>
 
+        {/* ASK — separate page (ex-Questions), renamed, centered in menu, highlighted */}
+        <div className={activeModule === 'ask' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'ask'}>
+          <div className="bg-gradient-to-br from-amber-500 to-orange-500 border border-amber-600 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-xl bg-white text-amber-600 border border-amber-600 flex items-center justify-center shadow-sm shrink-0" aria-hidden="true">
+                <HelpCircle className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold tracking-tight text-white">Ask</h2>
+                <p className="text-sm text-white/90 leading-snug">Your doctor visit agenda — tap Ask, review, print.</p>
+              </div>
+            </div>
+            <span className="inline-flex self-start sm:self-auto text-caption px-3 py-1.5 rounded-full bg-white text-amber-700 font-black border border-amber-600 shadow-sm shrink-0">
+              {questionCount} {questionCount === 1 ? 'question' : 'questions'} • highlighted
+            </span>
+          </div>
+          <AskWhyPanel patientId={activeProfile.userId} initialMarker={askWhyPrefill?.marker} initialQuery={askWhyPrefill?.query} />
+          <QuestionBank patientId={activeProfile.userId} asPage />
+        </div>
+
         {/* SETTINGS — accessed via header gear */}
         <div className={activeModule === 'settings' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'settings'}>
           <SettingsView />
@@ -740,32 +709,37 @@ export const App: React.FC = () => {
         style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom, 0px))' }}
         aria-label="Primary mobile"
       >
-        <div className="grid grid-cols-5 gap-0 px-1 py-1.5 max-w-md mx-auto">
+        <div className="grid grid-cols-5 gap-1 px-1 py-1.5 max-w-md mx-auto items-end">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeModule === item.id;
+            const isAsk = (item as any).highlight;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNav(item.id as ActiveModule)}
-                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold leading-none transition-all duration-200 min-h-[56px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none relative ${
-                  isActive
-                    ? 'bg-primary-light text-primary-text border border-primary-border shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold leading-none transition-all duration-200 focus-visible:ring-2 focus-visible:outline-none relative ${
+                  isAsk
+                    ? isActive
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-lg min-h-[62px] -mt-1 scale-[1.03] ring-2 ring-amber-500 ring-offset-1 focus-visible:ring-amber-500'
+                      : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 shadow-sm min-h-[58px] -mt-0.5 focus-visible:ring-amber-500'
+                    : isActive
+                      ? 'bg-primary-light text-primary-text border border-primary-border shadow-xs min-h-[56px] focus-visible:ring-primary'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-canvas-muted border border-transparent min-h-[56px] focus-visible:ring-primary'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={`${item.label}${item.badge ? `, ${item.badge} pending` : ''}`}
                 title={item.desc}
               >
                 <span className="relative">
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-primary-text' : 'text-slate-500'}`} aria-hidden="true" />
+                  <Icon className={`w-5 h-5 ${isAsk ? (isActive ? 'text-white' : 'text-amber-600') : isActive ? 'text-primary-text' : 'text-slate-500'}`} aria-hidden="true" />
                   {item.badge && (
-                    <span className="absolute -top-1.5 -right-2 bg-amber-500 text-white text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-black border-2 border-white leading-none">
+                    <span className={`absolute -top-1.5 -right-2 text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-black border-2 border-white leading-none ${isAsk ? 'bg-white text-amber-700 border-amber-600' : 'bg-amber-500 text-white'}`}>
                       {Number(item.badge) > 99 ? '99+' : item.badge}
                     </span>
                   )}
                 </span>
-                <span className="text-[10px] tracking-tight text-center leading-tight truncate w-full px-0.5">{item.shortLabel}</span>
+                <span className={`text-[10px] tracking-tight text-center leading-tight truncate w-full px-0.5 ${isAsk ? 'font-black' : ''}`}>{item.shortLabel}</span>
               </button>
             );
           })}

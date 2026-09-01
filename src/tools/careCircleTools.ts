@@ -21,8 +21,9 @@ export const linkPatientTool: WebMCPToolDefinition = {
     type: 'object',
     properties: {
       patientId: { type: 'string', description: 'Target patient ID' },
-      relationship: { type: 'string', enum: ['parent', 'child', 'spouse', 'guardian', 'advocate'], description: 'Relationship' },
-      authToken: { type: 'string', description: 'Patient-generated authorization consent token' }
+      relationship: { type: 'string', enum: ['mother', 'father', 'son', 'daughter', 'children', 'husband', 'wife', 'partner', 'brother', 'sister', 'guardian', 'advocate', 'friend', 'other', 'parent', 'child', 'spouse', 'sibling'], description: 'Relationship' },
+      authToken: { type: 'string', description: 'Patient-generated authorization consent token' },
+      caregiverName: { type: 'string', description: 'Caregiver display name e.g. Raj (son)' }
     },
     required: ['patientId', 'relationship']
   },
@@ -30,7 +31,7 @@ export const linkPatientTool: WebMCPToolDefinition = {
   uiSideEffects: {
     canvasRerenders: ['dossier']
   },
-  execute: async (params: { patientId: string; relationship: 'parent' | 'child' | 'spouse' | 'guardian' | 'advocate'; authToken?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
+  execute: async (params: { patientId: string; relationship: string; authToken?: string; caregiverName?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     if (params.authToken && params.authToken === 'invalid_token') {
       return {
         success: false,
@@ -75,13 +76,16 @@ export const linkPatientTool: WebMCPToolDefinition = {
       }
     }
 
+    const derivedCaregiverName = params.caregiverName?.trim() && params.caregiverName.trim().length >= 2
+      ? params.caregiverName.trim()
+      : (context.activeProfile.name && context.activeProfile.name !== 'Family member' ? context.activeProfile.name : (params.relationship || 'Family member'));
     const link: LinkedCareProfile = {
       linkId: `link_${Date.now()}`,
       patientId: params.patientId,
       patientName: resolvedPatientName,
       relationship: params.relationship,
       caregiverId: context.activeProfile.userId,
-      caregiverName: context.activeProfile.name,
+      caregiverName: derivedCaregiverName,
       permissionLevel: 'manage',
       linkedDate: new Date().toISOString(),
       status: 'active'

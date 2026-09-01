@@ -250,8 +250,8 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                         <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                         <span>
                           {stage === 'ocr'
-                            ? 'Step 1/2: High-Precision OCR Processing (Mistral OCR)...'
-                            : 'Step 2/2: Biomarker Fact Extraction & Validation...'}
+                            ? 'Step 1 of 2: Reading your paper...'
+                            : 'Step 2 of 2: Finding your test results...'}
                         </span>
                       </div>
                       <span className="text-caption font-semibold px-2 py-0.5 bg-white border border-canvas-border rounded-md text-primary">

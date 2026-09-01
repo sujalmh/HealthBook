@@ -1,51 +1,61 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileText, ArrowRight, Zap, Eye, Sparkles, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { UploadCloud, FileText, ArrowRight, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { runDocumentOCR, type OCRResult } from '@/core/ai/ocr';
 
-export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () => void }> = ({
-  patientId,
-  onExtracted,
-}) => {
+export const DocumentDropzone: React.FC<{
+  patientId?: string;
+  onExtracted?: () => void;
+  onDocumentAdded?: (docId: string) => void;
+  onBusyChange?: (busy: boolean) => void;
+}> = ({ patientId, onExtracted, onDocumentAdded, onBusyChange }) => {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [extractionPath, setExtractionPath] = useState<'ocr_then_ai' | 'direct_vision'>('ocr_then_ai');
   const [currentStage, setCurrentStage] = useState<'ocr' | 'ai' | 'idle'>('idle');
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
-  const [isOcrExpanded, setIsOcrExpanded] = useState(true);
+  const [isOcrExpanded, setIsOcrExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const effectivePatientId = patientId || (() => {
-    try {
-      const raw = localStorage.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return parsed?.userId || parsed?.id || '';
-      }
-    } catch {}
-    return '';
-  })() || 'patient-unknown';
+  const extractionPath = 'ocr_then_ai' as const;
+
+  const effectivePatientId =
+    patientId ||
+    (() => {
+      try {
+        const raw = localStorage.getItem('carecanvas_active_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return parsed?.userId || parsed?.id || '';
+        }
+      } catch {}
+      return '';
+    })() ||
+    'patient-unknown';
 
   const handleRealExtract = async (file: File, fileDataUrl: string, rawText?: string) => {
     setIsExtracting(true);
-    setCurrentStage(extractionPath === 'ocr_then_ai' ? 'ocr' : 'ai');
+    setCurrentStage('ocr');
     setOcrResult(null);
+    onBusyChange?.(true);
     try {
       const documentId = `doc_${Date.now()}_${file.name.replace(/[^a-z0-9.-]/gi, '_')}`;
       const docType = file.type.includes('pdf') ? 'general_pdf' : file.type.includes('image') ? 'lab_slip_photo' : 'general_pdf';
 
       let ocrOutputText = rawText || '';
+      let ocrMeta: OCRResult | null = null;
 
-      // Step 1: Pre-process with OCR if on Path A
-      if (extractionPath === 'ocr_then_ai') {
+      try {
         const ocr = await runDocumentOCR(fileDataUrl);
         if (ocr.markdown) {
+          ocrMeta = ocr;
           setOcrResult(ocr);
           ocrOutputText = ocr.markdown;
         }
+      } catch {
+        // fallback to rawText
       }
 
       await localVault.addDocument({
@@ -54,16 +64,16 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
         fileName: file.name,
         name: file.name,
         docType: docType as any,
-        pageCount: ocrResult?.pageCount || 1,
+        pageCount: ocrMeta?.pageCount ?? 1,
         uploadTimestamp: new Date().toISOString(),
         extractedText: ocrOutputText,
         extractedFactIds: [],
       });
 
-      // Switch stage to AI
+      onDocumentAdded?.(documentId);
+
       setCurrentStage('ai');
 
-      // Send to AI fact extraction
       const execParams: any = {
         documentId,
         rawText: ocrOutputText || file.name,
@@ -78,20 +88,21 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
 
       eventBus.dispatchToast({
         type: 'success',
-        title: 'Extraction Complete',
-        message: (result as any).plainLanguageSummary || (result as any).plainLanguageExplanation || 'Facts extracted successfully by AI',
+        title: 'Done',
+        message: (result as any).plainLanguageSummary || 'We found details from your paper. Please review below.',
       });
 
       if (onExtracted) onExtracted();
     } catch (err: any) {
       eventBus.dispatchToast({
         type: 'error',
-        title: 'Extraction Error',
-        message: err?.message || 'Failed to extract facts via AI',
+        title: 'Could not read paper',
+        message: err?.message || 'Please try again with a clear PDF or photo.',
       });
     } finally {
       setIsExtracting(false);
       setCurrentStage('idle');
+      onBusyChange?.(false);
     }
   };
 
@@ -105,24 +116,21 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
-
-    // Validate type
     const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     const isAllowed = allowed.some((t) => file.type.includes(t.split('/')[1]) || file.name.match(/\.(pdf|jpe?g|png)$/i));
     if (!isAllowed && file.type) {
       eventBus.dispatchToast({
         type: 'error',
         title: 'Unsupported file',
-        message: 'Please upload a PDF, JPG, or PNG file.',
+        message: 'Please use a PDF, JPG or PNG.',
       });
       return;
     }
-
     const reader = new FileReader();
     reader.onerror = () => {
       eventBus.dispatchToast({
         type: 'error',
-        title: 'Read Error',
+        title: 'Read error',
         message: 'Could not read file.',
       });
     };
@@ -153,49 +161,17 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
   };
 
   return (
-    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 shadow-sm space-y-5 text-slate-900">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-canvas-border pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-primary-light border border-primary-border rounded-xl text-primary shrink-0">
-            <UploadCloud className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="text-heading-md font-bold text-slate-900 tracking-tight">Add Your Health Papers</h3>
-            <p className="text-body-sm text-muted leading-relaxed">Drop a PDF or photo to extract details</p>
-          </div>
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 text-slate-900">
+      <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+        <div className="p-2.5 bg-slate-900 text-white rounded-xl shrink-0 shadow-sm">
+          <UploadCloud className="w-5 h-5" />
         </div>
-
-        {/* Extraction Path Switcher */}
-        <div className="flex items-center gap-1.5 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-caption shrink-0">
-          <button
-            type="button"
-            onClick={() => setExtractionPath('ocr_then_ai')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
-              extractionPath === 'ocr_then_ai'
-                ? 'bg-white text-emerald-800 border border-emerald-300 shadow-xs font-bold'
-                : 'text-muted hover:text-slate-900'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 text-emerald-600" />
-            <span>OCR + AI (Fast & Precise)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setExtractionPath('direct_vision')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all ${
-              extractionPath === 'direct_vision'
-                ? 'bg-white text-primary border border-primary-border shadow-xs font-bold'
-                : 'text-muted hover:text-slate-900'
-            }`}
-          >
-            <Eye className="w-3.5 h-3.5 text-primary" />
-            <span>Direct Vision</span>
-          </button>
+        <div className="space-y-0.5 min-w-0">
+          <h3 className="text-[15px] font-bold text-slate-900 tracking-tight">Add your papers</h3>
+          <p className="text-xs text-slate-500 leading-relaxed">Drop a PDF or photo — we'll read it for you</p>
         </div>
       </div>
 
-      {/* Real File Drop Zone */}
       <div
         onDrop={onDrop}
         onDragOver={onDragOver}
@@ -204,10 +180,8 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-          isDragging
-            ? 'border-primary bg-primary-light/50 shadow-inner'
-            : 'border-canvas-border hover:border-primary/50 hover:bg-slate-50/50'
+        className={`border-2 border-dashed rounded-2xl p-6 sm:p-7 text-center cursor-pointer transition-all ${
+          isDragging ? 'border-slate-900 bg-slate-50 shadow-inner' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/70'
         } ${isExtracting ? 'opacity-60 pointer-events-none' : ''}`}
       >
         <input
@@ -218,104 +192,76 @@ export const DocumentDropzone: React.FC<{ patientId?: string; onExtracted?: () =
           onChange={(e) => handleFiles(e.target.files)}
         />
         <div className="flex flex-col items-center justify-center space-y-3">
-          <div className="p-3 bg-canvas-surface rounded-full text-primary border border-canvas-border shadow-xs">
+          <div className="p-3 bg-white rounded-xl text-slate-700 border border-slate-200 shadow-sm">
             <FileText className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <p className="text-body-sm font-semibold text-slate-900">Drop a PDF or photo here, or click to browse</p>
-            <p className="text-caption text-muted">
-              {extractionPath === 'ocr_then_ai'
-                ? '⚡ 2-Stage Pipeline: Mistral Document OCR pre-processing + Structured Clinical AI Synthesis'
-                : '👁️ End-to-end multimodal direct vision model'}
-            </p>
+            <p className="text-sm font-semibold text-slate-900">Drop a PDF or photo here, or tap to choose</p>
+            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">We read your file and find medicines, tests and notes for you to review</p>
           </div>
-          <div className="inline-flex items-center gap-1.5 text-caption font-semibold text-primary">
-            <span>Select file</span>
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-black px-4 py-2 rounded-full shadow-sm">
+            <span>Choose file</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </div>
       </div>
 
-      {/* Multi-Stage Extraction Progress */}
       {isExtracting && (
-        <div className="p-4 bg-gradient-to-r from-primary-light/60 via-amber-50 to-emerald-50 border border-primary-border rounded-xl space-y-2.5 animate-fade-in shadow-xs">
-          <div className="flex items-center justify-between text-body-sm font-bold text-slate-800">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              <span>
-                {currentStage === 'ocr'
-                  ? 'Step 1/2: High-Precision OCR Processing (Mistral OCR)...'
-                  : 'Step 2/2: Categorical Clinical Fact Extraction (OpenCode AI)...'}
-              </span>
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 animate-fade-in">
+          <div className="flex items-center justify-between text-sm font-bold text-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-4 h-4 rounded-full border-2 border-slate-900 border-t-transparent animate-spin" />
+              <span>{currentStage === 'ocr' ? 'Reading your paper...' : 'Finding health details...'}</span>
             </div>
-            <span className="text-caption font-semibold px-2 py-0.5 bg-white border border-canvas-border rounded-md text-primary">
-              {currentStage === 'ocr' ? '50%' : '85%'}
+            <span className="text-xs font-semibold px-2.5 py-1 bg-white border border-slate-200 rounded-full text-slate-700">
+              {currentStage === 'ocr' ? 'Step 1 of 2' : 'Step 2 of 2'}
             </span>
           </div>
-
-          <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-            <div
-              className={`h-full transition-all duration-700 ${
-                currentStage === 'ocr' ? 'w-1/2 bg-amber-500' : 'w-5/6 bg-emerald-500'
-              }`}
-            />
+          <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+            <div className={`h-full transition-all duration-700 ${currentStage === 'ocr' ? 'w-1/2 bg-amber-500' : 'w-5/6 bg-emerald-500'}`} />
           </div>
-
-          <p className="text-caption text-muted">
+          <p className="text-xs text-slate-500">
             {currentStage === 'ocr'
-              ? 'Converting document text and tables into structured Markdown...'
-              : 'Extracting medications, labs, conditions, allergies, and daily schedule...'}
+              ? 'We are reading text and tables from your paper.'
+              : 'We are finding medicines, lab results and other notes. Please wait — do not close this page.'}
           </p>
         </div>
       )}
 
-      {/* OCR Results Display (Markdown Output Preview) */}
       {ocrResult && (
-        <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm space-y-3 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
-                <FileText className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-body-sm font-bold text-slate-900 flex items-center gap-2">
-                  <span>Document OCR Text (Markdown)</span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 bg-emerald-100/80 text-emerald-800 rounded-full border border-emerald-200">
-                    {ocrResult.pageCount} {ocrResult.pageCount === 1 ? 'Page' : 'Pages'} • {ocrResult.durationMs}ms
-                  </span>
-                </h4>
-                <p className="text-caption text-muted">
-                  High-fidelity Markdown extracted via Mistral OCR with tables and clinical sections preserved.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={copyOcrToClipboard}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors border border-slate-200"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied' : 'Copy Text'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsOcrExpanded(!isOcrExpanded)}
-                className="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors"
-                title={isOcrExpanded ? 'Collapse OCR Preview' : 'Expand OCR Preview'}
-              >
-                {isOcrExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
+        <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setIsOcrExpanded(!isOcrExpanded)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-left transition-colors"
+          >
+            <span className="text-xs font-semibold text-slate-700">
+              Show reading details {ocrResult.pageCount ? `(${ocrResult.pageCount} ${ocrResult.pageCount === 1 ? 'page' : 'pages'})` : ''}
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-500 hidden sm:inline">{ocrResult.markdown.length} characters</span>
+              {isOcrExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+            </span>
+          </button>
           {isOcrExpanded && (
-            <div className="relative mt-2">
-              <div className="bg-slate-950 text-slate-100 font-mono text-xs p-4 rounded-xl max-h-72 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-slate-800 selection:bg-emerald-500 selection:text-white">
-                {ocrResult.markdown}
+            <div className="p-4 space-y-3 bg-white">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">What we read</span>
+                <button
+                  type="button"
+                  onClick={copyOcrToClipboard}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-900 hover:bg-black text-white rounded-lg"
+                >
+                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
+                </button>
               </div>
+              <pre className="text-slate-800 font-mono text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl max-h-72 overflow-auto whitespace-pre-wrap leading-relaxed">
+                {ocrResult.markdown}
+              </pre>
+              {ocrResult.tables && ocrResult.tables.length > 0 && (
+                <p className="text-[11px] text-slate-500">{ocrResult.tables.length} tables found — included above.</p>
+              )}
             </div>
           )}
         </div>

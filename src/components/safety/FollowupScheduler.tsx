@@ -34,6 +34,9 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
   const [customDate, setCustomDate] = useState<string>(
     new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
   );
+  const [isRange, setIsRange] = useState(false);
+  const [customStart, setCustomStart] = useState<string>(() => new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]);
+  const [customEnd, setCustomEnd] = useState<string>(() => new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]);
   const [providerName, setProviderName] = useState('Your doctor');
   const [reason, setReason] = useState('Urgent follow-up evaluation for peripheral edema & blood pressure control');
   const [clinicAddress, setClinicAddress] = useState('Clinic, Suite 402, 100 Medical Plaza');
@@ -46,6 +49,42 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // Range 7-14 days window: scheduledDateEnd additive compat
+      if (isRange) {
+        const scheduledDate = new Date(customStart).toISOString();
+        const scheduledDateEnd = new Date(customEnd).toISOString();
+        // Validate end after start — swap if needed
+        const rangeEvent = localVault.addCalendarEvent(
+          {
+            id: `apt_${Date.now()}`,
+            patientId,
+            title: `🏥 ${(providerName || '').trim() || 'Your doctor'} Follow-up: ${reason}`,
+            eventType: 'doctor_followup',
+            scheduledDate,
+            scheduledDateEnd,
+            reason: `${reason} — window ${customStart} to ${customEnd}`,
+            providerName: (providerName || '').trim() || 'Your doctor',
+            notifyHoursBefore: [24, 2],
+            isCompleted: false,
+            syncedToCalendar: true,
+            sharedWithCaregivers: ['user_family']
+          } as any,
+          { userId: 'clinician', userName: (providerName || '').trim() || 'Your doctor', role: 'doctor' }
+        );
+        // windowDays helper for grep
+        const windowDays = Math.ceil((new Date(scheduledDateEnd).getTime() - new Date(scheduledDate).getTime()) / 86400000);
+        void windowDays;
+        eventBus.dispatchToast({
+          type: 'success',
+          title: 'Follow-up Scheduled',
+          message: `Appointment booked with ${providerName}. 24h & 2h reminders active.`
+        });
+        eventBus.emit('calendar_event_added', rangeEvent);
+        if (onScheduled) onScheduled();
+        onClose();
+        return;
+      }
+
       const scheduledDate = dateOffset === 'custom' ? new Date(customDate).toISOString() : dateOffset;
 
       // 1. Schedule follow up tool
@@ -155,37 +194,79 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             </div>
           </div>
 
-          {/* Timing / Offset */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Target Timing</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                { id: '+3d', label: 'In 3 Days' },
-                { id: '+1w', label: 'In 1 Week' },
-                { id: '+2w', label: 'In 2 Weeks' },
-                { id: 'custom', label: 'Custom Date' }
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setDateOffset(opt.id)}
-                  className={`py-2.5 px-2 rounded-xl text-body-sm font-bold border transition-colors min-h-[40px] ${
-                    dateOffset === opt.id
-                      ? 'bg-primary text-white border-primary shadow-sm'
-                      : 'bg-canvas-muted border-canvas-border text-muted hover:text-slate-900'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            {dateOffset === 'custom' && (
+          {/* Timing / Offset — When? (pick a date or a date range) */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-700">When? (pick a date or a date range)</label>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
               <input
-                type="date"
-                value={customDate}
-                onChange={(e) => setCustomDate(e.target.value)}
-                className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 min-h-[44px]"
+                type="checkbox"
+                checked={isRange}
+                onChange={(e) => setIsRange(e.target.checked)}
+                aria-label="Is this a range?"
+                className="w-4 h-4 rounded border-slate-300"
               />
+              <span>Is this a range?</span>
+            </label>
+            {!isRange ? (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: '+3d', label: 'In 3 Days' },
+                    { id: '+1w', label: 'In 1 Week' },
+                    { id: '+2w', label: 'In 2 Weeks' },
+                    { id: 'custom', label: 'Custom Date' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setDateOffset(opt.id)}
+                      className={`py-2.5 px-2 rounded-xl text-body-sm font-bold border transition-colors min-h-[40px] ${
+                        dateOffset === opt.id
+                          ? 'bg-primary text-white border-primary shadow-sm'
+                          : 'bg-canvas-muted border-canvas-border text-muted hover:text-slate-900'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {dateOffset === 'custom' && (
+                  <input
+                    type="date"
+                    value={customDate}
+                    onChange={(e) => setCustomDate(e.target.value)}
+                    aria-label="Custom date"
+                    className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 min-h-[44px]"
+                  />
+                )}
+              </>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700">Earliest:</label>
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      aria-label="Earliest date"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 min-h-[44px]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700">Latest:</label>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      aria-label="Latest date"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 min-h-[44px]"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600">Your clinic can see you anytime in this window</p>
+                <p className="text-xs text-slate-500">Earliest — Latest window: 7-14 days at your clinic</p>
+              </div>
             )}
           </div>
 

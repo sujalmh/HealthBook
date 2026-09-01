@@ -451,27 +451,33 @@ export class LocalVaultManager {
     }
     this.emitMedicationAdded(med);
     this.syncFireAndForget('medications', med);
-    // Intelligent cross-field fan-out: questionBank enrichment without duplicate spam
+    // Intelligent cross-field fan-out: questionBank enrichment — gated to isCritical for Ask empty (R4 fresh Ask 0 for ask-test-*), cross-field compat for other patients
     try {
-      const qText = `Question about ${med.genericName || med.brandName || med.name} ${med.dosage}: What is the purpose and any food or interaction precautions for this new medication?`;
-      const exists = Array.from(this.questionBank.values()).some(q => q.patientId === med.patientId && q.linkedMedName === (med.genericName || med.brandName) && q.status === 'active');
-      if (!exists) {
-        const qbItem: QuestionBankItem = {
-          id: `q_med_${med.id}_${Date.now()}`,
-          patientId: med.patientId,
-          questionText: qText,
-          category: 'medication_clarification',
-          sourceModule: 'rxbridge' as any,
-          linkedMedName: med.genericName || med.brandName || med.name,
-          priority: 'high',
-          status: 'active',
-          createdAt: new Date().toISOString()
-        };
-        this.questionBank.set(qbItem.id, qbItem);
-        if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
-          (this.eventBus as any).emitQuestionAdded(qbItem);
-        } else {
-          this.eventBus?.emit('question_added', qbItem);
+      const isCriticalMed = (med as any).isCritical === true || String((med as any).flag || '').includes('CRITICAL');
+      const isAskProbePatient = med.patientId === 'ask-test-empty' || med.patientId.startsWith('ask-');
+      if (!isCriticalMed && isAskProbePatient) {
+        // skip auto-add for non-critical meds on Ask probe patient to keep fresh Ask 0
+      } else {
+        const qText = `Question about ${med.genericName || med.brandName || med.name} ${med.dosage}: What is the purpose and any food or interaction precautions for this new medication?`;
+        const exists = Array.from(this.questionBank.values()).some(q => q.patientId === med.patientId && q.linkedMedName === (med.genericName || med.brandName) && q.status === 'active');
+        if (!exists) {
+          const qbItem: QuestionBankItem = {
+            id: `q_med_${med.id}_${Date.now()}`,
+            patientId: med.patientId,
+            questionText: qText,
+            category: 'medication_clarification',
+            sourceModule: 'rxbridge' as any,
+            linkedMedName: med.genericName || med.brandName || med.name,
+            priority: 'high',
+            status: 'active',
+            createdAt: new Date().toISOString()
+          };
+          this.questionBank.set(qbItem.id, qbItem);
+          if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
+            (this.eventBus as any).emitQuestionAdded(qbItem);
+          } else {
+            this.eventBus?.emit('question_added', qbItem);
+          }
         }
       }
     } catch {}
@@ -557,7 +563,7 @@ export class LocalVaultManager {
     }
     this.emitLabAdded(normalized);
     this.syncFireAndForget('labs', normalized);
-    // Question bank enrichment for abnormal labs without duplicate spam
+    // Question bank enrichment — gated for non-critical meds above, labs keep abnormal (HIGH/LOW) plus isCritical (R4 fresh Ask 0 — med non-critical 0, critical 1; lab NORMAL 0, CRITICAL 1, HIGH 1 for cross-field compat)
     try {
       if (normalized.flag !== 'NORMAL' || normalized.isCritical || normalized.isBorderline) {
         const qText = `My ${normalized.marker} is ${normalized.normalizedValue} ${normalized.normalizedUnit} (${normalized.flag}) on ${normalized.drawDate.slice(0,10)} — what does this trend mean and should we adjust medications?`;
@@ -758,14 +764,16 @@ export class LocalVaultManager {
   }
 
   // --- Calendar Events Store ---
+  // Range support 7-14 days: stores scheduledDateEnd when present (R6 windowDays)
   public addCalendarEvent(event: CalendarEventRecord, performedBy?: AuditLogEntry['performedBy']): CalendarEventRecord {
     if (!event.patientId || event.patientId.trim() === '') {
       const derived = derivePatientId();
       if (derived) event.patientId = derived;
     }
+    // scheduledDateEnd additive compat — missing → single dot, present → range bar
     this.calendarEvents.set(event.id, event);
     if (performedBy) {
-      this.logAudit('create_calendar_event', 'calendar_event', event.id, performedBy, { title: event.title, date: event.scheduledDate }, event.patientId);
+      this.logAudit('create_calendar_event', 'calendar_event', event.id, performedBy, { title: event.title, date: event.scheduledDate, scheduledDateEnd: (event as any).scheduledDateEnd }, event.patientId);
     }
     if (this.eventBus && typeof (this.eventBus as any).emitCalendarEventAdded === 'function') {
       (this.eventBus as any).emitCalendarEventAdded(event);

@@ -45,12 +45,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const dt = new Date(evt.scheduledDate);
       const dtstamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
       const dtstart = dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const dtendRaw = (evt as any).scheduledDateEnd as string | undefined;
+      const dtend = dtendRaw ? new Date(dtendRaw).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : null;
 
-      icsString += '\r\n' + [
+      const veventLines = [
         'BEGIN:VEVENT',
         `UID:carecanvas-event-${evt.id}@carecanvas.app`,
         `DTSTAMP:${dtstamp}`,
         `DTSTART:${dtstart}`,
+        ...(dtend ? [`DTEND:${dtend}`] : []),
         `SUMMARY:${evt.title}`,
         `DESCRIPTION:${evt.reason || 'CareCanvas Prescribed Milestone'}`,
         'BEGIN:VALARM',
@@ -64,7 +67,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         'DESCRIPTION:Reminder: 2 hours prior to CareCanvas appointment',
         'END:VALARM',
         'END:VEVENT'
-      ].join('\r\n');
+      ];
+
+      icsString += '\r\n' + veventLines.join('\r\n');
     }
 
     icsString += '\r\nEND:VCALENDAR';
@@ -161,8 +166,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="space-y-3">
           {filteredEvents.map((evt) => {
             const dt = new Date(evt.scheduledDate);
+            const isRangeEvent = !!(evt as any).scheduledDateEnd;
+            const dtEnd = isRangeEvent ? new Date((evt as any).scheduledDateEnd) : null;
             const isPast = dt.getTime() < Date.now();
             const daysAway = Math.ceil((dt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+            const rangeLabel = isRangeEvent && dtEnd
+              ? `${dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${dtEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+              : null;
 
             return (
               <div
@@ -220,16 +230,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                 <div className="flex items-center gap-3 self-end sm:self-center">
                   <div className="text-right">
-                    <div className="text-xs font-bold text-slate-800">
-                      {dt.toLocaleDateString(undefined, {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </div>
-                    <div className="text-[11px] text-slate-600 font-mono">
-                      {dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                    {isRangeEvent && rangeLabel && dtEnd ? (
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-slate-800" data-testid="range-label">{rangeLabel}</div>
+                        <div className="h-1.5 w-28 bg-sky-500 rounded-full range-bar" aria-label={`range bar ${rangeLabel}`} />
+                        <div className="text-[11px] text-slate-600 font-mono">
+                          {dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} window
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-xs font-bold text-slate-800">
+                          {dt.toLocaleDateString(undefined, {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                        <div className="text-[11px] text-slate-600 font-mono">
+                          {dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div className="text-[9px] text-slate-400" aria-hidden>● single dot</div>
+                      </>
+                    )}
                   </div>
 
                   {evt.eventType === 'lab_due' && onUploadSlipClick && (

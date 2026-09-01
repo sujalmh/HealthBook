@@ -48,9 +48,31 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
   onQuickAdd
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
   const [arcCoordinates, setArcCoordinates] = useState<ArcCoordinate[]>([]);
   const [dimensions, setDimensions] = useState({ width: 1100, height: 650 });
+  const [activeDay, setActiveDay] = useState<DayOfWeek>(() => {
+    const idx = new Date().getDay();
+    const map: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const d = map[idx] || 'monday';
+    return DAYS_OF_WEEK.includes(d as DayOfWeek) ? (d as DayOfWeek) : 'monday';
+  });
+
+  const scrollToDay = (day: DayOfWeek) => {
+    setActiveDay(day);
+    const container = scrollRef.current;
+    if (!container) return;
+    const target = container.querySelector(`[data-day="${day}"]`) as HTMLElement | null;
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    } else if (container) {
+      const idx = DAYS_OF_WEEK.indexOf(day);
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const left = maxScroll > 0 ? (idx / Math.max(1, DAYS_OF_WEEK.length - 1)) * maxScroll : idx * 110;
+      container.scrollTo({ left, behavior: 'smooth' });
+    }
+  };
 
   const times = CHRONOTYPE_TIMES[chronotype] || CHRONOTYPE_TIMES.standard;
 
@@ -181,6 +203,32 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [grid, interactionArcs, ghostShifts]);
 
+  // Width-based day highlight after initial: update activeDay from scroll position
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      const doUpdate = () => {
+        ticking = false;
+        const el = scrollRef.current;
+        if (!el) return;
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        if (maxScroll <= 0) return;
+        const ratio = el.scrollLeft / maxScroll;
+        const idx = Math.min(DAYS_OF_WEEK.length - 1, Math.max(0, Math.round(ratio * (DAYS_OF_WEEK.length - 1))));
+        const day = DAYS_OF_WEEK[idx];
+        if (day && day !== activeDay) setActiveDay(day);
+      };
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(doUpdate);
+      else doUpdate();
+    };
+    container.addEventListener('scroll', onScroll, { passive: true } as any);
+    return () => container.removeEventListener('scroll', onScroll as any);
+  }, [activeDay]);
+
   // Check if a medication is involved in duplicate alert
   const isDuplicateIngredient = (medName: string) => {
     return duplicateAlerts.some(alert =>
@@ -255,8 +303,28 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         <span>Sun 👉</span>
       </div>
 
+      {/* Day Scroller — tappable mobile nav Mon..Sun, hidden ≥sm, 44px tappable, uses scrollToDay + data-day anchors */}
+      <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto scrollbar-none py-2 -mx-1 px-1" role="tablist" aria-label="Days of week">
+        {DAYS_OF_WEEK.map((day) => (
+          <button
+            key={`scroller-${day}`}
+            role="tab"
+            aria-selected={activeDay === day}
+            aria-label={dayLabels[day].full}
+            onClick={() => scrollToDay(day)}
+            className={`shrink-0 min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl text-sm font-bold border transition-all ${
+              activeDay === day
+                ? 'bg-primary text-white border-primary shadow-sm'
+                : 'bg-white text-slate-700 border-canvas-border hover:bg-canvas-muted'
+            }`}
+          >
+            {dayLabels[day].short}
+          </button>
+        ))}
+      </div>
+
       {/* Main Responsive Grid Container — smooth horizontal scroll on mobile, not clipped */}
-      <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div ref={scrollRef} className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="min-w-[720px] sm:min-w-[960px]">
         {/* Table Structure */}
         <table className="w-full border-collapse">
@@ -270,6 +338,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
               {DAYS_OF_WEEK.map((day) => (
                 <th
                   key={day}
+                  data-day={day}
                   className="p-3 text-center bg-canvas-muted border-b border-r border-canvas-border last:border-r-0"
                 >
                   <div className="flex flex-col items-center">

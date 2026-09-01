@@ -31,6 +31,7 @@ interface BiomarkerChartProps {
   onAddDoctorComment?: (labId: string, comment: string) => void;
   causalHighlightWindow?: { start: string; end: string; label?: string } | null;
   className?: string;
+  embedded?: boolean;
 }
 
 export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
@@ -45,7 +46,8 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
   onPointSelect,
   onAddDoctorComment,
   causalHighlightWindow,
-  className = ''
+  className = '',
+  embedded = false
 }) => {
   const [hoveredPoint, setHoveredPoint] = useState<LabRecord | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<LabRecord | null>(null);
@@ -242,8 +244,12 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
 
   const zoomOptions: ZoomWindow[] = ['30D', '90D', '1Y', '3Y', '5Y', 'MAX'];
 
+  const outerClass = embedded
+    ? `${className}`
+    : `bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${className}`;
+
   return (
-    <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${className}`}>
+    <div className={outerClass}>
       {/* Top Chart Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-canvas-border pb-4">
         <div className="flex items-center gap-3">
@@ -258,7 +264,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
               </span>
             </h3>
             <p className="text-body-sm text-muted leading-relaxed">
-              Interactive longitudinal time series with reference / optimal range polygons and clinician pins.
+              Your results over time. Tap a dot to see details.
             </p>
           </div>
         </div>
@@ -611,14 +617,14 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                   </div>
 
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-muted">Measured Value:</span>
+                    <span className="text-muted">Your value:</span>
                     <span className="text-body font-black text-slate-900">
                       {p.normalizedValue} {p.normalizedUnit}
                     </span>
                   </div>
 
                   <div className="flex items-baseline justify-between gap-4 text-caption">
-                    <span className="text-muted">Ref Range:</span>
+                    <span className="text-muted">Normal range:</span>
                     <span className="text-slate-700">
                       {p.referenceRange.low}–{p.referenceRange.high} {p.normalizedUnit}
                     </span>

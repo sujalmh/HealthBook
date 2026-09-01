@@ -11,7 +11,7 @@ export interface LinkedCareProfile {
   linkId: string;
   patientId: string;
   patientName?: string;
-  relationship: 'parent' | 'child' | 'spouse' | 'guardian' | 'advocate' | 'son' | 'daughter' | string;
+  relationship: 'mother' | 'father' | 'son' | 'daughter' | 'children' | 'husband' | 'wife' | 'partner' | 'brother' | 'sister' | 'guardian' | 'advocate' | 'friend' | 'other' | 'parent' | 'child' | 'spouse' | 'sibling' | string;
   caregiverId?: string;
   caregiverUserId?: string;
   caregiverName: string;

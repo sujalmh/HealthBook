@@ -34,7 +34,8 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
 
   // Link New Form
   const [newPatientId, setNewPatientId] = useState('');
-  const [relationship, setRelationship] = useState<'parent' | 'child' | 'spouse' | 'guardian' | 'advocate'>('parent');
+  const [caregiverName, setCaregiverName] = useState('');
+  const [relationship, setRelationship] = useState<string>('mother');
   const [authToken, setAuthToken] = useState('token_auth_valid_8923');
   const [permissionTier, setPermissionTier] = useState<CaregiverPermissionLevel>('manage');
   const [isLinking, setIsLinking] = useState(false);
@@ -48,15 +49,20 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
 
   const handleLinkNew = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!caregiverName.trim() || caregiverName.trim().length < 2) {
+      eventBus.dispatchToast({ type: 'warning', title: 'Name required', message: 'Please enter caregiver name (at least 2 characters).' });
+      return;
+    }
     setIsLinking(true);
     try {
-      // 1. Link Patient
+      // 1. Link Patient — caregiverName passed to link_patient and vault 783
       const linkRes = await webMCPEngine.execute(
         'link_patient',
         {
           patientId: newPatientId,
           relationship,
-          authToken
+          authToken,
+          caregiverName: caregiverName.trim() || relationship
         },
         {
           patientId,
@@ -256,17 +262,51 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
             /* Link New Caregiver Form */
             <form onSubmit={handleLinkNew} className="space-y-4">
               <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Patient ID to Link</label>
+                <input
+                  type="text"
+                  value={newPatientId}
+                  onChange={(e) => setNewPatientId(e.target.value)}
+                  placeholder="e.g., patient-s-devi"
+                  required
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-mono min-h-[44px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Name</label>
+                <input
+                  type="text"
+                  value={caregiverName}
+                  onChange={(e) => setCaregiverName(e.target.value)}
+                  placeholder="e.g., Raj (son)"
+                  required
+                  minLength={2}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 min-h-[44px]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700">Family Member Relationship</label>
                 <select
                   value={relationship}
                   onChange={(e) => setRelationship(e.target.value as any)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 min-h-[44px]"
                 >
-                  <option value="parent">Parent (Mother / Father)</option>
-                  <option value="child">Child (Son / Daughter)</option>
-                  <option value="spouse">Spouse / Partner</option>
-                  <option value="guardian">Legal Guardian</option>
-                  <option value="advocate">Healthcare Advocate</option>
+                  <option value="mother">Mother</option>
+                  <option value="father">Father</option>
+                  <option value="son">Son</option>
+                  <option value="daughter">Daughter</option>
+                  <option value="children">Children</option>
+                  <option value="husband">Husband</option>
+                  <option value="wife">Wife</option>
+                  <option value="partner">Partner</option>
+                  <option value="brother">Brother</option>
+                  <option value="sister">Sister</option>
+                  <option value="guardian">Guardian</option>
+                  <option value="advocate">Advocate</option>
+                  <option value="friend">Friend</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
 

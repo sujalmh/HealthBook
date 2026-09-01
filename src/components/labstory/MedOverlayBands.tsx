@@ -255,13 +255,13 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
           </div>
           <div>
             <h4 className="text-body-sm font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
-              Medication Overlay Bands
+              Medicines on your timeline
               <span className="text-caption px-1.5 py-0.5 rounded-full bg-primary-light text-primary-text font-semibold border border-primary-border">
-                Timeline Aligned
+                Shown with results
               </span>
             </h4>
             <p className="text-caption text-muted leading-relaxed">
-              Active & historical drug courses overlaid on the biomarker timeline to visualize causal impacts.
+              Your medicines shown with your test results.
             </p>
           </div>
         </div>

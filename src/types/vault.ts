@@ -174,6 +174,7 @@ export interface CalendarEventRecord {
   title: string;
   eventType: 'lab_due' | 'doctor_followup' | 'med_reminder' | 'urgent_triage';
   scheduledDate: string;
+  scheduledDateEnd?: string;
   reason: string;
   providerName?: string;
   notifyHoursBefore?: number[];

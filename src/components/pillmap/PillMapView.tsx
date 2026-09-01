@@ -102,6 +102,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const [dietBadges, setDietBadges] = useState<DietBadge[]>([]);
   const [duplicateAlerts, setDuplicateAlerts] = useState<DuplicateIngredientAlert[]>([]);
   const [ghostShifts, setGhostShifts] = useState<GhostPreviewShift[]>([]);
+  const [isChecking, setIsChecking] = useState(false);
 
   // Modals state
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
@@ -176,6 +177,8 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const recalculateEvaluations = async (vaultMeds: any[]) => {
     const medNames = vaultMeds.map((m) => m.brandName || m.genericName || m.name);
     const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
+    const shouldShowChecking = useAI && typeof (ClinicalInteractionEngine as any).checkDrugInteractionsAI === 'function';
+    if (shouldShowChecking) setIsChecking(true);
     try {
       // 1. Drug-Drug Interactions — AI-enhanced via knowledge engine when enabled, fallback fixture otherwise (never hardcoded mock as primary)
       const arcs = useAI && typeof (ClinicalInteractionEngine as any).checkDrugInteractionsAI === 'function'
@@ -223,6 +226,8 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         vaultMeds.map((m) => ({ name: m.brandName || m.genericName, dose: m.dosage }))
       );
       setDuplicateAlerts(dups);
+    } finally {
+      if (shouldShowChecking) setIsChecking(false);
     }
   };
 
@@ -348,12 +353,18 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     }));
 
     const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
-    const suggestion = useAI && typeof (ClinicalInteractionEngine as any).suggestScheduleAI === 'function'
-      ? await (ClinicalInteractionEngine as any).suggestScheduleAI(medList, chronotype)
-      : ClinicalInteractionEngine.suggestSchedule(medList, chronotype);
-    setActiveSuggestion(suggestion);
-    setGhostShifts(suggestion.proposedShifts);
-    setIsShiftModalOpen(true);
+    const shouldShowChecking = useAI && typeof (ClinicalInteractionEngine as any).suggestScheduleAI === 'function';
+    if (shouldShowChecking) setIsChecking(true);
+    try {
+      const suggestion = useAI && typeof (ClinicalInteractionEngine as any).suggestScheduleAI === 'function'
+        ? await (ClinicalInteractionEngine as any).suggestScheduleAI(medList, chronotype)
+        : ClinicalInteractionEngine.suggestSchedule(medList, chronotype);
+      setActiveSuggestion(suggestion);
+      setGhostShifts(suggestion.proposedShifts);
+      setIsShiftModalOpen(true);
+    } finally {
+      if (shouldShowChecking) setIsChecking(false);
+    }
   };
 
   const handleApproveShifts = () => {
@@ -609,6 +620,19 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* AI Checking Banner — R1 loading indicator visible within 200ms when AI path in-flight */}
+      {isChecking && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          className="flex items-center gap-3 p-4 rounded-2xl bg-sky-50 border border-sky-200 shadow-sm text-sky-900"
+        >
+          <div className="w-5 h-5 rounded-full border-2 border-sky-200 border-t-sky-600 animate-spin shrink-0" aria-hidden="true" />
+          <span className="font-semibold text-sm">Checking what doesn't mix well...</span>
+        </div>
+      )}
 
       {/* Alert Banners (Drug-Drug Arcs, Duplicates, Diet Rules) */}
       <div className="space-y-3">

@@ -4,7 +4,7 @@ import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { FactApprovalCard } from './FactApprovalCard';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
-import { CheckCircle, ShieldAlert, Eye, FileText, Sparkles, X, Copy, Check } from 'lucide-react';
+import { CheckCircle, ShieldAlert, Eye, FileText, Sparkles, X, Copy } from 'lucide-react';
 
 export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) => {
   const [facts, setFacts] = useState<FactEntity[]>([]);
@@ -14,7 +14,6 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   const [activeOcrText, setActiveOcrText] = useState<string | null>(null);
   const [activeDocName, setActiveDocName] = useState<string>('');
 
-  // Resolve real patientId from prop or authenticated session (no hardcoded fallback)
   const effectivePatientId = patientId || (() => {
     try {
       const raw = localStorage.getItem('carecanvas_active_user');
@@ -64,125 +63,89 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Loading skeletons */}
+    <div className="w-full space-y-6 animate-fade-in">
+      {/* Loading skeletons - condensed */}
       {isLoading && (
-        <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="h-5 w-1/3 bg-canvas-muted rounded animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="h-32 bg-canvas-muted rounded-xl animate-pulse" />
-            <div className="h-32 bg-canvas-muted rounded-xl animate-pulse" />
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
+          <div className="h-4 w-1/3 bg-slate-100 rounded animate-pulse" />
+          <div className="space-y-1">
+            <div className="h-8 bg-slate-100 rounded animate-pulse" />
+            <div className="h-8 bg-slate-100 rounded animate-pulse" />
+            <div className="h-8 bg-slate-100 rounded animate-pulse" />
           </div>
         </div>
       )}
 
-      {/* 1. Human-in-the-Loop Trust Gate: Unified Document Review & Batch Accept/Reject */}
+      {/* 1. Pending — condensed single-line list */}
       {!isLoading && pendingFacts.length > 0 && (
-        <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 border-2 border-amber-300/80 rounded-2xl p-6 shadow-md space-y-5">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-200/60 pb-4">
-            <div className="flex items-start gap-3.5">
-              <div className="p-3 bg-amber-100 border border-amber-300/80 rounded-2xl text-amber-800 shrink-0 shadow-sm">
-                <ShieldAlert className="w-7 h-7" />
+        <div className="w-full bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden">
+          {/* Header — compact */}
+          <div className="px-3 sm:px-4 py-3 border-b border-amber-100 bg-amber-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 bg-amber-500 text-white rounded-lg shrink-0 hidden sm:flex">
+                <ShieldAlert className="w-4 h-4" />
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-heading-md font-bold text-amber-950 tracking-tight">
-                    Document Extracted ({pendingFacts.length} Items)
-                  </h3>
-                  <span className="text-caption font-bold text-amber-900 bg-amber-200/70 px-2.5 py-0.5 rounded-full border border-amber-300">
-                    Awaiting 1-Click Confirmation
-                  </span>
-                </div>
-                <p className="text-body-sm text-amber-900/80 leading-relaxed mt-0.5">
-                  AI extracted all health data from your document. Confirm once to fill your medicines, lab charts, diagnoses, and doctor's pack across the website.
-                </p>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                  Review ({pendingFacts.length})
+                  <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">{pendingFacts.length} pending</span>
+                  <span className="hidden sm:inline text-[11px] font-medium text-white bg-slate-900 px-2 py-0.5 rounded-full">Batch only</span>
+                </h3>
+                <p className="hidden sm:block text-xs text-slate-500 leading-none">One line per item • Please review and tap Accept All</p>
               </div>
             </div>
 
-            {/* Master Accept All / Reject All Action Buttons */}
-            <div className="flex items-center gap-3 shrink-0 flex-wrap">
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
               <button
                 onClick={async () => {
                   try {
                     await webMCPEngine.execute('confirm_fact', { factId: 'all', action: 'reject' });
-                    eventBus.dispatchToast({
-                      type: 'info',
-                      message: `Rejected all ${pendingFacts.length} extracted items.`,
-                    });
+                    eventBus.dispatchToast({ type: 'info', message: `Rejected all ${pendingFacts.length} items.` });
                     loadFacts();
                   } catch (e: any) {
                     eventBus.dispatchToast({ type: 'error', message: e?.message || 'Rejection failed' });
                   }
                 }}
-                className="px-4 py-2.5 text-body-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition-all shadow-sm hover:shadow active:scale-98 flex items-center gap-2 min-h-[44px]"
+                className="flex-1 sm:flex-none px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg flex items-center justify-center gap-1.5 min-h-[36px]"
               >
-                <ShieldAlert className="w-4 h-4 text-slate-500" />
-                <span>Reject All</span>
+                <X className="w-3.5 h-3.5" />
+                Reject All
               </button>
-
               <button
                 onClick={async () => {
                   try {
                     await webMCPEngine.execute('confirm_fact', { factId: 'all', action: 'approve' });
-                    eventBus.dispatchToast({
-                      type: 'success',
-                      message: `Successfully approved all ${pendingFacts.length} items! Medicines, labs, and health summaries are now populated.`,
-                    });
+                    eventBus.dispatchToast({ type: 'success', message: `Approved all ${pendingFacts.length} items.` });
                     loadFacts();
                   } catch (e: any) {
                     eventBus.dispatchToast({ type: 'error', message: e?.message || 'Approval failed' });
                   }
                 }}
-                className="px-6 py-2.5 text-body-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-98 flex items-center gap-2 min-h-[44px]"
+                className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center justify-center gap-1.5 min-h-[36px] shadow-sm"
               >
-                <CheckCircle className="w-5 h-5" />
-                <span>Accept All & Populate Website</span>
+                <CheckCircle className="w-4 h-4" />
+                Accept All
               </button>
             </div>
           </div>
 
-          {/* Categorical Breakdown Badges */}
-          <div className="flex items-center gap-2 flex-wrap text-caption font-semibold">
+          {/* Category chips — compact */}
+          <div className="px-3 sm:px-4 py-2 bg-amber-50/30 border-b border-amber-100 flex flex-wrap items-center gap-1.5">
             {(() => {
-              const meds = pendingFacts.filter(f => f.category.includes('med')).length;
-              const labs = pendingFacts.filter(f => f.category.includes('lab')).length;
-              const conds = pendingFacts.filter(f => f.category.includes('cond') || f.category.includes('diagnos')).length;
-              const allgs = pendingFacts.filter(f => f.category.includes('allerg')).length;
-              const follow = pendingFacts.filter(f => f.category.includes('follow') || f.category.includes('due')).length;
-              const diets = pendingFacts.filter(f => f.category.includes('diet') || f.category.includes('vital')).length;
-
+              const meds = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('med')).length;
+              const labs = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('lab')).length;
+              const conds = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('cond') || (f.category || '').toLowerCase().includes('diagnos')).length;
+              const allgs = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('allerg')).length;
+              const follow = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('follow') || (f.category || '').toLowerCase().includes('due')).length;
+              const diets = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('diet') || (f.category || '').toLowerCase().includes('vital')).length;
               return (
                 <>
-                  {meds > 0 && (
-                    <span className="px-3 py-1 bg-primary-light text-primary-text border border-primary-border rounded-full">
-                      💊 {meds} Medicines
-                    </span>
-                  )}
-                  {labs > 0 && (
-                    <span className="px-3 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-full">
-                      🧪 {labs} Lab Tests
-                    </span>
-                  )}
-                  {conds > 0 && (
-                    <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full">
-                      🩺 {conds} Diagnoses
-                    </span>
-                  )}
-                  {allgs > 0 && (
-                    <span className="px-3 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full">
-                      🛡️ {allgs} Allergies
-                    </span>
-                  )}
-                  {follow > 0 && (
-                    <span className="px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full">
-                      📅 {follow} Follow-ups & Due Labs
-                    </span>
-                  )}
-                  {diets > 0 && (
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full">
-                      🥗 {diets} Diet & Vitals
-                    </span>
-                  )}
+                  {meds > 0 && <span className="px-2 py-1 bg-sky-50 text-sky-800 border border-sky-200 rounded-full text-[11px] font-semibold">💊 {meds}</span>}
+                  {labs > 0 && <span className="px-2 py-1 bg-violet-50 text-violet-800 border border-violet-200 rounded-full text-[11px] font-semibold">🧪 {labs}</span>}
+                  {conds > 0 && <span className="px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-semibold">🩺 {conds}</span>}
+                  {allgs > 0 && <span className="px-2 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full text-[11px] font-semibold">🛡️ {allgs}</span>}
+                  {follow > 0 && <span className="px-2 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-[11px] font-semibold">📅 {follow}</span>}
+                  {diets > 0 && <span className="px-2 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-[11px] font-semibold">🥗 {diets}</span>}
                   {documents.some((d) => d.extractedText) && (
                     <button
                       type="button"
@@ -193,10 +156,10 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                           setActiveDocName(docWithOcr.fileName || docWithOcr.name || 'Document');
                         }
                       }}
-                      className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-caption font-semibold transition-all shadow-xs"
+                      className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-black text-white rounded-full text-[11px] font-bold"
                     >
-                      <FileText className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>View Source OCR Text</span>
+                      <FileText className="w-3 h-3 text-emerald-400" />
+                      View text
                     </button>
                   )}
                 </>
@@ -204,169 +167,190 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
             })()}
           </div>
 
-          {/* Itemized Review List */}
-          <div className="space-y-3 pt-2">
-            <h4 className="text-body-sm font-bold text-slate-800">Itemized Extracted Details</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {pendingFacts.map((fact) => (
-                <FactApprovalCard key={fact.id} fact={fact} onResolved={loadFacts} />
-              ))}
-            </div>
+          {/* Column header — desktop only, single line metaphor */}
+          <div className="hidden sm:flex items-center gap-2 sm:gap-3 px-3 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold tracking-wide text-slate-500 uppercase">
+            <span className="w-8 shrink-0"></span>
+            <span className="w-16 shrink-0">Type</span>
+            <span className="w-32 shrink-0">Fact</span>
+            <span className="flex-1 min-w-0">Value</span>
+            <span className="hidden lg:block w-56 shrink-0">Details</span>
+            <span className="w-14 shrink-0 text-right">Conf</span>
+            <span className="hidden md:block w-16 shrink-0 text-right">Source</span>
+          </div>
+
+          {/* Condensed list — one line per fact, scrollable, mobile optimized */}
+          <div className="max-h-[50vh] sm:max-h-[520px] overflow-auto divide-y divide-slate-100 bg-white">
+            {pendingFacts.map((fact) => (
+              <FactApprovalCard key={fact.id} fact={fact} onResolved={loadFacts} />
+            ))}
+          </div>
+          <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+            <span>{pendingFacts.length} facts • condensed • tap row for source</span>
+            <span className="hidden sm:inline">No per-row buttons — use Accept All above</span>
           </div>
         </div>
       )}
 
-      {/* Empty pending state — helpful when no pending but also not loading */}
+      {/* Empty pending */}
       {!isLoading && pendingFacts.length === 0 && facts.length > 0 && (
-        <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 shrink-0">
-            <CheckCircle className="w-5 h-5" />
+        <div className="w-full bg-white border border-emerald-200 rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
+          <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 shrink-0">
+            <CheckCircle className="w-4 h-4" />
           </div>
-          <p className="text-body-sm text-muted">
-            All caught up — no pending reviews. Your approved records are below.
-          </p>
+          <p className="text-xs font-semibold text-slate-700">All caught up — no pending. Approved below.</p>
         </div>
       )}
 
-      {/* 2. Confirmed Facts Vault Stream */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 shadow-sm space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-canvas-border pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 shrink-0">
-              <CheckCircle className="w-6 h-6" />
+      {/* 2. Approved — condensed list */}
+      <div className="w-full bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="px-3 sm:px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 bg-emerald-500 text-white rounded-lg shrink-0 hidden sm:flex">
+              <CheckCircle className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-heading-md font-bold text-slate-900 tracking-tight">Your Saved Records ({approvedFacts.length})</h3>
-              <p className="text-body-sm text-muted leading-relaxed">
-                Once you approve, they update your medicines, labs, and doctor's pack automatically.
-              </p>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-slate-900">Saved Records ({approvedFacts.length})</h3>
+              <p className="hidden sm:block text-xs text-slate-500 leading-none">One line per fact • synced to meds/labs</p>
             </div>
           </div>
 
-          {/* Category Filter — pill tokenized */}
-          <div className="flex items-center gap-1.5 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm overflow-x-auto scrollbar-none max-w-full shrink-0">
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs overflow-x-auto scrollbar-none shrink-0">
             {['all', 'lab', 'medication', 'allergy', 'condition'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-2 rounded-lg capitalize font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary whitespace-nowrap min-h-[36px] ${
-                  selectedCategory === cat
-                    ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm'
-                    : 'text-muted hover:text-slate-900 hover:bg-white border border-transparent'
-                }`}
+                className={`px-2.5 py-1.5 rounded-md capitalize font-semibold whitespace-nowrap text-[11px] sm:text-xs ${selectedCategory === cat ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                {cat}
+                {cat === 'all' ? 'All' : cat}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Fact Grid */}
+        {/* Approved header */}
+        <div className="hidden sm:flex items-center gap-2 sm:gap-3 px-3 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold tracking-wide text-slate-500 uppercase">
+          <span className="w-8 shrink-0"></span>
+          <span className="w-16 shrink-0">Type</span>
+          <span className="w-32 shrink-0">Fact</span>
+          <span className="flex-1 min-w-0">Value</span>
+          <span className="hidden lg:block w-56 shrink-0">Summary</span>
+          <span className="hidden md:block w-24 shrink-0 text-right">Approved</span>
+          <span className="w-14 shrink-0 text-right">Source</span>
+        </div>
+
         {filteredApprovedFacts.length === 0 ? (
-          <div className="p-8 text-center bg-canvas-muted rounded-xl border border-dashed border-canvas-border space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-primary-light border border-primary-border text-primary flex items-center justify-center mx-auto">
-              <FileText className="w-6 h-6" />
+          <div className="p-6 sm:p-8 text-center bg-slate-50/50">
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center mx-auto">
+              <FileText className="w-5 h-5" />
             </div>
-            <h4 className="text-heading-md font-bold text-slate-900">No records here yet</h4>
-            <p className="text-body-sm text-muted max-w-sm mx-auto leading-relaxed">
-              Add a document above. Approved facts appear here as cards and sync to other modules.
-            </p>
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-primary bg-primary-light border border-primary-border px-3 py-1 rounded-full">
-                <Sparkles className="w-3 h-3" /> Drop a PDF to get started
-              </span>
-            </div>
+            <p className="text-sm font-semibold text-slate-700 mt-2">No records yet</p>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">Upload a PDF above. Approved facts appear here as condensed one-line rows.</p>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-full mt-2">
+              <Sparkles className="w-3 h-3 text-amber-500" /> Drop PDF to start
+            </span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredApprovedFacts.map((fact) => (
-              <div
-                key={fact.id}
-                className="bg-canvas-card border border-canvas-border hover:border-primary-border/30 rounded-xl p-4 space-y-2.5 transition-all shadow-sm hover:shadow-md text-slate-900"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-caption font-bold uppercase px-2 py-0.5 rounded-full bg-muted-subtle text-muted border border-canvas-border">
-                    {fact.category}
+          <div className="max-h-[50vh] sm:max-h-[600px] overflow-auto divide-y divide-slate-100 bg-white">
+            {filteredApprovedFacts.map((fact) => {
+              const val = typeof fact.value === 'object' ? JSON.stringify(fact.value) : String(fact.value || fact.factValue || '—');
+              const shortVal = val.length > 36 ? val.slice(0, 36) + '…' : val;
+              const catColor =
+                (fact.category || '').toLowerCase().includes('med') ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                (fact.category || '').toLowerCase().includes('lab') ? 'bg-violet-50 text-violet-700 border-violet-200' :
+                (fact.category || '').toLowerCase().includes('allerg') ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                'bg-slate-50 text-slate-600 border-slate-200';
+              const shortCat = String(fact.category || 'gen').slice(0, 3).toUpperCase();
+              const confidence = Math.round((fact.confidence ?? 0.92) * 100);
+              return (
+                <div key={fact.id} className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-slate-50 transition-colors min-h-[44px] text-xs sm:text-[13px] w-full overflow-hidden group">
+                  <span className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center bg-white">
+                    <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center text-[10px] font-bold ${catColor}`}>{shortCat.slice(0,3)}</span>
                   </span>
+                  <span className={`hidden sm:inline-flex shrink-0 text-[10px] font-bold px-1.5 py-1 rounded-full border ${catColor}`}>{shortCat}</span>
+                  <span className="font-semibold text-slate-900 truncate max-w-[90px] sm:max-w-[140px] shrink-0">{fact.name || fact.factKey}</span>
+                  <span className="truncate flex-1 min-w-0 text-slate-700 flex items-baseline gap-1">
+                    <span className="font-medium truncate">{shortVal}</span>
+                    {fact.unit && <span className="hidden sm:inline text-[11px] font-mono bg-slate-50 border border-slate-200 px-1 rounded shrink-0">{fact.unit}</span>}
+                  </span>
+                  <span className="hidden lg:block text-slate-500 truncate max-w-[200px] xl:max-w-[280px] shrink-0 text-[11px] sm:text-xs">
+                    {(fact.plainExplanation || fact.plainNarration || '').slice(0, 60) || '—'}
+                  </span>
+                  <span className="hidden md:block shrink-0 text-[11px] text-slate-500 text-right w-24 truncate">
+                    {fact.approvedBy || 'Patient'} • {new Date(fact.createdAt || fact.timestamp || Date.now()).toLocaleDateString()}
+                  </span>
+                  <span className="hidden sm:inline-flex shrink-0 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-1 rounded-full">{confidence}%</span>
+                  <span className="sm:hidden shrink-0 text-[11px] font-bold text-slate-500">{confidence}%</span>
                   <button
                     onClick={() => handleHighlight(fact)}
-                    className="inline-flex items-center gap-1 text-caption text-primary hover:text-primary-hover font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full px-2 py-1 hover:bg-primary-light transition-colors"
-                    title="Highlight source"
+                    className="hidden md:inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-900 p-1 rounded-full hover:bg-white border border-transparent hover:border-slate-200"
                   >
                     <Eye className="w-3 h-3" />
-                    <span>Source</span>
+                    <span className="hidden xl:inline">Src</span>
                   </button>
                 </div>
-
-                <div>
-                  <div className="text-body-sm font-semibold text-slate-900 font-mono tracking-tight line-clamp-2">
-                    {fact.name || fact.factKey}: <span className="text-clinical-emerald font-bold">{typeof fact.value === 'object' ? JSON.stringify(fact.value) : (fact.value || fact.factValue)}</span> {fact.unit}
-                  </div>
-                  <p className="text-body-sm text-muted mt-1 leading-relaxed line-clamp-2">{(fact.plainExplanation || fact.plainNarration || '').split('.')[0] ? (fact.plainExplanation || fact.plainNarration || '').split('.')[0] + '.' : ''}</p>
-                </div>
-
-                <div className="pt-2 border-t border-canvas-border flex items-center justify-between text-caption text-muted">
-                  <span>Approved by {fact.approvedBy || 'Patient'}</span>
-                  <span>{new Date(fact.createdAt || fact.timestamp || Date.now()).toLocaleDateString()}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
+        <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+          <span>{filteredApprovedFacts.length} saved • one line each</span>
+          <span className="hidden sm:inline">Full-width • mobile: truncated, tap for source</span>
+        </div>
       </div>
 
-      {/* Source Document OCR Text Modal */}
+      {/* OCR Text Modal — keep light, full-width aware */}
       {activeOcrText && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
-                  <FileText className="w-5 h-5" />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="px-3 sm:px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="p-2 bg-white text-slate-700 rounded-lg border border-slate-200 shrink-0 hidden sm:flex">
+                  <FileText className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="text-body-sm font-bold text-slate-900">Extracted Document OCR Text</h3>
-                  <p className="text-caption text-muted">{activeDocName || 'Source Medical Record'}</p>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-slate-900 truncate">What we read</h3>
+                  <p className="text-xs text-slate-500 truncate hidden sm:block">{activeDocName || 'Your paper'}</p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(activeOcrText);
-                    eventBus.dispatchToast({ type: 'success', message: 'OCR Markdown copied to clipboard' });
+                    eventBus.dispatchToast({ type: 'success', message: 'Copied' });
+                    console.log('[OCR Modal] Copied', activeOcrText.length);
                   }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-caption font-semibold bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 shadow-2xs transition-colors"
+                  className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg"
                 >
                   <Copy className="w-3.5 h-3.5" />
-                  <span>Copy</span>
+                  <span className="hidden sm:inline">Copy</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveOcrText(null)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
-                >
-                  <X className="w-5 h-5" />
+                <button type="button" onClick={() => setActiveOcrText(null)} className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-white border border-transparent hover:border-slate-200">
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
-
-            <div className="p-4 overflow-y-auto flex-1 bg-slate-950">
-              <pre className="text-slate-100 font-mono text-xs whitespace-pre-wrap leading-relaxed selection:bg-emerald-500 selection:text-white">
-                {activeOcrText}
-              </pre>
+            <div className="flex-1 overflow-auto bg-white p-3 sm:p-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+                <div className="px-3 py-2 bg-white border-b border-slate-200 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700">Text from your paper</span>
+                  <span className="text-[11px] font-mono text-slate-500">{activeOcrText.length} chars</span>
+                </div>
+                <pre className="text-slate-800 font-mono text-[11px] sm:text-xs whitespace-pre-wrap leading-relaxed p-3 sm:p-4 max-h-[60vh] overflow-auto">
+                  {activeOcrText}
+                </pre>
+              </div>
+              {activeOcrText.includes('<table') && (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
+                  <div className="text-xs font-bold text-emerald-900 mb-2">Tables</div>
+                  <div className="prose prose-sm max-w-none bg-white rounded-lg border border-emerald-200 p-3 overflow-auto text-sm" dangerouslySetInnerHTML={{ __html: activeOcrText.match(/<table[\s\S]*?<\/table>/gi)?.join('<div class="my-2"></div>') || '<p class="text-xs text-slate-500">No table HTML found.</p>' }} />
+                </div>
+              )}
             </div>
-
-            <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-caption text-muted">
-              <span>High-Precision Mistral OCR Result</span>
-              <button
-                type="button"
-                onClick={() => setActiveOcrText(null)}
-                className="px-4 py-1.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                Close
-              </button>
+            <div className="px-3 sm:px-4 py-2.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+              <span className="hidden sm:inline">What we read from your paper</span>
+              <span className="sm:hidden">Details</span>
+              <button type="button" onClick={() => setActiveOcrText(null)} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-900 text-white font-semibold rounded-lg text-xs sm:text-sm">Close</button>
             </div>
           </div>
         </div>

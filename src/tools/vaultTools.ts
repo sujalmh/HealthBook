@@ -68,8 +68,20 @@ export const extractFactTool: WebMCPToolDefinition = {
 
     const extractionPathParam: 'ocr_then_ai' | 'direct_vision' | undefined = (params as any).extractionPath || undefined;
 
+    console.log('[vaultTools] extract_fact invoked', {
+      documentId,
+      docTypeParam,
+      hasFileData,
+      effectiveRawTextPreview: effectiveRawText.slice(0, 500),
+      effectiveRawTextLength: effectiveRawText.length,
+      extractionPathParam,
+      aiEnabled,
+      model: (getAIConfigSource().overrides as any)?.VITE_AI_MODEL || 'env-model',
+    });
+
     if (aiEnabled) {
       try {
+        console.log('[vaultTools] Delegating to extractWithAI (AI enabled)');
         extractedFacts = await extractWithAI(
           effectiveRawText,
           hasFileData ? fileDataUrl : undefined,
@@ -80,8 +92,10 @@ export const extractFactTool: WebMCPToolDefinition = {
             extractionPath: extractionPathParam,
           }
         );
+        console.log('[vaultTools] extractWithAI returned', extractedFacts.length, 'facts:', JSON.stringify(extractedFacts, null, 2));
       } catch (err: any) {
         console.error('[vaultTools] AI extraction error:', err?.message || err);
+        console.log('[vaultTools] Full AI extraction exception:', err);
         return {
           success: false,
           tool: 'extract_fact',
