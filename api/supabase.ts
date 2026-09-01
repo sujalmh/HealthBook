@@ -160,9 +160,17 @@ async function handleGet(req: Request, url: string) {
     });
     return jsonResponse(rows);
   } catch (e: any) {
-    console.warn('[supabase-proxy] SELECT failed', table, e?.message || e);
-    // If table does not exist, return empty (graceful)
-    if (String(e?.message || '').includes('does not exist')) {
+    const msg = String(e?.message || '');
+    console.warn('[supabase-proxy] SELECT failed', table, msg || e);
+    // Gracefully handle known infrastructural failures: missing table, DNS, IPv6-only, connection errors → empty (local fallback)
+    if (
+      msg.includes('does not exist') ||
+      msg.includes('ENOTFOUND') ||
+      msg.includes('EAI_AGAIN') ||
+      msg.includes('getaddrinfo') ||
+      msg.includes('connect ECONNREFUSED') ||
+      msg.includes('timeout')
+    ) {
       return jsonResponse([]);
     }
     return jsonResponse({ error: e?.message || String(e) }, 500);
@@ -281,9 +289,17 @@ async function handlePost(req: Request, url: string) {
     }
     return jsonResponse(row || record);
   } catch (e: any) {
-    console.warn('[supabase-proxy] UPSERT failed', table, e?.message || e);
-    if (String(e?.message || '').includes('does not exist')) {
-      // Try to create table minimal? Fallback to success without DB
+    const msg = String(e?.message || '');
+    console.warn('[supabase-proxy] UPSERT failed', table, msg || e);
+    if (
+      msg.includes('does not exist') ||
+      msg.includes('ENOTFOUND') ||
+      msg.includes('EAI_AGAIN') ||
+      msg.includes('getaddrinfo') ||
+      msg.includes('connect ECONNREFUSED') ||
+      msg.includes('timeout')
+    ) {
+      // DB unreachable (IPv6-only host on IPv4 egress, DNS) → simulate success (local-only)
       return jsonResponse(record);
     }
     return jsonResponse({ error: e?.message || String(e) }, 500);

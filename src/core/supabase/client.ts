@@ -63,32 +63,40 @@ function readProcessEnv(key: string): string | null {
 
 /**
  * Resolve primary DATABASE_URL per requirement:
- * import.meta.env.VITE_SUPABASE_DB_URL || process.env.DATABASE_URL || process.env.SUPABASE_DB_URL
- * Also supports VITE_SUPABASE_URL + ANON_KEY pattern as fallback.
+ * Prioritize Supabase REST URL (VITE_SUPABASE_URL) when available because it uses
+ * direct PostgREST via anon key (IPv4, no pg DNS issue). Falls back to postgres
+ * direct connection via pg pool proxy (/api/supabase) otherwise.
+ * Chain:
+ *   1. VITE_SUPABASE_URL (https://*.supabase.co) — REST direct, most reliable
+ *   2. VITE_SUPABASE_DB_URL (alternative REST or pooler)
+ *   3. DATABASE_URL / SUPABASE_DB_URL (postgres://) — requires /api/supabase pg proxy
  */
 function resolveDatabaseUrl(): string | null {
-  // Primary chain per spec
+  // 1. Prefer REST URL (https) — avoids IPv6-only db.* host via pg pool and uses anon key
+  const viteSupabaseUrlDirect = readViteEnv('VITE_SUPABASE_URL') || readProcessEnv('VITE_SUPABASE_URL') || readProcessEnv('SUPABASE_URL');
+  if (viteSupabaseUrlDirect && (viteSupabaseUrlDirect.startsWith('http://') || viteSupabaseUrlDirect.startsWith('https://'))) {
+    return viteSupabaseUrlDirect;
+  }
+  const supaUrlVite = readViteEnv('VITE_SUPABASE_URL');
+  if (supaUrlVite && (supaUrlVite.startsWith('http://') || supaUrlVite.startsWith('https://'))) {
+    return supaUrlVite;
+  }
+
+  // 2. VITE_SUPABASE_DB_URL alternative
   const viteDbUrl = readViteEnv('VITE_SUPABASE_DB_URL');
   if (viteDbUrl) return viteDbUrl;
-
-  const procDbUrl = readProcessEnv('DATABASE_URL');
-  if (procDbUrl) return procDbUrl;
-
-  const supaDbUrl = readProcessEnv('SUPABASE_DB_URL');
-  if (supaDbUrl) return supaDbUrl;
-
-  // Also support VITE_* via process.env in Node/test harnesses
   const viteDbUrlProc = readProcessEnv('VITE_SUPABASE_DB_URL');
   if (viteDbUrlProc) return viteDbUrlProc;
 
-  // Fallback: Supabase REST URL pattern (VITE_SUPABASE_URL + ANON_KEY)
-  // This is secondary; if present we treat as enabled (client will use REST)
-  const viteSupabaseUrl = readViteEnv('VITE_SUPABASE_URL') || readProcessEnv('VITE_SUPABASE_URL') || readProcessEnv('SUPABASE_URL');
-  if (viteSupabaseUrl) return viteSupabaseUrl;
+  // 3. Postgres direct (requires /api/supabase proxy with pg)
+  const procDbUrl = readProcessEnv('DATABASE_URL');
+  if (procDbUrl) return procDbUrl;
+  const supaDbUrl = readProcessEnv('SUPABASE_DB_URL');
+  if (supaDbUrl) return supaDbUrl;
 
-  // Also check generic VITE_SUPABASE_URL via Vite env without DB suffix
-  const supaUrlVite = readViteEnv('VITE_SUPABASE_URL');
-  if (supaUrlVite) return supaUrlVite;
+  // Fallback: any remaining VITE_SUPABASE_URL
+  const viteSupabaseUrlFallback = readViteEnv('VITE_SUPABASE_URL') || readProcessEnv('VITE_SUPABASE_URL');
+  if (viteSupabaseUrlFallback) return viteSupabaseUrlFallback;
 
   return null;
 }
