@@ -1,8 +1,8 @@
 /**
  * CareCanvas WebMCP Test Harness & Assertion Engine
  */
-import { WebMCPEngine } from '../../src/core/webmcp/webMCPEngine.ts';
-import { LocalVaultManager } from '../../src/core/vault/localVault.ts';
+import { WebMCPEngine } from '../../src/core/webmcp/WebMCPEngine.ts';
+import { LocalVaultManager } from '../../src/core/vault/LocalVault.ts';
 import { WebMCPEventBus } from '../../src/core/events/eventBus.ts';
 import { registerAllWebMCPTools } from '../../src/tools/index.ts';
 export function createTestHarness(patientId = 'patient-s-devi', role = 'patient') {

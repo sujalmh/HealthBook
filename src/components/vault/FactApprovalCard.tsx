@@ -10,7 +10,10 @@ interface FactApprovalCardProps {
 
 export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact }) => {
   const handleHighlightSource = () => {
-    eventBus.highlightSourceDocument(fact.sourceDocId || fact.documentId || '');
+    const bbox: any = (fact as any).boundingBox || (fact as any).sourceBoundingBox || null;
+    const docId = fact.sourceDocId || (fact as any).documentId || '';
+    if (bbox) eventBus.highlightSourceDocument({ documentId: docId, boundingBox: bbox } as any);
+    else eventBus.highlightSourceDocument(docId, bbox);
   };
 
   const getCategoryMeta = (category: FactEntity['category']) => {

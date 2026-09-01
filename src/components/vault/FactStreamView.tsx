@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FactEntity } from '@/types/vault';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
-import { FactApprovalCard } from './FactApprovalCard';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
-import { CheckCircle, ShieldAlert, Eye, FileText, Sparkles, X, Copy } from 'lucide-react';
+import { Eye, Check, X, Edit3, Sparkles, FileText, CheckCircle, X as XIcon, Copy } from 'lucide-react';
 
 export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) => {
   const [facts, setFacts] = useState<FactEntity[]>([]);
@@ -13,6 +12,9 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeOcrText, setActiveOcrText] = useState<string | null>(null);
   const [activeDocName, setActiveDocName] = useState<string>('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const effectivePatientId = patientId || (() => {
     try {
@@ -59,12 +61,63 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   });
 
   const handleHighlight = (fact: FactEntity) => {
-    eventBus.highlightSourceDocument((fact.sourceDocId || fact.documentId || '') as string);
+    const bbox: any = (fact as any).boundingBox || (fact as any).sourceBoundingBox || null;
+    const docId = (fact.sourceDocId || (fact as any).documentId || '') as string;
+    if (bbox) eventBus.highlightSourceDocument({ documentId: docId, boundingBox: bbox } as any);
+    else eventBus.highlightSourceDocument(docId, bbox);
+  };
+
+  const handleApprove = async (fact: FactEntity) => {
+    setActionLoading(fact.id);
+    try {
+      await webMCPEngine.execute('confirm_fact', { factId: fact.id, action: 'approve' });
+      await loadFacts();
+    } catch (err: any) {
+      eventBus.dispatchToast({ type: 'error', message: err?.message || 'Approval failed' });
+    } finally { setActionLoading(null); }
+  };
+  const handleReject = async (fact: FactEntity) => {
+    setActionLoading(fact.id);
+    try {
+      await webMCPEngine.execute('confirm_fact', { factId: fact.id, action: 'reject' });
+      await loadFacts();
+    } catch (err: any) {
+      eventBus.dispatchToast({ type: 'error', message: err?.message || 'Rejection failed' });
+    } finally { setActionLoading(null); }
+  };
+  const handleSaveEdit = async (fact: FactEntity) => {
+    if (!editValue.trim()) return;
+    setActionLoading(fact.id);
+    try {
+      await webMCPEngine.execute('confirm_fact', { factId: fact.id, action: 'edit', editedValue: editValue, edits: { value: editValue } } as any);
+      setEditingId(null);
+      await loadFacts();
+    } catch (err: any) {
+      eventBus.dispatchToast({ type: 'error', message: err?.message || 'Edit failed' });
+    } finally { setActionLoading(null); }
+  };
+
+  const getCategoryStyle = (cat: string) => {
+    switch (cat) {
+      case 'medication': return 'bg-primary-light text-primary-text border-primary-border';
+      case 'lab': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'allergy': return 'bg-rose-50 text-rose-700 border-rose-200';
+      case 'condition': return 'bg-amber-50 text-amber-700 border-amber-200';
+      default: return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    }
+  };
+
+  const formatValue = (fact: FactEntity) => {
+    const raw = (fact as any).value ?? (fact as any).factValue ?? '';
+    if (typeof raw === 'object') {
+      const s = (raw as any).rawSnippet || JSON.stringify(raw);
+      return s.slice(0, 60);
+    }
+    return String(raw).slice(0, 60);
   };
 
   return (
     <div className="w-full space-y-6 animate-fade-in">
-      {/* Loading skeletons - condensed */}
       {isLoading && (
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-3">
           <div className="h-4 w-1/3 bg-slate-100 rounded animate-pulse" />
@@ -76,25 +129,17 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
         </div>
       )}
 
-      {/* 1. Pending — condensed single-line list */}
+      {/* Pending — uniform table, no large logo, batch actions */}
       {!isLoading && pendingFacts.length > 0 && (
         <div className="w-full bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden">
-          {/* Header — compact */}
           <div className="px-3 sm:px-4 py-3 border-b border-amber-100 bg-amber-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="p-2 bg-amber-500 text-white rounded-lg shrink-0 hidden sm:flex">
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
-                  Review ({pendingFacts.length})
-                  <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">{pendingFacts.length} pending</span>
-                  <span className="hidden sm:inline text-[11px] font-medium text-white bg-slate-900 px-2 py-0.5 rounded-full">Batch only</span>
-                </h3>
-                <p className="hidden sm:block text-xs text-slate-500 leading-none">One line per item • Please review and tap Accept All</p>
-              </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                Review extracted details
+                <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">{pendingFacts.length} to review</span>
+              </h3>
+              <p className="text-caption text-amber-800/80">Check before they update medicines and labs. Uniform table — no redundant header.</p>
             </div>
-
             <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
               <button
                 onClick={async () => {
@@ -102,14 +147,11 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                     await webMCPEngine.execute('confirm_fact', { factId: 'all', action: 'reject' });
                     eventBus.dispatchToast({ type: 'info', message: `Rejected all ${pendingFacts.length} items.` });
                     loadFacts();
-                  } catch (e: any) {
-                    eventBus.dispatchToast({ type: 'error', message: e?.message || 'Rejection failed' });
-                  }
+                  } catch (e: any) { eventBus.dispatchToast({ type: 'error', message: e?.message || 'Rejection failed' }); }
                 }}
                 className="flex-1 sm:flex-none px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg flex items-center justify-center gap-1.5 min-h-[36px]"
               >
-                <X className="w-3.5 h-3.5" />
-                Reject All
+                <X className="w-3.5 h-3.5" /> Reject All
               </button>
               <button
                 onClick={async () => {
@@ -117,49 +159,30 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                     await webMCPEngine.execute('confirm_fact', { factId: 'all', action: 'approve' });
                     eventBus.dispatchToast({ type: 'success', message: `Approved all ${pendingFacts.length} items.` });
                     loadFacts();
-                  } catch (e: any) {
-                    eventBus.dispatchToast({ type: 'error', message: e?.message || 'Approval failed' });
-                  }
+                  } catch (e: any) { eventBus.dispatchToast({ type: 'error', message: e?.message || 'Approval failed' }); }
                 }}
                 className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center justify-center gap-1.5 min-h-[36px] shadow-sm"
               >
-                <CheckCircle className="w-4 h-4" />
-                Accept All
+                <CheckCircle className="w-4 h-4" /> Accept All
               </button>
             </div>
           </div>
 
-          {/* Category chips — compact */}
           <div className="px-3 sm:px-4 py-2 bg-amber-50/30 border-b border-amber-100 flex flex-wrap items-center gap-1.5">
             {(() => {
               const meds = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('med')).length;
               const labs = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('lab')).length;
-              const conds = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('cond') || (f.category || '').toLowerCase().includes('diagnos')).length;
+              const conds = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('cond')).length;
               const allgs = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('allerg')).length;
-              const follow = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('follow') || (f.category || '').toLowerCase().includes('due')).length;
-              const diets = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('diet') || (f.category || '').toLowerCase().includes('vital')).length;
               return (
                 <>
-                  {meds > 0 && <span className="px-2 py-1 bg-sky-50 text-sky-800 border border-sky-200 rounded-full text-[11px] font-semibold">💊 {meds}</span>}
-                  {labs > 0 && <span className="px-2 py-1 bg-violet-50 text-violet-800 border border-violet-200 rounded-full text-[11px] font-semibold">🧪 {labs}</span>}
+                  {meds > 0 && <span className="px-2 py-1 bg-sky-50 text-sky-800 border border-sky-200 rounded-full text-[11px] font-semibold">💊 {meds} meds</span>}
+                  {labs > 0 && <span className="px-2 py-1 bg-violet-50 text-violet-800 border border-violet-200 rounded-full text-[11px] font-semibold">🧪 {labs} labs</span>}
                   {conds > 0 && <span className="px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-semibold">🩺 {conds}</span>}
                   {allgs > 0 && <span className="px-2 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full text-[11px] font-semibold">🛡️ {allgs}</span>}
-                  {follow > 0 && <span className="px-2 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full text-[11px] font-semibold">📅 {follow}</span>}
-                  {diets > 0 && <span className="px-2 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-[11px] font-semibold">🥗 {diets}</span>}
                   {documents.some((d) => d.extractedText) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const docWithOcr = documents.find((d) => d.extractedText);
-                        if (docWithOcr) {
-                          setActiveOcrText(docWithOcr.extractedText);
-                          setActiveDocName(docWithOcr.fileName || docWithOcr.name || 'Document');
-                        }
-                      }}
-                      className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-black text-white rounded-full text-[11px] font-bold"
-                    >
-                      <FileText className="w-3 h-3 text-emerald-400" />
-                      View text
+                    <button type="button" onClick={() => { const docWithOcr = documents.find((d) => d.extractedText); if (docWithOcr) { setActiveOcrText(docWithOcr.extractedText); setActiveDocName(docWithOcr.fileName || docWithOcr.name || 'Document'); } }} className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-black text-white rounded-full text-[11px] font-bold">
+                      <FileText className="w-3 h-3 text-emerald-400" /> View text
                     </button>
                   )}
                 </>
@@ -167,166 +190,166 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
             })()}
           </div>
 
-          {/* Column header — desktop only, single line metaphor */}
-          <div className="hidden sm:flex items-center gap-2 sm:gap-3 px-3 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold tracking-wide text-slate-500 uppercase">
-            <span className="w-8 shrink-0"></span>
-            <span className="w-16 shrink-0">Type</span>
-            <span className="w-32 shrink-0">Fact</span>
-            <span className="flex-1 min-w-0">Value</span>
-            <span className="hidden lg:block w-56 shrink-0">Details</span>
-            <span className="w-14 shrink-0 text-right">Conf</span>
-            <span className="hidden md:block w-16 shrink-0 text-right">Source</span>
-          </div>
-
-          {/* Condensed list — one line per fact, scrollable, mobile optimized */}
-          <div className="max-h-[50vh] sm:max-h-[520px] overflow-auto divide-y divide-slate-100 bg-white">
-            {pendingFacts.map((fact) => (
-              <FactApprovalCard key={fact.id} fact={fact} onResolved={loadFacts} />
-            ))}
-          </div>
-          <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>{pendingFacts.length} facts • condensed • tap row for source</span>
-            <span className="hidden sm:inline">No per-row buttons — use Accept All above</span>
+          <div className="overflow-x-auto scrollbar-none">
+            <table className="w-full text-left text-body-sm min-w-[760px]">
+              <thead>
+                <tr className="border-b border-canvas-border bg-canvas-muted/50 text-caption text-muted uppercase tracking-wider">
+                  <th className="py-2.5 px-3 font-semibold w-[90px]">Type</th>
+                  <th className="py-2.5 px-3 font-semibold w-[150px]">Name</th>
+                  <th className="py-2.5 px-3 font-semibold w-[130px]">Value</th>
+                  <th className="py-2.5 px-3 font-semibold">Description</th>
+                  <th className="py-2.5 px-3 font-semibold w-[90px]">Conf.</th>
+                  <th className="py-2.5 px-3 font-semibold w-[110px]">Source</th>
+                  <th className="py-2.5 px-3 font-semibold w-[220px] text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-canvas-border bg-white">
+                {pendingFacts.map((fact) => {
+                  const isEditing = editingId === fact.id;
+                  const isBusy = actionLoading === fact.id;
+                  return (
+                    <tr key={fact.id} className="hover:bg-canvas-muted/30 transition-colors align-top">
+                      <td className="py-3 px-3">
+                        <span className={`text-caption font-bold uppercase px-2 py-0.5 rounded-full border whitespace-nowrap ${getCategoryStyle(fact.category)}`}>{fact.category}</span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-body-sm font-semibold text-slate-900 truncate block max-w-[150px]" title={fact.name || (fact as any).factKey}>{fact.name || (fact as any).factKey}</span>
+                      </td>
+                      <td className="py-3 px-3">
+                        {isEditing ? (
+                          <input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="w-full px-2.5 py-1.5 bg-white border border-primary rounded-lg text-body-sm focus:outline-none focus:ring-2 focus:ring-primary min-h-[36px]" autoFocus />
+                        ) : (
+                          <span className="font-mono text-body-sm font-bold text-slate-900 truncate block max-w-[130px]" title={formatValue(fact)}>{formatValue(fact)} <span className="font-normal text-muted text-caption">{fact.unit}</span></span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3">
+                        <p className="text-body-sm text-muted leading-snug line-clamp-2 max-w-[320px]">{fact.plainExplanation || (fact as any).plainNarration || '—'}</p>
+                      </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 text-caption text-muted"><Sparkles className="w-3 h-3 text-amber-500" />{Math.round((fact.confidence || 0.85) * 100)}%</span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <button onClick={() => handleHighlight(fact)} className="inline-flex items-center gap-1 text-caption font-semibold text-primary hover:text-primary-hover bg-primary-light hover:bg-primary-light/80 border border-primary-border px-2.5 py-1 rounded-full transition-colors min-h-[32px]">
+                          <Eye className="w-3 h-3" />Source
+                        </button>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {isEditing ? (
+                            <>
+                              <button onClick={() => handleSaveEdit(fact)} disabled={!!isBusy} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-caption font-bold min-h-[32px] disabled:opacity-50">Save</button>
+                              <button onClick={() => setEditingId(null)} className="px-3 py-1.5 bg-white border border-canvas-border rounded-lg text-caption font-semibold min-h-[32px]">Cancel</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => handleApprove(fact)} disabled={!!isBusy} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-caption font-bold min-h-[32px] disabled:opacity-50"><Check className="w-3 h-3" />Approve</button>
+                              <button onClick={() => { setEditingId(fact.id); setEditValue(formatValue(fact)); }} disabled={!!isBusy} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-canvas-border rounded-lg text-caption font-semibold hover:bg-canvas-muted min-h-[32px]"><Edit3 className="w-3 h-3" />Edit</button>
+                              <button onClick={() => handleReject(fact)} disabled={!!isBusy} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-caption font-semibold min-h-[32px]"><X className="w-3 h-3" />Reject</button>
+                            </>
+                          )}
+                        </div>
+                        {isBusy && <div className="h-0.5 mt-1.5 bg-canvas-muted rounded-full overflow-hidden"><div className="h-full w-1/2 bg-primary animate-pulse" /></div>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Empty pending */}
       {!isLoading && pendingFacts.length === 0 && facts.length > 0 && (
         <div className="w-full bg-white border border-emerald-200 rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
-          <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 shrink-0">
-            <CheckCircle className="w-4 h-4" />
-          </div>
+          <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 shrink-0"><CheckCircle className="w-4 h-4" /></div>
           <p className="text-xs font-semibold text-slate-700">All caught up — no pending. Approved below.</p>
         </div>
       )}
 
-      {/* 2. Approved — condensed list */}
       <div className="w-full bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-3 sm:px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-2 bg-emerald-500 text-white rounded-lg shrink-0 hidden sm:flex">
-              <CheckCircle className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold text-slate-900">Saved Records ({approvedFacts.length})</h3>
-              <p className="hidden sm:block text-xs text-slate-500 leading-none">One line per fact • synced to meds/labs</p>
-            </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-slate-900">Your Saved Records</h3>
+            <p className="text-caption text-muted">Once you approve, they sync to medicines, labs, and doctor pack. {approvedFacts.length} saved.</p>
           </div>
-
           <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs overflow-x-auto scrollbar-none shrink-0">
             {['all', 'lab', 'medication', 'allergy', 'condition'].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1.5 rounded-md capitalize font-semibold whitespace-nowrap text-[11px] sm:text-xs ${selectedCategory === cat ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
-              >
-                {cat === 'all' ? 'All' : cat}
-              </button>
+              <button key={cat} onClick={() => setSelectedCategory(cat)} className={`px-2.5 py-1.5 rounded-md capitalize font-semibold whitespace-nowrap text-[11px] sm:text-xs ${selectedCategory === cat ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>{cat === 'all' ? 'All' : cat}</button>
             ))}
           </div>
         </div>
 
-        {/* Approved header */}
-        <div className="hidden sm:flex items-center gap-2 sm:gap-3 px-3 py-1.5 bg-slate-50 border-b border-slate-200 text-[11px] font-bold tracking-wide text-slate-500 uppercase">
-          <span className="w-8 shrink-0"></span>
-          <span className="w-16 shrink-0">Type</span>
-          <span className="w-32 shrink-0">Fact</span>
-          <span className="flex-1 min-w-0">Value</span>
-          <span className="hidden lg:block w-56 shrink-0">Summary</span>
-          <span className="hidden md:block w-24 shrink-0 text-right">Approved</span>
-          <span className="w-14 shrink-0 text-right">Source</span>
-        </div>
-
         {filteredApprovedFacts.length === 0 ? (
           <div className="p-6 sm:p-8 text-center bg-slate-50/50">
-            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center mx-auto">
-              <FileText className="w-5 h-5" />
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center mx-auto"><FileText className="w-5 h-5" /></div>
             <p className="text-sm font-semibold text-slate-700 mt-2">No records yet</p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">Upload a PDF above. Approved facts appear here as condensed one-line rows.</p>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-full mt-2">
-              <Sparkles className="w-3 h-3 text-amber-500" /> Drop PDF to start
-            </span>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">Upload a PDF above. Approved facts appear here as a uniform table.</p>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-full mt-2"><Sparkles className="w-3 h-3 text-amber-500" /> Drop PDF to start</span>
           </div>
         ) : (
-          <div className="max-h-[50vh] sm:max-h-[600px] overflow-auto divide-y divide-slate-100 bg-white">
-            {filteredApprovedFacts.map((fact) => {
-              const val = typeof fact.value === 'object' ? JSON.stringify(fact.value) : String(fact.value || fact.factValue || '—');
-              const shortVal = val.length > 36 ? val.slice(0, 36) + '…' : val;
-              const catColor =
-                (fact.category || '').toLowerCase().includes('med') ? 'bg-sky-50 text-sky-700 border-sky-200' :
-                (fact.category || '').toLowerCase().includes('lab') ? 'bg-violet-50 text-violet-700 border-violet-200' :
-                (fact.category || '').toLowerCase().includes('allerg') ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                'bg-slate-50 text-slate-600 border-slate-200';
-              const shortCat = String(fact.category || 'gen').slice(0, 3).toUpperCase();
-              const confidence = Math.round((fact.confidence ?? 0.92) * 100);
-              return (
-                <div key={fact.id} className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-slate-50 transition-colors min-h-[44px] text-xs sm:text-[13px] w-full overflow-hidden group">
-                  <span className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center bg-white">
-                    <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center text-[10px] font-bold ${catColor}`}>{shortCat.slice(0,3)}</span>
-                  </span>
-                  <span className={`hidden sm:inline-flex shrink-0 text-[10px] font-bold px-1.5 py-1 rounded-full border ${catColor}`}>{shortCat}</span>
-                  <span className="font-semibold text-slate-900 truncate max-w-[90px] sm:max-w-[140px] shrink-0">{fact.name || fact.factKey}</span>
-                  <span className="truncate flex-1 min-w-0 text-slate-700 flex items-baseline gap-1">
-                    <span className="font-medium truncate">{shortVal}</span>
-                    {fact.unit && <span className="hidden sm:inline text-[11px] font-mono bg-slate-50 border border-slate-200 px-1 rounded shrink-0">{fact.unit}</span>}
-                  </span>
-                  <span className="hidden lg:block text-slate-500 truncate max-w-[200px] xl:max-w-[280px] shrink-0 text-[11px] sm:text-xs">
-                    {(fact.plainExplanation || fact.plainNarration || '').slice(0, 60) || '—'}
-                  </span>
-                  <span className="hidden md:block shrink-0 text-[11px] text-slate-500 text-right w-24 truncate">
-                    {fact.approvedBy || 'Patient'} • {new Date(fact.createdAt || fact.timestamp || Date.now()).toLocaleDateString()}
-                  </span>
-                  <span className="hidden sm:inline-flex shrink-0 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-1 rounded-full">{confidence}%</span>
-                  <span className="sm:hidden shrink-0 text-[11px] font-bold text-slate-500">{confidence}%</span>
-                  <button
-                    onClick={() => handleHighlight(fact)}
-                    className="hidden md:inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-900 p-1 rounded-full hover:bg-white border border-transparent hover:border-slate-200"
-                  >
-                    <Eye className="w-3 h-3" />
-                    <span className="hidden xl:inline">Src</span>
-                  </button>
-                </div>
-              );
-            })}
+          <div className="overflow-x-auto scrollbar-none">
+            <table className="w-full text-left text-body-sm min-w-[760px]">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold tracking-wide text-slate-500 uppercase">
+                  <th className="py-2.5 px-3 font-semibold w-[96px]">Type</th>
+                  <th className="py-2.5 px-3 font-semibold w-[160px]">Name</th>
+                  <th className="py-2.5 px-3 font-semibold w-[140px]">Value</th>
+                  <th className="py-2.5 px-3 font-semibold">Description</th>
+                  <th className="py-2.5 px-3 font-semibold w-[96px]">Source</th>
+                  <th className="py-2.5 px-3 font-semibold w-[120px]">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {filteredApprovedFacts.map((fact) => (
+                  <tr key={fact.id} className="hover:bg-slate-50 transition-colors align-top">
+                    <td className="py-3 px-3">
+                      <span className={`text-caption font-bold uppercase px-2 py-0.5 rounded-full border whitespace-nowrap ${getCategoryStyle(fact.category)}`}>{fact.category}</span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="font-semibold text-slate-900 truncate block max-w-[160px]" title={fact.name || (fact as any).factKey}>{fact.name || (fact as any).factKey}</span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="font-mono font-bold text-slate-900 truncate block max-w-[140px]" title={`${formatValue(fact)} ${fact.unit || ''}`}>{formatValue(fact)} {fact.unit && <span className="font-normal text-muted text-caption">{fact.unit}</span>}</span>
+                    </td>
+                    <td className="py-3 px-3">
+                      <p className="text-body-sm text-muted leading-snug line-clamp-2 max-w-[360px]" title={fact.plainExplanation || (fact as any).plainNarration}>{(fact.plainExplanation || (fact as any).plainNarration || '').split('.').slice(0,2).join('.').slice(0,180) || '—'}</p>
+                    </td>
+                    <td className="py-3 px-3">
+                      <button onClick={() => handleHighlight(fact)} className="inline-flex items-center gap-1 text-caption font-semibold text-primary hover:bg-primary-light border border-primary-border px-2.5 py-1 rounded-full min-h-[32px] bg-white"><Eye className="w-3 h-3" /> Source</button>
+                    </td>
+                    <td className="py-3 px-3 whitespace-nowrap text-caption text-muted">
+                      {new Date((fact as any).approvedAt || fact.createdAt || (fact as any).timestamp || Date.now()).toLocaleDateString()}
+                      <span className="block text-caption text-muted/80">{fact.approvedBy ? `by ${fact.approvedBy}` : ''}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
         <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
-          <span>{filteredApprovedFacts.length} saved • one line each</span>
-          <span className="hidden sm:inline">Full-width • mobile: truncated, tap for source</span>
+          <span>{filteredApprovedFacts.length} saved • uniform table</span>
+          <span className="hidden sm:inline">Value narrow, description wide — tap Source to highlight</span>
         </div>
       </div>
 
-      {/* OCR Text Modal — keep light, full-width aware */}
       {activeOcrText && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
           <div className="bg-white border border-slate-200 rounded-xl sm:rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="px-3 sm:px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 gap-2">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div className="p-2 bg-white text-slate-700 rounded-lg border border-slate-200 shrink-0 hidden sm:flex">
-                  <FileText className="w-4 h-4" />
-                </div>
+                <div className="p-2 bg-white text-slate-700 rounded-lg border border-slate-200 shrink-0 hidden sm:flex"><FileText className="w-4 h-4" /></div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-bold text-slate-900 truncate">What we read</h3>
                   <p className="text-xs text-slate-500 truncate hidden sm:block">{activeDocName || 'Your paper'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(activeOcrText);
-                    eventBus.dispatchToast({ type: 'success', message: 'Copied' });
-                    console.log('[OCR Modal] Copied', activeOcrText.length);
-                  }}
-                  className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Copy</span>
+                <button type="button" onClick={() => { navigator.clipboard.writeText(activeOcrText); eventBus.dispatchToast({ type: 'success', message: 'Copied' }); }} className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg">
+                  <Copy className="w-3.5 h-3.5" /><span className="hidden sm:inline">Copy</span>
                 </button>
                 <button type="button" onClick={() => setActiveOcrText(null)} className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-white border border-transparent hover:border-slate-200">
-                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <XIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
@@ -336,20 +359,11 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                   <span className="text-xs font-bold text-slate-700">Text from your paper</span>
                   <span className="text-[11px] font-mono text-slate-500">{activeOcrText.length} chars</span>
                 </div>
-                <pre className="text-slate-800 font-mono text-[11px] sm:text-xs whitespace-pre-wrap leading-relaxed p-3 sm:p-4 max-h-[60vh] overflow-auto">
-                  {activeOcrText}
-                </pre>
+                <pre className="text-slate-800 font-mono text-[11px] sm:text-xs whitespace-pre-wrap leading-relaxed p-3 sm:p-4 max-h-[60vh] overflow-auto">{activeOcrText}</pre>
               </div>
-              {activeOcrText.includes('<table') && (
-                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
-                  <div className="text-xs font-bold text-emerald-900 mb-2">Tables</div>
-                  <div className="prose prose-sm max-w-none bg-white rounded-lg border border-emerald-200 p-3 overflow-auto text-sm" dangerouslySetInnerHTML={{ __html: activeOcrText.match(/<table[\s\S]*?<\/table>/gi)?.join('<div class="my-2"></div>') || '<p class="text-xs text-slate-500">No table HTML found.</p>' }} />
-                </div>
-              )}
             </div>
             <div className="px-3 sm:px-4 py-2.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
               <span className="hidden sm:inline">What we read from your paper</span>
-              <span className="sm:hidden">Details</span>
               <button type="button" onClick={() => setActiveOcrText(null)} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-900 text-white font-semibold rounded-lg text-xs sm:text-sm">Close</button>
             </div>
           </div>

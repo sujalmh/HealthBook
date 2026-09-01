@@ -254,14 +254,145 @@ class LightweightTableClient implements SupabaseTableClient {
   }
 
   private toDbRecord<T>(record: T): T {
-    const r: any = { ...(record as any) };
-    // Map camelCase -> snake_case for DB columns while preserving original for payload
-    if (r.patientId && !r.patient_id) r.patient_id = r.patientId;
-    if (r.linkId && !r.link_id) r.link_id = r.linkId;
-    if (r.grantId && !r.grant_id) r.grant_id = r.grantId;
-    if (r.reportId && !r.report_id) r.report_id = r.reportId;
-    // Also ensure payload JSONB mirrors full record if caller expects it
-    if (!r.payload) r.payload = { ...(record as any) };
+    const src: any = record as any;
+    // Comprehensive camel->snake map derived from supabaseSync SNAKE_TO_CAMEL reverse
+    const camelToSnake: Record<string, string> = {
+      patientId: 'patient_id',
+      linkId: 'link_id',
+      grantId: 'grant_id',
+      reportId: 'report_id',
+      genericName: 'generic_name',
+      brandName: 'brand_name',
+      timingSlots: 'timing_slots',
+      withFood: 'with_food',
+      avoidGrapefruit: 'avoid_grapefruit',
+      avoidAlcohol: 'avoid_alcohol',
+      avoidDairy: 'avoid_dairy',
+      emptyStomach: 'empty_stomach',
+      startDate: 'start_date',
+      stopDate: 'stop_date',
+      conditionName: 'condition_name',
+      diagnosedDate: 'diagnosed_date',
+      recordedDate: 'recorded_date',
+      doctorName: 'doctor_name',
+      doctorId: 'doctor_id',
+      medId: 'med_id',
+      medName: 'med_name',
+      previousDose: 'previous_dose',
+      proposedDose: 'proposed_dose',
+      previousSlot: 'previous_slot',
+      proposedSlot: 'proposed_slot',
+      linkedLabId: 'linked_lab_id',
+      linkedDangerId: 'linked_danger_id',
+      approvedAt: 'approved_at',
+      approvedBy: 'approved_by',
+      approvalRole: 'approval_role',
+      onBehalfOf: 'on_behalf_of',
+      eventType: 'event_type',
+      scheduledDate: 'scheduled_date',
+      providerName: 'provider_name',
+      notifyHoursBefore: 'notify_hours_before',
+      isCompleted: 'is_completed',
+      syncedToCalendar: 'synced_to_calendar',
+      icsData: 'ics_data',
+      sharedWithCaregivers: 'shared_with_caregivers',
+      patientName: 'patient_name',
+      caregiverId: 'caregiver_id',
+      caregiverUserId: 'caregiver_user_id',
+      caregiverName: 'caregiver_name',
+      permissionLevel: 'permission_level',
+      linkedDate: 'linked_date',
+      grantedDate: 'granted_date',
+      doctorEmail: 'doctor_email',
+      durationDays: 'duration_days',
+      permissionScope: 'permission_scope',
+      issuedAt: 'issued_at',
+      expiresAt: 'expires_at',
+      accessToken: 'access_token',
+      accessLog: 'access_log',
+      revokedAt: 'revoked_at',
+      testPanel: 'test_panel',
+      dueDate: 'due_date',
+      prescribedBy: 'prescribed_by',
+      prescribedDate: 'prescribed_date',
+      completedLabId: 'completed_lab_id',
+      symptomTags: 'symptom_tags',
+      freeText: 'free_text',
+      severityRating: 'severity_rating',
+      vitalSigns: 'vital_signs',
+      photoAttachment: 'photo_attachment',
+      triagePriority: 'triage_priority',
+      firstAidAdvice: 'first_aid_advice',
+      questionText: 'question_text',
+      sourceModule: 'source_module',
+      originModule: 'origin_module',
+      linkedMedName: 'linked_med_name',
+      linkedLabMarker: 'linked_lab_marker',
+      clinicalRationale: 'clinical_rationale',
+      includedInExport: 'included_in_export',
+      createdAt: 'created_at',
+      fileName: 'file_name',
+      docType: 'doc_type',
+      pageCount: 'page_count',
+      uploadTimestamp: 'upload_timestamp',
+      extractedText: 'extracted_text',
+      rawBuffer: 'raw_buffer',
+      extractedFactIds: 'extracted_fact_ids',
+      markerCode: 'marker_code',
+      normalizedValue: 'normalized_value',
+      normalizedUnit: 'normalized_unit',
+      drawDate: 'draw_date',
+      referenceRange: 'reference_range',
+      optimalRange: 'optimal_range',
+      isBorderline: 'is_borderline',
+      isCritical: 'is_critical',
+      sourceDocId: 'source_doc_id',
+      doctorComments: 'doctor_comments',
+      factKey: 'fact_key',
+      factValue: 'fact_value',
+      plainExplanation: 'plain_explanation',
+      plainNarration: 'plain_narration',
+      approvalStatus: 'approval_status',
+    };
+    const r: any = {};
+    // Preserve payload as full original record for JSONB flexibility
+    if (src.payload && typeof src.payload === 'object' && src.payload.patientId) {
+      r.payload = { ...src.payload };
+    } else if (src.payload && typeof src.payload === 'object') {
+      r.payload = { ...src.payload, ...src };
+      // Ensure payload has patientId etc for hydrator preference
+      if (src.patientId && !r.payload.patientId) r.payload.patientId = src.patientId;
+    } else {
+      r.payload = { ...src };
+    }
+    // Map known camel->snake to top-level columns
+    for (const [camel, snake] of Object.entries(camelToSnake)) {
+      if (src[camel] !== undefined) {
+        r[snake] = src[camel];
+      } else if (src[snake] !== undefined) {
+        r[snake] = src[snake];
+      }
+    }
+    // Copy direct snake_case columns and id-like fields without transformation
+    // Only copy keys that are already snake_case (no uppercase) to avoid PostgREST unknown column errors
+    for (const [k, v] of Object.entries(src)) {
+      if (k === 'payload') continue;
+      if (k in camelToSnake) continue; // already handled
+      if (Object.values(camelToSnake).includes(k)) {
+        if (r[k] === undefined) r[k] = v;
+        continue;
+      }
+      // Keep snake_case keys (no uppercase) as potential DB columns
+      if (!/[A-Z]/.test(k)) {
+        if (r[k] === undefined) r[k] = v;
+      }
+      // Camel not in map -> skip (only in payload)
+    }
+    // Ensure primary id field only if source had id (do not auto-create id from link_id/grant_id for tables where PK is link_id etc)
+    if (!r.id && src.id !== undefined) {
+      r.id = src.id;
+    }
+    // For care_circle, doctor_grants, danger_reports the PK is link_id/grant_id/report_id — already mapped via camelToSnake, do not create extra id column
     return r as T;
   }
 

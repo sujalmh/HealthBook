@@ -8,9 +8,10 @@ coverage
 .opencode/cache
 .opencode/logs
 
-# Teamwork — local orchestration artifacts (prompt, state, verification, snapshots) — not committed
-.teamwork/
-.tmp/
-.vercel
-.env*.local
+# Teamwork scratch — keep artifacts for audit, ignore transient worktrees
+.teamwork/worktrees/
+.teamwork/handoff/
+.teamwork/**/*.log
 /tmp/
+.vercel
+.env*

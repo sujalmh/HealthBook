@@ -296,9 +296,9 @@ export class WebMCPEventBus {
 
   public highlightSourceDocument(payloadOrDocId: string | { documentId: string; boundingBox?: any }, boundingBox?: any): void {
     if (typeof payloadOrDocId === 'string') {
-      this.emit('highlight_document', { documentId: payloadOrDocId });
+      this.emit('highlight_document', { documentId: payloadOrDocId, boundingBox });
     } else if (payloadOrDocId && typeof payloadOrDocId === 'object') {
-      this.emit('highlight_document', { documentId: (payloadOrDocId as any).documentId });
+      this.emit('highlight_document', { documentId: (payloadOrDocId as any).documentId, boundingBox: (payloadOrDocId as any).boundingBox || boundingBox });
     }
   }
 
