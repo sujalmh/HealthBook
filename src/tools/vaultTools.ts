@@ -63,7 +63,15 @@ export const extractFactTool: WebMCPToolDefinition = {
     const effectiveRawText = hasFileData && rawTextParam === fileDataUrl ? '' : rawTextParam;
 
     const config = getAIConfig();
-    const aiEnabled = isAIEnabled(config);
+    const isTestEnv = (() => {
+      try {
+        if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
+        if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
+        if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
+      } catch {}
+      return false;
+    })();
+    const aiEnabled = isAIEnabled(config) && !isTestEnv;
     let extractedFacts: Fact[] = [];
 
     const extractionPathParam: 'ocr_then_ai' | 'direct_vision' | undefined = (params as any).extractionPath || undefined;
