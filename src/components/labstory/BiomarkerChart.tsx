@@ -626,7 +626,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                   <div className="flex items-baseline justify-between gap-4 text-caption">
                     <span className="text-muted">Normal range:</span>
                     <span className="text-slate-700">
-                      {p.referenceRange.low}–{p.referenceRange.high} {p.normalizedUnit}
+                      {(p.referenceRange?.low ?? 0)}–{(p.referenceRange?.high ?? 100)} {p.normalizedUnit}
                     </span>
                   </div>
 

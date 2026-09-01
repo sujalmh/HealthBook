@@ -89,11 +89,16 @@ function normalizeLabRecord(lab: LabRecord): LabRecord {
   const std = findLocalStandard(lab.marker);
   if (!std) {
     const val = typeof lab.normalizedValue === 'number' && Number.isFinite(lab.normalizedValue) ? lab.normalizedValue : (typeof lab.value === 'number' && Number.isFinite(lab.value) ? lab.value : 0);
+    // Provide fallback reference/optimal ranges for unknown markers to prevent downstream crashes (e.g., LabStoryView reading .low)
+    const fallbackRef = (lab.referenceRange && typeof lab.referenceRange.low === 'number' && typeof lab.referenceRange.high === 'number') ? lab.referenceRange : { low: 0, high: 100 };
+    const fallbackOpt = (lab.optimalRange && typeof lab.optimalRange.low === 'number' && typeof lab.optimalRange.high === 'number') ? lab.optimalRange : { low: fallbackRef.low, high: fallbackRef.high * 0.85 || 85 };
     return {
       ...lab,
       marker: lab.marker || 'Lab Marker',
       normalizedUnit: lab.unit || lab.normalizedUnit || '',
       normalizedValue: val,
+      referenceRange: fallbackRef,
+      optimalRange: fallbackOpt,
       isBorderline: false,
       isCritical: lab.isCritical || false,
       flag: lab.flag || 'NORMAL',

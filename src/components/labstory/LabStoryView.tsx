@@ -417,7 +417,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                         {r.normalizedValue} <span className="font-normal text-muted text-caption">{r.normalizedUnit}</span>
                       </td>
                       <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
-                        {r.referenceRange.low}–{r.referenceRange.high} {r.normalizedUnit}
+                        {(r.referenceRange?.low ?? 0)}–{(r.referenceRange?.high ?? 100)} {r.normalizedUnit}
                       </td>
                       <td className="py-3 px-3">
                         <span
