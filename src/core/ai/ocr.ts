@@ -102,8 +102,10 @@ export async function runDocumentOCR(
   const isPdf = fileDataUrl.startsWith("data:application/pdf") || fileDataUrl.includes("application/pdf");
   const isImage = fileDataUrl.startsWith("data:image/");
 
-  // 1. Try Mistral OCR API if API key is configured — structure-preserving pipeline
-  if (apiKey && (isPdf || isImage)) {
+  // 1. Try Mistral OCR API — structure-preserving pipeline
+  // In browser the request goes via /api/ocr-proxy which injects OCR_API_KEY server-side, so allow without client key
+  const canCallViaProxy = isRealBrowser() && resolveOCREndpointForFetch(resolveOCREndpoint()).startsWith('/api/');
+  if ((apiKey || canCallViaProxy) && (isPdf || isImage)) {
     try {
       const endpoint = options?.baseURL || resolveOCREndpoint();
       const tableFormat = (options?.tableFormat as any) ?? "html";

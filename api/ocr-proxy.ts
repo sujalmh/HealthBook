@@ -55,7 +55,13 @@ async function handleProxy(req: Request) {
     const targetUrl = `https://api.mistral.ai${targetPath}${url.search}`;
 
     const authHeader = req.headers.get("authorization") || "";
+    const serverKey = (process as any).env?.OCR_API_KEY || (process as any).env?.MISTRAL_API_KEY || (process as any).env?.VITE_OCR_API_KEY || "";
+    const effectiveAuth = authHeader && authHeader.trim().length > 7 && authHeader.toLowerCase() !== 'bearer' && authHeader !== 'Bearer ' ? authHeader : serverKey ? `Bearer ${serverKey}` : "";
     const body = req.method === "POST" ? await req.text() : undefined;
+
+    if (!effectiveAuth) {
+      console.warn('[ocr-proxy] no OCR API key available — set OCR_API_KEY or MISTRAL_API_KEY in Vercel env');
+    }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 115000);
@@ -64,7 +70,7 @@ async function handleProxy(req: Request) {
       method: req.method,
       headers: {
         "Content-Type": "application/json",
-        ...(authHeader ? { Authorization: authHeader } : {}),
+        ...(effectiveAuth ? { Authorization: effectiveAuth } : {}),
       },
       body,
       signal: controller.signal,
