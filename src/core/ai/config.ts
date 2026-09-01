@@ -161,7 +161,10 @@ export function isAIEnabled(config?: AIConfig): boolean {
   const hasBase = typeof c.baseURL === 'string' && c.baseURL.trim().length > 0;
   const model = getAIModel(c);
   const hasModel = typeof model === 'string' && model.trim().length > 0;
-  return c.enabled === true && hasKey && hasBase && hasModel;
+  const isProxyBase = typeof c.baseURL === 'string' && c.baseURL.trim().startsWith('/api/');
+  // For proxy bases (/api/ai, /api/ai-proxy) the server injects the key, so client doesn't need it
+  const hasKeyOrProxy = hasKey || isProxyBase;
+  return c.enabled === true && hasKeyOrProxy && hasBase && hasModel;
 }
 
 export function isResponsesProvider(config?: AIConfig): boolean {
