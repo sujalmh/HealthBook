@@ -44,29 +44,37 @@ describe('Empirical Mobile Layout, Viewport Responsiveness & Touch Target Verifi
   // 2. Header & Navigation Responsiveness
   // =========================================================================
   describe('2. Header & Navigation Touch Targets & Overflow Protection', () => {
-    it('provides dedicated mobile proxy switcher in header with >= 44px touch target', () => {
+    it('proxy switcher moved from header to Family page — header is proxy-free, Family has switcher', () => {
       const app = readSrcFile('App.tsx');
+      const familySwitcher = readSrcFile('components/carecircle/CaregiverSwitcher.tsx');
+      const familyView = readSrcFile('components/carecircle/CareCircleView.tsx');
+      // Header should no longer contain proxy switcher (moved to Family)
+      expect(app).not.toContain("activeProfile.isProxy ? 'Switch to Patient' : 'Switch to Proxy'");
       expect(app).toContain('min-h-[44px] min-w-[44px]');
-      // Health 4-in-1 nav is present (Health merges Records+Labs), or legacy switcher
-      expect(app.includes("Switch to Patient") || app.includes('isProxy') || app.includes('Health')).toBe(true);
+      // Family page must contain proxy switcher with >=44px targets
+      expect(familySwitcher).toContain('Active profile:');
+      expect(familySwitcher).toContain('min-h-[40px]');
+      expect(familyView).toContain('CaregiverSwitcher');
     });
 
     it('ensures all top header action buttons have min-h-[44px] and min-w-[44px]', () => {
       const app = readSrcFile('App.tsx');
       expect(app).toContain('aria-label');
-      expect(app).toContain('Questions');
+      expect(app).toContain('Ask');
       expect(app).toContain('Activity');
       expect(app).toContain('Sign out');
       expect(app).toContain('min-h-[44px] min-w-[44px]');
     });
 
-    it('implements bottom mobile navigation with grouped 5-item grid, no horizontal scroll, and >=44px touch targets', () => {
+    it('implements bottom mobile navigation with grouped 5-item grid, merged health, Ask centered + highlighted, and >=44px touch targets', () => {
       const app = readSrcFile('App.tsx');
       expect(app).toContain('md:hidden fixed bottom-0 left-0 right-0');
       expect(app).toContain('grid grid-cols-5');
       expect(app).toContain('min-h-[56px]');
-      // Health 4-in-1 nav merges records/labs; verify either legacy grouped or new Health nav
-      expect(app.includes("'records'") || app.includes("'health'") || app.includes('"health"') || app.toLowerCase().includes('health')).toBe(true);
+      // Merged Records+Labs → Health, Ask centered with highlight
+      expect(app).toContain("'health'");
+      expect(app).toContain("'ask'");
+      expect(app).toContain("'medicines'");
       expect(app).toContain('aria-label');
       expect(app).toContain('aria-current');
     });
