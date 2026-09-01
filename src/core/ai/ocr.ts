@@ -5,8 +5,6 @@
  * Ref: https://docs.mistral.ai/studio/document-processing/basic_ocr
  */
 
-import { processPdfData } from "./pdf.ts";
-
 export interface OCRResult {
   markdown: string;
   pageCount: number;
@@ -176,14 +174,14 @@ export async function runDocumentOCR(
           // When table_format is html/markdown, pages contain tables array — preserve structure
           if (Array.isArray(p.tables) && p.tables.length > 0) {
             for (const t of p.tables) {
-              const html = t.html || t.markdown || "";
+              const html = (t as any).html || (t as any).content || (t as any).markdown || "";
               if (html) {
-                tablesCollected.push({ html, pageIndex: p.index ?? 0, id: t.id || undefined });
+                tablesCollected.push({ html, pageIndex: p.index ?? 0, id: (t as any).id || undefined });
               }
             }
             // Append structured tables block after the page text so downstream AI sees full table fidelity
             const tablesHtmlBlock = p.tables
-              .map((t: any) => t.html || t.markdown || "")
+              .map((t: any) => (t as any).html || (t as any).content || (t as any).markdown || "")
               .filter(Boolean)
               .join("\n\n");
             if (tablesHtmlBlock) {
@@ -235,26 +233,10 @@ export async function runDocumentOCR(
     }
   }
 
-  // 2. Fallback to client-side pdfjs-dist for PDFs
+  // 2. No manual pdfjs fallback — prod pipeline is Mistral OCR only
+  // If Mistral failed or no key, return empty to surface issue rather than inaccurate manual extraction
   if (isPdf) {
-    try {
-      const pdfRes = await processPdfData(fileDataUrl);
-      console.log("[OCR] pdfjs-dist fallback result:", { pageCount: pdfRes.pageCount, textLength: pdfRes.text?.length || 0 });
-      const durationMs = Math.round(performance.now() - start);
-      if (pdfRes.text && pdfRes.text.trim().length > 0) {
-        const result: OCRResult = {
-          markdown: pdfRes.text.trim(),
-          pageCount: pdfRes.pageCount || 1,
-          provider: "pdfjs-client",
-          durationMs,
-        };
-        console.log("[OCR] pdfjs OCRResult fallback:", result);
-        return result;
-      }
-    } catch (err) {
-      console.warn("[OCR] pdfjs-dist fallback notice:", err);
-      console.log("[OCR] pdfjs exception:", err);
-    }
+    console.warn("[OCR] Mistral OCR not used or failed, and manual pdfjs fallback is disabled (OCR-only pipeline)");
   }
 
   const durationMs = Math.round(performance.now() - start);

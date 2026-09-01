@@ -12,7 +12,6 @@ import type { Fact } from '../../types/vault.ts';
 import type { AIConfig, AICallOptions } from './types.ts';
 import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel, isResponsesProvider } from './config.ts';
 import { buildChatMessages, buildResponsesInput, isDataUrl, isVisionSupportedImage } from './vision.ts';
-import { processPdfData } from './pdf.ts';
 import { runDocumentOCR } from './ocr.ts';
 import {
   FACT_EXTRACTION_JSON_SCHEMA,
@@ -23,41 +22,53 @@ import {
 } from './structured.ts';
 
 const PROMPT_MEDICATIONS = `You are a clinical pharmacologist. Extract ALL active and discharge medications from this document.
-Extract each medication as an object with:
-- name: Medication generic/brand name
+Extract each medication as an object with exactly these 6 fields:
+- name: Medication generic/brand name (e.g. Lisinopril, Atorvastatin, Sacubitril/valsartan, Carvedilol, Furosemide)
 - category: "medication"
-- value: Exact dosage, route (PO/IV), frequency (BID, QD, etc.), timing (morning, evening, bedtime), and food instructions
-- unit: Dosage unit (e.g. mg, mcg, mL)
+- value: Exact dosage, route (PO/IV), frequency (BID, QD, twice daily, once nightly etc.), timing (morning, evening, bedtime), and food instructions (e.g. "10 mg tablet PO once daily", "24/26 mg PO twice daily", "3.125 mg PO twice daily with food")
+- unit: Dosage unit (e.g. mg, mcg, mL, IU, "mg" for tablets, "IU" for vitamins)
 - confidence: 0.95
-- plainExplanation: Concise summary of route, frequency, and instructions.
-Return strictly JSON matching {"facts": [...]}. If none found, return {"facts": []}.`;
+- plainExplanation: Concise plain-language summary of route, frequency, and instructions (e.g. "Take 10 mg by mouth once daily.", "Take 24/26 mg by mouth twice daily.")
+Return strictly JSON matching {"facts": [...]} where each fact has name/category/value/unit/confidence/plainExplanation. If none found, return {"facts": []}.
+Example: {"facts": [{"name":"Lisinopril","category":"medication","value":"10 mg tablet PO once daily","unit":"mg","confidence":0.95,"plainExplanation":"Take 10 mg by mouth once daily."}]}`;
 
-const PROMPT_LABS = `You are a clinical pathologist. Extract ALL laboratory tests, numeric biomarker values, and diagnostic readings from this document.
-Extract each lab test as an object with:
-- name: Standard lab name (e.g. HbA1c, Serum Creatinine, NT-proBNP, Sodium, Potassium, ALT, AST, Hemoglobin)
+const PROMPT_LABS = `You are a clinical pathologist. Extract ALL laboratory tests and numeric biomarker values from this document.
+Extract each lab test as an object with exactly these 6 fields:
+- name: Standard lab name (e.g. HbA1c, Serum Creatinine, Creatinine, NT-proBNP, Sodium, Potassium, ALT, AST, Hemoglobin, LDL cholesterol, TSH, eGFR, Fasting glucose, Total cholesterol, Triglycerides, WBC)
 - category: "lab"
-- value: Measured numeric value or chronological readings (e.g. "1.1 mg/dL" or "06-Aug: 13.4, 11-Aug: 13.2")
-- unit: Standard clinical unit (e.g. mg/dL, %, pg/mL, mEq/L, g/dL)
+- value: Measured numeric value or chronological readings (e.g. "1.1 mg/dL" or "06-Aug: 13.4, 11-Aug: 13.2" or "13.8 g/dL" or "196 mg/dL"). For tables with multiple dates, include all dates in value as "06-Aug: 13.4, 09-Aug: 13.1, 11-Aug: 13.2". Extract EVERY row in any lab table — do not omit cholesterol, triglycerides, creatinine, eGFR, ALT, AST, TSH, hemoglobin, glucose, HbA1c, NT-proBNP, sodium, potassium, WBC etc.
+- unit: Standard clinical unit (e.g. mg/dL, %, pg/mL, mmol/L, mEq/L, g/dL, U/L, mIU/L, x10^9/L)
 - confidence: 0.95
-- plainExplanation: Clear explanation of reading and normal/abnormal status.
-Return strictly JSON matching {"facts": [...]}. If none found, return {"facts": []}.`;
+- plainExplanation: Clear explanation of reading and normal/abnormal status with reference range context (e.g. "Fasting glucose 102 mg/dL is mildly high (normal 70-99).", "LDL 118 mg/dL is above optimal <100.")
+IMPORTANT: Do NOT extract vital signs (blood pressure, heart rate, temperature, weight, BMI, SpO2, respiratory rate) — those are handled by the vital category. Only extract true laboratory biomarkers (blood tests).
+Return strictly JSON matching {"facts": [...]} where each fact has name/category/value/unit/confidence/plainExplanation. If none found, return {"facts": []}.
+Example: {"facts": [{"name":"Hemoglobin","category":"lab","value":"13.8 g/dL","unit":"g/dL","confidence":0.95,"plainExplanation":"Hemoglobin 13.8 g/dL is within normal range (13.0-17.0)."},{"name":"LDL cholesterol","category":"lab","value":"118 mg/dL","unit":"mg/dL","confidence":0.95,"plainExplanation":"LDL cholesterol 118 mg/dL is above optimal (<100 mg/dL)."}]}`;
 
 const PROMPT_CONDITIONS_VITALS = `You are an internal medicine physician. Extract ALL diagnosed conditions, cardiovascular findings, allergies, patient demographics, and vitals from this document.
-Categories:
-- "demographics": Patient name, age, gender, blood group, hospital, consultant doctor, admission/discharge dates.
-- "condition": Primary & secondary diagnoses, cardiac ejection fraction (e.g. LVEF 30-35%), CAD, Heart Failure, etc.
-- "allergy": Documented drug/food allergies (or NKDA).
-- "vital": Blood pressure, pulse, SpO2, weight, BMI, temperature.
-Return strictly JSON matching {"facts": [...]}. If none found, return {"facts": []}.`;
+
+Each fact MUST be a JSON object with exactly these 6 fields:
+- name: Specific entity name (e.g. "Arjun Rao", "Essential hypertension", "Penicillin", "Blood pressure", "LVEF 35%")
+- category: One of "demographics", "condition", "allergy", "vital", "vital_sign" — use "demographics" for patient identifiers/dates/hospital/doctor, "condition" for diagnoses/history, "allergy" for allergies (use value "NKDA" if no allergies), "vital" or "vital_sign" for vitals (BP, pulse, SpO2, weight, BMI, temp, respiratory, eGFR)
+- value: Primary value string (e.g. "62 years / Male", "Acute worsening of chronic heart failure (HFrEF)", "rash", "128/78 mmHg", "72 bpm", "74 kg", "35%")
+- unit: Unit string or empty if not applicable (e.g. "mmHg", "bpm", "kg", "%", "")
+- confidence: 0.95
+- plainExplanation: One concise sentence in plain language explaining the fact (e.g. "Patient is Arjun Rao, 62-year-old male.", "History of essential hypertension diagnosed 2021.", "Allergy to penicillin causes rash.", "Blood pressure 128/78 mmHg is within normal range.")
+
+Return strictly JSON matching {"facts": [...]} where each fact has name/category/value/unit/confidence/plainExplanation. Never use a field called "fact". If none found, return {"facts": []}.
+Example: {"facts": [{"name":"Alex Morgan","category":"demographics","value":"14 March 1981","unit":"","confidence":0.95,"plainExplanation":"Patient is Alex Morgan, born 14 March 1981."},{"name":"Essential hypertension","category":"condition","value":"diagnosed 2021","unit":"","confidence":0.95,"plainExplanation":"History of essential hypertension since 2021."},{"name":"Blood pressure","category":"vital","value":"128/78","unit":"mmHg","confidence":0.95,"plainExplanation":"Blood pressure is 128/78 mmHg, mildly elevated but controlled."}]}`;
 
 const PROMPT_CARE_SAFETY = `You are a post-discharge care coordinator. Extract ALL diet/lifestyle rules, follow-up appointments, due tests, questions, and red-flag danger signs from this document.
-Categories:
-- "diet_habit": Low sodium rules, fluid limits, daily morning weight logging, etc.
-- "followup": Scheduled clinic visits, cardiology reviews, and doctor timelines.
-- "due_card": Prescribed future/repeat lab tests (e.g. Repeat Creatinine/K+ in 7 days).
-- "question": Recommended questions for the patient to ask their doctor.
-- "danger_sign": Warning symptoms (e.g. sudden weight gain >1.5kg, chest pain, worsening shortness of breath).
-Return strictly JSON matching {"facts": [...]}. If none found, return {"facts": []}.`;
+
+Each fact MUST be a JSON object with exactly these 6 fields:
+- name: Short descriptive title (e.g. "Low-sodium diet", "Cardiology follow-up in 7-14 days", "Repeat HbA1c in 3 months", "Sudden weight gain >1.5kg")
+- category: One of "diet_habit", "followup", "due_card", "question", "danger_sign" — use "diet_habit" for diet/fluid/activity rules, "followup" for scheduled clinic visits with dates, "due_card" for prescribed future lab tests with timing, "question" for any implied patient question, "danger_sign" for red-flag symptoms that require urgent care
+- value: Full detail string (e.g. "Avoid excessive processed/high-salt foods. Follow clinician's fluid plan.", "Cardiology/Internal Medicine review in 7-14 days with renal function and electrolytes", "Repeat fasting lipid panel and HbA1c in 3 months", "Chest pain or worsening shortness of breath")
+- unit: Empty string "" (unless a lab test panel specifies unit)
+- confidence: 0.95
+- plainExplanation: One concise plain-language sentence (e.g. "Follow a low-sodium diet and limit fluids as advised.", "See your cardiologist within 1-2 weeks.", "Need to repeat HbA1c and lipid tests in 3 months.")
+
+Return strictly JSON matching {"facts": [...]} where each fact has name/category/value/unit/confidence/plainExplanation. Never use a field called "fact". If none found, return {"facts": []}.
+Example: {"facts": [{"name":"Low-sodium diet","category":"diet_habit","value":"Avoid excessive processed/high-salt foods","unit":"","confidence":0.95,"plainExplanation":"Follow a low-sodium diet and avoid high-salt processed foods."},{"name":"Cardiology follow-up","category":"followup","value":"Cardiology/Internal Medicine review in 7–14 days","unit":"","confidence":0.95,"plainExplanation":"Follow up with cardiology in 1-2 weeks with blood tests."}]}`;
 
 const CATEGORY_PROMPTS = [
   { name: 'Medications', prompt: PROMPT_MEDICATIONS },
@@ -254,23 +265,13 @@ export async function extractWithAI(
     }
   }
 
-  // Path B (or fallback when OCR returned no text): Direct Multimodal Vision
-  if ((extractionPath === 'direct_vision' || !effectiveText) && imageDataUrl) {
-    if (imageDataUrl.startsWith('data:application/pdf') || imageDataUrl.includes('application/pdf')) {
-      try {
-        const pdfResult = await processPdfData(imageDataUrl);
-        if (pdfResult.text && !effectiveText) {
-          effectiveText = pdfResult.text;
-        }
-        if (pdfResult.imagePreviewDataUrl && isVisionSupportedImage(pdfResult.imagePreviewDataUrl)) {
-          effectiveImageDataUrl = pdfResult.imagePreviewDataUrl;
-        }
-      } catch (err) {
-        console.warn('[extractWithAI] PDF extraction notice:', err);
-      }
-    } else if (isVisionSupportedImage(imageDataUrl)) {
-      effectiveImageDataUrl = imageDataUrl;
-    }
+  // Path B: Direct Vision for images only — NO manual PDF text extraction (use OCR pipeline for PDFs)
+  if (imageDataUrl && isVisionSupportedImage(imageDataUrl)) {
+    effectiveImageDataUrl = imageDataUrl;
+  } else if (imageDataUrl && !effectiveText) {
+    // PDF without OCR text: do not fallback to manual pdfjs extraction per prod pipeline.
+    // If OCR failed and no text, the AI call will surface the issue rather than using inaccurate manual extraction.
+    console.warn('[extractWithAI] No OCR text and no vision image for PDF — skipping manual pdfjs fallback (OCR-only pipeline)');
   }
 
   if (context?.onStepProgress) {

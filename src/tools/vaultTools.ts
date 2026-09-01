@@ -63,15 +63,7 @@ export const extractFactTool: WebMCPToolDefinition = {
     const effectiveRawText = hasFileData && rawTextParam === fileDataUrl ? '' : rawTextParam;
 
     const config = getAIConfig();
-    const isTestEnv = (() => {
-      try {
-        if (typeof process !== 'undefined' && ((process as any).env?.VITEST === 'true' || (process as any).env?.NODE_ENV === 'test')) return true;
-        if (typeof (globalThis as any).__vitest_worker__ !== 'undefined') return true;
-        if (typeof navigator !== 'undefined' && /jsdom/i.test((navigator as any).userAgent || '')) return true;
-      } catch {}
-      return false;
-    })();
-    const aiEnabled = isAIEnabled(config) && !isTestEnv;
+    const aiEnabled = isAIEnabled(config);
     let extractedFacts: Fact[] = [];
 
     const extractionPathParam: 'ocr_then_ai' | 'direct_vision' | undefined = (params as any).extractionPath || undefined;
@@ -114,32 +106,16 @@ export const extractFactTool: WebMCPToolDefinition = {
         };
       }
     } else {
-      // Offline / Test environment fallback when rawText is provided without cloud AI
-      if (effectiveRawText) {
-        const sentences = effectiveRawText.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(Boolean);
-        for (const sentence of sentences) {
-          const isMed = /mg|twice daily|once daily|daily|bid|qd|tablet|capsule|bedtime|meals/i.test(sentence);
-          const isLab = /egfr|creatinine|potassium|glucose|hba1c|sodium|hemoglobin|ast|alt/i.test(sentence);
-          const category = isMed ? 'medication' : isLab ? 'lab' : 'condition';
-          const words = sentence.split(/\s+/);
-          const name = words.slice(0, 2).join(' ') || 'Clinical Item';
-          extractedFacts.push({
-            id: `fact_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            patientId: context.patientId,
-            category: category as any,
-            name,
-            value: sentence,
-            unit: isMed ? 'mg' : '',
-            confidence: 0.85,
-            status: 'unconfirmed',
-            sourceDocId: documentId,
-            timestamp: new Date().toISOString(),
-            plainExplanation: sentence,
-            author: { userId: context.activeProfile.userId, name: context.activeProfile.name, role: context.activeProfile.role },
-            metadata: { rawText: sentence },
-          });
-        }
-      }
+      // No offline heuristic fallback — AI must be configured
+      return {
+        success: false,
+        tool: 'extract_fact',
+        timestamp: new Date().toISOString(),
+        data: [],
+        plainLanguageSummary: `AI extraction is not configured. Please set VITE_AI_BASE_URL, VITE_AI_API_KEY and VITE_AI_MODEL in Settings to extract clinical facts from document "${documentId}".`,
+        humanApprovalRequired: false,
+        error: { code: 'AI_NOT_CONFIGURED', message: 'AI is disabled — heuristic fallback removed. Configure AI in Settings.' },
+      };
     }
 
     // Save to Vault with status 'unconfirmed' for the authenticated patientId

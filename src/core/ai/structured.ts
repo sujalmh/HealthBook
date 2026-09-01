@@ -14,12 +14,12 @@ export const FACT_EXTRACTION_JSON_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'Fact name' },
-          category: { type: 'string', description: 'Category: medication, lab, allergy, condition, vital_sign, supplement, diet_habit' },
-          value: { type: 'string', description: 'Fact value' },
-          unit: { type: 'string', description: 'Clinical unit' },
-          confidence: { type: 'number', description: 'Confidence score' },
-          plainExplanation: { type: 'string', description: 'Plain explanation' },
+          name: { type: 'string', description: 'Fact name (e.g. Lisinopril, Hemoglobin, Alex Morgan, Blood pressure, Low-sodium diet)' },
+          category: { type: 'string', description: 'Category: medication, lab, allergy, condition, demographics, vital, vital_sign, supplement, diet_habit, followup, due_card, question, danger_sign' },
+          value: { type: 'string', description: 'Fact value (dosage/text, numeric reading, or detail string)' },
+          unit: { type: 'string', description: 'Clinical unit (e.g. mg, mg/dL, mmHg, %, or empty)' },
+          confidence: { type: 'number', description: 'Confidence score 0..1' },
+          plainExplanation: { type: 'string', description: 'Plain language explanation' },
         },
         required: ['name', 'category', 'value', 'unit', 'confidence', 'plainExplanation'],
         additionalProperties: false,
