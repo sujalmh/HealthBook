@@ -44,8 +44,8 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const matchesSearch =
-        item.medName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.genericName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.medName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.genericName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.documentedReason && item.documentedReason.toLowerCase().includes(searchQuery.toLowerCase()));
 
       if (!matchesSearch) return false;

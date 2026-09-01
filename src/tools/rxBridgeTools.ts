@@ -183,8 +183,8 @@ export const flagInteractionTool: WebMCPToolDefinition = {
     const enrichedArcs = rawArcs.map((arc: any) => {
       const isOTC = preOTCs.some(
         (otc: string) =>
-          arc.drugA.toLowerCase().includes(otc.toLowerCase()) ||
-          arc.drugB.toLowerCase().includes(otc.toLowerCase())
+          arc.drugA?.toLowerCase().includes(otc?.toLowerCase()) ||
+          arc.drugB?.toLowerCase().includes(otc?.toLowerCase())
       );
       return {
         id: arc.id,
@@ -413,7 +413,7 @@ export const suggestQuestionForDoctorTool: WebMCPToolDefinition = {
       }
       // Also check medName lower for apixaban vs fish oil cross
       if (!matched && params.medName) {
-        const medLower = params.medName.toLowerCase();
+        const medLower = params.medName?.toLowerCase();
         if (medLower.includes('apixaban') && (lowerCtx.includes('fish') || lowerCtx.includes('oil') || lowerCtx.includes('bleeding'))) {
           matched = templateMap['fish oil'];
         }

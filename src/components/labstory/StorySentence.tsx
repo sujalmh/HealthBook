@@ -51,7 +51,7 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
   let trendIcon = <Minus className="w-4 h-4 text-muted" />;
   let badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
 
-  if (marker.toLowerCase().includes('egfr')) {
+  if ((marker ?? '').toLowerCase().includes('egfr')) {
     if (last.normalizedValue < 30) {
       storySentence = `eGFR ${last.normalizedValue} — low. Was ${first.normalizedValue}.`;
       trendIcon = <TrendingDown className="w-4 h-4 text-rose-600" />;
@@ -65,7 +65,7 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
       trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
       badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
-  } else if (marker.toLowerCase().includes('creat')) {
+  } else if ((marker ?? '').toLowerCase().includes('creat')) {
     if (last.normalizedValue > 1.5) {
       storySentence = `Creatinine high at ${last.normalizedValue}.`;
       trendIcon = <TrendingUp className="w-4 h-4 text-rose-600" />;
@@ -75,7 +75,7 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
       trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
       badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
-  } else if (marker.toLowerCase().includes('glucose') || marker.toLowerCase().includes('a1c')) {
+  } else if ((marker ?? '').toLowerCase().includes('glucose') || (marker ?? '').toLowerCase().includes('a1c')) {
     if (delta > 10) {
       storySentence = `${marker} up to ${last.normalizedValue}.`;
       trendIcon = <TrendingUp className="w-4 h-4 text-amber-600" />;
@@ -85,7 +85,7 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
       trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
       badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
-  } else if (marker.toLowerCase().includes('potassium')) {
+  } else if ((marker ?? '').toLowerCase().includes('potassium')) {
     if (last.normalizedValue > 5.0) {
       storySentence = `Potassium high at ${last.normalizedValue}.`;
       trendIcon = <AlertTriangle className="w-4 h-4 text-amber-600" />;
@@ -95,7 +95,7 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
       trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
       badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
-  } else if (marker.toLowerCase().includes('ldl') || marker.toLowerCase().includes('cholesterol')) {
+  } else if ((marker ?? '').toLowerCase().includes('ldl') || (marker ?? '').toLowerCase().includes('cholesterol')) {
     if (delta < 0) {
       storySentence = `${marker} down to ${last.normalizedValue}.`;
       trendIcon = <TrendingDown className="w-4 h-4 text-emerald-600" />;

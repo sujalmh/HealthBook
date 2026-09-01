@@ -229,7 +229,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
         context.vault.addMedication(
           {
-            id: `med_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+            id: `med_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
             brandName: valObj.brand || undefined,
             genericName: name,
@@ -256,7 +256,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
           labVal = m ? Number(m[1]) : 0;
         }
 
-        const lowerName = name.toLowerCase();
+        const lowerName = (name ?? '').toLowerCase();
         let flag: 'NORMAL' | 'HIGH' | 'LOW' | 'CRITICAL_HIGH' | 'CRITICAL_LOW' = 'NORMAL';
         if (lowerName.includes('creatinine') && labVal > 1.2) flag = labVal > 3.0 ? 'CRITICAL_HIGH' : 'HIGH';
         else if (lowerName.includes('egfr') && labVal < 60) flag = labVal < 15 ? 'CRITICAL_LOW' : 'LOW';
@@ -266,7 +266,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
         context.vault.addLab(
           {
-            id: `lab_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+            id: `lab_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
             marker: name,
             value: labVal,
@@ -289,7 +289,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
       else if (cat.includes('condition') || cat.includes('diagnos')) {
         context.vault.addCondition(
           {
-            id: `cond_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+            id: `cond_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
             name: name,
             icd10: typeof val === 'string' && val.match(/^[A-Z]\d{2}/) ? val : undefined,
@@ -305,7 +305,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
       else if (cat.includes('allerg')) {
         context.vault.addAllergy(
           {
-            id: `allg_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+            id: `allg_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
             allergen: name,
             reaction: typeof val === 'string' && val !== 'NKDA' ? val : 'Documented Allergy',
@@ -596,8 +596,9 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
     // Most Recent Critical Labs — vault-derived only (no mock defaults)
     const markerMap = new Map<string, any>();
     for (const lab of labs) {
-      const k = lab.marker.toLowerCase();
-      if (!markerMap.has(k) || new Date(lab.drawDate).getTime() > new Date(markerMap.get(k).drawDate).getTime()) {
+      const k = (lab.marker ?? '').toLowerCase();
+      if (!k) continue;
+      if (!markerMap.has(k) || new Date(lab.drawDate ?? 0).getTime() > new Date(markerMap.get(k).drawDate ?? 0).getTime()) {
         markerMap.set(k, lab);
       }
     }
@@ -605,7 +606,7 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
     const criticalMarkerNames = ['eGFR', 'Creatinine', 'Potassium', 'HbA1c', 'Glucose Fasting'];
     const mostRecentCriticalLabs = criticalMarkerNames
       .map((name) => {
-        const found = markerMap.get(name.toLowerCase());
+        const found = markerMap.get((name ?? '').toLowerCase());
         if (found) {
           return {
             marker: found.marker,

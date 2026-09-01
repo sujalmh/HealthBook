@@ -676,7 +676,7 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     }
 
     // Fallback heuristic template (preserved for when AI disabled per Q10)
-    const bLower = biomarker.toLowerCase();
+    const bLower = (biomarker ?? '').toLowerCase();
     let narrative = '';
     let trajectory = 'stable';
     let doctorQuestion = '';

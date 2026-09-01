@@ -41,7 +41,7 @@ export const addMedicationTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { name: string; dose: string; frequency?: string; slot: string; days?: string[]; withFood?: boolean }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    const slotNormalized = params.slot.toLowerCase() as TimeSlot;
+    const slotNormalized = params.slot?.toLowerCase() as TimeSlot;
     if (!['morning', 'noon', 'evening', 'bedtime'].includes(slotNormalized)) {
       return {
         success: false,
@@ -64,7 +64,7 @@ export const addMedicationTool: WebMCPToolDefinition = {
 
     const medRecord = context.vault.addMedication(
       {
-        id: `med_${params.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
+        id: `med_${params.name?.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
         patientId: context.patientId,
         genericName,
         brandName: params.name,

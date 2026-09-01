@@ -59,7 +59,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
   // 2. Condition Resources
   const conditions = dossier.chronicConditions || profile.chronicConditions || [];
   for (const cond of conditions) {
-    const condId = cond.id || `cond-${cond.conditionName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const condId = cond.id || `cond-${cond.conditionName?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     entries.push({
       fullUrl: `urn:uuid:${condId}`,
       resource: {
@@ -118,7 +118,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
   // 3. AllergyIntolerance Resources
   const allergies = dossier.allergies || profile.allergies || [];
   for (const allergy of allergies) {
-    const allergyId = allergy.id || `allergy-${allergy.allergen.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const allergyId = allergy.id || `allergy-${allergy.allergen?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     entries.push({
       fullUrl: `urn:uuid:${allergyId}`,
       resource: {
@@ -179,7 +179,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
   // 4. MedicationStatement Resources
   const meds = dossier.activeMedications || dossier.allMedications || [];
   for (const med of meds) {
-    const medId = med.id || `med-${med.genericName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const medId = med.id || `med-${med.genericName?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     entries.push({
       fullUrl: `urn:uuid:${medId}`,
       resource: {
@@ -224,7 +224,8 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
   // 5. Observation Resources (Labs)
   const labs = dossier.longitudinalLabs || [];
   for (const lab of labs) {
-    const labId = lab.id || `obs-${lab.marker.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`;
+    const safeMarker = (lab.marker ?? 'lab').toLowerCase();
+    const labId = lab.id || `obs-${safeMarker.replace(/[^a-z0-9]/g, '-')}-${Date.now()}`;
     entries.push({
       fullUrl: `urn:uuid:${labId}`,
       resource: {
@@ -255,8 +256,8 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
             : [
                 {
                   system: 'urn:carecanvas:biomarkers',
-                  code: lab.marker.toLowerCase().replace(/[^a-z0-9]/g, '_'),
-                  display: lab.marker
+                  code: (lab.marker ?? 'lab').toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                  display: lab.marker ?? 'Lab'
                 }
               ]
         },

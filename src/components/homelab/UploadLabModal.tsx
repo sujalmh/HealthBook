@@ -124,7 +124,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
       const numVal = typeof item.value === 'number' ? item.value : parseFloat(String(item.value).replace(/[^0-9.]/g, ''));
       if (Number.isFinite(numVal)) {
         localVault.addLab({
-          id: `lab_${item.marker.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+          id: `lab_${(item.marker ?? 'lab').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
           patientId,
           marker: item.marker,
           value: numVal,

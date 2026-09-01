@@ -573,7 +573,7 @@ export class ClinicalReconciliationEngine {
 
     // Attach to matching items
     for (const item of items) {
-      const generic = item.genericName.toLowerCase();
+      const generic = item.genericName?.toLowerCase();
       item.interactions = flaggedInteractions.filter(
         (fi) =>
           fi.drugA.toLowerCase().includes(generic) ||
@@ -634,7 +634,7 @@ export class ClinicalReconciliationEngine {
         clinicalGuidance: badge.clinicalGuidance
       }));
       for (const item of items) {
-        const generic = item.genericName.toLowerCase();
+        const generic = item.genericName?.toLowerCase();
         item.interactions = flaggedInteractions.filter(
           (fi) =>
             fi.drugA.toLowerCase().includes(generic) ||

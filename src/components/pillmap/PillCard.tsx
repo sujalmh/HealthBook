@@ -173,7 +173,7 @@ export const PillCard: React.FC<PillCardProps> = ({
         avoidGrapefruit={pill.avoidGrapefruit}
         avoidAlcohol={pill.avoidAlcohol}
         avoidDairy={pill.avoidDairy}
-        dietBadges={dietBadges.filter(d => d.drugName.toLowerCase().includes(pill.name.toLowerCase()) || (pill.genericName && d.drugName.toLowerCase().includes(pill.genericName.toLowerCase())))}
+        dietBadges={dietBadges.filter(d => d.drugName?.toLowerCase().includes(pill.name?.toLowerCase()) || (pill.genericName && d.drugName?.toLowerCase().includes(pill.genericName?.toLowerCase())))}
       />
     </div>
   );

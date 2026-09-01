@@ -254,7 +254,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
 
   // Pill visual helpers
   function getCategoryColor(genericName: string): string {
-    const lower = genericName.toLowerCase();
+    const lower = (genericName ?? '').toLowerCase();
     if (lower.includes('apixaban') || lower.includes('warfarin') || lower.includes('clopidogrel') || lower.includes('aspirin')) return '#3B82F6';
     if (lower.includes('metformin') || lower.includes('glipizide') || lower.includes('jardiance')) return '#10B981';
     if (lower.includes('lisinopril') || lower.includes('amlodipine') || lower.includes('carvedilol') || lower.includes('furosemide')) return '#0EA5E9';
@@ -266,7 +266,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   }
 
   function getPillShape(genericName: string): 'round' | 'capsule' | 'oval' {
-    const lower = genericName.toLowerCase();
+    const lower = (genericName ?? '').toLowerCase();
     if (lower.includes('apixaban') || lower.includes('atorvastatin') || lower.includes('lisinopril')) return 'round';
     if (lower.includes('sertraline') || lower.includes('cipro') || lower.includes('metformin')) return 'oval';
     return 'capsule';
@@ -427,7 +427,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   };
 
   function getCategoryName(genericName: string): string {
-    const lower = genericName.toLowerCase();
+    const lower = (genericName ?? '').toLowerCase();
     if (lower.includes('apixaban')) return 'DOAC Anticoagulant';
     if (lower.includes('metformin')) return 'Biguanide Antidiabetic';
     if (lower.includes('lisinopril')) return 'ACE Inhibitor';

@@ -121,17 +121,18 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   // Distinct markers available in patient labs
   const availableMarkers = useMemo(() => {
     const defaultOrder = ['eGFR', 'Creatinine', 'HbA1c', 'Glucose Fasting', 'Potassium', 'Cholesterol Total', 'LDL', 'HDL', 'Triglycerides'];
-    const discovered = Array.from(new Set(labs.map((l) => l.marker)));
+    const discovered = Array.from(new Set(labs.map((l) => l.marker).filter(Boolean) as string[]));
     const all = Array.from(new Set([...defaultOrder, ...discovered]));
     return all.map((marker) => {
-      const markerLabs = labs.filter((l) => l.marker.toLowerCase() === marker.toLowerCase());
-      const sorted = [...markerLabs].sort((a, b) => new Date(a.drawDate).getTime() - new Date(b.drawDate).getTime());
+      const markerLower = (marker ?? '').toLowerCase();
+      const markerLabs = labs.filter((l) => (l.marker ?? '').toLowerCase() === markerLower);
+      const sorted = [...markerLabs].sort((a, b) => new Date(a.drawDate ?? 0).getTime() - new Date(b.drawDate ?? 0).getTime());
       const latest = sorted[sorted.length - 1];
       return {
         marker,
         count: markerLabs.length,
-        latestValue: latest ? latest.normalizedValue : null,
-        unit: latest ? latest.normalizedUnit : '',
+        latestValue: latest ? (latest.normalizedValue ?? latest.value ?? null) : null,
+        unit: latest ? (latest.normalizedUnit ?? latest.unit ?? '') : '',
         flag: latest?.flag || (latest?.isBorderline ? 'BORDERLINE' : 'NORMAL'),
         isCritical: latest?.isCritical || false
       };
@@ -140,7 +141,8 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
   // Active Marker Labs series
   const activeMarkerLabs = useMemo(() => {
-    return labs.filter((l) => l.marker.toLowerCase() === selectedMarker.toLowerCase());
+    const sel = (selectedMarker ?? '').toLowerCase();
+    return labs.filter((l) => (l.marker ?? '').toLowerCase() === sel);
   }, [labs, selectedMarker]);
 
   // Overall timeline min and max timestamp
@@ -149,7 +151,11 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       const now = Date.now();
       return { minEpoch: now - 365 * 24 * 3600 * 1000, maxEpoch: now };
     }
-    const times = labs.map((l) => new Date(l.drawDate).getTime());
+    const times = labs.map((l) => new Date(l.drawDate ?? 0).getTime()).filter((t) => Number.isFinite(t));
+    if (times.length === 0) {
+      const now = Date.now();
+      return { minEpoch: now - 365 * 24 * 3600 * 1000, maxEpoch: now };
+    }
     return { minEpoch: Math.min(...times), maxEpoch: Math.max(...times) };
   }, [labs]);
 
@@ -371,10 +377,10 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
             </thead>
             <tbody className="divide-y divide-canvas-border text-slate-700 font-medium">
               {[...labs]
-                .sort((a, b) => new Date(b.drawDate).getTime() - new Date(a.drawDate).getTime())
+                .sort((a, b) => new Date(b.drawDate ?? 0).getTime() - new Date(a.drawDate ?? 0).getTime())
                 .map((r) => {
-                  const docComment = r.doctorComment || r.doctorComments?.[0];
-                  const isSelectedRow = r.marker.toLowerCase() === selectedMarker.toLowerCase();
+                  const docComment = (r as any).doctorComment || (r as any).doctorComments?.[0];
+                  const isSelectedRow = (r.marker ?? '').toLowerCase() === (selectedMarker ?? '').toLowerCase();
                   const dotColor = r.isCritical
                     ? 'bg-rose-500'
                     : r.isBorderline
@@ -400,24 +406,24 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                       }}
                       tabIndex={0}
                       role="button"
-                      aria-label={`View ${r.marker} trend, value ${r.normalizedValue} ${r.normalizedUnit}`}
+                      aria-label={`View ${r.marker ?? 'Lab'} trend, value ${r.normalizedValue ?? r.value ?? '—'} ${r.normalizedUnit ?? r.unit ?? ''}`}
                       className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${isSelectedRow ? 'bg-primary-light/50 hover:bg-primary-light/60' : 'hover:bg-canvas-muted/60'}`}
                     >
                       <td className="py-3 px-3 whitespace-nowrap text-slate-900 font-medium">
-                        {new Date(r.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {r.drawDate ? new Date(r.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                       </td>
                       <td className="py-3 px-3">
                         <span className="inline-flex items-center gap-2 font-semibold text-slate-900">
                           <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                          {r.marker}
+                          {r.marker ?? 'Unknown'}
                           {isSelectedRow && <span className="text-caption px-1.5 py-0.5 rounded-full bg-primary text-white font-bold leading-none">●</span>}
                         </span>
                       </td>
                       <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
-                        {r.normalizedValue} <span className="font-normal text-muted text-caption">{r.normalizedUnit}</span>
+                        {(r.normalizedValue ?? r.value ?? '—') as any} <span className="font-normal text-muted text-caption">{r.normalizedUnit ?? r.unit ?? ''}</span>
                       </td>
                       <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
-                        {(r.referenceRange?.low ?? 0)}–{(r.referenceRange?.high ?? 100)} {r.normalizedUnit}
+                        {(r.referenceRange?.low ?? 0)}–{(r.referenceRange?.high ?? 100)} {(r.normalizedUnit ?? r.unit ?? '')}
                       </td>
                       <td className="py-3 px-3">
                         <span

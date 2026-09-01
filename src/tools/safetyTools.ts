@@ -381,7 +381,7 @@ export const approvePillmapChangeTool: WebMCPToolDefinition = {
 
     if (isApprove && proposal.type === 'remove_med') {
       const meds = context.vault.getMedications(proposal.patientId);
-      const target = meds.find((m: any) => m.genericName.toLowerCase().includes(proposal.medName.toLowerCase()) || proposal.medName.toLowerCase().includes(m.genericName.toLowerCase()));
+      const target = meds.find((m: any) => m.genericName?.toLowerCase().includes(proposal.medName.toLowerCase()) || proposal.medName.toLowerCase().includes(m.genericName?.toLowerCase()));
       if (target) {
         context.vault.updateMedication(
           target.id,

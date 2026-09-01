@@ -274,7 +274,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     // Mark stopped meds
     for (const s of stoppedMeds) {
       const existing = localVault.getMedications(effectivePatientId).find(
-        (m) => m.genericName.toLowerCase().includes(s.medName.toLowerCase()) || (m.brandName && m.brandName.toLowerCase().includes(s.medName.toLowerCase()))
+        (m) => m.genericName?.toLowerCase().includes(s.medName?.toLowerCase()) || (m.brandName && m.brandName?.toLowerCase().includes(s.medName?.toLowerCase()))
       );
       if (existing) {
         localVault.updateMedicationStatus(existing.id, 'stopped', {

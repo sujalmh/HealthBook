@@ -601,9 +601,10 @@ export class LocalVaultManager {
     if (!patientId || patientId.trim() === '') return [];
     let list = Array.from(this.labs.values()).filter(l => l.patientId === patientId);
     if (markerFilter) {
-      list = list.filter(l => l.marker.toLowerCase() === markerFilter.toLowerCase());
+      const mf = (markerFilter ?? '').toLowerCase();
+      list = list.filter(l => (l.marker ?? '').toLowerCase() === mf);
     }
-    return list.sort((a, b) => new Date(a.drawDate).getTime() - new Date(b.drawDate).getTime());
+    return list.sort((a, b) => new Date(a.drawDate ?? 0).getTime() - new Date(b.drawDate ?? 0).getTime());
   }
 
   public getLabsByMarker(patientId: string, marker: string): LabRecord[] {

@@ -396,7 +396,7 @@ export const syncPillmapFromProposalTool: WebMCPToolDefinition = {
 
     // Update medication in vault
     const meds = context.vault.getMedications(proposal.patientId);
-    const targetMed = meds.find((m: any) => m.genericName.toLowerCase().includes(proposal.medName.toLowerCase()) || proposal.medName.toLowerCase().includes(m.genericName.toLowerCase()));
+    const targetMed = meds.find((m: any) => m.genericName?.toLowerCase().includes(proposal.medName.toLowerCase()) || proposal.medName.toLowerCase().includes(m.genericName?.toLowerCase()));
 
     if (targetMed && proposal.proposedDose) {
       context.vault.updateMedication(
