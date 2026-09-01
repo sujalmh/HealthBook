@@ -39,6 +39,7 @@ interface LabStoryViewProps {
     isProxy?: boolean;
   };
   className?: string;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 function deriveLabPatientId(passed: string, fallbackUserId?: string): string {
@@ -62,7 +63,8 @@ function deriveLabPatientId(passed: string, fallbackUserId?: string): string {
 export const LabStoryView: React.FC<LabStoryViewProps> = ({
   patientId,
   activeProfile = { userId: patientId, name: 'Patient', role: 'patient' },
-  className = ''
+  className = '',
+  onBusyChange,
 }) => {
   const effectivePatientId = deriveLabPatientId(patientId, activeProfile?.userId);
   const [labs, setLabs] = useState<LabRecord[]>([]);
