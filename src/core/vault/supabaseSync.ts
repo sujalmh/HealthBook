@@ -225,6 +225,7 @@ const HYDRATION_MAPPINGS: TableMapping[] = [
   { table: 'due_cards', vaultKey: 'dueCards' as unknown as keyof LocalVaultManager, idField: 'id' },
   { table: 'danger_reports', vaultKey: 'dangerReports' as unknown as keyof LocalVaultManager, idField: 'reportId' },
   { table: 'question_bank', vaultKey: 'questionBank' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'interaction_cache', vaultKey: 'interactionCache' as unknown as keyof LocalVaultManager, idField: 'regimenHash' },
 ];
 
 // Heuristic: care_circle rows seeded for doctor↔patient linking carry doctor fields
@@ -308,6 +309,30 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
               dMap.set(dKey, merged as unknown as DoctorPatientLink);
             } else {
               dMap.set(dKey, rec as unknown as DoctorPatientLink);
+            }
+            hydratedForTable++;
+            total++;
+            continue;
+          }
+          // interaction_cache: vault key is ic_<patient>_<regimenHash> (see
+          // interactionCache.interactionCacheId), not the bare regimenHash.
+          // Rebuild the canonical key so hydrated rows hit getInteractionEvaluation.
+          if (table === 'interaction_cache') {
+            const pid = rec.patientId as string | undefined;
+            const rhash = (rec.regimenHash as string | undefined) ?? (rec as { regimen_hash?: unknown }).regimen_hash as string | undefined;
+            const rawId = (rec.id as string | undefined) ?? (raw as { id?: unknown }).id as string | undefined;
+            const cacheKey = rawId && typeof rawId === 'string' && rawId.startsWith('ic_')
+              ? rawId
+              : pid && rhash
+                ? `ic_${String(pid).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32)}_${rhash}`
+                : undefined;
+            if (!cacheKey) continue;
+            if (map.has(cacheKey)) {
+              const existing = map.get(cacheKey);
+              const merged = { ...(existing as object), ...(rec as object) };
+              map.set(cacheKey, merged as unknown);
+            } else {
+              map.set(cacheKey, rec as unknown);
             }
             hydratedForTable++;
             total++;

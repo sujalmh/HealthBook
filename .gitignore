@@ -18,3 +18,9 @@ workstreams/
 .env*
 .env*.local
 
+# Local demo seeds — untracked by design, console-paste only (never commit)
+scripts/seed-asthma.mjs
+scripts/browser-seed-asthma.js
+scripts/asthma-seed-output.json
+src/fixtures/asthmaSeed.ts
+

@@ -167,6 +167,7 @@ export const SUPABASE_TABLES = [
   'due_cards',
   'danger_reports',
   'question_bank',
+  'interaction_cache',
 ] as const;
 
 export type SupabaseTableName = (typeof SUPABASE_TABLES)[number] | string;
@@ -256,6 +257,7 @@ const TABLE_ALLOWED_COLUMNS: Record<string, Set<string>> = {
   danger_reports: new Set(['report_id', 'patient_id', 'symptom_tags', 'free_text', 'severity_rating', 'vital_signs', 'photo_attachment', 'timestamp', 'triage_priority', 'first_aid_advice', 'created_at', 'payload']),
   documents: new Set(['id', 'patient_id', 'file_name', 'name', 'title', 'doc_type', 'type', 'page_count', 'upload_timestamp', 'uploaded_at', 'extracted_text', 'raw_buffer', 'extracted_fact_ids', 'created_at', 'payload']),
   question_bank: new Set(['id', 'patient_id', 'question_text', 'category', 'source_module', 'origin_module', 'context', 'linked_med_name', 'linked_lab_marker', 'priority', 'clinical_rationale', 'status', 'included_in_export', 'created_at', 'payload']),
+  interaction_cache: new Set(['id', 'patient_id', 'regimen_hash', 'engine_version', 'computed_at', 'med_fingerprint', 'diet_flags', 'arcs', 'diet_badges', 'duplicate_alerts', 'med_count', 'created_at', 'payload']),
 };
 
 class LightweightTableClient implements SupabaseTableClient {
@@ -380,6 +382,14 @@ class LightweightTableClient implements SupabaseTableClient {
       plainExplanation: 'plain_explanation',
       plainNarration: 'plain_narration',
       approvalStatus: 'approval_status',
+      regimenHash: 'regimen_hash',
+      engineVersion: 'engine_version',
+      computedAt: 'computed_at',
+      medFingerprint: 'med_fingerprint',
+      dietFlags: 'diet_flags',
+      dietBadges: 'diet_badges',
+      duplicateAlerts: 'duplicate_alerts',
+      medCount: 'med_count',
     };
     const r: { [key: string]: unknown } = {};
     // Preserve payload as full original record for JSONB flexibility
@@ -805,6 +815,27 @@ export async function syncQuestionToSupabase(record: QuestionBankItem): Promise<
 }
 export async function fetchQuestionBankFromSupabase(patientId: string = CANONICAL_PATIENT_ID) {
   return fetchByPatient<QuestionBankItem>('question_bank', patientId);
+}
+
+export interface InteractionCacheRow {
+  id: string;
+  patientId: string;
+  regimenHash: string;
+  engineVersion: string;
+  computedAt: string;
+  medFingerprint?: string[];
+  dietFlags?: Record<string, unknown>;
+  arcs?: unknown[];
+  dietBadges?: unknown[];
+  duplicateAlerts?: unknown[];
+  medCount?: number;
+}
+
+export async function syncInteractionCacheToSupabase(record: InteractionCacheRow): Promise<SyncResult> {
+  return syncRecord('interaction_cache', record as unknown as { patientId?: string; id?: string }, record.patientId);
+}
+export async function fetchInteractionCacheFromSupabase(patientId: string = CANONICAL_PATIENT_ID) {
+  return fetchByPatient<InteractionCacheRow>('interaction_cache', patientId);
 }
 
 // Generic helpers for hydration layer (ws-02-01 will use patient-isolated fetch)

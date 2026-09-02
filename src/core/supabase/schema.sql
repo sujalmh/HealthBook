@@ -337,6 +337,33 @@ CREATE INDEX IF NOT EXISTS idx_question_bank_patient_id ON question_bank (patien
 CREATE INDEX IF NOT EXISTS idx_question_bank_status ON question_bank (status);
 
 -- ------------------------------------------------------------------
+-- 14. interaction_cache — STORED derived pill-interaction evaluations
+-- ------------------------------------------------------------------
+-- One row per (patient_id, regimen_hash): drug-drug arcs + diet badges +
+-- duplicate alerts computed by ClinicalInteractionEngine. Content-hash keyed
+-- so evaluations are served from storage instead of recomputed on every
+-- PillMap load. Engine version bump invalidates old rows. Payload JSONB
+-- carries the full StoredInteractionEvaluation for forward-compat.
+CREATE TABLE IF NOT EXISTS interaction_cache (
+  id TEXT PRIMARY KEY,
+  patient_id TEXT NOT NULL,
+  regimen_hash TEXT NOT NULL,
+  engine_version TEXT NOT NULL,
+  computed_at TIMESTAMPTZ DEFAULT NOW(),
+  med_fingerprint JSONB,
+  diet_flags JSONB,
+  arcs JSONB,
+  diet_badges JSONB,
+  duplicate_alerts JSONB,
+  med_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  payload JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_interaction_cache_patient_id ON interaction_cache (patient_id);
+CREATE INDEX IF NOT EXISTS idx_interaction_cache_regimen_hash ON interaction_cache (regimen_hash);
+CREATE INDEX IF NOT EXISTS idx_interaction_cache_engine_version ON interaction_cache (engine_version);
+
+-- ------------------------------------------------------------------
 -- Patient isolation helper — ensures every table has indexed patient_id
 -- ------------------------------------------------------------------
 -- All patient_id indexes above enable fast scoped queries:

@@ -28,6 +28,14 @@ import { callAI } from '../ai/client.ts';
 import { isHealthGroundingAvailable } from '../search/healthGrounding.ts';
 import { searchExa } from '../search/exaClient.ts';
 import { shouldUseAI } from '../rbac/canAccess.ts';
+import {
+  INTERACTION_ENGINE_VERSION,
+  deterministicArcId,
+  deterministicDuplicateId,
+} from './interactionCache.ts';
+
+/** Re-exported so vault/tool layers can version stored evaluations. */
+export const ENGINE_VERSION = INTERACTION_ENGINE_VERSION;
 
 // Unified AI caller for knowledge reasoning via central AI client
 async function callKnowledgeAI(
@@ -130,7 +138,7 @@ export class ClinicalInteractionEngine {
 
         if (rule) {
           foundArcs.push({
-            id: `arc_${medA.generic}_${medB.generic}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            id: deterministicArcId(medA.original, medB.original, rule.severity, rule.mechanism),
             drugA: medA.original,
             drugB: medB.original,
             severity: rule.severity,
@@ -190,7 +198,7 @@ export class ClinicalInteractionEngine {
       const parsed = await callKnowledgeAI(systemPrompt, userText, schema);
       if (parsed && Array.isArray(parsed.interactions)) {
         const arcs: InteractionArc[] = parsed.interactions.map((it: any) => ({
-          id: `arc_${(it.drugA || 'drugA').replace(/[^a-z0-9]/gi, '_')}_${(it.drugB || 'drugB').replace(/[^a-z0-9]/gi, '_')}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          id: deterministicArcId(it.drugA || 'drugA', it.drugB || 'drugB', it.severity || 'MODERATE', it.mechanism || it.reasoning || 'AI-assessed'),
           drugA: it.drugA,
           drugB: it.drugB,
           severity: (it.severity || 'MODERATE') as any,
@@ -458,7 +466,7 @@ export class ClinicalInteractionEngine {
         const isOver = totalMg > maxLimit;
 
         alerts.push({
-          id: `dup_${ingredient}_${Date.now()}`,
+          id: deterministicDuplicateId(ingredient, occurrences.map(o => o.name)),
           ingredient,
           drugsInvolved: occurrences,
           totalCumulativeDoseMg: totalMg,
@@ -505,7 +513,7 @@ export class ClinicalInteractionEngine {
       const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(meds)}\nReturn JSON only.`, schema);
       if (parsed && Array.isArray(parsed.duplicateAlerts)) {
         return parsed.duplicateAlerts.map((a: any) => ({
-          id: `dup_${(a.ingredient || 'ing').replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`,
+          id: deterministicDuplicateId(a.ingredient || 'ing', (a.drugsInvolved || []).map((d: any) => d?.name || 'drug')),
           ingredient: a.ingredient,
           drugsInvolved: a.drugsInvolved,
           totalCumulativeDoseMg: a.totalCumulativeDoseMg,

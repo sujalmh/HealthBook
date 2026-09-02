@@ -7,6 +7,7 @@
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
+import { stableHash, sanitizeForId } from '../core/knowledge/interactionCache.ts';
 import { ClinicalReconciliationEngine } from '../core/knowledge/reconciliationEngine.ts';
 import { callAI } from '../core/ai/client.ts';
 import type { Patient3ListDischargeDataset } from '../types/rxbridge.ts';
@@ -205,7 +206,7 @@ export const flagInteractionTool: WebMCPToolDefinition = {
         const gen = ClinicalInteractionEngine.resolveGenericName(med);
         if (gen === 'Metformin' || gen === 'Ibuprofen' || gen === 'Naproxen') {
           enrichedArcs.push({
-            id: `lab_contra_${gen}_egfr_${Date.now()}`,
+            id: `lab_contra_${sanitizeForId(gen)}_egfr_${stableHash(`${gen}|${egfrLab.value}`).slice(0, 8)}`,
             drugA: med,
             drugB: `Kidney Function eGFR (${egfrLab.value} mL/min)`,
             severity: 'CONTRAINDICATED',
@@ -223,7 +224,7 @@ export const flagInteractionTool: WebMCPToolDefinition = {
         const gen = ClinicalInteractionEngine.resolveGenericName(med);
         if (gen === 'Spironolactone' || gen === 'Lisinopril') {
           enrichedArcs.push({
-            id: `lab_contra_${gen}_k_${Date.now()}`,
+            id: `lab_contra_${sanitizeForId(gen)}_k_${stableHash(`${gen}|${kLab.value}`).slice(0, 8)}`,
             drugA: med,
             drugB: `Serum Potassium (${kLab.value} mEq/L)`,
             severity: 'CONTRAINDICATED',

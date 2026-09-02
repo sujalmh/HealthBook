@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "NODE_NO_WARNINGS=1 tsc && NODE_NO_WARNINGS=1 vite build",
+    "build": "NODE_NO_WARNINGS=1 tsc -p tsconfig.build.json && NODE_NO_WARNINGS=1 vite build",
     "test": "vitest run",
     "test:all": "tsx test/test-runner.ts",
     "test:tools": "tsx test/test-runner.ts --tier1",

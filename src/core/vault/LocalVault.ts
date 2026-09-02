@@ -1,5 +1,20 @@
 /**
- * CareCanvas Core: LocalVault Manager (11 Object Stores + Audit Trail)
+ * CareCanvas Core: LocalVault Manager — write-through cache over Supabase.
+ *
+ * Storage policy (single source of truth):
+ * - Supabase Postgres is the system-of-record. Every typed `add*`/`update*`/
+ *   `remove*` writes to the in-memory Map, emits one EventBus event, and
+ *   fire-and-forget upserts to Supabase (`syncFireAndForget`). Hydration
+ *   (`supabaseSync.hydrateFromSupabase`) repopulates these Maps silently.
+ * - This class must NOT be treated as a second vault: no caller should keep
+ *   parallel copies in localStorage snapshots or component state. Read via
+ *   `HealthRepository` / typed getters, mutate via typed methods only — never
+ *   via direct `vault.meds.set/delete`.
+ * - Derived clinical evaluations (pill interactions, diet badges, duplicate
+ *   alerts) are STORED in `interactionCache` (persisted to Supabase
+ *   `interaction_cache`), keyed by regimen content-hash. They are recomputed
+ *   only when the regimen fingerprint changes — never on every view load.
+ *
  * Per-account isolated — all getters/setters scoped by patientId (real userId from Create Account).
  * Empty vault until user upload: seed is NO-OP (see seed.ts), no auto-population.
  */
@@ -21,6 +36,8 @@ import type {  LinkedCareProfile, DoctorAccessGrant, DoctorPatientLink  } from '
 import type {  DangerSignReport  } from '../../types/safety.ts';
 import { WebMCPEventBus } from '../events/eventBus.ts';
 import { isSupabaseEnabled, upsertSupabaseRecord } from '../supabase/client.ts';
+import type { StoredInteractionEvaluation } from '../knowledge/interactionCache.ts';
+import { clearMemoEvaluation, interactionCacheId } from '../knowledge/interactionCache.ts';
 
 /**
  * Derive active patientId from globalThis localStorage carecanvas_active_user — never '' nor patient-s-devi leak.
@@ -177,6 +194,12 @@ export class LocalVaultManager {
   public questionBank: Map<string, QuestionBankItem> = new Map();
   public dueCards: Map<string, DueCardRecord> = new Map();
   public dangerReports: Map<string, DangerSignReport> = new Map();
+  /**
+   * Stored derived evaluations (pill interactions + diet + duplicates), keyed
+   * by `ic_<patient>_<regimenHash>`. Write-through cached to Supabase
+   * `interaction_cache`. See src/core/knowledge/interactionCache.ts.
+   */
+  public interactionCache: Map<string, StoredInteractionEvaluation> = new Map();
 
   private eventBus?: WebMCPEventBus;
 
@@ -507,6 +530,7 @@ export class LocalVaultManager {
     } catch {
       // ignore
     }
+    this.invalidateInteractionCache(med.patientId);
     return med;
   }
 
@@ -537,6 +561,8 @@ export class LocalVaultManager {
       this.logAudit('update_medication', 'med', medId, performedBy, updates as unknown as { [key: string]: unknown }, med.patientId);
     }
     this.eventBus?.emit('medication_updated', med);
+    this.syncFireAndForget('medications', med);
+    this.invalidateInteractionCache(med.patientId);
     return med;
   }
 
@@ -546,6 +572,101 @@ export class LocalVaultManager {
     performedBy?: AuditLogEntry['performedBy']
   ): MedicationRecord | undefined {
     return this.updateMedication(medId, { status }, performedBy);
+  }
+
+  /**
+   * Canonical medication removal — replaces direct `vault.meds.delete(id)`
+   * (which skipped audit, sync, events, and interaction-cache invalidation).
+   * Marks discontinued, audits, emits, syncs, invalidates derived evaluations,
+   * then removes from the write-through cache. Returns true if removed.
+   */
+  public removeMedication(medId: string, performedBy?: AuditLogEntry['performedBy']): boolean {
+    const med = this.meds.get(medId);
+    if (!med) return false;
+    const patientId = med.patientId;
+    if (performedBy) {
+      this.logAudit('remove_medication', 'med', medId, performedBy, { genericName: med.genericName, dosage: med.dosage }, patientId);
+    }
+    this.meds.delete(medId);
+    this.eventBus?.emit('medication_updated', { ...med, status: 'discontinued', removed: true });
+    // Best-effort tombstone sync so Supabase does not resurrect on re-hydration
+    // merge (hydration merges by id; deleted ids simply stop being re-added).
+    this.syncFireAndForget('medications', { ...med, status: 'discontinued' });
+    this.invalidateInteractionCache(patientId);
+    return true;
+  }
+
+  // --- Interaction Cache Store (stored derived evaluations) ---
+  /**
+   * Persist a computed pill-interaction evaluation. Write-through to Supabase
+   * `interaction_cache` (fire-and-forget). Keyed by
+   * `ic_<patient>_<regimenHash>` — see interactionCache.interactionCacheId.
+   */
+  public storeInteractionEvaluation(entry: StoredInteractionEvaluation): StoredInteractionEvaluation {
+    const key = interactionCacheId(entry.patientId, entry.regimenHash);
+    this.interactionCache.set(key, entry);
+    // Silent best-effort sync: derived cache rows are recomputable, so a
+    // missing interaction_cache table / offline Supabase must NEVER surface
+    // a "sync failed" toast (unlike primary med/lab writes which use
+    // syncFireAndForget with user-visible fallback).
+    try {
+      if (!isSupabaseEnabled()) return entry;
+      upsertSupabaseRecord('interaction_cache', {
+        id: key,
+        patientId: entry.patientId,
+        regimenHash: entry.regimenHash,
+        engineVersion: entry.engineVersion,
+        computedAt: entry.computedAt,
+        medFingerprint: entry.medFingerprint,
+        dietFlags: entry.dietFlags,
+        arcs: entry.arcs,
+        dietBadges: entry.dietBadges,
+        duplicateAlerts: entry.duplicateAlerts,
+        medCount: entry.medCount,
+      } as unknown as { patientId?: string }).catch(() => {
+        // ignore — local cache remains authoritative for this session
+      });
+    } catch {
+      // ignore — never throw from derived-data persistence
+    }
+    return entry;
+  }
+
+  /** Exact-match lookup by regimen hash. Returns undefined on miss. */
+  public getInteractionEvaluation(patientId: string, regimenHash: string): StoredInteractionEvaluation | undefined {
+    if (!patientId || !regimenHash) return undefined;
+    return this.interactionCache.get(interactionCacheId(patientId, regimenHash));
+  }
+
+  /** All stored evaluations for a patient (newest first). */
+  public getInteractionEvaluations(patientId: string): StoredInteractionEvaluation[] {
+    if (!patientId || patientId.trim() === '') return [];
+    return Array.from(this.interactionCache.values())
+      .filter((e) => e.patientId === patientId)
+      .sort((a, b) => new Date(b.computedAt).getTime() - new Date(a.computedAt).getTime());
+  }
+
+  /** Most recent stored evaluation for a patient, if any. */
+  public getLatestInteractionEvaluation(patientId: string): StoredInteractionEvaluation | undefined {
+    return this.getInteractionEvaluations(patientId)[0];
+  }
+
+  /**
+   * Invalidate stored evaluations for a patient. Called automatically on any
+   * med add/update/remove. Stored rows are deleted (not tombstoned) because
+   * the regimen fingerprint is the cache key — a new regimen computes a new
+   * key. Also clears the in-process memo.
+   */
+  public invalidateInteractionCache(patientId: string): void {
+    if (!patientId || patientId.trim() === '') return;
+    for (const [key, entry] of [...this.interactionCache.entries()]) {
+      if (entry.patientId === patientId) this.interactionCache.delete(key);
+    }
+    try {
+      clearMemoEvaluation(patientId);
+    } catch {
+      // ignore
+    }
   }
 
   // --- Labs Store ---
@@ -1105,6 +1226,12 @@ export class LocalVaultManager {
     this.questionBank.clear();
     this.dueCards.clear();
     this.dangerReports.clear();
+    this.interactionCache.clear();
+    try {
+      clearMemoEvaluation();
+    } catch {
+      // ignore
+    }
   }
 
   public clearAll(opts?: { preserveAudit?: boolean }): void {

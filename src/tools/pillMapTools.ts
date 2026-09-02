@@ -6,6 +6,7 @@
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
+import { healthRepository, DEFAULT_DIET_FLAGS } from '../core/vault/HealthRepository.ts';
 import { shouldUseAI, gateIfViewOnly } from '../core/rbac/canAccess.ts';
 import type {  TimeSlot, DayOfWeek  } from '../types/pillmap.ts';
 
@@ -104,9 +105,40 @@ export const checkInteractionsTool: WebMCPToolDefinition = {
     canvasRerenders: ['pillmap']
   },
   execute: async (params: { medList?: string[] }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    const list = params.medList || context.vault.getMedications(context.patientId).map((m: any) => m.genericName);
+    // Stored-evaluation fast path: when evaluating the patient's own active
+    // regimen (no explicit medList override), serve the persisted evaluation
+    // instead of recomputing on every call.
+    const isStoredRegimen = !params.medList;
+    if (isStoredRegimen) {
+      try {
+        const activeMeds = context.vault.getMedications(context.patientId, 'active');
+        const repo = healthRepository.cache === context.vault
+          ? healthRepository
+          : new (healthRepository.constructor as new (v: typeof context.vault) => typeof healthRepository)(context.vault);
+        const result = shouldUseAI()
+          ? await repo.evaluateInteractionsAI(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS, true)
+          : repo.evaluateInteractions(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS);
+        const arcs = result.arcs;
+        const summary =
+          arcs.length === 0
+            ? 'No drug-drug interaction conflicts detected across active medications.'
+            : `Detected ${arcs.length} drug-drug conflict(s): ${arcs.map((a: unknown) => `${(a as { drugA: string }).drugA} + ${(a as { drugB: string }).drugB} (${(a as { severity: string }).severity})`).join(', ')}.`;
+        return {
+          success: true,
+          tool: 'check_interactions',
+          timestamp: new Date().toISOString(),
+          data: arcs,
+          plainLanguageSummary: summary,
+          humanApprovalRequired: false
+        };
+      } catch {
+        // fall through to ad-hoc compute
+      }
+    }
+    const list = params.medList || context.vault.getMedications(context.patientId).map((m: never) => (m as { genericName: string }).genericName);
     let arcs;
-    // AI-enhanced reasoning via knowledge engine AI path (call AI when enabled, fallback fixture)
+    // Ad-hoc what-if evaluation (explicit medList): compute directly without
+    // polluting the stored patient regimen cache.
     try {
       if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDrugInteractionsAI === 'function') {
         arcs = await ClinicalInteractionEngine.checkDrugInteractionsAI(list);
@@ -160,6 +192,37 @@ export const checkDietInteractionsTool: WebMCPToolDefinition = {
       usesPotassiumSaltSubstitute: true
     };
 
+    // Stored-evaluation fast path: if the requested medList matches the
+    // patient's active regimen, serve persisted badges instead of recomputing.
+    try {
+      const activeMeds = context.vault.getMedications(context.patientId, 'active');
+      const activeNames = new Set<string>(activeMeds.map((m: unknown) => String((m as { brandName?: string; genericName?: string }).brandName || (m as { genericName?: string }).genericName || '').toLowerCase()));
+      const reqNames = new Set<string>((params.medList || []).map((n) => String(n).toLowerCase()));
+      const matchesStored = activeNames.size > 0 && activeNames.size === reqNames.size && [...reqNames].every((n) => activeNames.has(n) || [...activeNames].some((a: string) => a.includes(n) || n.includes(a)));
+      if (matchesStored) {
+        const repo = healthRepository.cache === context.vault
+          ? healthRepository
+          : new (healthRepository.constructor as new (v: typeof context.vault) => typeof healthRepository)(context.vault);
+        const result = shouldUseAI()
+          ? await repo.evaluateInteractionsAI(context.patientId, activeMeds as never, dietProfile, true)
+          : repo.evaluateInteractions(context.patientId, activeMeds as never, dietProfile);
+        const badges = result.dietBadges;
+        return {
+          success: true,
+          tool: 'check_diet_interactions',
+          timestamp: new Date().toISOString(),
+          data: badges,
+          plainLanguageSummary:
+            badges.length === 0
+              ? 'No dietary conflicts found with current medications.'
+              : `Identified ${badges.length} dietary interaction(s): ${badges.map((b: unknown) => `${(b as { drugName: string }).drugName}: ${(b as { badgeText: string }).badgeText}`).join('; ')}.`,
+          humanApprovalRequired: false
+        };
+      }
+    } catch {
+      // fall through to ad-hoc compute
+    }
+
     let badges;
     try {
       if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDietInteractionsAI === 'function') {
@@ -204,6 +267,35 @@ export const checkDuplicateIngredientTool: WebMCPToolDefinition = {
     canvasRerenders: ['pillmap']
   },
   execute: async (params: { medList: { name: string; dose?: string }[] }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
+    // Stored-evaluation fast path for the patient's own regimen.
+    try {
+      const activeMeds = context.vault.getMedications(context.patientId, 'active');
+      const activeNames = new Set<string>(activeMeds.map((m: unknown) => String((m as { brandName?: string; genericName?: string }).brandName || (m as { genericName?: string }).genericName || '').toLowerCase()));
+      const reqNames = new Set<string>((params.medList || []).map((m) => String(m?.name || '').toLowerCase()));
+      const matchesStored = activeNames.size > 0 && activeNames.size === reqNames.size && [...reqNames].every((n) => activeNames.has(n) || [...activeNames].some((a: string) => a.includes(n) || n.includes(a)));
+      if (matchesStored) {
+        const repo = healthRepository.cache === context.vault
+          ? healthRepository
+          : new (healthRepository.constructor as new (v: typeof context.vault) => typeof healthRepository)(context.vault);
+        const result = shouldUseAI()
+          ? await repo.evaluateInteractionsAI(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS, true)
+          : repo.evaluateInteractions(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS);
+        const alerts = result.duplicateAlerts;
+        return {
+          success: true,
+          tool: 'check_duplicate_ingredient',
+          timestamp: new Date().toISOString(),
+          data: alerts,
+          plainLanguageSummary:
+            alerts.length === 0
+              ? 'No duplicate active ingredients detected in regimen.'
+              : `Found ${alerts.length} duplicate active ingredient warning(s).`,
+          humanApprovalRequired: false
+        };
+      }
+    } catch {
+      // fall through to ad-hoc compute
+    }
     let alerts;
     try {
       if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDuplicateIngredientsAI === 'function') {

@@ -38,6 +38,8 @@ import type {
 } from '../../types/pillmap.ts';
 import { DAYS_OF_WEEK, TIME_SLOTS, CHRONOTYPE_TIMES } from '../../types/pillmap.ts';
 import { localVault } from '../../core/vault/LocalVault.ts';
+import { healthRepository } from '../../core/vault/HealthRepository.ts';
+import { buildRegimenHash, isEvaluationFresh } from '../../core/knowledge/interactionCache.ts';
 import { eventBus } from '../../core/events/eventBus.ts';
 import { ClinicalInteractionEngine } from '../../core/knowledge/interactionEngine.ts';
 import { getAIConfig, isAIEnabled } from '../../core/ai/config.ts';
@@ -148,39 +150,50 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     recalculateEvaluations(vaultMeds);
   };
 
-  const recalculateEvaluations = async (vaultMeds: { brandName?: string; genericName?: string; name?: string; dosage?: string }[]) => {
-    const medNames = vaultMeds.map((m) => m.brandName || m.genericName || m.name || '');
-    const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
-    const engineAI = ClinicalInteractionEngine as unknown as {
-      checkDrugInteractionsAI?: (names: string[]) => Promise<InteractionArc[]>;
-      checkDietInteractionsAI?: (names: string[], flags: Record<string, boolean>) => Promise<DietBadge[]> | DietBadge[];
-      checkDuplicateIngredientsAI?: (meds: { name: string; dose: string }[]) => Promise<DuplicateIngredientAlert[]> | DuplicateIngredientAlert[];
+  const recalculateEvaluations = async (vaultMeds: { id?: string; patientId?: string; brandName?: string; genericName?: string; name?: string; dosage?: string; frequency?: string; timingSlots?: TimeSlot[]; withFood?: boolean }[]) => {
+    const dietFlags = {
+      drinksGrapefruitDaily: true,
+      frequentHighVitKGreens: true,
+      dairyBreakfast: true,
+      usesPotassiumSaltSubstitute: true
     };
-    const shouldShowChecking = useAI && typeof engineAI.checkDrugInteractionsAI === 'function';
-    if (shouldShowChecking) setIsChecking(true);
+    // Stored-evaluation fast path: serve cached pill interactions when the
+    // regimen fingerprint is unchanged — recompute + store only on miss.
+    // This replaces per-load full recomputation with a content-hash lookup.
     try {
-      const arcs = useAI && typeof engineAI.checkDrugInteractionsAI === 'function'
-        ? await engineAI.checkDrugInteractionsAI(medNames)
-        : ClinicalInteractionEngine.checkDrugInteractions(medNames);
-      setInteractionArcs(arcs);
-
-      const dietFlags = {
-        drinksGrapefruitDaily: true,
-        frequentHighVitKGreens: true,
-        dairyBreakfast: true,
-        usesPotassiumSaltSubstitute: true
-      };
-      const badges = useAI && typeof engineAI.checkDietInteractionsAI === 'function'
-        ? await engineAI.checkDietInteractionsAI(medNames, dietFlags)
-        : ClinicalInteractionEngine.checkDietInteractions(medNames, dietFlags);
-      setDietBadges(badges as DietBadge[]);
-
-      const dupInput = vaultMeds.map((m) => ({ name: m.brandName || m.genericName || '', dose: m.dosage || '' }));
-      const dups = useAI && typeof engineAI.checkDuplicateIngredientsAI === 'function'
-        ? await engineAI.checkDuplicateIngredientsAI(dupInput)
-        : ClinicalInteractionEngine.checkDuplicateIngredients(dupInput);
-      setDuplicateAlerts(dups as DuplicateIngredientAlert[]);
+      const fullMeds = effectivePatientId ? healthRepository.getActiveMedications(effectivePatientId) : [];
+      // Correlate the grid snapshot to canonical vault records so the
+      // fingerprint reflects stored doses (not stale grid copies).
+      const evalMeds = fullMeds.length > 0 ? fullMeds : (vaultMeds as unknown as Parameters<typeof healthRepository.evaluateInteractionsAI>[1]);
+      const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
+      // Show spinner only when we will actually compute (cache miss is cheap
+      // to check synchronously first).
+      const fingerprintInputs = (evalMeds as unknown as { brandName?: string; genericName?: string; name?: string; dosage?: string }[]).map((m) => ({
+        name: m.brandName || m.genericName || m.name || '',
+        dose: (m as { dosage?: string }).dosage || '',
+        genericName: m.genericName || '',
+      }));
+      const hash = buildRegimenHash(fingerprintInputs, dietFlags);
+      const cached = effectivePatientId ? localVault.getInteractionEvaluation(effectivePatientId, hash) : undefined;
+      const isFresh = cached ? isEvaluationFresh(cached, fingerprintInputs, dietFlags) : false;
+      if (isFresh && cached) {
+        setInteractionArcs(cached.arcs);
+        setDietBadges(cached.dietBadges);
+        setDuplicateAlerts(cached.duplicateAlerts);
+        return;
+      }
+      if (useAI) setIsChecking(true);
+      const result = await healthRepository.evaluateInteractionsAI(
+        effectivePatientId,
+        evalMeds as unknown as Parameters<typeof healthRepository.evaluateInteractionsAI>[1],
+        dietFlags,
+        useAI,
+      );
+      setInteractionArcs(result.arcs);
+      setDietBadges(result.dietBadges);
+      setDuplicateAlerts(result.duplicateAlerts);
     } catch {
+      const medNames = vaultMeds.map((m) => m.brandName || m.genericName || m.name || '');
       const arcs = ClinicalInteractionEngine.checkDrugInteractions(medNames);
       setInteractionArcs(arcs);
       const badges = ClinicalInteractionEngine.checkDietInteractions(medNames, {
@@ -195,7 +208,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       );
       setDuplicateAlerts(dups);
     } finally {
-      if (shouldShowChecking) setIsChecking(false);
+      setIsChecking(false);
     }
   };
 
@@ -290,13 +303,15 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         }
       }
     }
-    localVault.updateMedicationStatus(baseId, 'discontinued', {
+    // Canonical removal via repository: single audited mutation that syncs to
+    // Supabase, emits medication_updated, and invalidates stored interaction
+    // evaluations. Replaces the old updateStatus+meds.delete double-write
+    // that bypassed audit/sync/invalidation.
+    healthRepository.removeMedication(baseId, {
       userId: activeProfile.userId,
       userName: activeProfile.name,
       role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
     });
-    // Vault canonical removal — grid ids with suffix are not in vault.meds, only baseId is
-    localVault.meds.delete(baseId);
 
     eventBus.dispatchToast({
       type: 'info',
