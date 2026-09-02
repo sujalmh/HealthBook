@@ -195,17 +195,20 @@ export const AskChat: React.FC<AskChatProps> = ({ patientId, initialQuery, class
     localVault.addQuestionBankItem(item);
     setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, saved: true } : m)));
     loadQuestions();
+    eventBus.emit('question_bank', { action: 'add' });
     eventBus.dispatchToast({ type: 'success', title: 'Saved', message: 'Added to your questions for the doctor.' });
   };
 
   const toggleDone = async (q: QuestionBankItem) => {
     await localVault.updateQuestionBankStatus(q.id, q.status === 'discussed' ? 'active' : 'discussed');
     loadQuestions();
+    eventBus.emit('question_bank', { action: 'toggle' });
   };
 
   const remove = async (q: QuestionBankItem) => {
     await localVault.updateQuestionBankStatus(q.id, 'dismissed');
     loadQuestions();
+    eventBus.emit('question_bank', { action: 'remove' });
   };
 
   const activeQuestions = questions.filter((q) => q.status === 'active');
