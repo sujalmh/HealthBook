@@ -11,6 +11,7 @@ import type { Fact, FactCategory, AllergyRecord, MedicationRecord, LabRecord } f
 import { buildFHIRR4Bundle } from '../core/vault/fhirExporter.ts';
 import { extractWithAI } from '../core/ai/client.ts';
 import { getAIConfig, getAIConfigSource, isAIEnabled } from '../core/ai/config.ts';
+import { verifyFactsWithWebEvidence } from '../core/search/factVerification.ts';
 
 function resolveFileDataUrl(params: unknown, rawText?: string): string | undefined {
   const p = params as { imageDataUrl?: unknown; fileDataUrl?: unknown; imageBlob?: unknown; image_blob?: unknown; imageUrl?: unknown; dataUrl?: unknown };
@@ -102,10 +103,18 @@ export const extractFactTool: WebMCPToolDefinition = {
         tool: 'extract_fact',
         timestamp: new Date().toISOString(),
         data: [],
-        plainLanguageSummary: `AI extraction is not configured. Please set VITE_AI_BASE_URL, VITE_AI_API_KEY and VITE_AI_MODEL in Settings to extract clinical facts from document "${documentId}".`,
+        plainLanguageSummary: `AI extraction is not configured for document "${documentId}". Set VITE_AI_BASE_URL and VITE_AI_MODEL in the deployment environment (the API key stays server-side) or in Settings, then retry.`,
         humanApprovalRequired: false,
-        error: { code: 'AI_NOT_CONFIGURED', message: 'AI is disabled — heuristic fallback removed. Configure AI in Settings.' },
+        error: { code: 'AI_NOT_CONFIGURED', message: 'AI is disabled — heuristic fallback removed. Configure AI via deployment env or Settings.' },
       };
+    }
+
+    // Verification step — web evidence AFTER extraction, BEFORE staging for review.
+    // Attaches fact.verification (status/note/sources); never blocks or throws.
+    try {
+      await verifyFactsWithWebEvidence(extractedFacts);
+    } catch (err: unknown) {
+      console.warn('[vaultTools] Fact verification skipped:', err instanceof Error ? err.message : err);
     }
 
     // Save to Vault with status 'unconfirmed' for the authenticated patientId
@@ -116,12 +125,18 @@ export const extractFactTool: WebMCPToolDefinition = {
       );
     }
 
+    const verifiedCount = extractedFacts.filter((f) => f.verification?.status === 'verified').length;
+    const reviewCount = extractedFacts.filter((f) => f.verification?.status === 'needs_review').length;
+    const verificationSummary = verifiedCount || reviewCount
+      ? ` Web evidence check: ${verifiedCount} verified${reviewCount ? `, ${reviewCount} need review` : ''}.`
+      : '';
+
     return {
       success: true,
       tool: 'extract_fact',
       timestamp: new Date().toISOString(),
       data: extractedFacts,
-      plainLanguageSummary: `Successfully extracted ${extractedFacts.length} clinical facts via AI from document "${documentId}". All items are staged awaiting your approval.`,
+      plainLanguageSummary: `Successfully extracted ${extractedFacts.length} clinical facts via AI from document "${documentId}".${verificationSummary} All items are staged awaiting your approval.`,
       humanApprovalRequired: false
     };
   }
@@ -165,6 +180,53 @@ export const confirmFactTool: WebMCPToolDefinition = {
     }
     const { factId, action, edits } = params;
 
+    // --- Shared propagation helpers -------------------------------------
+    // Resolve a concrete date for a fact: prefer the AI-resolved fact.date,
+    // then relative phrases in the value/explanation ("in 3 months"),
+    // falling back to a sensible default per category.
+    const resolveFactDate = (fact: Fact, fallbackDays: number): string => {
+      const explicit = (fact as unknown as { date?: unknown }).date;
+      if (typeof explicit === 'string' && /^\d{4}-\d{2}-\d{2}/.test(explicit.trim())) {
+        const d = new Date(explicit.trim().slice(0, 10) + 'T00:00:00Z');
+        if (!Number.isNaN(d.getTime())) return d.toISOString();
+      }
+      const text = `${String(fact.value ?? '')} ${fact.plainExplanation ?? ''}`;
+      const months = text.match(/\b(?:in|after|at)\s+(?:month\s+)?(\d{1,2})\s*month/i) || text.match(/\bmonth\s+(\d{1,2})\b/i);
+      if (months) return new Date(Date.now() + Number(months[1]) * 30 * 86400000).toISOString();
+      const weeks = text.match(/\b(?:in|after)\s+(\d{1,2})\s*week/i);
+      if (weeks) return new Date(Date.now() + Number(weeks[1]) * 7 * 86400000).toISOString();
+      const days = text.match(/\b(?:in|after)\s+(\d{1,3})\s*day/i);
+      if (days) return new Date(Date.now() + Number(days[1]) * 86400000).toISOString();
+      const daysRange = text.match(/\b(?:in|after)\s+(\d{1,3})\s*-\s*(\d{1,3})\s*day/i);
+      if (daysRange) return new Date(Date.now() + Number(daysRange[2]) * 86400000).toISOString();
+      return new Date(Date.now() + fallbackDays * 86400000).toISOString();
+    };
+
+    // Extract the most-recent numeric lab reading from a value string that may
+    // embed dated readings ("20-Aug: 286 mg/dL, 22-Aug: 178 mg/dL"). The old
+    // first-number regex matched "20" inside the date token, corrupting values.
+    const extractLatestLabValue = (raw: unknown): number | null => {
+      if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+      if (raw && typeof raw === 'object') {
+        const nv = (raw as { numericValue?: unknown }).numericValue;
+        if (typeof nv === 'number' && Number.isFinite(nv)) return nv;
+      }
+      const s = typeof raw === 'string' ? raw : JSON.stringify(raw ?? '');
+      const segments = s.split(',').map((x) => x.trim()).filter(Boolean);
+      let latest: number | null = null;
+      for (const seg of segments) {
+        const afterColon = seg.includes(':') ? seg.split(':').slice(1).join(':') : seg;
+        const m = afterColon.match(/-?\d+(?:\.\d+)?/);
+        if (m) latest = Number(m[0]);
+      }
+      if (latest === null) {
+        const stripped = s.replace(/\b\d{1,2}[-\/\s][A-Za-z]{3,9}\b/g, ' ');
+        const m = stripped.match(/-?\d+(?:\.\d+)?/);
+        if (m) latest = Number(m[0]);
+      }
+      return latest;
+    };
+
     // Helper to propagate confirmed categorical facts to respective module stores
     const propagateFact = (fact: Fact) => {
       const cat = (fact.category || '').toLowerCase().trim();
@@ -201,7 +263,11 @@ export const confirmFactTool: WebMCPToolDefinition = {
         if (lowerDose.includes('bedtime') || lowerDose.includes('night') || frequency === 'QHS') timingSlots.push('bedtime');
         if (timingSlots.length === 0) timingSlots.push('morning');
 
-        const withFood = lowerDose.includes('with food') || lowerDose.includes('with meal') || lowerDose.includes('after food');
+        const withFood = lowerDose.includes('with food') || lowerDose.includes('with meal') || lowerDose.includes('after food') || lowerDose.includes('after meal')
+          || lowerDose.includes('with dinner') || lowerDose.includes('after dinner')
+          || lowerDose.includes('with lunch') || lowerDose.includes('after lunch')
+          || lowerDose.includes('with breakfast') || lowerDose.includes('after breakfast')
+          || lowerDose.includes('with supper') || lowerDose.includes('after supper');
         const isStopped = lowerDose.includes('stopped') || lowerDose.includes('discontinued') || lowerDose.includes('held') || lowerDose.includes('prior');
 
         context.vault.addMedication(
@@ -224,15 +290,10 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
       // 2. Laboratory Tests
       else if (cat.includes('lab') || cat === 'laboratory_tests') {
-        let labVal = 0;
-        if (typeof val === 'number' && Number.isFinite(val)) labVal = val;
-        else if (val && typeof (val as unknown as { numericValue?: unknown }).numericValue === 'number') labVal = (val as unknown as { numericValue: number }).numericValue;
-        else {
-          const s = typeof val === 'string' ? val : JSON.stringify(val ?? '');
-          const m = s.match(/([0-9]+\.?[0-9]*)/);
-          labVal = m ? Number(m[1]) : 0;
-        }
-
+        const labVal = extractLatestLabValue(val);
+        if (labVal === null) {
+          console.warn('[confirm_fact] Could not parse a numeric value for lab fact, skipping lab propagation:', name);
+        } else {
         const lowerName = (name ?? '').toLowerCase();
         let flag: 'NORMAL' | 'HIGH' | 'LOW' | 'CRITICAL_HIGH' | 'CRITICAL_LOW' = 'NORMAL';
         if (lowerName.includes('creatinine') && labVal > 1.2) flag = labVal > 3.0 ? 'CRITICAL_HIGH' : 'HIGH';
@@ -240,6 +301,9 @@ export const confirmFactTool: WebMCPToolDefinition = {
         else if (lowerName.includes('potassium') && (labVal > 5.0 || labVal < 3.5)) flag = labVal > 5.0 ? 'HIGH' : 'LOW';
         else if (lowerName.includes('glucose') && labVal > 140) flag = 'HIGH';
         else if (lowerName.includes('hba1c') && labVal > 6.5) flag = 'HIGH';
+
+        // Reference range from the explanation, e.g. "within normal range (0.7-1.3 mg/dL)"
+        const rangeMatch = (fact.plainExplanation || '').match(/\((\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*([A-Za-z\/°²^0-9]*)\s*\)/);
 
         context.vault.addLab(
           {
@@ -250,8 +314,8 @@ export const confirmFactTool: WebMCPToolDefinition = {
             unit: unit || '',
             normalizedValue: labVal,
             normalizedUnit: unit || '',
-            drawDate: fact.timestamp || new Date().toISOString(),
-            referenceRange: undefined as unknown as LabRecord['referenceRange'],
+            drawDate: resolveFactDate(fact, 0),
+            referenceRange: rangeMatch ? { low: Number(rangeMatch[1]), high: Number(rangeMatch[2]) } as unknown as LabRecord['referenceRange'] : undefined as unknown as LabRecord['referenceRange'],
             optimalRange: undefined as unknown as LabRecord['optimalRange'],
             isBorderline: false,
             isCritical: flag.startsWith('CRITICAL'),
@@ -260,6 +324,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
           },
           userAudit
         );
+        }
       }
 
       // 3. Conditions & Diagnoses
@@ -280,6 +345,12 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
       // 4. Allergies
       else if (cat.includes('allerg')) {
+        // NKDA / "no known allergies" must NOT create an allergy record
+        const isNoAllergy = /NKDA|no known allerg/i.test(`${name} ${String(val ?? '')}`);
+        if (isNoAllergy) {
+          // Still record it as a condition-style note? No — nothing to track; skip silently.
+          return;
+        }
         context.vault.addAllergy(
           {
             id: `allg_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
@@ -301,7 +372,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
             patientId,
             title: name || 'Follow-up Clinic Appointment',
             type: 'followup',
-            scheduledDate: new Date(Date.now() + 14 * 86400000).toISOString(),
+            scheduledDate: resolveFactDate(fact, 14),
             description: plain || String(val || ''),
             status: 'scheduled',
             alertOffsetMinutes: 1440
@@ -317,7 +388,9 @@ export const confirmFactTool: WebMCPToolDefinition = {
           patientId,
           testPanel: name || 'Prescribed Monitoring Lab',
           biomarkers: [name],
-          dueDate: new Date(Date.now() + 14 * 86400000).toISOString(),
+          // AI-resolved date from the document (e.g. "Month 6 post-discharge" →
+          // concrete YYYY-MM-DD); relative-phrase parse; default quarterly.
+          dueDate: resolveFactDate(fact, 90),
           prescribedBy: 'Care Team',
           prescribedDate: new Date().toISOString(),
           instructions: plain || 'Repeat test as prescribed.',

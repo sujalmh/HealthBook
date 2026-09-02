@@ -58,8 +58,8 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
     setIsSigningIn(true);
     try {
       // Try Supabase first if configured
-      const supabaseUrl = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_URL;
-      const supabaseAnon = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
+      const supabaseAnon = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
       if (supabaseUrl && supabaseAnon) {
         try {
           const { getSupabaseClient } = await import('@/core/supabase/client');

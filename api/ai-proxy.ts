@@ -26,6 +26,15 @@ export default async function handler(req: any, res?: any) {
 
       const targetUrl = `https://opencode.ai${targetPath}`;
       const authHeader = req.headers?.['authorization'] || '';
+      // Client has no VITE_-prefixed key in production — fall back to the
+      // server-only AI_API_KEY (same contract as api/ai/responses.ts).
+      const serverKey = (process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '').trim();
+      const effectiveAuth = authHeader && authHeader.trim().toLowerCase() !== 'bearer'
+        ? authHeader
+        : (serverKey ? `Bearer ${serverKey}` : '');
+      if (!effectiveAuth) {
+        console.warn('[ai-proxy] no API key available — set AI_API_KEY (server-only, no VITE_ prefix) in Vercel env');
+      }
 
       let bodyStr: string | undefined = undefined;
       if (req.method === 'POST' || req.method === 'PUT') {
@@ -43,7 +52,7 @@ export default async function handler(req: any, res?: any) {
         method: req.method,
         headers: {
           'Content-Type': 'application/json',
-          ...(authHeader ? { Authorization: authHeader } : {}),
+          ...(effectiveAuth ? { Authorization: effectiveAuth } : {}),
         },
         body: bodyStr,
         signal: controller.signal,
@@ -96,6 +105,14 @@ export default async function handler(req: any, res?: any) {
 
     const targetUrl = `https://opencode.ai${targetPath}${url.search}`;
     const authHeader = req.headers.get('authorization') || '';
+    // Server-only key fallback (same contract as api/ai/responses.ts).
+    const serverKey = (process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '').trim();
+    const effectiveAuth = authHeader && authHeader.trim().toLowerCase() !== 'bearer'
+      ? authHeader
+      : (serverKey ? `Bearer ${serverKey}` : '');
+    if (!effectiveAuth) {
+      console.warn('[ai-proxy] no API key available — set AI_API_KEY (server-only, no VITE_ prefix) in Vercel env');
+    }
     const body = req.method === 'POST' || req.method === 'PUT' ? await req.text() : undefined;
 
     const controller = new AbortController();
@@ -105,7 +122,7 @@ export default async function handler(req: any, res?: any) {
       method: req.method,
       headers: {
         'Content-Type': 'application/json',
-        ...(authHeader ? { Authorization: authHeader } : {}),
+        ...(effectiveAuth ? { Authorization: effectiveAuth } : {}),
       },
       body,
       signal: controller.signal,

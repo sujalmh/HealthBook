@@ -1,0 +1,6 @@
+# Never upload local secret files with `vercel deploy` —
+# Vite bakes every VITE_* var it finds at build time, so anything in .env
+# becomes public in the deployed JS bundle.
+.env
+.env.*
+!.env.example

@@ -86,9 +86,13 @@ function parseProvider(val: unknown, fallback: AIProvider): AIProvider {
 }
 
 export function getAIConfig(): AIConfig {
+  // IMPORTANT: this must reference the exact static token `import.meta.env` —
+  // optional-chained/cast forms like `(import.meta as X)?.env` survive the
+  // production build as a runtime access, so Vite never bakes the VITE_* vars
+  // and the browser bundle always sees an empty env (prod "AI not configured").
   const env: Record<string, unknown> = (() => {
     try {
-      const metaEnv = (import.meta as unknown as { env?: Record<string, unknown> })?.env ?? {};
+      const metaEnv = import.meta.env ?? {};
       const procEnv = typeof globalThis !== 'undefined' && 'process' in globalThis
         ? ((globalThis as unknown as { process?: { env?: Record<string, unknown> } }).process?.env ?? {})
         : {};

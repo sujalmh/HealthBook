@@ -97,8 +97,8 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
       let supabaseRateLimited = false;
 
       // Try Supabase Auth if configured (graceful fallback to local)
-      const supabaseUrl = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_URL;
-      const supabaseAnon = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
+      const supabaseAnon = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
       if (supabaseUrl && supabaseAnon && emailTrim && passwordTrim) {
         try {
           const { getSupabaseClient } = await import('@/core/supabase/client');

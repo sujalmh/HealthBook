@@ -5,7 +5,7 @@ import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { resolvePatientId } from '@/components/common/resolvePatientId';
-import { Eye, Check, X, Edit3, Sparkles, FileText, CheckCircle, X as XIcon, Copy, FlaskConical } from 'lucide-react';
+import { Eye, Check, X, Edit3, Sparkles, FileText, CheckCircle, X as XIcon, Copy, FlaskConical, ShieldCheck, AlertTriangle, Search } from 'lucide-react';
 
 type FactExtra = FactEntity & {
   approvalStatus?: string;
@@ -18,6 +18,26 @@ type FactExtra = FactEntity & {
   approvedAt?: string;
   timestamp?: string;
   approvedBy?: string;
+};
+
+/** Web-evidence verification verdict attached by the AI pipeline after extraction. */
+const VerificationBadge: React.FC<{ verification?: FactEntity['verification'] }> = ({ verification }) => {
+  if (!verification) return null;
+  const style = verification.status === 'verified'
+    ? { cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Verified', Icon: ShieldCheck }
+    : verification.status === 'needs_review'
+      ? { cls: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Needs review', Icon: AlertTriangle }
+      : { cls: 'bg-slate-50 text-slate-500 border-slate-200', label: 'Unchecked', Icon: Search };
+  const firstSource = verification.sources?.[0];
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${style.cls}${firstSource ? ' cursor-pointer hover:brightness-95' : ''}`}
+      title={`${verification.note}${verification.sources?.length ? ` — sources: ${verification.sources.map((s) => s.title || s.url).join(', ')}` : ''}`}
+      onClick={firstSource ? () => window.open(firstSource.url, '_blank', 'noopener noreferrer') : undefined}
+    >
+      <style.Icon className="w-3 h-3" />{style.label}
+    </span>
+  );
 };
 
 export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) => {
@@ -259,6 +279,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1 text-caption text-muted"><Sparkles className="w-3 h-3 text-amber-500" />{Math.round((fact.confidence || 0.85) * 100)}%</span>
+                        <span className="block mt-1"><VerificationBadge verification={fact.verification} /></span>
                       </td>
                       <td className="py-3 px-3">
                         <button onClick={() => handleHighlight(fact)} className="inline-flex items-center gap-1 text-caption font-semibold text-primary hover:text-primary-hover bg-primary-light hover:bg-primary-light/80 border border-primary-border px-2.5 py-1 rounded-full transition-colors min-h-[32px]">
@@ -353,6 +374,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                     </td>
                     <td className="py-3 px-3">
                       <span className="font-semibold text-slate-900 truncate block max-w-[160px]" title={fact.name || (fact as unknown as FactExtra).factKey}>{fact.name || (fact as unknown as FactExtra).factKey}</span>
+                      <span className="block mt-1"><VerificationBadge verification={fact.verification} /></span>
                     </td>
                     <td className="py-3 px-3">
                       <span className="font-mono font-bold text-slate-900 truncate block max-w-[140px]" title={`${formatValue(fact)} ${fact.unit || ''}`}>{formatValue(fact)} {fact.unit && <span className="font-normal text-muted text-caption">{fact.unit}</span>}</span>

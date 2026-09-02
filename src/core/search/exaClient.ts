@@ -156,7 +156,9 @@ function resolveAuthHeader(config: ReturnType<typeof getExaConfig>, options?: Ex
     if (k && k.trim()) return `Bearer ${k.trim()}`;
   }
   try {
-    const metaEnv = (import.meta as unknown as { env?: Record<string, unknown> })?.env ?? {};
+    // Static token `import.meta.env` — Vite bakes VITE_* vars at build time.
+    // Cast/optional-chain forms are NOT replaced, so keep this literal.
+    const metaEnv = import.meta.env ?? {};
     const fallback = (metaEnv.VITE_EXA_API_KEY as string) || (metaEnv.EXA_API_KEY as string);
     if (fallback && String(fallback).trim()) return `Bearer ${String(fallback).trim()}`;
   } catch { /* intentionally empty */ }

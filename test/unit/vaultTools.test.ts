@@ -126,7 +126,8 @@ describe('Module 0: Approved Fact Vault WebMCP Tools', () => {
     expect(editResult.data.status).toBe('confirmed');
 
     const confirmed = localVault.getConfirmedFacts(patientId);
-    expect(confirmed[0].value.value || confirmed[0].value).toBe(1.9);
+    const val = confirmed[0].value as unknown as { value?: unknown } | unknown;
+    expect((val as { value?: unknown })?.value ?? val).toBe(1.9);
   });
 
   it('compile_health_record: compiles lifetime comprehensive dossier with emergency snapshot', async () => {

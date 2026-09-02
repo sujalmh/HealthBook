@@ -44,6 +44,16 @@ export type FactValue =
       [key: string]: unknown;
     };
 
+export interface FactVerification {
+  /** verified: web evidence supports the claim; needs_review: evidence contradicts or looks implausible; unverifiable: no relevant evidence */
+  status: 'verified' | 'needs_review' | 'unverifiable';
+  /** One-sentence plain-language verdict */
+  note: string;
+  /** Authoritative sources the verdict was checked against */
+  sources: Array<{ url: string; title: string }>;
+  checkedAt: string;
+}
+
 export interface Fact {
   id: string;
   patientId: string;
@@ -63,6 +73,10 @@ export interface Fact {
   sourceBoundingBox?: BoundingBox;
   plainExplanation: string;
   plainNarration?: string;
+  /** Resolved concrete calendar date (YYYY-MM-DD) for dated facts — lab draw date, due-card due date, follow-up visit date */
+  date?: string;
+  /** Web-evidence verification attached by the AI pipeline after extraction (may be absent if grounding unavailable) */
+  verification?: FactVerification;
   /** Author — string identifier at boundary, validated via typeof string before use */
   author: string | { userId: string; name: string; role: string } | unknown;
   actorName?: string;

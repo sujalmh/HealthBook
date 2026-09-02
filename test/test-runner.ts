@@ -70,7 +70,7 @@ export async function runAllSuites(): Promise<void> {
     }
   };
 
-  // Tier 1: Unit Tools (40 tools >= 5 tests each = 200 tests)
+  // Tier 1: Unit Tools (42 tools >= 5 tests each = ~210 tests)
   if (runAll || filterTier1) {
     console.log('📦 TIER 1: Tool Verification & Behavioral Specifications');
     await runSuite('Module 0: Approved Fact Vault', 'Tier 1', runVaultToolsTests);

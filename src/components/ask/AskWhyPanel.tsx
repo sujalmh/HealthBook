@@ -4,7 +4,6 @@ import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import type { QuestionBankItem } from '@/types/vault';
-import { GroundedInsightsPanel } from '@/components/search/GroundedInsightsPanel';
 
 interface AskWhyPanelProps {
   patientId: string;
@@ -20,7 +19,6 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
   const [causalResult, setCausalResult] = useState<any | null>(null);
   const [isQuestionAdded, setIsQuestionAdded] = useState(false);
   const [showIdeas, setShowIdeas] = useState(false);
-  const [showGrounding, setShowGrounding] = useState(false);
   const [vaultContext, setVaultContext] = useState('');
 
   useEffect(() => {
@@ -79,7 +77,6 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
       const res = await webMCPEngine.execute('correlate_meds', { biomarker: m, queryText: text, patientId }, context);
       if (res.success && res.data) {
         setCausalResult(res.data);
-        setShowGrounding(true);
       }
     } catch (err: any) {
       console.error('[AskWhyPanel] error', err);
@@ -229,35 +226,9 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
               </button>
             </div>
           )}
-          {/* Grounding toggle — intelligence AFTER extraction, web evidence */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setShowGrounding(v=>!v)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-amber-200 hover:bg-teal-50 hover:border-teal-200 text-sm font-bold text-slate-700 hover:text-teal-800 transition-colors"
-            >
-              <Sparkles className="w-4 h-4 text-teal-700" />
-              {showGrounding ? 'Hide web grounding' : 'Show web grounding (what latest guidelines say) — Exa'}
-              {showGrounding ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
-            </button>
-          </div>
         </div>
       )}
 
-      {showGrounding && (
-        <GroundedInsightsPanel
-          patientId={patientId}
-          initialQuery={
-            causalResult
-              ? `${causalResult.biomarker} ${causalResult.trajectory?.replace(/_/g, ' ') || ''} — ${causalResult.recommendedDoctorQuestion || queryText || 'interpretation and next steps'} per latest guidelines`
-              : queryText || `${marker} interpretation and guidelines`
-          }
-          contextFacts={
-            causalResult ? vaultContext || `${causalResult.biomarker}: ${causalResult.trendMetrics?.endValue ?? ''} | ${causalResult.causalStorySentence}` : vaultContext
-          }
-          mode={causalResult ? 'lab' : 'general'}
-        />
-      )}
     </div>
   );
 };

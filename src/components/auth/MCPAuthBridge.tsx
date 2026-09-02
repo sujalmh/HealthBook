@@ -167,8 +167,8 @@ export const MCPAuthBridge: React.FC = () => {
       let userId: string | null = null;
       let supabaseUsed = false;
 
-      const supabaseUrl = (import.meta as unknown as { env?: Record<string, string> })?.env?.VITE_SUPABASE_URL;
-      const supabaseAnon = (import.meta as unknown as { env?: Record<string, string> })?.env?.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
+      const supabaseAnon = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
       if (supabaseUrl && supabaseAnon && emailTrim && passwordTrim) {
         try {
           const { getSupabaseClient } = await import('@/core/supabase/client');
@@ -291,8 +291,8 @@ export const MCPAuthBridge: React.FC = () => {
     }
     setIsBusy(true);
     try {
-      const supabaseUrl = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_URL;
-      const supabaseAnon = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
+      const supabaseAnon = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
       if (supabaseUrl && supabaseAnon) {
         try {
           const { getSupabaseClient } = await import('@/core/supabase/client');

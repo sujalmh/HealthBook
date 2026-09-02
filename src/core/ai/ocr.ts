@@ -47,7 +47,9 @@ function resolveOCRApiKey(): string {
   } catch { /* intentionally empty */ }
 
   try {
-    const metaEnv = (import.meta as unknown as { env?: Record<string, unknown> })?.env ?? {};
+    // Static token `import.meta.env` — Vite bakes VITE_* vars at build time.
+    // Cast/optional-chain forms are NOT replaced, so keep this literal.
+    const metaEnv = import.meta.env ?? {};
     const procEnv = typeof globalThis !== 'undefined' && 'process' in globalThis
       ? ((globalThis as unknown as { process?: { env?: Record<string, unknown> } }).process?.env ?? {})
       : {};

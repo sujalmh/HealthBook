@@ -17,10 +17,11 @@ export const FACT_EXTRACTION_JSON_SCHEMA = {
           category: { type: 'string', description: 'Category: medication, lab, allergy, condition, demographics, vital, vital_sign, supplement, diet_habit, followup, due_card, question, danger_sign' },
           value: { type: 'string', description: 'Fact value (dosage/text, numeric reading, or detail string)' },
           unit: { type: 'string', description: 'Clinical unit (e.g. mg, mg/dL, mmHg, %, or empty)' },
+          date: { type: 'string', description: 'Resolved concrete calendar date YYYY-MM-DD for dated facts (lab draw date, due-card due date, follow-up visit date) — resolve relative schedules using document dates like the discharge date; empty string when not applicable' },
           confidence: { type: 'number', description: 'Confidence score 0..1' },
           plainExplanation: { type: 'string', description: 'Plain language explanation' },
         },
-        required: ['name', 'category', 'value', 'unit', 'confidence', 'plainExplanation'],
+        required: ['name', 'category', 'value', 'unit', 'date', 'confidence', 'plainExplanation'],
         additionalProperties: false,
       },
     },
@@ -248,6 +249,7 @@ export function validateStructuredFacts(data: unknown): { valid: boolean; errors
     const confidence = Math.max(0.1, Math.min(1.0, Number.isFinite(rawConfidence as number) ? rawConfidence as number : 0.85));
     const plainExplanation = typeof f.plainExplanation === 'string' && (f.plainExplanation as string).trim() ? (f.plainExplanation as string).trim() : `${name} noted.`;
     const unit = typeof f.unit === 'string' ? (f.unit as string).trim() : '';
+    const date = typeof f.date === 'string' && /^\d{4}-\d{2}-\d{2}/.test((f.date as string).trim()) ? (f.date as string).trim().slice(0, 10) : '';
 
     if (!name) {
       errors.push(`facts[${i}].name is missing`);
@@ -259,6 +261,7 @@ export function validateStructuredFacts(data: unknown): { valid: boolean; errors
       category,
       value: (f.value as unknown) ?? name,
       unit,
+      date,
       confidence: Math.round(confidence * 100) / 100,
       plainExplanation,
     });

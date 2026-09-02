@@ -416,14 +416,14 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
             <div className="text-xl font-bold text-slate-900 mt-0.5">{reconciledItems.length}</div>
           </div>
 
-          <div className="p-3 rounded-xl bg-purple-50 border border-purple-200">
-            <div className="text-caption font-mono text-clinical-purple uppercase font-bold">New meds</div>
-            <div className="text-xl font-bold text-clinical-purple mt-0.5">{newCount}</div>
+          <div className="p-3 rounded-xl bg-canvas-muted border border-canvas-border">
+            <div className="text-caption font-mono text-muted uppercase font-bold">New meds</div>
+            <div className="text-xl font-bold text-slate-900 mt-0.5">{newCount}</div>
           </div>
 
-          <div className="p-3 rounded-xl bg-sky-50 border border-sky-200">
-            <div className="text-caption font-mono text-clinical-blue uppercase font-bold">Dose changed</div>
-            <div className="text-xl font-bold text-clinical-blue mt-0.5">{changedCount}</div>
+          <div className="p-3 rounded-xl bg-canvas-muted border border-canvas-border">
+            <div className="text-caption font-mono text-muted uppercase font-bold">Dose changed</div>
+            <div className="text-xl font-bold text-slate-900 mt-0.5">{changedCount}</div>
           </div>
 
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">

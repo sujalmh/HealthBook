@@ -9,9 +9,12 @@ coverage
 .opencode/logs
 
 # Teamwork scratch — keep artifacts for audit, ignore transient worktrees
-.teamwork/worktrees/
-.teamwork/handoff/
-.teamwork/**/*.log
+.teamwork/
+worktrees/
+workstreams/
+.openchamber/
 /tmp/
 .vercel
 .env*
+.env*.local
+

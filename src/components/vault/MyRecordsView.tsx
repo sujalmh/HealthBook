@@ -3,7 +3,6 @@ import { FileText } from 'lucide-react';
 import { DocumentDropzone } from '@/components/vault/DocumentDropzone';
 import { FactStreamView } from '@/components/vault/FactStreamView';
 import { BoundingBoxViewer } from '@/components/common/BoundingBoxViewer';
-import { GroundedInsightsPanel } from '@/components/search/GroundedInsightsPanel';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { resolvePatientId } from '@/components/common/resolvePatientId';
@@ -130,33 +129,6 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
       {/* Review list */}
       <FactStreamView patientId={effectivePatientId} />
 
-      {/* Grounding — intelligence AFTER extraction, collapsible inside GroundedInsights */}
-      <GroundedInsightsPanel
-        patientId={effectivePatientId}
-        initialQuery=""
-        contextFacts={(() => {
-          try {
-            const facts = localVault.getFactsByPatient(effectivePatientId, 'confirmed') || localVault.getPendingFacts(effectivePatientId) || [];
-            if (facts.length === 0) return '';
-            const meds = facts
-              .filter((f) => String(f.category).toLowerCase().includes('med'))
-              .slice(0, 3)
-              .map((f) => (f as { name?: string }).name ?? '')
-              .join(', ');
-            const labs = facts
-              .filter((f) => String(f.category).toLowerCase().includes('lab'))
-              .slice(0, 2)
-              .map((f) => {
-                const fv = (f as { name?: string; value?: unknown }).value;
-                const vs = typeof fv === 'string' ? fv : JSON.stringify(fv);
-                return `${(f as { name?: string }).name ?? ''} ${vs}`;
-              })
-              .join('; ');
-            return [labs, meds ? `Meds: ${meds}` : ''].filter(Boolean).join(' | ');
-          } catch { return ''; }
-        })()}
-        mode="general"
-      />
 
       {/* Blocking overlay — wait till final results */}
       {isBusy && (

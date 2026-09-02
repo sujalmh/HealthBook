@@ -31,6 +31,33 @@ function findLocalStandard(markerName: string) {
   return null;
 }
 
+// Clinical groupings — related markers read together (e.g. Kidney = Creatinine + eGFR)
+const CATEGORY_ORDER = ['Kidney', 'Blood Sugar', 'Cholesterol', 'Electrolytes', 'Other'] as const;
+function categoryFor(canonical: string): (typeof CATEGORY_ORDER)[number] {
+  const m = canonical.toLowerCase();
+  if (m.includes('creat') || m.includes('gfr')) return 'Kidney';
+  if (m.includes('glucose') || m.includes('a1c')) return 'Blood Sugar';
+  if (m.includes('cholesterol') || m.includes('ldl') || m.includes('hdl') || m.includes('triglyceride')) return 'Cholesterol';
+  if (m.includes('potassium') || m === 'k' || m === 'k+' || m.includes('sodium')) return 'Electrolytes';
+  return 'Other';
+}
+
+// How each test is best performed — practical prep guidance, one line per marker
+const BEST_DONE_AS: Record<string, string> = {
+  Creatinine: 'Blood draw — no fasting',
+  eGFR: 'Blood draw — no fasting',
+  HbA1c: 'Blood draw — no fasting',
+  'Glucose Fasting': 'Blood draw — fast 8–12 h first',
+  'Cholesterol Total': 'Blood draw — fasting preferred',
+  LDL: 'Blood draw — fasting preferred',
+  HDL: 'Blood draw — fasting preferred',
+  Triglycerides: 'Blood draw — fast 9–12 h first',
+  Potassium: 'Blood draw — no fasting',
+};
+function bestDoneAs(canonical: string): string {
+  return BEST_DONE_AS[canonical] || 'Blood draw';
+}
+
 interface IndicatorTableProps {
   labs: LabRecord[];
   selectedMarker?: string;
@@ -64,6 +91,8 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
       return {
         key,
         canonical,
+        category: categoryFor(canonical),
+        method: bestDoneAs(canonical),
         labs: sorted,
         latest,
         count: groupLabs.length,
@@ -76,8 +105,9 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
         value: latest.normalizedValue ?? latest.value,
       };
     });
-    // sort alphabetically for stable overview; alternatively by most recent
-    result.sort((a, b) => a.canonical.localeCompare(b.canonical));
+    // group by category (clinical reading order), alphabetical within each group
+    const catIndex = (c: string) => CATEGORY_ORDER.indexOf(c as (typeof CATEGORY_ORDER)[number]);
+    result.sort((a, b) => catIndex(a.category) - catIndex(b.category) || a.canonical.localeCompare(b.canonical));
     return result;
   }, [labs]);
 
@@ -119,7 +149,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
   if (labs.length === 0) {
     return (
       <div className={`bg-canvas-card border border-dashed border-canvas-border rounded-2xl p-6 text-center ${className}`}>
-        <p className="text-body-sm text-muted">No lab records yet — add past results to see your deduplicated indicators.</p>
+        <p className="text-body-sm text-muted">No lab records yet — add past results to see your indicators here.</p>
       </div>
     );
   }
@@ -136,85 +166,96 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
               Indicators — {groups.length} unique • {labs.length} draws
             </h3>
             <p className="text-caption text-muted leading-snug">
-              One row per biomarker (deduplicated via findLocalStandard) • tap any row for details • <span className="font-bold text-primary">{selectedMarker ?? groups[0]?.canonical ?? ''}</span> selected
+              Your blood tests, grouped by what they check. Tap any row for history, trend chart, and your doctor's note.
             </p>
           </div>
         </div>
-        <span className="text-caption text-muted bg-canvas-muted border border-canvas-border px-2.5 py-1 rounded-full font-medium self-start sm:self-auto whitespace-nowrap">
-          Stored locally • one row per marker • details on click
-        </span>
       </div>
 
       <div className="overflow-x-auto -mx-1 scrollbar-none">
-        <table className="w-full text-left text-body-sm min-w-[680px]">
+        <table className="w-full text-left text-body-sm min-w-[760px]">
           <thead>
             <tr className="border-b border-canvas-border text-caption text-muted uppercase tracking-wider">
               <th className="py-2.5 px-3 font-semibold">Biomarker</th>
               <th className="py-2.5 px-3 font-semibold">Latest Value</th>
               <th className="py-2.5 px-3 font-semibold">Reference</th>
+              <th className="py-2.5 px-3 font-semibold">Best Done As</th>
               <th className="py-2.5 px-3 font-semibold">Status</th>
               <th className="py-2.5 px-3 font-semibold">Last Draw</th>
               <th className="py-2.5 px-3 font-semibold">History</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-canvas-border text-slate-700 font-medium">
-            {groups.map((g) => {
-              const isSelected = (selectedMarker ?? '').toLowerCase().trim() === g.canonical.toLowerCase().trim();
-              const dotColor = g.isCritical
-                ? 'bg-rose-500'
-                : g.isBorderline
-                ? 'bg-amber-500'
-                : g.flag === 'HIGH' || g.flag === 'LOW' || g.flag === 'BORDERLINE'
-                ? 'bg-amber-400'
-                : 'bg-emerald-500';
-              const badgeClass = g.isCritical
-                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                : g.isBorderline || g.flag === 'HIGH' || g.flag === 'LOW' || g.flag === 'BORDERLINE'
-                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200';
-              return (
-                <tr
-                  key={g.key}
-                  onClick={() => handleRowClick(g)}
-                  onKeyDown={(e) => handleRowKeyDown(e, g)}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${g.canonical} ${g.value} ${g.unit} ${g.flag}${g.isBorderline ? ' borderline' : ''}${g.isCritical ? ' critical' : ''} — tap for details`}
-                  className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset min-h-[44px] ${isSelected ? 'bg-primary-light/50 hover:bg-primary-light/60' : 'hover:bg-canvas-muted/60'}`}
-                  style={{ height: '44px' }}
-                >
-                  <td className="py-3 px-3">
-                    <span className="inline-flex items-center gap-2 font-semibold text-slate-900">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                      {g.canonical}
-                      {isSelected && <span className="text-caption px-1.5 py-0.5 rounded-full bg-primary text-white font-bold leading-none">●</span>}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
-                    {g.value as string | number} <span className="font-normal text-muted text-caption">{g.unit}</span>
-                  </td>
-                  <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
-                    {g.referenceRange?.low ?? 0}–{g.referenceRange?.high ?? 100} {g.unit}
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className={`text-caption px-2 py-0.5 rounded-full font-bold uppercase border whitespace-nowrap ${badgeClass}`}>
-                      {g.flag}
-                      {g.isBorderline && g.flag !== 'BORDERLINE' ? ' • BORDERLINE' : ''}
-                      {g.isCritical ? ' • CRITICAL' : ''}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 whitespace-nowrap text-slate-900 font-medium">
-                    {g.latest.drawDate ? new Date(g.latest.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className="inline-flex items-center gap-1 text-caption text-muted">
-                      <Calendar className="w-3 h-3" /> {g.count} {g.count === 1 ? 'draw' : 'draws'}
-                    </span>
-                  </td>
+          {CATEGORY_ORDER.map((category) => {
+            const catGroups = groups.filter((g) => g.category === category);
+            if (catGroups.length === 0) return null;
+            return (
+              <tbody key={category} className="divide-y divide-canvas-border text-slate-700 font-medium">
+                <tr className="bg-canvas-muted/60">
+                  <th colSpan={7} scope="colgroup" className="py-1.5 px-3 text-left text-caption font-semibold uppercase tracking-wider text-slate-600">
+                    {category}
+                  </th>
                 </tr>
-              );
-            })}
-          </tbody>
+                {catGroups.map((g) => {
+                const isSelected = (selectedMarker ?? '').toLowerCase().trim() === g.canonical.toLowerCase().trim();
+                const dotColor = g.isCritical
+                  ? 'bg-rose-500'
+                  : g.isBorderline
+                  ? 'bg-amber-500'
+                  : g.flag === 'HIGH' || g.flag === 'LOW' || g.flag === 'BORDERLINE'
+                  ? 'bg-amber-400'
+                  : 'bg-emerald-500';
+                const badgeClass = g.isCritical
+                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                  : g.isBorderline || g.flag === 'HIGH' || g.flag === 'LOW' || g.flag === 'BORDERLINE'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                return (
+                  <tr
+                    key={g.key}
+                    onClick={() => handleRowClick(g)}
+                    onKeyDown={(e) => handleRowKeyDown(e, g)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${g.canonical} ${g.value} ${g.unit} ${g.flag}${g.isBorderline ? ' borderline' : ''}${g.isCritical ? ' critical' : ''} — tap for details`}
+                    className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset min-h-[44px] ${isSelected ? 'bg-primary-light/50 hover:bg-primary-light/60' : 'hover:bg-canvas-muted/60'}`}
+                    style={{ height: '44px' }}
+                  >
+                    <td className="py-3 px-3">
+                      <span className="inline-flex items-center gap-2 font-semibold text-slate-900">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                        {g.canonical}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                      {g.value as string | number} <span className="font-normal text-muted text-caption">{g.unit}</span>
+                    </td>
+                    <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
+                      {g.referenceRange?.low ?? 0}–{g.referenceRange?.high ?? 100} {g.unit}
+                    </td>
+                    <td className="py-3 px-3 text-body-sm text-slate-600">
+                      {g.method}
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className={`text-caption px-2 py-0.5 rounded-full font-bold uppercase border whitespace-nowrap ${badgeClass}`}>
+                        {g.flag}
+                        {g.isBorderline && g.flag !== 'BORDERLINE' ? ' • BORDERLINE' : ''}
+                        {g.isCritical ? ' • CRITICAL' : ''}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 whitespace-nowrap text-slate-900 font-medium">
+                      {g.latest.drawDate ? new Date(g.latest.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="inline-flex items-center gap-1 text-caption text-muted">
+                        <Calendar className="w-3 h-3" /> {g.count} {g.count === 1 ? 'draw' : 'draws'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+                })}
+              </tbody>
+            );
+          })}
         </table>
       </div>
 
@@ -229,7 +270,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-heading-md font-bold text-slate-900 truncate">{activeGroup.canonical} — Details</h3>
-                  <p className="text-caption text-muted">Latest value • reference & optimal • flag • history • chart • note</p>
+                  <p className="text-caption text-muted">Latest value, ranges, trend chart, and history in one place.</p>
                 </div>
               </div>
               <button
@@ -351,7 +392,6 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                     </tbody>
                   </table>
                 </div>
-                <p className="text-caption text-muted">History is kept here in details — overview stays deduplicated one row per marker.</p>
               </div>
 
               <div className="flex justify-end pt-2 border-t border-canvas-border">

@@ -62,14 +62,19 @@ describe('Empirical Mobile Layout, Viewport Responsiveness & Touch Target Verifi
       expect(app).toContain('aria-label');
       expect(app).toContain('Ask');
       expect(app).toContain('Activity');
-      expect(app).toContain('Sign out');
+      expect(app).toContain('ProfileIndicator');
+      expect(app).toContain('Connect');
+      expect(app).toContain('Settings');
+      expect(app).not.toContain('Sign out');
+      expect(app).not.toContain('handleSignOut');
+      expect(app).not.toContain('LogOut');
       expect(app).toContain('min-h-[44px] min-w-[44px]');
     });
 
-    it('implements bottom mobile navigation with grouped 5-item grid, merged health, Ask centered + highlighted, and >=44px touch targets', () => {
+    it('implements bottom mobile navigation with grouped grid (patient 5 / doctor 3), merged health, Ask centered + highlighted, and >=44px touch targets', () => {
       const app = readSrcFile('App.tsx');
       expect(app).toContain('md:hidden fixed bottom-0 left-0 right-0');
-      expect(app).toContain('grid grid-cols-5');
+      expect(app).toContain('grid-cols-5');
       expect(app).toContain('min-h-[56px]');
       // Merged Records+Labs → Health, Ask centered with highlight
       expect(app).toContain("'health'");
