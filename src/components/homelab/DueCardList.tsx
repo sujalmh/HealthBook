@@ -23,8 +23,12 @@ export const DueCardList: React.FC<DueCardListProps> = ({
   onUploadClick,
   onCompleteCard
 }) => {
+  const parseDueDate = (dueDateStr: string): Date => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dueDateStr)) return new Date(dueDateStr + 'T12:00:00');
+    return new Date(dueDateStr);
+  };
   const calculateDaysRemaining = (dueDateStr: string): number => {
-    const due = new Date(dueDateStr).getTime();
+    const due = parseDueDate(dueDateStr).getTime();
     const now = Date.now();
     return Math.ceil((due - now) / (1000 * 60 * 60 * 24));
   };
@@ -118,7 +122,7 @@ export const DueCardList: React.FC<DueCardListProps> = ({
 
                 <div className="text-right">
                   <span className="text-body-sm font-medium text-muted">
-                    {new Date(card.dueDate).toLocaleDateString(undefined, {
+                    {parseDueDate(card.dueDate).toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric'
@@ -154,7 +158,7 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                     <User className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">Prescribed by {(card.prescribedBy || '').trim() || 'Your doctor'}</span>
                   </span>
-                  <span>Prescribed: {new Date(card.prescribedDate).toLocaleDateString()}</span>
+                  <span>Prescribed: {parseDueDate(card.prescribedDate).toLocaleDateString()}</span>
                 </div>
               </div>
 

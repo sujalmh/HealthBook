@@ -55,10 +55,18 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   const pendingFacts = facts.filter((f) => f.status === 'unconfirmed' || (f as any).approvalStatus === 'pending' || (f as any).approvalStatus === 'unconfirmed');
   const approvedFacts = facts.filter((f) => f.status === 'confirmed' || (f as any).approvalStatus === 'approved' || (f as any).approvalStatus === 'confirmed');
 
-  const filteredApprovedFacts = approvedFacts.filter((f) => {
+  // R3 deduplication: labs are now consolidated in single IndicatorTable (LabStoryView) via findLocalStandard — delegate to avoid scattered duplicates
+  const isLabCategory = (c: string) => (c ?? '').toLowerCase().trim() === 'lab';
+  const pendingLabsCount = pendingFacts.filter((f) => isLabCategory(f.category)).length;
+  const approvedLabsCount = approvedFacts.filter((f) => isLabCategory(f.category)).length;
+  const pendingFactsDisplay = pendingFacts.filter((f) => !isLabCategory(f.category));
+  const filteredApprovedFactsBase = approvedFacts.filter((f) => {
     if (selectedCategory !== 'all' && f.category !== selectedCategory) return false;
     return true;
   });
+  // When browsing saved records, lab rows are delegated to IndicatorTable — show delegation instead of duplicates
+  const filteredApprovedFacts = filteredApprovedFactsBase.filter((f) => !isLabCategory(f.category));
+  const labDelegationActive = isLabCategory(selectedCategory);
 
   const handleHighlight = (fact: FactEntity) => {
     const bbox: any = (fact as any).boundingBox || (fact as any).sourceBoundingBox || null;
@@ -190,6 +198,13 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
             })()}
           </div>
 
+          {/* R3: Lab facts delegated to single IndicatorTable — no scattered duplicate rows; labs consolidated one row per marker via findLocalStandard */}
+          {pendingLabsCount > 0 && (
+            <div className="px-3 sm:px-4 py-2 bg-violet-50 border-b border-violet-200 text-caption text-violet-800 flex items-center gap-2">
+              <span className="font-bold">🧪 {pendingLabsCount} lab{pendingLabsCount===1?'':'s'} now in Indicators</span>
+              <span className="text-violet-700/80">— consolidated one row per marker in Health → Lab Results → Indicators table. Tap row for details (value+ref+flag+history+chart). Pending labs handled via LabStory deduplication.</span>
+            </div>
+          )}
           <div className="overflow-x-auto scrollbar-none">
             <table className="w-full text-left text-body-sm min-w-[760px]">
               <thead>
@@ -204,7 +219,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                 </tr>
               </thead>
               <tbody className="divide-y divide-canvas-border bg-white">
-                {pendingFacts.map((fact) => {
+                {pendingFactsDisplay.map((fact) => {
                   const isEditing = editingId === fact.id;
                   const isBusy = actionLoading === fact.id;
                   return (
@@ -279,7 +294,21 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
           </div>
         </div>
 
-        {filteredApprovedFacts.length === 0 ? (
+        {/* R3 delegation banner — labs consolidated in single IndicatorTable (LabStoryView) via findLocalStandard, not duplicated here */}
+        {approvedLabsCount > 0 && !labDelegationActive && (
+          <div className="px-3 sm:px-4 py-2 bg-violet-50 border-y border-violet-200 text-caption text-violet-800 flex items-center gap-2">
+            <span className="font-bold">🧪 {approvedLabsCount} lab{approvedLabsCount===1?'':'s'} in Indicators</span>
+            <span className="text-violet-700/80">— consolidated one row per marker in Health → Lab Results → Indicators table (tap row for details: value+ref+flag+history+chart+note).</span>
+          </div>
+        )}
+        {labDelegationActive ? (
+          <div className="p-6 sm:p-8 text-center bg-violet-50/60 border-y border-violet-200">
+            <div className="w-10 h-10 rounded-xl bg-white border border-violet-200 text-violet-600 flex items-center justify-center mx-auto">🧪</div>
+            <p className="text-sm font-bold text-slate-900 mt-2">Lab results are in Indicators</p>
+            <p className="text-xs text-slate-600 max-w-sm mx-auto">One row per biomarker (deduplicated via findLocalStandard) in Health → Lab Results → Indicators table. Tap any row (≥44px, role=button) for details: latest value+unit, reference & optimal range, flag/status (NORMAL|HIGH|LOW|CRITICAL with isBorderline/isCritical), history, plain explanation, doctor note, and BiomarkerChart trajectory. No scattered duplicates here.</p>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-700 bg-white border border-violet-200 px-2.5 py-1 rounded-full mt-2">Indicators • one row per marker • details on click</span>
+          </div>
+        ) : filteredApprovedFacts.length === 0 ? (
           <div className="p-6 sm:p-8 text-center bg-slate-50/50">
             <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center mx-auto"><FileText className="w-5 h-5" /></div>
             <p className="text-sm font-semibold text-slate-700 mt-2">No records yet</p>

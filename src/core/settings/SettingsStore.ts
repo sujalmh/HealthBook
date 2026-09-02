@@ -29,6 +29,15 @@ export interface SettingsState {
   OCR_API_KEY?: string;
   VITE_OCR_MODEL?: string;
   VITE_EXTRACTION_PATH?: string;
+  // Exa Healthcare Grounding
+  VITE_EXA_ENABLED?: string;
+  VITE_EXA_API_KEY?: string;
+  EXA_API_KEY?: string;
+  VITE_EXA_BASE_URL?: string;
+  VITE_EXA_NUM_RESULTS?: string;
+  VITE_EXA_SEARCH_TYPE?: string;
+  VITE_EXA_TIMEOUT_MS?: string;
+  VITE_EXA_MAX_AGE_HOURS?: string;
 }
 
 // All configurable keys — generic configurable, no hardcoded literals
@@ -51,6 +60,15 @@ export const SETTINGS_VITE_KEYS: (keyof SettingsState)[] = [
   'OCR_API_KEY',
   'VITE_OCR_MODEL',
   'VITE_EXTRACTION_PATH',
+  // Exa Healthcare Grounding (extends to 21 keys)
+  'VITE_EXA_ENABLED',
+  'VITE_EXA_API_KEY',
+  'EXA_API_KEY',
+  'VITE_EXA_BASE_URL',
+  'VITE_EXA_NUM_RESULTS',
+  'VITE_EXA_SEARCH_TYPE',
+  'VITE_EXA_TIMEOUT_MS',
+  'VITE_EXA_MAX_AGE_HOURS',
 ];
 
 // Storage blob keys — SettingsStore writes via same keys read by src/core/ai/config.ts:68-139

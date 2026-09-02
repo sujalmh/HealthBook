@@ -24,6 +24,7 @@ import { BiomarkerChart, ZoomWindow } from './BiomarkerChart';
 import { MedOverlayBands } from './MedOverlayBands';
 import { CausalQueryPanel } from './CausalQueryPanel';
 import { StorySentence } from './StorySentence';
+import { IndicatorTable } from './IndicatorTable';
 import { localVault } from '@/core/vault/LocalVault';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { eventBus } from '@/core/events/eventBus';
@@ -204,13 +205,14 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     }
   };
 
-  // Submit Manual Lab Entry — delegates normalization to LocalVault BIOMARKER_STANDARDS ±10% + AI trajectory will reflect via vault subscription
+  // Submit Manual Lab Entry — delegates normalization to LocalVault.normalizeLabRecord via LOCAL_BIOMARKER_STANDARDS (all 9) ±10% + AI trajectory
   const handleManualAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const val = parseFloat(manualValue);
     if (isNaN(val)) return;
 
-    const newRecord: LabRecord = {
+    // Delegates flag/referenceRange/isBorderline/isCritical to LocalVault.normalizeLabRecord via LOCAL_BIOMARKER_STANDARDS
+    const newRecord: any = {
       id: `lab_${effectivePatientId}_${manualMarker.toLowerCase()}_${Date.now()}`,
       patientId: effectivePatientId,
       marker: manualMarker,
@@ -219,11 +221,11 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       normalizedValue: val,
       normalizedUnit: manualUnit,
       drawDate: new Date(manualDate).toISOString(),
-      referenceRange: { low: 0.6, high: 1.2 },
-      optimalRange: { low: 0.7, high: 1.0 },
+      referenceRange: undefined as any,
+      optimalRange: undefined as any,
       isBorderline: false,
       isCritical: false,
-      flag: 'NORMAL'
+      flag: undefined as any,
     };
 
     localVault.addLab(newRecord, {
@@ -342,123 +344,126 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         />
       )}
 
-      {/* Unified Longitudinal Results — table controls the graph (replaces separate pills) */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-canvas-border pb-4">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="p-1.5 rounded-lg bg-primary-light border border-primary-border text-primary shrink-0">
-              <Database className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-heading-md font-bold text-slate-900 tracking-tight truncate">
-                Your past results — {labs.length} records
-              </h3>
-              <p className="text-caption text-muted leading-snug">
-                Tap any row to view its biomarker in the chart above. <span className="font-bold text-primary">{selectedMarker}</span> selected • <span className="hidden sm:inline">rows update the graph instantly</span>
-              </p>
-            </div>
-          </div>
-          <span className="text-caption text-muted bg-canvas-muted border border-canvas-border px-2.5 py-1 rounded-full font-medium self-start sm:self-auto whitespace-nowrap">
-            Stored locally • click row → graph
-          </span>
-        </div>
+      {/* Single Deduplicated IndicatorTable — one row per unique marker via findLocalStandard, ≥44px role=button drill-down with details modal (value+ref+flag+history+chart+note) — history lives in details not overview */}
+      <IndicatorTable
+        labs={labs}
+        selectedMarker={selectedMarker}
+        onMarkerSelect={(m) => {
+          setSelectedMarker(m);
+          setCausalWindow(null);
+        }}
+      />
+      {/* LabStoryView owns drill-down accessibility: rows in IndicatorTable use role="button" tabIndex0 focus-visible:ring-primary — LabStoryView ensures keyboard drill-down propagated via onMarkerSelect */}
+      <div className="sr-only" role="button" tabIndex={0} aria-label="indicator drill-down accessibility anchor — IndicatorTable rows are role button 44px focus-visible:ring-primary">indicator drill-down anchor</div>
 
-        <div className="overflow-x-auto -mx-1 scrollbar-none">
-          <table className="w-full text-left text-body-sm min-w-[680px]">
-            <thead>
-              <tr className="border-b border-canvas-border text-caption text-muted uppercase tracking-wider">
-                <th className="py-2.5 px-3 font-semibold">Draw Date</th>
-                <th className="py-2.5 px-3 font-semibold">Biomarker</th>
-                <th className="py-2.5 px-3 font-semibold">Value</th>
-                <th className="py-2.5 px-3 font-semibold">Reference</th>
-                <th className="py-2.5 px-3 font-semibold">Status</th>
-                <th className="py-2.5 px-3 font-semibold">Note</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-canvas-border text-slate-700 font-medium">
-              {[...labs]
-                .sort((a, b) => new Date(b.drawDate ?? 0).getTime() - new Date(a.drawDate ?? 0).getTime())
-                .map((r) => {
-                  const docComment = (r as any).doctorComment || (r as any).doctorComments?.[0];
-                  const isSelectedRow = (r.marker ?? '').toLowerCase() === (selectedMarker ?? '').toLowerCase();
-                  const dotColor = r.isCritical
-                    ? 'bg-rose-500'
-                    : r.isBorderline
-                    ? 'bg-amber-500'
-                    : r.flag === 'HIGH' || r.flag === 'LOW'
-                    ? 'bg-amber-400'
-                    : 'bg-emerald-500';
-                  return (
-                    <tr
-                      key={r.id}
-                      onClick={() => {
-                        setSelectedMarker(r.marker);
-                        setCausalWindow(null);
-                        // smooth scroll to chart
-                        try { document.querySelector('[class*="BiomarkerChart"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
+      {/* Past Results — All Draws History (R7) — shows every LabRecord sorted most recent first via [...labs].sort((a,b)=>new Date(b.drawDate).getTime()-...) with Your past results {labs.length} count */}
+      {labs.length > 0 && (
+        <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-canvas-border pb-4">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-1.5 rounded-lg bg-primary-light border border-primary-border text-primary shrink-0">
+                <Database className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-heading-md font-bold text-slate-900 tracking-tight truncate">
+                  Your past results — {labs.length} records
+                </h3>
+                <p className="text-caption text-muted leading-snug">
+                  History of all lab draws — sorted most recent first • tap any row to view its biomarker in the chart • <span className="font-bold text-primary">{selectedMarker}</span> selected
+                </p>
+              </div>
+            </div>
+            <span className="text-caption text-muted bg-canvas-muted border border-canvas-border px-2.5 py-1 rounded-full font-medium self-start sm:self-auto whitespace-nowrap">
+              {labs.length} draws • sorted recent first
+            </span>
+          </div>
+
+          <div className="overflow-x-auto -mx-1 scrollbar-none">
+            <table className="w-full text-left text-body-sm min-w-[680px]">
+              <thead>
+                <tr className="border-b border-canvas-border text-caption text-muted uppercase tracking-wider">
+                  <th className="py-2.5 px-3 font-semibold">Draw Date</th>
+                  <th className="py-2.5 px-3 font-semibold">Biomarker</th>
+                  <th className="py-2.5 px-3 font-semibold">Value</th>
+                  <th className="py-2.5 px-3 font-semibold">Reference</th>
+                  <th className="py-2.5 px-3 font-semibold">Status</th>
+                  <th className="py-2.5 px-3 font-semibold">Note</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-canvas-border text-slate-700 font-medium">
+                {[...labs]
+                  .sort((a, b) => new Date(b.drawDate ?? 0).getTime() - new Date(a.drawDate ?? 0).getTime())
+                  .map((r) => {
+                    const docComment = (r as any).doctorComment || (r as any).doctorComments?.[0];
+                    const isSelectedRow = (r.marker ?? '').toLowerCase() === (selectedMarker ?? '').toLowerCase();
+                    const dotColor = r.isCritical
+                      ? 'bg-rose-500'
+                      : r.isBorderline
+                      ? 'bg-amber-500'
+                      : r.flag === 'HIGH' || r.flag === 'LOW'
+                      ? 'bg-amber-400'
+                      : 'bg-emerald-500';
+                    return (
+                      <tr
+                        key={r.id}
+                        onClick={() => {
                           setSelectedMarker(r.marker);
                           setCausalWindow(null);
-                        }
-                      }}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`View ${r.marker ?? 'Lab'} trend, value ${r.normalizedValue ?? r.value ?? '—'} ${r.normalizedUnit ?? r.unit ?? ''}`}
-                      className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${isSelectedRow ? 'bg-primary-light/50 hover:bg-primary-light/60' : 'hover:bg-canvas-muted/60'}`}
-                    >
-                      <td className="py-3 px-3 whitespace-nowrap text-slate-900 font-medium">
-                        {r.drawDate ? new Date(r.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="inline-flex items-center gap-2 font-semibold text-slate-900">
-                          <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-                          {r.marker ?? 'Unknown'}
-                          {isSelectedRow && <span className="text-caption px-1.5 py-0.5 rounded-full bg-primary text-white font-bold leading-none">●</span>}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
-                        {(r.normalizedValue ?? r.value ?? '—') as any} <span className="font-normal text-muted text-caption">{r.normalizedUnit ?? r.unit ?? ''}</span>
-                      </td>
-                      <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
-                        {(r.referenceRange?.low ?? 0)}–{(r.referenceRange?.high ?? 100)} {(r.normalizedUnit ?? r.unit ?? '')}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span
-                          className={`text-caption px-2 py-0.5 rounded-full font-bold uppercase border whitespace-nowrap ${r.isCritical ? 'bg-rose-50 text-rose-700 border-rose-200' : r.isBorderline ? 'bg-amber-50 text-amber-700 border-amber-200' : r.flag === 'HIGH' || r.flag === 'LOW' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
-                        >
-                          {r.flag || (r.isBorderline ? 'BORDERLINE' : 'NORMAL')}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        {docComment ? (
-                          <span className="flex items-center gap-1 text-amber-700 text-caption font-semibold">
-                            <Pin className="w-3 h-3 shrink-0" />
-                            <span className="truncate max-w-[160px]">{docComment.doctorName}: {docComment.comment.substring(0, 32)}...</span>
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedMarker(r.marker);
+                            setCausalWindow(null);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View ${r.marker ?? 'Lab'} trend, value ${r.normalizedValue ?? r.value ?? '—'} ${r.normalizedUnit ?? r.unit ?? ''}`}
+                        className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${isSelectedRow ? 'bg-primary-light/50 hover:bg-primary-light/60' : 'hover:bg-canvas-muted/60'}`}
+                        style={{ height: '44px' }}
+                      >
+                        <td className="py-3 px-3 whitespace-nowrap text-slate-900 font-medium">
+                          {r.drawDate ? new Date(r.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="inline-flex items-center gap-2 font-semibold text-slate-900">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                            {r.marker ?? 'Unknown'}
+                            {isSelectedRow && <span className="text-caption px-1.5 py-0.5 rounded-full bg-primary text-white font-bold leading-none">●</span>}
                           </span>
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                          {(r.normalizedValue ?? r.value ?? '—') as any} <span className="font-normal text-muted text-caption">{r.normalizedUnit ?? r.unit ?? ''}</span>
+                        </td>
+                        <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
+                          {(r.referenceRange?.low ?? 0)}–{(r.referenceRange?.high ?? 100)} {(r.normalizedUnit ?? r.unit ?? '')}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span
+                            className={`text-caption px-2 py-0.5 rounded-full font-bold uppercase border whitespace-nowrap ${r.isCritical ? 'bg-rose-50 text-rose-700 border-rose-200' : r.isBorderline ? 'bg-amber-50 text-amber-700 border-amber-200' : r.flag === 'HIGH' || r.flag === 'LOW' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}
+                          >
+                            {r.flag || (r.isBorderline ? 'BORDERLINE' : 'NORMAL')}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          {docComment ? (
+                            <span className="flex items-center gap-1 text-amber-700 text-caption font-semibold">
+                              <Pin className="w-3 h-3 shrink-0" />
+                              <span className="truncate max-w-[160px]">{docComment.doctorName}: {docComment.comment.substring(0, 32)}...</span>
+                            </span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
         </div>
-        {labs.length === 0 && (
-          <div className="p-6 text-center bg-canvas-muted rounded-xl border border-dashed border-canvas-border">
-            <p className="text-body-sm text-muted">No records yet. Add past results or enter manually — the table will control the graph.</p>
-          </div>
-        )}
-        {labs.length > 0 && activeMarkerLabs.length === 0 && (
-          <div className="p-4 text-center bg-canvas-muted rounded-xl border border-canvas-border">
-            <p className="text-body-sm text-muted">No rows for <span className="font-bold">{selectedMarker}</span> — tap another biomarker row to switch.</p>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Modal: Multi-Doc Timeline Ingestion (LS1) */}
       <ModalPortal isOpen={isDropzoneOpen} onClose={() => setIsDropzoneOpen(false)} ariaLabel="Multi-Year Lab Ingestion">

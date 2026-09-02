@@ -32,6 +32,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const filteredEvents = events.filter((e) => filterType === 'all' || e.eventType === filterType);
 
+  const parseCalendarDate = (s: string): Date => /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T12:00:00') : new Date(s);
   const generateAndDownloadICS = () => {
     let icsString = [
       'BEGIN:VCALENDAR',
@@ -42,11 +43,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     ].join('\r\n');
 
     for (const evt of events) {
-      const dt = new Date(evt.scheduledDate);
+      const dt = parseCalendarDate(evt.scheduledDate);
       const dtstamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
       const dtstart = dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
       const dtendRaw = (evt as any).scheduledDateEnd as string | undefined;
-      const dtend = dtendRaw ? new Date(dtendRaw).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : null;
+      const dtend = dtendRaw ? parseCalendarDate(dtendRaw).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : null;
 
       const veventLines = [
         'BEGIN:VEVENT',
@@ -165,9 +166,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       ) : (
         <div className="space-y-3">
           {filteredEvents.map((evt) => {
-            const dt = new Date(evt.scheduledDate);
+            const dt = parseCalendarDate(evt.scheduledDate);
             const isRangeEvent = !!(evt as any).scheduledDateEnd;
-            const dtEnd = isRangeEvent ? new Date((evt as any).scheduledDateEnd) : null;
+            const dtEnd = isRangeEvent ? parseCalendarDate((evt as any).scheduledDateEnd) : null;
             const isPast = dt.getTime() < Date.now();
             const daysAway = Math.ceil((dt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
             const rangeLabel = isRangeEvent && dtEnd

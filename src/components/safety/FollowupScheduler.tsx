@@ -20,6 +20,14 @@ interface FollowupSchedulerProps {
   isOpen: boolean;
   onClose: () => void;
   patientId: string;
+  activeProfile?: {
+    userId: string;
+    name: string;
+    role: string;
+    isProxy?: boolean;
+    onBehalfOf?: string;
+    permissionLevel?: 'view_only' | 'manage' | 'full';
+  };
   onScheduled?: () => void;
 }
 
@@ -27,6 +35,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
   isOpen,
   onClose,
   patientId,
+  activeProfile,
   onScheduled
 }) => {
   const [appointmentType, setAppointmentType] = useState<'in_person_clinic' | 'telehealth_video'>('in_person_clinic');
@@ -44,15 +53,22 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
+  const callerPerm = (activeProfile as any)?.permissionLevel || 'manage';
+  const isViewOnly = callerPerm === 'view_only';
+  const callerForAudit = activeProfile || { userId: patientId, name: (providerName || '').trim() || 'Your doctor', role: 'doctor', isProxy: false, permissionLevel: 'manage' as const };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewOnly) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'View-only cannot schedule follow-ups (PERMISSION_DENIED)' });
+      return;
+    }
     setIsSubmitting(true);
     try {
-      // Range 7-14 days window: scheduledDateEnd additive compat
+      // Range 7-14 days window: scheduledDateEnd additive compat — local-noon T12:00:00 for date-only — RBAC uses caller role for audit
       if (isRange) {
-        const scheduledDate = new Date(customStart).toISOString();
-        const scheduledDateEnd = new Date(customEnd).toISOString();
+        const scheduledDate = new Date(customStart + 'T12:00:00').toISOString();
+        const scheduledDateEnd = new Date(customEnd + 'T12:00:00').toISOString();
         // Validate end after start — swap if needed
         const rangeEvent = localVault.addCalendarEvent(
           {
@@ -69,7 +85,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             syncedToCalendar: true,
             sharedWithCaregivers: ['user_family']
           } as any,
-          { userId: 'clinician', userName: (providerName || '').trim() || 'Your doctor', role: 'doctor' }
+          { userId: (callerForAudit as any).userId || 'clinician', userName: (callerForAudit as any).name || (providerName || '').trim() || 'Your doctor', role: (callerForAudit as any).role || 'doctor', onBehalfOf: (callerForAudit as any).onBehalfOf } as any
         );
         // windowDays helper for grep
         const windowDays = Math.ceil((new Date(scheduledDateEnd).getTime() - new Date(scheduledDate).getTime()) / 86400000);
@@ -85,9 +101,9 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
         return;
       }
 
-      const scheduledDate = dateOffset === 'custom' ? new Date(customDate).toISOString() : dateOffset;
+      const scheduledDate = dateOffset === 'custom' ? new Date(customDate + 'T12:00:00').toISOString() : dateOffset;
 
-      // 1. Schedule follow up tool
+      // 1. Schedule follow up tool — use true caller profile for audit performedBy
       const schedRes = await webMCPEngine.execute(
         'schedule_followup',
         {
@@ -98,13 +114,13 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
         },
         {
           patientId,
-          activeProfile: { userId: 'clinician', name: (providerName || '').trim() || 'Your doctor', role: 'doctor', isProxy: false },
+          activeProfile: { userId: (callerForAudit as any).userId || 'clinician', name: (callerForAudit as any).name || (providerName || '').trim() || 'Your doctor', role: (callerForAudit as any).role || 'doctor', isProxy: !!(callerForAudit as any).isProxy, permissionLevel: (callerForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerForAudit as any).onBehalfOf } as any,
           vault: localVault,
           eventBus
         }
       );
 
-      // 2. Sync to calendar
+      // 2. Sync to calendar — same caller
       if (schedRes.success && schedRes.data) {
         await webMCPEngine.execute(
           'sync_to_calendar',
@@ -114,7 +130,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
           },
           {
             patientId,
-            activeProfile: { userId: 'clinician', name: (providerName || '').trim() || 'Your doctor', role: 'doctor', isProxy: false },
+            activeProfile: { userId: (callerForAudit as any).userId || 'clinician', name: (callerForAudit as any).name || (providerName || '').trim() || 'Your doctor', role: (callerForAudit as any).role || 'doctor', isProxy: !!(callerForAudit as any).isProxy, permissionLevel: (callerForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerForAudit as any).onBehalfOf } as any,
             vault: localVault,
             eventBus
           }
@@ -331,12 +347,15 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
 
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || !reason.trim()}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-lg shadow-sky-600/20 min-h-[44px]"
+            disabled={isSubmitting || !reason.trim() || isViewOnly}
+            aria-disabled={isViewOnly}
+            title={isViewOnly ? 'View-only: cannot schedule — Permission denied (PERMISSION_DENIED)' : undefined}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-lg min-h-[44px] ${isViewOnly ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/20'}`}
           >
             <PlusCircle className="w-4 h-4" />
-            <span>{isSubmitting ? 'Booking...' : 'Book & Synchronize Calendar'}</span>
+            <span>{isViewOnly ? 'View-only blocked (PERMISSION_DENIED)' : isSubmitting ? 'Booking...' : 'Book & Synchronize Calendar'}</span>
           </button>
+          {isViewOnly && <p className="text-caption text-amber-700 font-semibold">View-only cannot schedule — PERMISSION_DENIED</p>}
         </div>
       </div>
     </ModalPortal>

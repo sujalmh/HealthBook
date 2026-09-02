@@ -19,6 +19,7 @@ import { PrivacyBadge } from '@/components/common/PrivacyBadge';
 import { QuestionBank } from '@/components/common/QuestionBank';
 import { WebMCPInspector } from '@/components/common/WebMCPInspector';
 import { ConnectWebMCPModal } from '@/components/common/ConnectWebMCPModal';
+import { ProfileIndicator } from '@/components/carecircle/ProfileIndicator';
 import { ModalPortal } from '@/components/common/ModalPortal';
 import { ToastContainer } from '@/components/common/ToastContainer';
 import { MyRecordsView } from '@/components/vault/MyRecordsView';
@@ -33,8 +34,10 @@ import { CreateAccountView } from '@/components/auth/CreateAccountView';
 import { SignInView } from '@/components/auth/SignInView';
 import { SettingsView } from '@/components/settings/SettingsView';
 import { AskWhyPanel } from '@/components/ask/AskWhyPanel';
+import { GroundedInsightsPanel } from '@/components/search/GroundedInsightsPanel';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { isViewOnly as isViewOnlyUtil } from '@/core/rbac/canAccess';
 
 // Merged navigation: Records+Labs → Health (4 sub-tabs), Ask (ex-Questions) centered + highlighted
 // Health   = My Records (vault) + Lab Results (labstory) + Tests to Do (homelab) + For My Doctor (dossier) — 4-in-1
@@ -302,13 +305,17 @@ export const App: React.FC = () => {
     }
   };
 
+  // RBAC derived — view_only read-only degraded not blank (R8 global)
+  const isViewOnly = isViewOnlyUtil(activeProfile as any);
+  const viewOnlyTooltip = 'View-only: cannot approve — ask primary holder';
   // Merged nav: 5 items with Ask centered + highlighted. Health merges Records+Labs (4 sub-tabs).
+  // Gated per role/tier: view_only shows disabled tooltip but remains visible for read
   const navItems = [
-    { id: 'health' as ActiveModule, label: 'Health', shortLabel: 'Health', icon: Layers, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: 'Records + Labs + For Doctor' },
-    { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: 'Weekly Box + Review' },
-    { id: 'ask' as ActiveModule, label: 'Ask', shortLabel: 'Ask', icon: HelpCircle, badge: questionCount > 0 ? `${questionCount}` : null, desc: 'Doctor Questions — ask', highlight: true as const },
-    { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: 'Urgent help + appointments' },
-    { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: 'Trusted helpers' },
+    { id: 'health' as ActiveModule, label: 'Health', shortLabel: 'Health', icon: Layers, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Records + Labs + For Doctor' },
+    { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Weekly Box + Review' },
+    { id: 'ask' as ActiveModule, label: 'Ask', shortLabel: 'Ask', icon: HelpCircle, badge: questionCount > 0 ? `${questionCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Doctor Questions — ask', highlight: true as const },
+    { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Urgent help + appointments' },
+    { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Trusted helpers' },
   ];
 
   const pastelActive = 'bg-primary-light text-primary-text border-primary-border shadow-sm';
@@ -347,6 +354,15 @@ export const App: React.FC = () => {
       eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'We are still reading your paper. Please wait until we finish.' });
       return;
     }
+    // R8 global RBAC gate — view_only read-only degraded not blank, manage onBehalfOf, full admin
+    // handleNav 346-353 now checks permissionLevel; direct setActiveModule bypass still gated inside render
+    const perm = (activeProfile as any)?.permissionLevel;
+    if (perm === 'view_only') {
+      // Show degraded toast but still allow navigation for read-only viewing (not blank)
+      // Sensitive module deep gates inside SafetyView/TriagePanel will block write actions with PERMISSION_DENIED
+      eventBus.dispatchToast({ type: 'info', title: 'View-only', message: 'View-only: cannot approve — ask primary holder (PERMISSION_DENIED)' });
+      // Fall through to still setActiveModule for read-only degraded view — not blank
+    }
     setActiveModule(id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -374,6 +390,14 @@ export const App: React.FC = () => {
               <p className="text-caption font-medium text-muted hidden sm:block leading-none mt-0.5">Your health, all in one place</p>
             </div>
           </div>
+          {/* Profile indicator — vault-derived completeness, visible in header near logo */}
+          <div className="hidden sm:flex items-center shrink-0">
+            <ProfileIndicator activeProfile={activeProfile} pendingCount={pendingCount} />
+          </div>
+          {/* Mobile profile indicator compact */}
+          <div className="flex sm:hidden items-center shrink-0">
+            <ProfileIndicator activeProfile={activeProfile} pendingCount={pendingCount} compact />
+          </div>
 
           {/* Center Privacy Badge — hidden on mobile to save space, visible lg */}
           <div className="hidden lg:flex items-center shrink-0">
@@ -383,89 +407,31 @@ export const App: React.FC = () => {
           {/* Right Action Bar: MCP grouped, Settings, Sign Out — proxy moved to Family page, Ask centered in bottom nav */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
 
-            {/* MCP GROUP — phone: single dropdown grouping Connect + Activity; desktop: keep separate for space */}
-            {/* Mobile MCP dropdown trigger */}
-            <div className="relative sm:hidden" ref={mcpMenuRef}>
-              <button
-                onClick={() => setIsMCPMenuOpen((v) => !v)}
-                className="relative flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold border border-slate-800 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
-                aria-label={`MCP tools${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
-                aria-expanded={isMCPMenuOpen}
-                aria-haspopup="menu"
-                title="MCP tools — Connect + Activity"
-              >
-                <Plug className="w-4 h-4 text-emerald-300 shrink-0" aria-hidden="true" />
-                <Terminal className="w-3.5 h-3.5 text-slate-300 shrink-0" aria-hidden="true" />
-                {pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-black border-2 border-white leading-none shadow-xs">
-                    {pendingCount > 99 ? '99+' : pendingCount}
-                  </span>
-                )}
-              </button>
-              {isMCPMenuOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-64 bg-white border border-canvas-border rounded-2xl shadow-xl p-2 z-50 animate-fade-in"
-                  role="menu"
-                  aria-label="MCP tools menu"
-                >
-                  <div className="px-3 py-2 border-b border-canvas-border mb-1">
-                    <p className="text-caption font-black tracking-wider uppercase text-muted">MCP Tools</p>
-                    <p className="text-caption text-muted">Connect device & view activity</p>
-                  </div>
-                  <button
-                    role="menuitem"
-                    onClick={() => { setIsConnectOpen(true); setIsMCPMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-emerald-50 text-emerald-700 text-sm font-bold transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
-                  >
-                    <span className="w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
-                      <Plug className="w-4 h-4 text-emerald-600" aria-hidden="true" />
-                    </span>
-                    <span className="flex-1 text-left">
-                      <span className="block leading-none">Connect</span>
-                      <span className="block text-caption font-medium text-muted leading-none">Link WebMCP</span>
-                    </span>
-                  </button>
-                  <button
-                    role="menuitem"
-                    onClick={() => { setIsInspectorOpen(true); setIsMCPMenuOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-primary-light text-primary-text text-sm font-bold transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
-                  >
-                    <span className="w-8 h-8 rounded-lg bg-primary-light border border-primary-border flex items-center justify-center shrink-0">
-                      <Terminal className="w-4 h-4 text-primary-text" aria-hidden="true" />
-                    </span>
-                    <span className="flex-1 text-left">
-                      <span className="block leading-none">Activity</span>
-                      <span className="block text-caption font-medium text-muted leading-none">Tools & logs</span>
-                    </span>
-                    {pendingCount > 0 && (
-                      <span className="bg-rose-500 text-white text-xs min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center font-black">
-                        {pendingCount > 99 ? '99+' : pendingCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
+            {/* MCP single Connect — header single entry, tools & logs nested inside Connect modal */}
+            {/* Mobile single Connect (grouped trigger simplified to single Connect) */}
+            <button
+              onClick={() => setIsConnectOpen(true)}
+              className="flex sm:hidden relative items-center justify-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold border border-slate-800 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
+              aria-label={`Connect${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
+              title="Connect to WebMCP — tools & logs inside"
+            >
+              <Plug className="w-4 h-4 text-emerald-300 shrink-0" aria-hidden="true" />
+              {pendingCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-black border-2 border-white leading-none shadow-xs">
+                  {pendingCount > 99 ? '99+' : pendingCount}
+                </span>
               )}
-            </div>
+            </button>
 
-            {/* Desktop: separate Connect + Activity buttons (grouped only on phone) */}
+            {/* Desktop single Connect with pending badge preserved */}
             <button
               onClick={() => setIsConnectOpen(true)}
               className="hidden sm:flex relative items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500"
-              title="Connect to WebMCP — get link & code"
-              aria-label="Connect WebMCP"
+              title="Connect to WebMCP — tools & logs inside"
+              aria-label={`Connect${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
             >
               <Plug className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
               <span className="hidden md:inline">Connect</span>
-            </button>
-
-            <button
-              onClick={() => setIsInspectorOpen(true)}
-              className="hidden sm:flex relative items-center justify-center gap-1 sm:gap-2 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-primary-light hover:brightness-95 text-primary-text text-xs font-bold border border-primary-border transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
-              title="See what's happening behind the scenes"
-              aria-label={`Activity${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
-            >
-              <Terminal className="w-4 h-4 text-primary-text shrink-0" aria-hidden="true" />
-              <span className="hidden md:inline">Activity</span>
               {pendingCount > 0 && (
                 <span className="absolute -top-1 -right-1 md:static md:top-auto md:right-auto bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1.5 rounded-full font-bold animate-pulse shrink-0 flex items-center justify-center leading-none shadow-xs">
                   {pendingCount > 99 ? '99+' : pendingCount}
@@ -542,6 +508,17 @@ export const App: React.FC = () => {
 
       {/* Main Content Area — full-width desktop, stacked */}
       <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-none px-3 sm:px-6 lg:px-8 py-3 sm:py-6 space-y-6 pb-24 md:pb-6 overflow-x-hidden outline-none">
+        {/* R8 global RBAC direct bypass gate — view_only read-only degraded not blank, not hidden */}
+        {isViewOnly && (
+          <div
+            data-testid="viewonly-banner"
+            title="View-only: cannot approve — ask primary holder"
+            className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2 text-amber-800 text-sm font-semibold shadow-sm"
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+            <span>View-only: cannot approve — ask primary holder (PERMISSION_DENIED) — read-only degraded</span>
+          </div>
+        )}
         {/* GROUP: Health = Records + Labs merged (4-in-1) — My Records + Lab Results + Tests to Do + For Doctor */}
         <div className={activeModule === 'health' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'health'}>
           {/* Sub-navigation — 4 tabs, responsive grid, 44px targets, accessible */}
@@ -694,6 +671,19 @@ export const App: React.FC = () => {
             </span>
           </div>
           <AskWhyPanel patientId={activeProfile.userId} initialMarker={askWhyPrefill?.marker} initialQuery={askWhyPrefill?.query} />
+          <GroundedInsightsPanel
+            patientId={activeProfile.userId}
+            initialQuery=""
+            contextFacts={(() => {
+              try {
+                const meds = localVault.getMedications(activeProfile.userId) || [];
+                const labs = localVault.getLabs(activeProfile.userId) || [];
+                const lastLab = labs.length ? `${labs[labs.length-1]?.marker ?? ''} ${labs[labs.length-1]?.normalizedValue ?? ''}` : '';
+                return [lastLab, meds.length ? `Meds: ${meds.slice(0,3).map((m:any)=>m.genericName||m.name).join(', ')}` : ''].filter(Boolean).join(' | ');
+              } catch { return ''; }
+            })()}
+            mode="general"
+          />
           <QuestionBank patientId={activeProfile.userId} asPage />
         </div>
 

@@ -22,6 +22,14 @@ interface DangerSignModalProps {
   isOpen: boolean;
   onClose: () => void;
   patientId: string;
+  activeProfile?: {
+    userId: string;
+    name: string;
+    role: string;
+    isProxy?: boolean;
+    onBehalfOf?: string;
+    permissionLevel?: 'view_only' | 'manage' | 'full';
+  };
   onReportSubmitted?: () => void;
 }
 
@@ -59,9 +67,13 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
   isOpen,
   onClose,
   patientId,
+  activeProfile,
   onReportSubmitted
 }) => {
   const effectivePatientId = deriveModalPatientId(patientId);
+  const callerRole = (activeProfile as any)?.role || 'patient';
+  const callerPermission = (activeProfile as any)?.permissionLevel || 'manage';
+  const isViewOnly = callerPermission === 'view_only';
   const [selectedTags, setSelectedTags] = useState<DangerSymptomTag[]>(['edema_feet', 'dyspnea']);
   const [freeText, setFreeText] = useState(
     'Sudden bilateral ankle swelling and shortness of breath when climbing stairs since yesterday.'
@@ -92,14 +104,28 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedTags.length === 0) return;
+    if (isViewOnly) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Permission denied: View-only cannot report danger signs (PERMISSION_DENIED)' });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       // Patient isolation via effectivePatientId, danger triage via AI vision+text multimodal when photo present (image_url/input_image) but clinician path still required
+      // Use caller activeProfile role + onBehalfOf for correct audit performedBy — PERMISSION_DENIED already gated above for view_only
+      const callerForAudit = activeProfile || { userId: effectivePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
+      const auditProfile = {
+        userId: (callerForAudit as any).userId || effectivePatientId,
+        name: (callerForAudit as any).name || 'Patient',
+        role: (callerForAudit as any).role || 'patient',
+        isProxy: !!(callerForAudit as any).isProxy,
+        permissionLevel: (callerForAudit as any).permissionLevel || 'manage',
+        onBehalfOf: (callerForAudit as any).onBehalfOf
+      } as any;
       const hasVisionPhoto = hasPhoto;
       // Use AI-derived image data URL when available — single multimodal request where model supports it; file input would provide real data URL, fallback to generated minimal data URL for AI vision path (not hardcoded placeholder)
       const visionDataUrl = hasVisionPhoto ? 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD' : undefined;
-      // 1. Report Danger Sign — AI vision+text when photo present
+      // 1. Report Danger Sign — AI vision+text when photo present — use true caller role for audit performedBy
       const reportRes = await webMCPEngine.execute(
         'report_danger_sign',
         {
@@ -115,13 +141,13 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
         },
         {
           patientId: effectivePatientId,
-          activeProfile: { userId: effectivePatientId, name: 'Patient', role: 'patient', isProxy: false },
+          activeProfile: auditProfile,
           vault: localVault,
           eventBus
         }
       );
 
-      // 2. Dispatch Doctor Triage Notification
+      // 2. Dispatch Doctor Triage Notification — same audit profile
       await webMCPEngine.execute(
         'notify_doctor',
         {
@@ -134,7 +160,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
         },
         {
           patientId: effectivePatientId,
-          activeProfile: { userId: effectivePatientId, name: 'Patient', role: 'patient', isProxy: false },
+          activeProfile: auditProfile,
           vault: localVault,
           eventBus
         }
@@ -325,12 +351,15 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
 
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || selectedTags.length === 0}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-lg shadow-rose-600/30 min-h-[44px]"
+            disabled={isSubmitting || selectedTags.length === 0 || isViewOnly}
+            aria-disabled={isViewOnly}
+            title={isViewOnly ? 'View-only: cannot dispatch — Permission denied (PERMISSION_DENIED)' : undefined}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-lg min-h-[44px] ${isViewOnly ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/30'}`}
           >
             <Send className="w-4 h-4" />
-            <span>{isSubmitting ? 'Dispatching...' : 'Dispatch Alert to Your Doctor'}</span>
+            <span>{isViewOnly ? 'View-only blocked (PERMISSION_DENIED)' : isSubmitting ? 'Dispatching...' : 'Dispatch Alert to Your Doctor'}</span>
           </button>
+          {isViewOnly && <p className="text-caption text-amber-700 font-semibold w-full text-center sm:text-right">View-only: cannot report danger signs — PERMISSION_DENIED</p>}
         </div>
       </div>
     </ModalPortal>

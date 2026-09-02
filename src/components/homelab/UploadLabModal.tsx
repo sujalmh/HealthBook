@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   X,
   UploadCloud,
@@ -26,6 +26,46 @@ interface UploadLabModalProps {
   onSuccess?: () => void;
 }
 
+/**
+ * LOCAL_BIOMARKER_STANDARDS mirrors LocalVault.ts:62-72 for pre-commit flag correctness (all 9 markers)
+ * Used to derive correct HIGH/LOW/CRITICAL flag in modal badges before vault commit, not fallback NORMAL.
+ */
+const LOCAL_BIOMARKER_STANDARDS: Record<string, { canonicalName: string; standardUnit: string; refRange: { low: number; high: number }; criticalLow?: number; criticalHigh?: number }> = {
+  creatinine: { canonicalName: 'Creatinine', standardUnit: 'mg/dL', refRange: { low: 0.6, high: 1.2 }, criticalHigh: 3.0 },
+  egfr: { canonicalName: 'eGFR', standardUnit: 'mL/min/1.73m2', refRange: { low: 60, high: 120 }, criticalLow: 15 },
+  hba1c: { canonicalName: 'HbA1c', standardUnit: '%', refRange: { low: 4.0, high: 5.6 }, criticalHigh: 10.0 },
+  'glucose fasting': { canonicalName: 'Glucose Fasting', standardUnit: 'mg/dL', refRange: { low: 70, high: 99 }, criticalLow: 50, criticalHigh: 250 },
+  potassium: { canonicalName: 'Potassium', standardUnit: 'mEq/L', refRange: { low: 3.5, high: 5.0 }, criticalLow: 2.8, criticalHigh: 6.0 },
+  'cholesterol total': { canonicalName: 'Cholesterol Total', standardUnit: 'mg/dL', refRange: { low: 125, high: 200 }, criticalHigh: 300 },
+  ldl: { canonicalName: 'LDL', standardUnit: 'mg/dL', refRange: { low: 50, high: 100 }, criticalHigh: 190 },
+  hdl: { canonicalName: 'HDL', standardUnit: 'mg/dL', refRange: { low: 40, high: 80 }, criticalLow: 25 },
+  triglycerides: { canonicalName: 'Triglycerides', standardUnit: 'mg/dL', refRange: { low: 50, high: 150 }, criticalHigh: 500 },
+};
+function findLocalStandard(markerName: string) {
+  const m = (markerName || '').toLowerCase().trim();
+  if (m.includes('creat')) return LOCAL_BIOMARKER_STANDARDS['creatinine'];
+  if (m.includes('egfr') || m.includes('gfr')) return LOCAL_BIOMARKER_STANDARDS['egfr'];
+  if (m.includes('hba1c') || m.includes('a1c')) return LOCAL_BIOMARKER_STANDARDS['hba1c'];
+  if (m.includes('glucose') || m.includes('glu')) return LOCAL_BIOMARKER_STANDARDS['glucose fasting'];
+  if (m.includes('potassium') || m === 'k' || m === 'k+') return LOCAL_BIOMARKER_STANDARDS['potassium'];
+  if (m.includes('ldl')) return LOCAL_BIOMARKER_STANDARDS['ldl'];
+  if (m.includes('hdl')) return LOCAL_BIOMARKER_STANDARDS['hdl'];
+  if (m.includes('triglyceride')) return LOCAL_BIOMARKER_STANDARDS['triglycerides'];
+  if (m.includes('cholesterol')) return LOCAL_BIOMARKER_STANDARDS['cholesterol total'];
+  return null;
+}
+function deriveCorrectFlag(marker: string, value: any, fallbackFlag?: string): string {
+  const numVal = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(numVal)) return fallbackFlag ? fallbackFlag : 'NORMAL';
+  const std = findLocalStandard(marker);
+  if (!std) return fallbackFlag ? fallbackFlag : 'NORMAL';
+  if (std.criticalHigh !== undefined && numVal >= std.criticalHigh) return 'CRITICAL_HIGH';
+  if (std.criticalLow !== undefined && numVal <= std.criticalLow) return 'CRITICAL_LOW';
+  if (numVal > std.refRange.high) return 'HIGH';
+  if (numVal < std.refRange.low) return 'LOW';
+  return 'NORMAL';
+}
+
 export const UploadLabModal: React.FC<UploadLabModalProps> = ({
   isOpen,
   onClose,
@@ -42,6 +82,22 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [lastDocumentId, setLastDocumentId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset modal state on every open to prevent prefilled stale data (selectedFile, extractedValues, plainNarration, etc.)
+  // useEffect isOpen reset: isExtracted false extractedValues cleared via useEffect isOpen
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedFile(null);
+      setIsProcessing(false);
+      setStage('idle');
+      setIsExtracted(false);
+      setExtractedValues([]);
+      setPlainNarration('');
+      setIsEditing(false);
+      setLastDocumentId('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -123,6 +179,17 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
     for (const item of extractedValues) {
       const numVal = typeof item.value === 'number' ? item.value : parseFloat(String(item.value).replace(/[^0-9.]/g, ''));
       if (Number.isFinite(numVal)) {
+        const correctFlag = deriveCorrectFlag(item.marker, numVal, item.flag);
+        const std = findLocalStandard(item.marker);
+        const isBorderline = (() => {
+          if (!std) return false;
+          const span = std.refRange.high - std.refRange.low;
+          const buffer10 = span * 0.10;
+          const isNearHigh = numVal >= (std.refRange.high - buffer10) && numVal <= (std.refRange.high + buffer10);
+          const isNearLow = numVal >= (std.refRange.low - buffer10) && numVal <= (std.refRange.low + buffer10);
+          return isNearHigh || isNearLow;
+        })();
+        const isCritical = correctFlag.includes('CRITICAL');
         localVault.addLab({
           id: `lab_${(item.marker ?? 'lab').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
           patientId,
@@ -134,9 +201,9 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           drawDate,
           referenceRange: undefined as any,
           optimalRange: undefined as any,
-          isBorderline: false,
-          isCritical: item.flag?.includes('CRITICAL') || false,
-          flag: item.flag || 'NORMAL',
+          isBorderline,
+          isCritical,
+          flag: correctFlag,
           sourceDocId
         } as any);
         addedCount++;
@@ -222,23 +289,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                     <span>{isProcessing ? 'Extracting...' : 'Upload Real File'}</span>
                   </button>
 
-                  <button
-                    onClick={() => handleSimulateUpload('photo_slip')}
-                    disabled={isProcessing}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-canvas-muted disabled:opacity-50 text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[44px]"
-                  >
-                    <Camera className="w-4 h-4" />
-                    <span>{isProcessing ? 'Extracting OCR...' : 'Sample Photo Slip'}</span>
-                  </button>
 
-                  <button
-                    onClick={() => handleSimulateUpload('pdf_report')}
-                    disabled={isProcessing}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-canvas-muted disabled:opacity-50 text-slate-700 text-body-sm font-semibold border border-canvas-border transition-colors min-h-[44px]"
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Standard PDF Slip</span>
-                  </button>
                 </div>
                 {selectedFile && <p className="text-caption text-muted">Selected: {selectedFile}</p>}
 
@@ -338,14 +389,14 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                         <div key={idx} className="bg-canvas-muted rounded-2xl p-3.5 border border-canvas-border space-y-1">
                           <span className="text-caption text-muted font-medium">{item.marker}</span>
                           <div className="text-heading-md font-bold text-slate-900">{item.value} {item.unit}</div>
-                          <span className={`text-caption font-bold px-2 py-0.5 rounded-full inline-block ${
-                            item.flag?.includes('CRITICAL') || item.flag === 'HIGH'
+                           <span className={`text-caption font-bold px-2 py-0.5 rounded-full inline-block ${
+                            deriveCorrectFlag(item.marker, item.value, item.flag).includes('CRITICAL') || deriveCorrectFlag(item.marker, item.value, item.flag) === 'HIGH'
                               ? 'bg-rose-100 text-rose-800'
-                              : item.flag?.includes('LOW')
+                              : deriveCorrectFlag(item.marker, item.value, item.flag).includes('LOW')
                               ? 'bg-amber-100 text-amber-800'
                               : 'bg-emerald-100 text-emerald-800'
                           }`}>
-                            {item.flag || 'NORMAL'}
+                            {deriveCorrectFlag(item.marker, item.value, item.flag)}
                           </span>
                         </div>
                       ))

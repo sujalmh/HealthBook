@@ -6,6 +6,9 @@
     "api/ocr-proxy.ts": {
       "maxDuration": 120
     },
+    "api/exa-proxy.ts": {
+      "maxDuration": 30
+    },
     "api/supabase.ts": {
       "maxDuration": 30
     }
@@ -26,6 +29,14 @@
     {
       "source": "/api/ocr-proxy",
       "destination": "/api/ocr-proxy"
+    },
+    {
+      "source": "/api/exa-proxy/:match*",
+      "destination": "/api/exa-proxy"
+    },
+    {
+      "source": "/api/exa-proxy",
+      "destination": "/api/exa-proxy"
     },
     {
       "source": "/api/supabase/:match*",

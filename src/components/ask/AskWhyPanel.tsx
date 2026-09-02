@@ -4,6 +4,7 @@ import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import type { QuestionBankItem } from '@/types/vault';
+import { GroundedInsightsPanel } from '@/components/search/GroundedInsightsPanel';
 
 interface AskWhyPanelProps {
   patientId: string;
@@ -19,6 +20,8 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
   const [causalResult, setCausalResult] = useState<any | null>(null);
   const [isQuestionAdded, setIsQuestionAdded] = useState(false);
   const [showIdeas, setShowIdeas] = useState(false);
+  const [showGrounding, setShowGrounding] = useState(false);
+  const [vaultContext, setVaultContext] = useState('');
 
   useEffect(() => {
     if (initialMarker) setMarker(initialMarker);
@@ -48,6 +51,18 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
     { label: 'Cholesterol — better?', marker: 'LDL', query: 'Why did my cholesterol get better?' },
   ];
 
+  // Derive vault context string for grounding — what IS in vault after extraction
+  useEffect(() => {
+    try {
+      const meds = localVault.getMedications(patientId) || [];
+      const labs = localVault.getLabs(patientId, marker) || [];
+      const parts: string[] = [];
+      if (labs.length) parts.push(`${marker}: ${labs.slice(-2).map((l:any)=> `${l.normalizedValue ?? l.value} ${l.normalizedUnit ?? l.unit} on ${new Date(l.drawDate).toLocaleDateString()}`).join(' → ')}`);
+      if (meds.length) parts.push(`Meds: ${meds.slice(0,4).map((m:any)=> m.genericName || m.name).join(', ')}`);
+      setVaultContext(parts.join(' | '));
+    } catch { setVaultContext(''); }
+  }, [patientId, marker, causalResult]);
+
   const handleExecute = async (customQuery?: string, targetMarker?: string) => {
     const text = customQuery !== undefined ? customQuery : queryText;
     const m = targetMarker || marker || 'eGFR';
@@ -64,6 +79,7 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
       const res = await webMCPEngine.execute('correlate_meds', { biomarker: m, queryText: text, patientId }, context);
       if (res.success && res.data) {
         setCausalResult(res.data);
+        setShowGrounding(true);
       }
     } catch (err: any) {
       console.error('[AskWhyPanel] error', err);
@@ -213,7 +229,36 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
               </button>
             </div>
           )}
+          {/* Grounding toggle — intelligence AFTER extraction, web evidence */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowGrounding(v=>!v)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-amber-200 hover:bg-indigo-50 hover:border-indigo-200 text-sm font-bold text-slate-700 hover:text-indigo-700 transition-colors"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-600" />
+              {showGrounding ? 'Hide web grounding' : 'Show web grounding (what latest guidelines say) — Exa'}
+              {showGrounding ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
+            </button>
+          </div>
         </div>
+      )}
+
+      {showGrounding && causalResult && (
+        <GroundedInsightsPanel
+          patientId={patientId}
+          initialQuery={`${causalResult.biomarker} ${causalResult.trajectory?.replace(/_/g,' ') || ''} — ${causalResult.recommendedDoctorQuestion || queryText || 'interpretation and next steps'} per latest guidelines`}
+          contextFacts={vaultContext || `${causalResult.biomarker}: ${causalResult.trendMetrics?.endValue ?? ''} | ${causalResult.causalStorySentence}`}
+          mode="lab"
+        />
+      )}
+      {!causalResult && showGrounding && (
+        <GroundedInsightsPanel
+          patientId={patientId}
+          initialQuery={queryText || `${marker} interpretation and guidelines`}
+          contextFacts={vaultContext}
+          mode="general"
+        />
       )}
     </div>
   );

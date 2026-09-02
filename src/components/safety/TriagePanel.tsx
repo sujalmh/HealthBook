@@ -24,12 +24,21 @@ import { FollowupScheduler } from './FollowupScheduler';
 interface TriagePanelProps {
   patientId: string;
   dangerReports: DangerSignReport[];
+  activeProfile?: {
+    userId: string;
+    name: string;
+    role: string;
+    isProxy?: boolean;
+    onBehalfOf?: string;
+    permissionLevel?: 'view_only' | 'manage' | 'full';
+  };
   onActionDispatched?: () => void;
 }
 
 export const TriagePanel: React.FC<TriagePanelProps> = ({
   patientId,
   dangerReports,
+  activeProfile,
   onActionDispatched
 }) => {
   const [isFollowupOpen, setIsFollowupOpen] = useState(false);
@@ -53,6 +62,12 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     return passed || '';
   }
   const effectiveTriagePatientId = deriveTriagePatientId(patientId);
+  // RBAC — view_only read-only, doctor/full can dispatch — PERMISSION_DENIED guard
+  const callerRole = (activeProfile as any)?.role || 'patient';
+  const callerPermission = (activeProfile as any)?.permissionLevel || 'manage';
+  const isViewOnly = callerPermission === 'view_only';
+  const canDispatchDoctor = callerRole === 'doctor' || callerPermission === 'full';
+  const isDispatchDisabled = isViewOnly || !canDispatchDoctor;
   const activeReport = dangerReports[0] || (() => {
     // If no vault reports yet, try vault direct for effective patient (AI triage will populate after document with red flags)
     try {
@@ -73,10 +88,19 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     } as DangerSignReport;
   })();
 
-  // Remote Pillbox Action 1: Remove NSAID Ibuprofen — uses effectiveTriagePatientId and AI triage context
+  // Remote Pillbox Action 1: Remove NSAID Ibuprofen — uses effectiveTriagePatientId and AI triage context — RBAC gated
   const handleRemoveIbuprofen = async () => {
+    if (isViewOnly) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'View-only cannot dispatch doctor orders (PERMISSION_DENIED)' });
+      return;
+    }
+    if (!canDispatchDoctor) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Doctor actions — requires clinician login (PERMISSION_DENIED)' });
+      return;
+    }
     setIsExecuting('remove_ibuprofen');
     try {
+      const callerProfileForAudit = activeProfile || { userId: effectiveTriagePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
       const res = await webMCPEngine.execute(
         'doctor_remove_medication',
         {
@@ -86,7 +110,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId: effectiveTriagePatientId,
-          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
+          activeProfile: { userId: (callerProfileForAudit as any).userId || effectiveTriagePatientId, name: (callerProfileForAudit as any).name || 'Patient', role: (callerProfileForAudit as any).role || 'patient', isProxy: !!(callerProfileForAudit as any).isProxy, permissionLevel: (callerProfileForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerProfileForAudit as any).onBehalfOf },
           vault: localVault,
           eventBus
         }
@@ -108,10 +132,19 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     }
   };
 
-  // Remote Pillbox Action 2: Titrate Amlodipine 5mg -> 10mg — patient isolation via effective ID
+  // Remote Pillbox Action 2: Titrate Amlodipine 5mg -> 10mg — patient isolation via effective ID — RBAC gated
   const handleTitrateAmlodipine = async () => {
+    if (isViewOnly) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'View-only cannot dispatch dose changes (PERMISSION_DENIED)' });
+      return;
+    }
+    if (!canDispatchDoctor) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Doctor actions — requires clinician login (PERMISSION_DENIED)' });
+      return;
+    }
     setIsExecuting('titrate_amlodipine');
     try {
+      const callerProfileForAudit = activeProfile || { userId: effectiveTriagePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
       const res = await webMCPEngine.execute(
         'doctor_change_dose',
         {
@@ -121,7 +154,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId: effectiveTriagePatientId,
-          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
+          activeProfile: { userId: (callerProfileForAudit as any).userId || effectiveTriagePatientId, name: (callerProfileForAudit as any).name || 'Patient', role: (callerProfileForAudit as any).role || 'patient', isProxy: !!(callerProfileForAudit as any).isProxy, permissionLevel: (callerProfileForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerProfileForAudit as any).onBehalfOf },
           vault: localVault,
           eventBus
         }
@@ -143,10 +176,19 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     }
   };
 
-  // Remote Pillbox Action 3: Add Diuretic Furosemide — patient isolation
+  // Remote Pillbox Action 3: Add Diuretic Furosemide — patient isolation — RBAC gated
   const handleAddDiuretic = async () => {
+    if (isViewOnly) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'View-only cannot add medications (PERMISSION_DENIED)' });
+      return;
+    }
+    if (!canDispatchDoctor) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Doctor actions — requires clinician login (PERMISSION_DENIED)' });
+      return;
+    }
     setIsExecuting('add_furosemide');
     try {
+      const callerProfileForAudit = activeProfile || { userId: effectiveTriagePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
       const res = await webMCPEngine.execute(
         'doctor_add_medication',
         {
@@ -157,7 +199,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId: effectiveTriagePatientId,
-          activeProfile: { userId: 'clinician', name: 'Your doctor', role: 'doctor', isProxy: false },
+          activeProfile: { userId: (callerProfileForAudit as any).userId || effectiveTriagePatientId, name: (callerProfileForAudit as any).name || 'Patient', role: (callerProfileForAudit as any).role || 'patient', isProxy: !!(callerProfileForAudit as any).isProxy, permissionLevel: (callerProfileForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerProfileForAudit as any).onBehalfOf },
           vault: localVault,
           eventBus
         }
@@ -276,13 +318,16 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
 
             <button
               onClick={handleRemoveIbuprofen}
-              disabled={isExecuting === 'remove_ibuprofen'}
-              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 min-h-[44px]"
+              disabled={isExecuting === 'remove_ibuprofen' || isDispatchDisabled}
+              aria-disabled={isDispatchDisabled}
+              title={isDispatchDisabled ? (isViewOnly ? 'View-only: cannot dispatch — PERMISSION_DENIED' : 'Doctor actions — requires clinician login') : undefined}
+              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'}`}
             >
               <Send className="w-4 h-4 shrink-0" />
               <span>{isExecuting === 'remove_ibuprofen' ? 'Dispatching...' : 'Dispatch Stop Order'}</span>
               <span className="hidden sm:inline font-mono opacity-80">(doctor_remove_medication)</span>
             </button>
+            {isDispatchDisabled && <p className="text-caption text-amber-700 font-semibold">Doctor actions — requires clinician login {isViewOnly ? '(view_only PERMISSION_DENIED)' : ''}</p>}
           </div>
 
           {/* Action 2: Titrate Amlodipine */}
@@ -302,13 +347,16 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
 
             <button
               onClick={handleTitrateAmlodipine}
-              disabled={isExecuting === 'titrate_amlodipine'}
-              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-sky-600/20 min-h-[44px]"
+              disabled={isExecuting === 'titrate_amlodipine' || isDispatchDisabled}
+              aria-disabled={isDispatchDisabled}
+              title={isDispatchDisabled ? (isViewOnly ? 'View-only: cannot dispatch — PERMISSION_DENIED' : 'Doctor actions — requires clinician login') : undefined}
+              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/20'}`}
             >
               <Send className="w-4 h-4 shrink-0" />
               <span>{isExecuting === 'titrate_amlodipine' ? 'Dispatching...' : 'Dispatch Dose Increase'}</span>
               <span className="hidden sm:inline font-mono opacity-80">(doctor_change_dose)</span>
             </button>
+            {isDispatchDisabled && <p className="text-caption text-amber-700 font-semibold">Doctor actions — requires clinician login {isViewOnly ? '(view_only PERMISSION_DENIED)' : ''}</p>}
           </div>
 
           {/* Action 3: Add Diuretic */}
@@ -328,13 +376,16 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
 
             <button
               onClick={handleAddDiuretic}
-              disabled={isExecuting === 'add_furosemide'}
-              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 min-h-[44px]"
+              disabled={isExecuting === 'add_furosemide' || isDispatchDisabled}
+              aria-disabled={isDispatchDisabled}
+              title={isDispatchDisabled ? (isViewOnly ? 'View-only: cannot dispatch — PERMISSION_DENIED' : 'Doctor actions — requires clinician login') : undefined}
+              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'}`}
             >
               <Send className="w-4 h-4 shrink-0" />
               <span>{isExecuting === 'add_furosemide' ? 'Dispatching...' : 'Dispatch Add Medication'}</span>
               <span className="hidden sm:inline font-mono opacity-80">(doctor_add_medication)</span>
             </button>
+            {isDispatchDisabled && <p className="text-caption text-amber-700 font-semibold">Doctor actions — requires clinician login {isViewOnly ? '(view_only PERMISSION_DENIED)' : ''}</p>}
           </div>
 
           {/* Action 4: Urgent Follow-Up */}
@@ -353,22 +404,37 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
             </div>
 
             <button
-              onClick={() => setIsFollowupOpen(true)}
-              className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 min-h-[44px]"
+              onClick={() => {
+                if (isViewOnly) {
+                  eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'View-only cannot schedule (PERMISSION_DENIED)' });
+                  return;
+                }
+                if (!canDispatchDoctor) {
+                  eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Doctor actions — requires clinician login (PERMISSION_DENIED)' });
+                  return;
+                }
+                setIsFollowupOpen(true);
+              }}
+              disabled={isDispatchDisabled}
+              aria-disabled={isDispatchDisabled}
+              title={isDispatchDisabled ? (isViewOnly ? 'View-only: cannot schedule — PERMISSION_DENIED' : 'Doctor actions — requires clinician login') : undefined}
+              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'}`}
             >
               <Calendar className="w-4 h-4 shrink-0" />
               <span>Configure Follow-Up Order</span>
               <span className="hidden sm:inline font-mono opacity-80">(schedule_followup)</span>
             </button>
+            {isDispatchDisabled && <p className="text-caption text-amber-700 font-semibold">Doctor actions — requires clinician login {isViewOnly ? '(view_only PERMISSION_DENIED)' : ''}</p>}
           </div>
         </div>
       </div>
 
-      {/* Followup Scheduler Modal */}
+      {/* Followup Scheduler Modal — pass activeProfile for RBAC */}
       <FollowupScheduler
         isOpen={isFollowupOpen}
         onClose={() => setIsFollowupOpen(false)}
-        patientId={patientId}
+        patientId={effectiveTriagePatientId}
+        activeProfile={activeProfile as any}
         onScheduled={onActionDispatched}
       />
     </div>

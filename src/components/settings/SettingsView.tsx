@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, Settings, Sparkles, Lock, FileText, Cpu, Database } from 'lucide-react';
+import { Shield, Settings, Sparkles, Lock, FileText, Cpu, Database, Search } from 'lucide-react';
 import { SettingsForm } from './SettingsForm';
 import { getAIConfig, getAIConfigSource, getAIEndpoint, isAIEnabled } from '@/core/ai/config';
+import { getExaConfig, getExaEndpoint, isExaEnabled } from '@/core/search/exaConfig';
 import { getSettingsSource } from '@/core/settings/SettingsStore';
 
 export const SettingsView: React.FC = () => {
@@ -9,6 +10,8 @@ export const SettingsView: React.FC = () => {
   const [endpoint, setEndpoint] = useState<string>('');
   const [settingsSource, setSettingsSource] = useState<ReturnType<typeof getSettingsSource> | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [exaConfig, setExaConfig] = useState<ReturnType<typeof getExaConfig> | null>(null);
+  const [exaEndpoint, setExaEndpoint] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -16,6 +19,9 @@ export const SettingsView: React.FC = () => {
       setConfig(c);
       setEndpoint(getAIEndpoint(c));
       setSettingsSource(getSettingsSource());
+      const exa = getExaConfig();
+      setExaConfig(exa);
+      setExaEndpoint(getExaEndpoint(exa));
     } catch {
       // ignore
     }
@@ -142,6 +148,40 @@ export const SettingsView: React.FC = () => {
         <p className="text-[11px] text-muted">
           Config must support any model/any baseURL — validated via SettingsStore writes generically, baseURL/model not empty when enabled, not committing .env, opencode.json configurable baseURL not forced literal.
         </p>
+      </div>
+
+      {/* Exa Healthcare Grounding Card */}
+      <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute inset-0 bg-white/10 rounded-2xl" aria-hidden />
+        <div className="relative space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/20">
+              <Search className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black tracking-tight">Exa Healthcare Grounding — Web Evidence Layer</h3>
+              <p className="text-xs text-white/80">After extraction: grounded insights with citations via Exa search (highlights, not just raw text).</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur ${exaConfig && isExaEnabled(exaConfig) ? 'bg-emerald-500/20 border-emerald-300/30 text-white' : 'bg-amber-500/20 border-amber-300/30 text-white'}`}>
+              {exaConfig && isExaEnabled(exaConfig) ? 'Grounding ready' : 'Needs EXA_API_KEY'}
+            </span>
+            <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-mono text-white">{exaEndpoint || '/api/exa-proxy/search'} • {exaConfig?.searchType || 'auto'}</span>
+            <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-mono text-white">{exaConfig?.numResults ?? 5} results • {exaConfig?.timeoutMs ?? 15000}ms</span>
+          </div>
+          <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20 space-y-1.5">
+            <div className="text-xs font-bold uppercase tracking-wider text-white/90 flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> How it works</div>
+            <p className="text-xs text-white/85 leading-relaxed">
+              Extraction (AI/OCR) finds <span className="font-bold text-white">what is in your document</span>; grounding finds <span className="font-bold text-white">what it means</span> — latest guidelines, interactions, and next steps — via <span className="font-mono">POST https://api.exa.ai/search</span> with <span className="font-mono">contents.highlights: true</span> (token-efficient) + citations. Toggle <span className="font-mono">fresh</span> forces <span className="font-mono">maxAgeHours: 0</span> livecrawl. Proxied via <span className="font-mono">/api/exa-proxy</span> so <span className="font-mono">EXA_API_KEY</span> stays server-only.
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <span className="px-2 py-0.5 rounded-full bg-white text-indigo-700 text-[11px] font-bold border">highlights</span>
+              <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-white text-[11px] font-mono">text (deep)</span>
+              <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-white text-[11px] font-mono">summary + outputSchema</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Form */}

@@ -32,6 +32,7 @@ interface SafetyViewProps {
     isProxy?: boolean;
     relationship?: string;
     onBehalfOf?: string;
+    permissionLevel?: 'view_only' | 'manage' | 'full';
   };
 }
 
@@ -55,10 +56,30 @@ function deriveSafetyPatientId(passed: string, fallback?: string): string {
 
 export const SafetyView: React.FC<SafetyViewProps> = ({
   patientId,
-  activeProfile = { userId: patientId, name: 'Patient', role: 'patient' }
+  activeProfile = { userId: patientId, name: 'Patient', role: 'patient', permissionLevel: 'manage' as const }
 }) => {
   const effectivePatientId = deriveSafetyPatientId(patientId, activeProfile?.userId);
   const [activeTab, setActiveTab] = useState<'patient_safety' | 'doctor_triage' | 'calendar'>('patient_safety');
+  // RBAC derived — view_only read-only, doctor/full for triage gate — PERMISSION_DENIED guard
+  const permissionLevel = (activeProfile as any)?.permissionLevel || 'manage';
+  const profileRole = activeProfile?.role || 'patient';
+  const isViewOnly = permissionLevel === 'view_only';
+  const canAccessDoctorTriage = profileRole === 'doctor' || permissionLevel === 'full';
+  // helper for direct tab bypass blocked — gate in render, not just click handler
+  const handleTabChange = (tab: 'patient_safety' | 'doctor_triage' | 'calendar') => {
+    if (tab === 'doctor_triage' && !canAccessDoctorTriage) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Doctor actions — requires clinician login (PERMISSION_DENIED)' });
+      return;
+    }
+    setActiveTab(tab);
+  };
+  const handleHelpNow = () => {
+    if (isViewOnly) {
+      eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Permission denied: View-only cannot report danger signs (PERMISSION_DENIED)' });
+      return;
+    }
+    setIsDangerModalOpen(true);
+  };
   const [dangerReports, setDangerReports] = useState<DangerSignReport[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventRecord[]>([]);
   const [isDangerModalOpen, setIsDangerModalOpen] = useState(false);
@@ -116,19 +137,25 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           </div>
         </div>
 
-        {/* Emergency Trigger & Mode Tabs */}
+        {/* Emergency Trigger & Mode Tabs — RBAC: view_only disables I need help now, doctor_triage gated doctor/full */}
         <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={() => setIsDangerModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 min-h-[44px] w-full sm:w-auto"
+            onClick={handleHelpNow}
+            disabled={false}
+            aria-disabled={isViewOnly}
+            title={isViewOnly ? 'View-only: cannot report — Permission denied (PERMISSION_DENIED)' : undefined}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md min-h-[44px] w-full sm:w-auto ${
+              isViewOnly ? 'bg-slate-300 text-slate-600 cursor-not-allowed opacity-60 shadow-none' : 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-600/20'
+            }`}
           >
             <AlertTriangle className="w-4 h-4" />
             <span>I need help now</span>
           </button>
+          {isViewOnly && <span className="text-caption text-amber-700 font-semibold hidden sm:inline">Permission denied — View-only (PERMISSION_DENIED)</span>}
 
           <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border overflow-x-auto scrollbar-none max-w-full shadow-xs">
             <button
-              onClick={() => setActiveTab('patient_safety')}
+              onClick={() => handleTabChange('patient_safety')}
               className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
                 activeTab === 'patient_safety'
                   ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
@@ -138,17 +165,21 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
               What to do
             </button>
             <button
-              onClick={() => setActiveTab('doctor_triage')}
+              onClick={() => handleTabChange('doctor_triage')}
+              aria-disabled={!canAccessDoctorTriage}
+              title={!canAccessDoctorTriage ? 'Doctor actions — requires clinician login (PERMISSION_DENIED)' : undefined}
               className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
-                activeTab === 'doctor_triage'
+                activeTab === 'doctor_triage' && canAccessDoctorTriage
                   ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
-                  : 'text-muted hover:text-slate-900 border border-transparent'
+                  : !canAccessDoctorTriage
+                    ? 'text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed opacity-60'
+                    : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
               Doctor's Actions
             </button>
             <button
-              onClick={() => setActiveTab('calendar')}
+              onClick={() => handleTabChange('calendar')}
               className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
                 activeTab === 'calendar'
                   ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
@@ -185,8 +216,10 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
 
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
             <button
-              onClick={() => setActiveTab('doctor_triage')}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors min-h-[40px]"
+              onClick={() => handleTabChange('doctor_triage')}
+              aria-disabled={!canAccessDoctorTriage}
+              title={!canAccessDoctorTriage ? 'Doctor actions — requires clinician login' : undefined}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors min-h-[40px] ${!canAccessDoctorTriage ? 'bg-slate-300 text-slate-600 cursor-not-allowed opacity-60' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
             >
               Review Actions
             </button>
@@ -288,23 +321,40 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           </div>
         </div>
       ) : activeTab === 'doctor_triage' ? (
-        <TriagePanel
-          patientId={effectivePatientId}
-          dangerReports={dangerReports}
-          onActionDispatched={() => loadData()}
-        />
+        canAccessDoctorTriage ? (
+          <TriagePanel
+            patientId={effectivePatientId}
+            dangerReports={dangerReports}
+            activeProfile={activeProfile as any}
+            onActionDispatched={() => loadData()}
+          />
+        ) : (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center space-y-2" data-testid="doctor-triage-restricted">
+            <ShieldAlert className="w-8 h-8 text-amber-600 mx-auto" />
+            <h3 className="text-heading-md text-slate-900">Doctor actions — requires clinician login</h3>
+            <p className="text-body-sm text-muted">Access restricted — Doctor triage is available only to clinicians or caregivers with full permissions. View-only cannot dispatch doctor orders. (PERMISSION_DENIED)</p>
+            <button onClick={() => handleTabChange('patient_safety')} className="mt-2 px-4 py-2 rounded-xl bg-white border border-amber-200 text-amber-700 text-xs font-bold hover:bg-amber-50">Go to What to do</button>
+          </div>
+        )
       ) : (
         <CalendarView
           events={calendarEvents}
-          onAddEventClick={() => setIsFollowupModalOpen(true)}
+          onAddEventClick={() => {
+            if (isViewOnly) {
+              eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Permission denied: View-only cannot schedule (PERMISSION_DENIED)' });
+              return;
+            }
+            setIsFollowupModalOpen(true);
+          }}
         />
       )}
 
-      {/* Modals */}
+      {/* Modals — pass activeProfile for correct audit performedBy role + view_only gate */}
       <DangerSignModal
         isOpen={isDangerModalOpen}
         onClose={() => setIsDangerModalOpen(false)}
         patientId={effectivePatientId}
+        activeProfile={activeProfile as any}
         onReportSubmitted={() => loadData()}
       />
 
@@ -312,6 +362,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         isOpen={isFollowupModalOpen}
         onClose={() => setIsFollowupModalOpen(false)}
         patientId={effectivePatientId}
+        activeProfile={activeProfile as any}
         onScheduled={() => loadData()}
       />
     </div>

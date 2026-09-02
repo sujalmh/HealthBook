@@ -89,6 +89,11 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
     setIsUploadModalOpen(true);
   };
 
+  const handleCloseUpload = () => {
+    setIsUploadModalOpen(false);
+    setSelectedDueCardId(undefined);
+  };
+
   const handleCompleteCard = (cardId: string) => {
     localVault.updateDueCard(cardId, { status: 'completed' });
     loadData();
@@ -220,7 +225,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
       {/* Upload Lab Modal */}
       <UploadLabModal
         isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+        onClose={handleCloseUpload}
         linkedDueCardId={selectedDueCardId}
         patientId={patientId}
         onSuccess={() => loadData()}

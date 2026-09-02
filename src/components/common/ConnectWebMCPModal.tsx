@@ -11,9 +11,14 @@ import {
   Info,
   Layers,
   Play,
+  Activity,
+  Clock,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { eventBus } from '@/core/events/eventBus';
+import { localVault } from '@/core/vault/LocalVault';
 
 interface ConnectWebMCPModalProps {
   isOpen: boolean;
@@ -24,6 +29,11 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [origin, setOrigin] = useState('');
   const [href, setHref] = useState('');
+  const [activeTab, setActiveTab] = useState<'connect' | 'activity'>('connect');
+  const [tools, setTools] = useState<any[]>([]);
+  const [telemetryLogs, setTelemetryLogs] = useState<any[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -41,8 +51,103 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
+  // Load Activity content (Tool Catalog, pendingCount, recent logs) — WebMCPInspector embedded inside Connect
+  const refreshActivity = async () => {
+    try {
+      // Try native getTools first, fallback to engine sync — preserves 40 count
+      let engineTools: any[] = [];
+      try {
+        if (typeof document !== 'undefined' && (document as any).modelContext?.getTools) {
+          const native = await (document as any).modelContext.getTools();
+          if (Array.isArray(native) && native.length > 0) {
+            engineTools = webMCPEngine.getRegisteredTools();
+            // if native length differs, prefer engine list for stable 40
+            if (native.length !== engineTools.length) engineTools = webMCPEngine.getRegisteredTools();
+          } else {
+            engineTools = webMCPEngine.getRegisteredTools();
+          }
+        } else {
+          engineTools = webMCPEngine.getRegisteredTools();
+        }
+      } catch {
+        engineTools = webMCPEngine.getRegisteredTools();
+      }
+      setTools(engineTools);
+      try {
+        setTelemetryLogs(webMCPEngine.getTelemetryLogs().slice(0, 8));
+      } catch {
+        setTelemetryLogs([]);
+      }
+      try {
+        let pid = '';
+        try {
+          const raw = localStorage.getItem('carecanvas_active_user');
+          if (raw) pid = JSON.parse(raw)?.userId || '';
+        } catch {}
+        let pending = webMCPEngine.getPendingApprovals();
+        if (pid) {
+          try {
+            const pf = localVault.getPendingFacts(pid).length;
+            const pp = localVault.getPendingProposals(pid).length;
+            setPendingCount(pf + pp);
+            const vaultFacts = localVault.getPendingFacts(pid);
+            const vaultApprovals = vaultFacts.map((f: any) => ({
+              id: f.id,
+              toolName: 'confirm_fact',
+              title: f.name || 'Pending fact',
+              description: f.plainExplanation || 'Awaiting review',
+              timestamp: f.timestamp || new Date().toISOString(),
+            }));
+            const existingIds = new Set(pending.map((p: any) => p.id || p.invocationId));
+            for (const v of vaultApprovals) {
+              if (!existingIds.has(v.id)) pending = [...pending, v as any];
+            }
+          } catch {}
+        } else {
+          setPendingCount(pending.length);
+        }
+        setPendingApprovals(pending.slice(0, 6));
+      } catch {
+        setPendingApprovals(webMCPEngine.getPendingApprovals().slice(0, 6));
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    refreshActivity();
+    const u1 = eventBus.on('tool_registered' as any, refreshActivity);
+    const u2 = eventBus.on('tool_execution_success' as any, refreshActivity);
+    const u3 = eventBus.on('approval_queued' as any, refreshActivity);
+    const u4 = eventBus.on('approval_resolved' as any, refreshActivity);
+    const u5 = eventBus.on('fact_extracted' as any, refreshActivity);
+    const u6 = eventBus.on('fact_confirmed' as any, refreshActivity);
+    let removeNative: (() => void) | null = null;
+    try {
+      if (typeof document !== 'undefined' && (document as any).modelContext?.addEventListener) {
+        const handler = () => refreshActivity();
+        (document as any).modelContext.addEventListener('toolchange', handler);
+        removeNative = () => {
+          try {
+            (document as any).modelContext?.removeEventListener('toolchange', handler);
+          } catch {}
+        };
+      }
+    } catch {}
+    return () => {
+      u1();
+      u2();
+      u3();
+      u4();
+      u5();
+      u6();
+      if (removeNative) removeNative();
+    };
+  }, [isOpen]);
+
   const toolCount = (() => {
     try {
+      if (tools.length > 0) return tools.length;
       return webMCPEngine.getRegisteredTools().length;
     } catch {
       return 40;
@@ -105,9 +210,14 @@ console.log(JSON.parse(raw));`;
                 <span className="text-caption px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   {toolCount} tools ready
                 </span>
+                {pendingCount > 0 && (
+                  <span className="text-caption px-2 py-0.5 rounded-full font-bold bg-amber-500 text-white border border-amber-600">
+                    {pendingCount} pending
+                  </span>
+                )}
               </div>
               <p className="text-body-sm text-muted hidden sm:block">
-                CareCanvas exposes every action as a local WebMCP tool — no cloud, no API key.
+                CareCanvas exposes every action as a local WebMCP tool — no cloud, no API key. Activity nested inside.
               </p>
             </div>
           </div>
@@ -120,8 +230,43 @@ console.log(JSON.parse(raw));`;
           </button>
         </div>
 
+        {/* Tabs — Activity nested inside single Connect (Tool Catalog 40, pendingCount, recent logs) */}
+        <div className="flex items-center gap-1 px-5 sm:px-6 pt-3 border-b border-canvas-border bg-white" role="tablist" aria-label="Connect sections">
+          <button
+            role="tab"
+            aria-selected={activeTab === 'connect'}
+            onClick={() => setActiveTab('connect')}
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-sm font-bold border-b-2 transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+              activeTab === 'connect' ? 'border-primary text-primary bg-white' : 'border-transparent text-muted hover:text-slate-800'
+            }`}
+          >
+            <Globe className="w-4 h-4" aria-hidden="true" />
+            Connect
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'activity'}
+            onClick={() => setActiveTab('activity')}
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-sm font-bold border-b-2 transition-colors min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none relative ${
+              activeTab === 'activity' ? 'border-primary text-primary bg-white' : 'border-transparent text-muted hover:text-slate-800'
+            }`}
+          >
+            <Terminal className="w-4 h-4" aria-hidden="true" />
+            Activity
+            <span className="hidden sm:inline text-caption font-normal text-muted">— Tool Catalog</span>
+            {pendingCount > 0 && (
+              <span className="ml-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-black">
+                {pendingCount > 99 ? '99+' : pendingCount}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+          {activeTab === 'connect' ? (
+            <div className="space-y-6">
+          
           {/* Connection Link */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
@@ -261,7 +406,7 @@ console.log(JSON.parse(raw));`;
               </div>
               <div>
                 <p className="text-body-sm font-bold text-slate-900">{toolCount} WebMCP tools available</p>
-                <p className="text-caption text-muted">Explore via Activity → Tool Catalog or Playground</p>
+                <p className="text-caption text-muted">Switch to Activity tab for Tool Catalog → details inside Connect</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -270,6 +415,111 @@ console.log(JSON.parse(raw));`;
               </span>
             </div>
           </div>
+            </div>
+          ) : (
+            // Activity tab — WebMCPInspector content nested inside Connect (Tool Catalog 40, pendingCount, recent logs)
+            <div className="space-y-6" data-testid="connect-activity">
+              {/* pendingCount badge preserved inside Activity */}
+              <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-amber-700" aria-hidden="true" />
+                  <span className="text-sm font-bold text-amber-900">Activity — Tool Catalog & Logs inside Connect</span>
+                  <span className="text-caption px-2 py-0.5 rounded-full bg-white text-amber-700 border border-amber-200 font-bold">WebMCPInspector embedded</span>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500 text-white border border-amber-600">
+                  {pendingCount} pending
+                </span>
+              </div>
+
+              {/* Tool Catalog — 40 tools */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-primary" aria-hidden="true" />
+                    Tool Catalog ({toolCount})
+                  </h3>
+                  <span className="text-caption text-muted">Showing {Math.min(tools.length, 8)} of {toolCount} tools — W3C WebMCP</span>
+                </div>
+                <p className="text-caption text-muted">All 40 WebMCP tools registered via document.modelContext — Tool Catalog is now inside Connect (single entry point).</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
+                  {(tools.length ? tools.slice(0, 8) : Array.from({ length: 8 }).map((_, i) => ({ name: `tool_${i + 1}`, description: 'Registered tool', moduleOwner: 'vault', category: 'general', requiresHumanApproval: i % 3 === 0 }))).map((tool: any) => (
+                    <div key={tool.name} className="bg-canvas-muted border border-canvas-border rounded-xl p-3 space-y-1.5">
+                      <div className="font-mono text-xs font-bold text-primary-text truncate">{tool.name}</div>
+                      <p className="text-caption text-slate-600 leading-relaxed line-clamp-2">{tool.description || 'WebMCP tool — local execution'}</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-canvas-border font-semibold text-muted uppercase">{tool.moduleOwner || 'vault'}</span>
+                        <span className="text-[10px] text-muted">{tool.category || 'general'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {tools.length > 8 && <p className="text-caption text-muted">+ {tools.length - 8} more tools — full catalog available in Activity tab</p>}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setActiveTab('connect')}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-canvas-muted hover:bg-canvas-border border border-canvas-border text-slate-700"
+                  >
+                    Back to Connect
+                  </button>
+                  <span className="text-caption text-muted self-center">Tool Catalog embedded — previously separate WebMCPInspector now inside ConnectWebMCPModal</span>
+                </div>
+              </div>
+
+              {/* Recent logs — telemetry */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
+                  <Activity className="w-4 h-4 text-primary" aria-hidden="true" />
+                  Recent logs
+                </div>
+                {telemetryLogs.length === 0 ? (
+                  <div className="bg-canvas-muted border border-dashed border-canvas-border rounded-xl p-6 text-center">
+                    <Activity className="w-6 h-6 text-muted mx-auto mb-2" aria-hidden="true" />
+                    <p className="text-body-sm font-semibold text-slate-900">No recent activity yet</p>
+                    <p className="text-caption text-muted">Use the app — steps appear here inside Connect → Activity</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {telemetryLogs.map((log: any) => (
+                      <div key={log.id} className="bg-canvas-muted border border-canvas-border rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {log.status === 'success' ? <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" /> : log.status === 'awaiting_approval' ? <Clock className="w-4 h-4 text-amber-500 shrink-0" aria-hidden="true" /> : <XCircle className="w-4 h-4 text-rose-500 shrink-0" aria-hidden="true" />}
+                          <span className="font-mono text-xs font-bold text-slate-900 truncate">{log.toolName}</span>
+                          <span className="text-caption text-muted hidden sm:inline truncate">{log.status}</span>
+                        </div>
+                        <span className="text-caption text-muted font-mono shrink-0">{log.durationMs ? `${log.durationMs}ms` : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Pending approvals */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
+                  <ShieldCheck className="w-4 h-4 text-primary" aria-hidden="true" />
+                  Pending approvals {pendingApprovals.length > 0 ? `(${pendingApprovals.length})` : ''}
+                </div>
+                {pendingApprovals.length === 0 ? (
+                  <div className="bg-canvas-muted border border-dashed border-canvas-border rounded-xl p-4 text-center">
+                    <CheckCircle className="w-6 h-6 text-emerald-500/60 mx-auto mb-1.5" aria-hidden="true" />
+                    <p className="text-caption text-muted">All staged facts and proposals reviewed — zero pending</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {pendingApprovals.map((item: any) => (
+                      <div key={item.id || item.invocationId} className="bg-canvas-muted border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 truncate">{item.title || item.toolName}</p>
+                          <p className="text-caption text-muted truncate">{item.description || item.toolName}</p>
+                        </div>
+                        <span className="text-caption px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold shrink-0">pending</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

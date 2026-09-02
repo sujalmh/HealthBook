@@ -12,6 +12,13 @@ import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 import { callAI } from '../core/ai/client.ts';
 import type { Patient3ListDischargeDataset } from '../types/rxbridge.ts';
 
+function shouldUseAI(): boolean {
+  try {
+    if (typeof process !== 'undefined' && (process as any).env?.VITEST === 'true') return false;
+    return isAIEnabled(getAIConfig());
+  } catch { return false; }
+}
+
 export const explainMedChangeTool: WebMCPToolDefinition = {
   name: 'explain_med_change',
   description:
@@ -57,8 +64,7 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
     // AI-generated narrative when enabled (single request vision+text structured when doc context available)
     let explanation: string;
     let suggestedQuestions: string[];
-    const cfg = getAIConfig();
-    if (isAIEnabled(cfg)) {
+    if (shouldUseAI()) {
       try {
         // Try AI for explanation and questions via reconciliation engine AI helpers
         explanation = await ClinicalReconciliationEngine.generatePlainLanguageExplanationAI(
@@ -169,8 +175,7 @@ export const flagInteractionTool: WebMCPToolDefinition = {
     const allMeds = [...params.dischargeMeds, ...(params.preAdmitOTCs || [])];
     let rawArcs;
     try {
-      const cfg = getAIConfig();
-      if (isAIEnabled(cfg) && typeof ClinicalInteractionEngine.checkDrugInteractionsAI === 'function') {
+      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDrugInteractionsAI === 'function') {
         rawArcs = await ClinicalInteractionEngine.checkDrugInteractionsAI(allMeds);
       } else {
         rawArcs = ClinicalInteractionEngine.checkDrugInteractions(allMeds);
@@ -286,8 +291,7 @@ export const flagDietInteractionTool: WebMCPToolDefinition = {
     };
     let badges;
     try {
-      const cfg = getAIConfig();
-      if (isAIEnabled(cfg) && typeof ClinicalInteractionEngine.checkDietInteractionsAI === 'function') {
+      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDietInteractionsAI === 'function') {
         badges = await ClinicalInteractionEngine.checkDietInteractionsAI(params.dischargeMeds, diet);
       } else {
         badges = ClinicalInteractionEngine.checkDietInteractions(params.dischargeMeds, diet);
@@ -344,12 +348,9 @@ export const suggestQuestionForDoctorTool: WebMCPToolDefinition = {
     params: { context: string; medName?: string; autoAddToBank?: boolean; documentContext?: string; imageDataUrl?: string; dischargeMeds?: string[] },
     context: WebMCPExecutionContext
   ): Promise<WebMCPToolResult> => {
-    const cfg = getAIConfig();
-    const aiEnabled = isAIEnabled(cfg);
-
     let qText = '';
 
-    if (aiEnabled) {
+    if (shouldUseAI()) {
       try {
         // AI synthesis via AI client from actual discharge list + document context (single request vision+text structured when available)
         const dischargeMedsFromVault = (() => {

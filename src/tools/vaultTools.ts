@@ -162,6 +162,17 @@ export const confirmFactTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { factId: string; action: 'approve' | 'reject' | 'edit'; edits?: any }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
+    if (context.activeProfile?.permissionLevel === 'view_only') {
+      return {
+        success: false,
+        tool: 'confirm_fact',
+        timestamp: new Date().toISOString(),
+        data: null,
+        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
+        humanApprovalRequired: false,
+        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
+      };
+    }
     const { factId, action, edits } = params;
 
     // Helper to propagate confirmed categorical facts to respective module stores

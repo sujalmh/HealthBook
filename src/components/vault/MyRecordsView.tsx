@@ -3,6 +3,7 @@ import { FileText } from 'lucide-react';
 import { DocumentDropzone } from '@/components/vault/DocumentDropzone';
 import { FactStreamView } from '@/components/vault/FactStreamView';
 import { BoundingBoxViewer } from '@/components/common/BoundingBoxViewer';
+import { GroundedInsightsPanel } from '@/components/search/GroundedInsightsPanel';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 
@@ -16,6 +17,8 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
   const [documents, setDocuments] = useState<any[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | undefined>(undefined);
   const [isBusy, setIsBusy] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [highlightBox, setHighlightBox] = useState<any>(null);
 
   const effectivePatientId =
     patientId ||
@@ -66,10 +69,21 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
     };
   }, [effectivePatientId]);
 
+  // R2: preview hidden by default, shown only on explicit tap (gallery or Source highlight) — Q5 shown on tap
+  useEffect(() => {
+    const unsub = eventBus.onHighlightDocument((payload: any) => {
+      if (payload?.documentId) setSelectedDocId(payload.documentId);
+      if (payload?.boundingBox) setHighlightBox(payload.boundingBox);
+      setIsPreviewOpen(true);
+    });
+    return () => unsub();
+  }, []);
+
   // Also reload when selectedDocId changes? Not needed.
 
   const handleDocumentAdded = (docId: string) => {
     setSelectedDocId(docId);
+    // R2: do NOT auto-show preview after upload — remain hidden until explicit tap (Q5)
     loadDocuments();
   };
 
@@ -100,7 +114,7 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
               {documents.map((doc) => (
                 <button
                   key={doc.id}
-                  onClick={() => setSelectedDocId(doc.id)}
+                  onClick={() => { setSelectedDocId(doc.id); setIsPreviewOpen(true); }}
                   className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold min-h-[44px] transition-colors ${
                     selectedDocId === doc.id
                       ? 'bg-primary-light border-primary-border text-primary-text shadow-sm'
@@ -121,13 +135,27 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
           </div>
         )}
 
-        <div className="w-full">
-          <BoundingBoxViewer documentId={selectedDocId} documentTitle={documents.find((d) => d.id === selectedDocId)?.fileName} />
-        </div>
+        {isPreviewOpen && <div className="w-full"><BoundingBoxViewer documentId={selectedDocId} documentTitle={documents.find((d) => d.id === selectedDocId)?.fileName} boundingBox={highlightBox} onClose={() => setIsPreviewOpen(false)} /></div>}
       </div>
 
       {/* Review list */}
       <FactStreamView patientId={effectivePatientId} />
+
+      {/* Grounding — intelligence AFTER extraction, collapsible inside GroundedInsights */}
+      <GroundedInsightsPanel
+        patientId={effectivePatientId}
+        initialQuery=""
+        contextFacts={(() => {
+          try {
+            const facts = localVault.getFactsByPatient(effectivePatientId, 'confirmed') || localVault.getPendingFacts(effectivePatientId) || [];
+            if (facts.length === 0) return '';
+            const meds = facts.filter((f:any)=> String(f.category).toLowerCase().includes('med')).slice(0,3).map((f:any)=> f.name).join(', ');
+            const labs = facts.filter((f:any)=> String(f.category).toLowerCase().includes('lab')).slice(0,2).map((f:any)=> `${f.name} ${typeof f.value==='string'? f.value : JSON.stringify(f.value)}`).join('; ');
+            return [labs, meds ? `Meds: ${meds}` : ''].filter(Boolean).join(' | ');
+          } catch { return ''; }
+        })()}
+        mode="general"
+      />
 
       {/* Blocking overlay — wait till final results */}
       {isBusy && (

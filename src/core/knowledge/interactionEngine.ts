@@ -26,9 +26,12 @@ import type {
 } from '../../types/pillmap.ts';
 import { getAIConfig, isAIEnabled } from '../ai/config.ts';
 import { callAI } from '../ai/client.ts';
+import { isHealthGroundingAvailable } from '../search/healthGrounding.ts';
+import { searchExa } from '../search/exaClient.ts';
 
 function isKnowledgeAIEnabled(): boolean {
   try {
+    if (typeof process !== 'undefined' && (process as any).env?.VITEST === 'true') return false;
     const cfg = getAIConfig();
     return isAIEnabled(cfg);
   } catch {
@@ -153,10 +156,20 @@ export class ClinicalInteractionEngine {
     return foundArcs;
   }
 
-  /** AI-enhanced drug-drug interaction detection — reads meds array via AI, returns interactions with confidence, grounded reasoning */
+  /** AI-enhanced drug-drug interaction detection — AI search grounded via Exa for accuracy */
   public static async checkDrugInteractionsAI(medNames: string[]): Promise<InteractionArc[]> {
     if (!isKnowledgeAIEnabled()) return this.checkDrugInteractions(medNames);
     try {
+      // Pipeline: AI search first for authoritative interaction evidence (no hardcoded domains) — skip in VITEST for determinism
+      let exaContext = '';
+      const isVitest = typeof process !== 'undefined' && (process as any).env?.VITEST === 'true';
+      if (!isVitest && await isHealthGroundingAvailable()) {
+        try {
+          const q = `drug interaction ${medNames.join(' ')} mechanism severity guidance`;
+          const exaRes = await searchExa({ query: q, type: 'auto', numResults: 2, contents: { highlights: true }, systemPrompt: 'Prefer authoritative drug monographs (FDA, NIH, PubMed).' });
+          exaContext = exaRes.results.flatMap(r => r.highlights || []).slice(0, 3).join(' | ').slice(0, 800);
+        } catch {}
+      }
       const schema = {
         type: 'object',
         properties: {
@@ -182,8 +195,9 @@ export class ClinicalInteractionEngine {
         required: ['interactions'],
         additionalProperties: false,
       } as any;
-      const systemPrompt = `You are a clinical pharmacology specialist. Analyze drug-drug interactions for the provided medication list. Consider brand/generic aliases, mechanisms (e.g., CYP450, bleeding risk, additive hypotension), severity grading CONTRAINDICATED/MAJOR/MODERATE/MINOR, and clinical guidance. Return ONLY valid JSON with shape {"interactions": [{"drugA": string, "drugB": string, "severity": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include confidence 0-1 and grounded reasoning per interaction. No markdown.`;
-      const parsed = await callKnowledgeAI(systemPrompt, `Medications: ${JSON.stringify(medNames)}\nProvide JSON only with AI reasoning and confidence.`, schema);
+      const systemPrompt = `You are a clinical pharmacology specialist. Analyze drug-drug interactions for the provided medication list. Consider brand/generic aliases, mechanisms (e.g., CYP450, bleeding risk, additive hypotension), severity grading CONTRAINDICATED/MAJOR/MODERATE/MINOR, and clinical guidance. Use the provided Exa highlights as grounding when available. Return ONLY valid JSON with shape {"interactions": [{"drugA": string, "drugB": string, "severity": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include confidence 0-1 and grounded reasoning per interaction. No markdown.`;
+      const userText = `Medications: ${JSON.stringify(medNames)}${exaContext ? `\nExa evidence highlights: ${exaContext}` : ''}\nProvide JSON only with AI reasoning and confidence.`;
+      const parsed = await callKnowledgeAI(systemPrompt, userText, schema);
       if (parsed && Array.isArray(parsed.interactions)) {
         const arcs: InteractionArc[] = parsed.interactions.map((it: any) => ({
           id: `arc_${(it.drugA || 'drugA').replace(/[^a-z0-9]/gi, '_')}_${(it.drugB || 'drugB').replace(/[^a-z0-9]/gi, '_')}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -314,7 +328,7 @@ export class ClinicalInteractionEngine {
     return badges;
   }
 
-  /** AI-enhanced diet interaction detection — reads meds + diet profile via AI, returns badges with confidence */
+  /** AI-enhanced diet interaction detection — AI search grounded */
   public static async checkDietInteractionsAI(
     medNames: string[],
     patientDiet: {
@@ -327,6 +341,15 @@ export class ClinicalInteractionEngine {
   ): Promise<DietBadge[]> {
     if (!isKnowledgeAIEnabled()) return this.checkDietInteractions(medNames, patientDiet);
     try {
+      let exaContext = '';
+      const isVitest = typeof process !== 'undefined' && (process as any).env?.VITEST === 'true';
+      if (!isVitest && await isHealthGroundingAvailable()) {
+        try {
+          const q = `drug food interaction ${medNames.join(' ')} diet ${JSON.stringify(patientDiet)}`;
+          const exaRes = await searchExa({ query: q, type: 'auto', numResults: 2, contents: { highlights: true }, systemPrompt: 'Prefer authoritative nutrition-pharmacology sources.' });
+          exaContext = exaRes.results.flatMap(r => r.highlights || []).slice(0, 2).join(' | ').slice(0, 600);
+        } catch {}
+      }
       const schema = {
         type: 'object',
         properties: {
@@ -353,8 +376,8 @@ export class ClinicalInteractionEngine {
         required: ['dietInteractions'],
         additionalProperties: false,
       } as any;
-      const systemPrompt = `You are a clinical nutrition-pharmacology specialist. Analyze drug-diet interactions for the medication list and patient diet profile (grapefruit daily, Vit K greens, dairy breakfast, potassium salt substitutes, alcohol). Return ONLY valid JSON with shape {"dietInteractions": [{"drugName": string, "dietItem": string, "severity": string, "badgeText": string, "plateArcColor": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include grounded reasoning and confidence per badge. No markdown.`;
-      const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(medNames)}\nDiet: ${JSON.stringify(patientDiet)}\nReturn JSON only.`, schema);
+      const systemPrompt = `You are a clinical nutrition-pharmacology specialist. Analyze drug-diet interactions for the medication list and patient diet profile (grapefruit daily, Vit K greens, dairy breakfast, potassium salt substitutes, alcohol). Use Exa highlights when provided. Return ONLY valid JSON with shape {"dietInteractions": [{"drugName": string, "dietItem": string, "severity": string, "badgeText": string, "plateArcColor": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include grounded reasoning and confidence per badge. No markdown.`;
+      const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(medNames)}\nDiet: ${JSON.stringify(patientDiet)}${exaContext ? `\nExa highlights: ${exaContext}` : ''}\nReturn JSON only.`, schema);
       if (parsed && Array.isArray(parsed.dietInteractions)) {
         return parsed.dietInteractions.map((b: any) => ({
           id: `diet_${(b.drugName || 'drug').replace(/[^a-z0-9]/gi, '_')}_${(b.dietItem || 'diet').replace(/[^a-z0-9]/gi, '_')}`,

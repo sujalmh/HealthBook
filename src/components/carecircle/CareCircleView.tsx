@@ -16,6 +16,7 @@ import { CaregiverSwitcher } from './CaregiverSwitcher';
 import { ScopedPermissionsModal } from './ScopedPermissionsModal';
 import { AuditLogViewer } from './AuditLogViewer';
 import { MultiPatientDashboard } from './MultiPatientDashboard';
+import { ProfileIndicator } from './ProfileIndicator';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import type { LinkedCareProfile } from '@/types/carecircle';
@@ -125,6 +126,17 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
             <span>Manage Access</span>
           </button>
         </div>
+      </div>
+
+      {/* Profile indicator — vault-derived completeness in Family where active profile visible */}
+      <div className="bg-white border border-canvas-border rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="w-4 h-4 text-primary" aria-hidden="true" />
+          <h3 className="text-sm font-bold text-slate-900">Profile status — completeness</h3>
+          <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text border border-primary-border font-bold">vault-derived</span>
+        </div>
+        <ProfileIndicator activeProfile={activeProfile} />
+        <p className="text-caption text-muted mt-2">Derived from real vault/profile (not mock): papers, meds, labs, confirmed facts. Empty vault shows low completeness, not mock helper.</p>
       </div>
 
       {/* Profile Switcher Component (G1) */}

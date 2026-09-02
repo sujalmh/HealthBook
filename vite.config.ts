@@ -67,6 +67,29 @@ function supabaseDevProxy() {
   };
 }
 
+// Exa dev header injection — ensures EXA_API_KEY from .env (server-only, no VITE_ prefix) is injected
+// when browser calls /api/exa-proxy without Authorization (local dev convenience).
+function exaDevHeaderInject() {
+  return {
+    name: 'exa-dev-header-inject',
+    configureServer(server: any) {
+      server.middlewares.use((req: any, _res: any, next: any) => {
+        if (req.url && req.url.startsWith('/api/exa-proxy')) {
+          const hasAuth = req.headers['authorization'] || req.headers['Authorization'];
+          if (!hasAuth) {
+            const key = (process as any).env?.EXA_API_KEY || (process as any).env?.VITE_EXA_API_KEY || '';
+            if (key && key.trim()) {
+              req.headers['authorization'] = `Bearer ${key.trim()}`;
+              req.headers['Authorization'] = `Bearer ${key.trim()}`;
+            }
+          }
+        }
+        next();
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env so process.env gets DATABASE_URL etc. for server middleware
@@ -75,7 +98,7 @@ export default defineConfig(({ mode }) => {
     if (!(process.env as any)[k]) (process.env as any)[k] = v;
   }
   return {
-  plugins: [react(), supabaseDevProxy()],
+  plugins: [react(), supabaseDevProxy(), exaDevHeaderInject()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -92,6 +115,11 @@ export default defineConfig(({ mode }) => {
         target: 'https://api.mistral.ai',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/ocr-proxy/, ''),
+      },
+      '/api/exa-proxy': {
+        target: 'https://api.exa.ai',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/exa-proxy/, ''),
       },
     },
   },
