@@ -146,7 +146,8 @@ export const AskChat: React.FC<AskChatProps> = ({ patientId, initialQuery, class
       const sources: ChatSource[] = [];
       if (grounded && grounded.results.length > 0) {
         for (const r of grounded.results.slice(0, 2)) {
-          if (r.highlights?.[0]) highlights.push(r.highlights[0]);
+          const h = r.highlights?.[0]?.replace(/\s*\.\.\.\s*/g, ' ').trim();
+          if (h) highlights.push(h.length > 280 ? `${h.slice(0, 280).trimEnd()}…` : h);
           sources.push({ title: r.title || r.url, url: r.url });
         }
       }

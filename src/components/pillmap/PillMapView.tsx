@@ -547,7 +547,8 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           </div>
         </div>
 
-        {/* Action Button Strip */}
+        {/* Action Button Strip — only when medicines exist; the empty state owns the Add CTA */}
+        {activeMedsCount > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-canvas-border">
           <div className="flex flex-wrap items-center gap-2">
             {/* Schedule Optimizer */}
@@ -596,6 +597,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             <span>Add Medication</span>
           </button>
         </div>
+        )}
       </div>
 
       {/* AI Checking Banner — R1 loading indicator visible within 200ms when AI path in-flight */}
