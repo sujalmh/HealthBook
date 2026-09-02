@@ -916,6 +916,9 @@ export class LocalVaultManager {
     if (!item) return undefined;
     item.status = status;
     this.questionBank.set(id, item);
+    // Sync status so done/removed questions stay done/removed after reload
+    // (hydration merges server rows over local ones — without this, reloads resurrect them).
+    this.syncFireAndForget('question_bank', item);
     return item;
   }
 
