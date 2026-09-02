@@ -76,6 +76,15 @@ import {
 // Auth onboarding — human-only password (AI prefills, human types password in browser)
 import { createAccountTool, signInTool } from './authTools.ts';
 
+// Doctor ↔ Patient RBAC linking (doctor dashboard + scoped record view)
+import {
+  linkDoctorTool,
+  revokeDoctorLinkTool,
+  listDoctorPatientsTool,
+  listPatientDoctorsTool,
+  viewPatientAsDoctorTool
+} from './doctorTools.ts';
+
 export const allWebMCPTools: WebMCPToolDefinition[] = [
   // Vault (3)
   extractFactTool,
@@ -133,7 +142,14 @@ export const allWebMCPTools: WebMCPToolDefinition[] = [
 
   // Auth onboarding (2) — human-only password, AI prefills name/email/role
   createAccountTool,
-  signInTool
+  signInTool,
+
+  // Doctor ↔ Patient RBAC (5) — dashboard listing + scoped record access
+  linkDoctorTool,
+  revokeDoctorLinkTool,
+  listDoctorPatientsTool,
+  listPatientDoctorsTool,
+  viewPatientAsDoctorTool
 ];
 
 export const allTools = allWebMCPTools;

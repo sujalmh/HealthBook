@@ -21,6 +21,11 @@ export const DoctorPatientView: React.FC<DoctorPatientViewProps> = ({ patientId,
     setLoading(true);
     setError(null);
     try {
+      // doctor's local vault doesn't hold the patient's records — hydrate from Supabase first
+      try {
+        const { hydrateFromSupabase } = await import('@/core/vault/supabaseSync');
+        await hydrateFromSupabase(patientId, localVault);
+      } catch { /* hydration is best-effort; tool still returns whatever the vault holds */ }
       const res = await webMCPEngine.execute('view_patient_as_doctor', { patientId, doctorId });
       if (!res.success) {
         setError(res.error?.message || 'Access denied. No active link for this patient.');
@@ -58,6 +63,17 @@ export const DoctorPatientView: React.FC<DoctorPatientViewProps> = ({ patientId,
     } catch { return 'view_only'; }
   }, [patientId, doctorId, doctorProfile.email]);
 
+  // All hooks must run unconditionally — useMemo before early returns (React rules-of-hooks;
+  // conditional memos here crash the tree with "rendered more hooks" when loading flips)
+  const meds = useMemo(() => (data?.medications as unknown[] || []) as { id: string; genericName?: string; brandName?: string; name?: string; dosage?: string; frequency?: string; timingSlots?: string[]; withFood?: boolean; status?: string; indication?: string }[], [data]);
+  const labs = useMemo(() => (data?.labs as unknown[] || []) as { id: string; marker: string; value?: number; normalizedValue?: number; unit?: string; normalizedUnit?: string; drawDate: string; referenceRange?: { low: number; high: number }; flag?: string }[], [data]);
+  const conditions = useMemo(() => (data?.conditions as unknown[] || []) as { id: string; conditionName?: string; name?: string; status?: string }[], [data]);
+  const allergies = useMemo(() => (data?.allergies as unknown[] || []) as { id: string; allergen: string; reaction: string; severity: string }[], [data]);
+  const proposals = useMemo(() => { try { return localVault.getProposals(patientId).slice(0, 10); } catch { return []; } }, [patientId]);
+  const dueCards = useMemo(() => { try { return localVault.getDueCards(patientId).filter((c) => c.status !== 'completed'); } catch { return []; } }, [patientId]);
+  const dangers = useMemo(() => { try { return localVault.getDangerReports(patientId).slice(0,5); } catch { return []; } }, [patientId]);
+  const sortedLabs = useMemo(() => [...labs].sort((a,b)=> new Date(a.drawDate).getTime()-new Date(b.drawDate).getTime()), [labs]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -82,15 +98,6 @@ export const DoctorPatientView: React.FC<DoctorPatientViewProps> = ({ patientId,
       </div>
     );
   }
-
-  const meds = useMemo(() => (data?.medications as unknown[] || []) as { id: string; genericName?: string; brandName?: string; name?: string; dosage?: string; frequency?: string; timingSlots?: string[]; withFood?: boolean; status?: string; indication?: string }[], [data]);
-  const labs = useMemo(() => (data?.labs as unknown[] || []) as { id: string; marker: string; value?: number; normalizedValue?: number; unit?: string; normalizedUnit?: string; drawDate: string; referenceRange?: { low: number; high: number }; flag?: string }[], [data]);
-  const conditions = useMemo(() => (data?.conditions as unknown[] || []) as { id: string; conditionName?: string; name?: string; status?: string }[], [data]);
-  const allergies = useMemo(() => (data?.allergies as unknown[] || []) as { id: string; allergen: string; reaction: string; severity: string }[], [data]);
-  const proposals = useMemo(() => { try { return localVault.getProposals(patientId).slice(0, 10); } catch { return []; } }, [patientId]);
-  const dueCards = useMemo(() => { try { return localVault.getDueCards(patientId).filter((c) => c.status !== 'completed'); } catch { return []; } }, [patientId]);
-  const dangers = useMemo(() => { try { return localVault.getDangerReports(patientId).slice(0,5); } catch { return []; } }, [patientId]);
-  const sortedLabs = useMemo(() => [...labs].sort((a,b)=> new Date(a.drawDate).getTime()-new Date(b.drawDate).getTime()), [labs]);
 
   return (
     <div className="space-y-5 animate-fade-in">

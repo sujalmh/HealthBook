@@ -279,9 +279,11 @@ export const App: React.FC = () => {
     eventBus.dispatchToast({ type: 'info', title: 'Patient Profile', message: `Active profile: ${fallback.name} (Primary Patient).` });
   };
 
-  const isViewOnly = isViewOnlyUtil(activeProfile as unknown as { permissionLevel?: string });
-  const viewOnlyTooltip = 'View-only: cannot approve — ask primary holder';
   const isDoctor = activeProfile?.role === 'doctor';
+  // doctors sign in with permissionLevel:'view_only' by design (read-only across patient vaults) —
+  // the caregiver "ask primary holder" degraded banner does not apply to them
+  const isViewOnly = isViewOnlyUtil(activeProfile as unknown as { permissionLevel?: string }) && !isDoctor;
+  const viewOnlyTooltip = 'View-only: cannot approve — ask primary holder';
   const isPatient = activeProfile?.role === 'patient' || !isDoctor;
 
   // Auto-switch doctor to doctor module on login

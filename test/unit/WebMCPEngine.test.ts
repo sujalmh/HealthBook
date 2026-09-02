@@ -7,22 +7,20 @@ describe('WebMCP Core Engine & Dual-Mode Dispatcher', () => {
   let engine: WebMCPEngine;
 
   beforeEach(() => {
-    // Ensure fresh polyfill tied to this engine for jsdom fallback parity (Q2 shim jsdom only)
-    // Delete prior polyfill so new engine owns document.modelContext (guarded install, never overwrites native)
-    if (typeof document !== 'undefined' && (document as any).modelContext) {
+    if (typeof document !== 'undefined' && (document as unknown as { modelContext?: unknown }).modelContext) {
       try {
-        delete (document as any).modelContext;
+        delete (document as unknown as { modelContext?: unknown }).modelContext;
       } catch {
-        (document as any).modelContext = undefined;
+        (document as unknown as { modelContext?: unknown }).modelContext = undefined;
       }
     }
     engine = new WebMCPEngine();
   });
 
-  it('registers all 40 WebMCP tools across 7 modules', () => {
+  it('registers all 47 WebMCP tools across 9 modules (incl auth 2 + doctor 5)', () => {
     allTools.forEach((t) => engine.register(t));
     const registered = engine.getRegisteredTools();
-    expect(registered.length).toBe(40);
+    expect(registered.length).toBe(47);
 
     const vaultTools = engine.getToolsByModule('vault');
     expect(vaultTools.length).toBe(3);
@@ -37,10 +35,10 @@ describe('WebMCP Core Engine & Dual-Mode Dispatcher', () => {
     expect(safetyTools.length).toBe(9);
 
     const careTools = engine.getToolsByModule('carecircle');
-    expect(careTools.length).toBe(5);
+    expect(careTools.length).toBe(11); // 7 carecircle + 4 doctor tools (view_patient_as_doctor is dossier)
 
     const dossierTools = engine.getToolsByModule('dossier');
-    expect(dossierTools.length).toBe(3);
+    expect(dossierTools.length).toBe(4); // + view_patient_as_doctor
   });
 
   it('validates JSON Schema types, required fields, and enums', () => {
@@ -74,22 +72,15 @@ describe('WebMCP Core Engine & Dual-Mode Dispatcher', () => {
 
     engine.register(sampleTool);
 
-    // Missing required field
     expect(() => engine.validateSchema(sampleTool.parameters, { text: 'hello' })).toThrow(
       "Missing required parameter 'count'"
     );
-
-    // Wrong type
-    expect(() => engine.validateSchema(sampleTool.parameters, { text: 123, count: 5 })).toThrow(
+    expect(() => engine.validateSchema(sampleTool.parameters, { text: 123 as unknown as string, count: 5 })).toThrow(
       "Parameter 'text' must be a string"
     );
-
-    // Invalid enum
     expect(() => engine.validateSchema(sampleTool.parameters, { text: 'ok', count: 1, role: 'alien' })).toThrow(
       "value 'alien' is not in allowed enum values"
     );
-
-    // Valid parameters
     expect(() => engine.validateSchema(sampleTool.parameters, { text: 'valid', count: 10, role: 'patient' })).not.toThrow();
   });
 
@@ -137,95 +128,78 @@ describe('WebMCP Core Engine & Dual-Mode Dispatcher', () => {
     expect(engine.getPendingApprovals().length).toBe(0);
   });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Native shim fallback parity — jsdom Promise path (document.modelContext) — R1
-  // Ensures both legacy sync getter and new Promise getTools() return 40, with
-  // JSON.parse(inputSchema) PASS, description non-empty, origin/window, toolchange
-  // Coverage mirrors TEST_INFRA Native probe fallback parity; not mocked beyond engine.
-  // ─────────────────────────────────────────────────────────────────────────
-  it('native shim fallback parity: document.modelContext.getTools() Promise returns 40 with valid inputSchema', async () => {
+  // Native shim fallback parity — jsdom Promise path (document.modelContext)
+  it('native shim fallback parity: document.modelContext.getTools() Promise returns 47 with valid inputSchema', async () => {
     allTools.forEach((t) => engine.register(t));
-    // Legacy sync path — backward compat must stay 40 per PROJECT.md
     const legacy = engine.getRegisteredTools();
-    expect(legacy.length).toBe(40);
+    expect(legacy.length).toBe(47);
 
-    // New Promise path via document.modelContext (jsdom polyfill, Q2 guarded)
-    expect(typeof (document as any).modelContext).toBe('object');
-    expect(typeof (document as any).modelContext.registerTool).toBe('function');
-    expect(typeof (document as any).modelContext.getTools).toBe('function');
-    expect(typeof (document as any).modelContext.executeTool).toBe('function');
+    expect(typeof (document as unknown as { modelContext: unknown }).modelContext).toBe('object');
+    expect(typeof (document as unknown as { modelContext: { registerTool: unknown } }).modelContext.registerTool).toBe('function');
+    expect(typeof (document as unknown as { modelContext: { getTools: unknown } }).modelContext.getTools).toBe('function');
+    expect(typeof (document as unknown as { modelContext: { executeTool: unknown } }).modelContext.executeTool).toBe('function');
 
-    const tools = await (document as any).modelContext.getTools();
-    expect(tools.length).toBe(40);
+    const tools = await (document as unknown as { modelContext: { getTools: () => Promise<unknown[]> } }).modelContext.getTools();
+    expect(tools.length).toBe(47);
 
     let schemaPass = 0;
     let nonEmptyDesc = 0;
-    for (const rt of tools) {
+    for (const rt of tools as Array<{ name: string; description: string; inputSchema: string; origin: string; window: unknown; title: string; annotations: unknown }>) {
       expect(rt.name).toMatch(/^[a-zA-Z0-9_.\-]{1,128}$/);
       expect(rt.description).toBeTruthy();
       if (rt.description && rt.description.length > 0) nonEmptyDesc++;
       expect(typeof rt.inputSchema).toBe('string');
-      const parsed = JSON.parse(rt.inputSchema);
+      const parsed = JSON.parse(rt.inputSchema) as { type: string };
       expect(parsed).toBeDefined();
       expect(parsed.type).toBe('object');
-      // origin/window fields per spec RegisteredTool
       expect(rt.origin).toBeTruthy();
-      // window may be null in some jsdom versions but should be defined
       expect(rt.window !== undefined).toBe(true);
-      // title + annotations readOnlyHint mapped from requiresHumanApproval
       expect(rt.title).toBeTruthy();
       expect(rt.annotations).toBeDefined();
       schemaPass++;
     }
-    expect(schemaPass).toBe(40);
-    expect(nonEmptyDesc).toBe(40);
+    expect(schemaPass).toBe(47);
+    expect(nonEmptyDesc).toBe(47);
   });
 
   it('toolchange fires on register/unregister and executeTool returns DOMString via document.modelContext', async () => {
     let toolchangeCount = 0;
-    let ontoolchangeFired = 0;
     const handler = () => { toolchangeCount++; };
-    (document as any).modelContext.addEventListener('toolchange', handler);
-    const prev = (document as any).modelContext.ontoolchange;
-    (document as any).modelContext.ontoolchange = () => { ontoolchangeFired++; };
+    (document as unknown as { modelContext: { addEventListener: (t: string, h: () => void) => void } }).modelContext.addEventListener('toolchange', handler);
+    const prev = (document as unknown as { modelContext: { ontoolchange: unknown } }).modelContext.ontoolchange;
+    (document as unknown as { modelContext: { ontoolchange: unknown } }).modelContext.ontoolchange = () => {};
 
     allTools.forEach((t) => engine.register(t));
-    // toolchange must have fired at least once per register batch
     expect(toolchangeCount).toBeGreaterThanOrEqual(1);
 
-    const tools = await (document as any).modelContext.getTools();
-    expect(tools.length).toBe(40);
+    const tools = await (document as unknown as { modelContext: { getTools: () => Promise<Array<{ name: string }>> } }).modelContext.getTools();
+    expect(tools.length).toBe(47);
 
-    const extractFact = tools.find((t: any) => t.name === 'extract_fact');
+    const extractFact = (tools as Array<{ name: string }>).find((t) => t.name === 'extract_fact');
     expect(extractFact).toBeDefined();
 
-    // Execute via native shape: executeTool(RegisteredTool, inputObject) -> Promise<DOMString>
-    // Mock localStorage patient bridging via probe patientId (fallback parity)
     try {
       localStorage.setItem('carecanvas_active_user', JSON.stringify({ userId: 'probe-patient-001', name: 'Probe', role: 'patient', isProxy: false }));
     } catch {}
-    const domStr = await (document as any).modelContext.executeTool(extractFact, { documentId: 'probe-doc-001', rawText: 'Apixaban 5mg twice daily' });
+    const domStr = await (document as unknown as { modelContext: { executeTool: (tool: unknown, input: unknown) => Promise<string> } }).modelContext.executeTool(extractFact as unknown as object, { documentId: 'probe-doc-001', rawText: 'Apixaban 5mg twice daily' });
     expect(typeof domStr).toBe('string');
-    const parsed = JSON.parse(domStr);
+    const parsed = JSON.parse(domStr) as { success: boolean; data: unknown; plainLanguageSummary: string };
     expect(parsed.success).toBe(true);
-    // patientId bridging: must be probe-patient-001 not empty orphan '' nor patient-s-devi
     const dataStr = JSON.stringify(parsed.data);
     expect(dataStr).toContain('probe-patient-001');
     expect(parsed.data).toBeDefined();
     if (Array.isArray(parsed.data) && parsed.data.length > 0) {
-      expect(parsed.data[0].patientId).toBe('probe-patient-001');
+      expect((parsed.data[0] as { patientId: string }).patientId).toBe('probe-patient-001');
     }
     expect(parsed.plainLanguageSummary).toBeTruthy();
 
-    // Unregister should fire toolchange and reduce count to 39
-    await (document as any).modelContext.unregisterTool('extract_fact');
+    await (document as unknown as { modelContext: { unregisterTool: (name: string) => Promise<void> } }).modelContext.unregisterTool('extract_fact');
     expect(toolchangeCount).toBeGreaterThanOrEqual(2);
-    const after = await (document as any).modelContext.getTools();
-    expect(after.length).toBe(39);
+    const after = await (document as unknown as { modelContext: { getTools: () => Promise<unknown[]> } }).modelContext.getTools();
+    expect(after.length).toBe(46);
 
-    (document as any).modelContext.removeEventListener('toolchange', handler);
-    (document as any).modelContext.ontoolchange = prev;
-    // restore localStorage
+    (document as unknown as { modelContext: { removeEventListener: (t: string, h: () => void) => void } }).modelContext.removeEventListener('toolchange', handler);
+    (document as unknown as { modelContext: { ontoolchange: unknown } }).modelContext.ontoolchange = prev;
     try { localStorage.removeItem('carecanvas_active_user'); } catch {}
   });
 });

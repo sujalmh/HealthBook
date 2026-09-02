@@ -37,8 +37,9 @@ export const CANONICAL_PATIENT_ID = 'patient-s-devi';
 
 function readViteEnv(key: string): string | null {
   try {
-    const meta = typeof import.meta !== 'undefined' ? (import.meta as unknown as { env?: { [key: string]: unknown } }) : undefined;
-    const env = meta?.env;
+    // Static token `import.meta.env` — Vite bakes VITE_* vars at build time.
+    // Cast/optional-chain forms are NOT replaced, so keep this literal.
+    const env = import.meta.env;
     if (env && typeof env[key] === 'string' && (env[key] as string).trim() !== '') {
       return (env[key] as string).trim();
     }
@@ -179,6 +180,8 @@ export interface SupabaseResult<T = unknown> {
 export interface SupabaseTableClient {
   /** Fetch rows scoped to a patientId (exact ===) */
   selectByPatient<T = unknown>(patientId: string): Promise<SupabaseResult<T[]>>;
+  /** Raw PostgREST query string (JSONB-payload filters that eq filters cannot express) */
+  selectRaw<T = unknown>(query: string): Promise<SupabaseResult<T[]>>;
   /** Generic select with patientId filter via eq */
   select<T = unknown>(filters?: { [key: string]: unknown }): Promise<SupabaseResult<T[]>>;
   /** Insert a single record (patientId required if record is patient-scoped) */
@@ -402,6 +405,35 @@ class LightweightTableClient implements SupabaseTableClient {
     }
     // For care_circle, doctor_grants, danger_reports the PK is link_id/grant_id/report_id — already mapped via camelToSnake, do not create extra id column
     return r as T;
+  }
+
+  /** Raw PostgREST query string (e.g. `or=(payload->>doctorId.eq."x",...)`) — for JSONB-payload filters */
+  async selectRaw<T = unknown>(query: string): Promise<SupabaseResult<T[]>> {
+    const base = this.restBase;
+    if (!base) return { data: [], error: null, skipped: true };
+    try {
+      const url = `${base}/rest/v1/${this.table}?${query}`;
+      const headers: { [key: string]: string } = {
+        apikey: this.anonKey || '',
+        Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      };
+      if (!this.anonKey) {
+        delete headers.apikey;
+        delete headers.Authorization;
+      }
+      const res = await fetch(url, { headers, method: 'GET' });
+      if (!res.ok) {
+        const text = await res.text().catch(() => res.statusText);
+        return { data: null, error: `selectRaw ${this.table} failed: ${res.status} ${text}` };
+      }
+      const data = (await res.json()) as T[];
+      return { data, error: null };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { data: null, error: msg };
+    }
   }
 
   async select<T = unknown>(filters?: { [key: string]: unknown }): Promise<SupabaseResult<T[]>> {
@@ -746,6 +778,23 @@ export async function fetchQuestionBankFromSupabase(patientId: string = CANONICA
 // Generic helpers for hydration layer (ws-02-01 will use patient-isolated fetch)
 export async function fetchSupabaseTable<T = unknown>(table: SupabaseTableName, patientId: string): Promise<{ data: T[]; error: string | null; skipped?: boolean }> {
   return fetchByPatient<T>(table, patientId);
+}
+
+/**
+ * Fetch care_circle doctor→patient link rows scoped by doctor identity.
+ * Seed rows store doctor fields inside the JSONB payload (payload->>doctorId / payload->>doctorEmail),
+ * so a PostgREST `or=` filter is required — eq column filters cannot reach them.
+ * Never throws; local-only fallback returns skipped.
+ */
+export async function fetchCareCircleByDoctor<T = unknown>(doctorId: string, doctorEmail?: string): Promise<{ data: T[]; error: string | null; skipped?: boolean }> {
+  if (!doctorId || doctorId.trim() === '') return { data: [], error: 'doctorId required' };
+  const client = getSupabaseClient();
+  if (!client) return { data: [], error: null, skipped: true };
+  const conditions: string[] = [`payload->>doctorId.eq."${doctorId.replace(/"/g, '')}"`];
+  if (doctorEmail) conditions.push(`payload->>doctorEmail.eq."${doctorEmail.replace(/["\\]/g, '')}"`);
+  const res = await client.from('care_circle').selectRaw<T>(`or=(${conditions.join(',')})`);
+  if (res.skipped) return { data: [], error: null, skipped: true };
+  return { data: (res.data as T[]) ?? [], error: res.error };
 }
 export async function upsertSupabaseRecord<T = unknown>(table: SupabaseTableName, record: T & { patientId?: string }): Promise<SyncResult> {
   return syncRecord(table, record as unknown as { patientId?: string; id?: string }, (record as unknown as { patientId?: string })?.patientId);

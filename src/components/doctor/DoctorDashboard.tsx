@@ -28,13 +28,24 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ doctorId, doct
         if (doctorProfile.email) list = localVault.getPatientsForDoctor(doctorProfile.email);
       }
       if (list.length === 0) {
+        // hydrate links seeded in Supabase care_circle payloads (payload->>doctorId / doctorEmail)
+        const { hydrateDoctorLinksFromSupabase, hydratePatientsForDoctor } = await import('@/core/vault/supabaseSync');
+        const remote = await hydrateDoctorLinksFromSupabase(doctorId, doctorProfile.email, localVault);
+        if (remote.length > 0) {
+          list = localVault.getPatientsForDoctor(doctorId).length > 0 ? localVault.getPatientsForDoctor(doctorId) : remote;
+          // fill card stats (labs/meds/alerts) — patient vaults aren't hydrated under a doctor account
+          await hydratePatientsForDoctor(list.map((l) => l.patientId), localVault);
+        }
+      }
+      if (list.length === 0) {
         // fallback via tool
         const res = await webMCPEngine.execute('list_doctor_patients', { doctorId });
         if (res.success && Array.isArray(res.data)) list = res.data as unknown as DoctorPatientLink[];
       }
     } catch {}
     // dedup by linkId
-    setLinks(list);
+    const seen = new Set<string>();
+    setLinks(list.filter((l) => l && l.linkId && !seen.has(l.linkId) && seen.add(l.linkId)));
   };
 
   useEffect(() => {

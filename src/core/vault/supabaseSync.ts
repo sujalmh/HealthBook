@@ -20,9 +20,11 @@ import {
   isSupabaseEnabled,
   getSupabaseClient,
   fetchSupabaseTable,
+  fetchCareCircleByDoctor,
   upsertSupabaseRecord,
   CANONICAL_PATIENT_ID as CANONICAL_FROM_CLIENT,
 } from '../supabase/client.ts';
+import type { DoctorPatientLink } from '../../types/carecircle.ts';
 
 // Re-export canonical for convenience (single source is src/core/vault/seed.ts but client also exports)
 export const CANONICAL_PATIENT_ID = CANONICAL_FROM_CLIENT;
@@ -225,6 +227,19 @@ const HYDRATION_MAPPINGS: TableMapping[] = [
   { table: 'question_bank', vaultKey: 'questionBank' as unknown as keyof LocalVaultManager, idField: 'id' },
 ];
 
+// Heuristic: care_circle rows seeded for doctor↔patient linking carry doctor fields
+// in JSONB payload (doctorId / doctorName / doctorEmail). Family caregivers have
+// caregiverName / relationship instead. Route doctor rows to doctorPatientLinks.
+function isDoctorCareCircleRow(rec: { [key: string]: unknown }): boolean {
+  const dId = rec.doctorId;
+  const dName = rec.doctorName;
+  const dEmail = rec.doctorEmail;
+  const hasDoctorId = typeof dId === 'string' && dId.trim() !== '';
+  const hasDoctorName = typeof dName === 'string' && dName.trim() !== '' && typeof rec.specialty === 'string';
+  const hasDoctorEmail = typeof dEmail === 'string' && (dEmail as string).includes('@') && (hasDoctorId || (typeof dName === 'string' && dName.trim() !== ''));
+  return hasDoctorId || hasDoctorName || hasDoctorEmail;
+}
+
 /**
  * Core hydration: pulls each table's rows for patientId via fetchSupabaseTable (exact ===)
  * then silently Map.set without emitting duplicate `added` inflation.
@@ -277,6 +292,27 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
           const rawObj = raw as { patient_id?: unknown };
           if (typeof rec.patientId !== 'string' || (rec.patientId as string).trim() !== trimmedPatientId) continue;
           if (rawObj.patient_id != null && String(rawObj.patient_id).trim() !== trimmedPatientId) continue;
+          // care_circle doctor vs family split — doctor rows go to doctorPatientLinks, not careCircle
+          if (table === 'care_circle' && isDoctorCareCircleRow(rec)) {
+            const dMap = (vault as unknown as { doctorPatientLinks?: Map<string, DoctorPatientLink> }).doctorPatientLinks;
+            if (!dMap || typeof dMap.set !== 'function') continue;
+            let dKey: string | undefined = (rec.linkId as string | undefined) ?? (rec.id as string | undefined);
+            if (!dKey) {
+              const r = raw as { link_id?: unknown; id?: unknown };
+              dKey = (r.link_id as string | undefined) ?? (r.id as string | undefined);
+            }
+            if (!dKey || typeof dKey !== 'string') continue;
+            if (dMap.has(dKey)) {
+              const existing = dMap.get(dKey);
+              const merged = { ...(existing as object), ...(rec as object) };
+              dMap.set(dKey, merged as unknown as DoctorPatientLink);
+            } else {
+              dMap.set(dKey, rec as unknown as DoctorPatientLink);
+            }
+            hydratedForTable++;
+            total++;
+            continue;
+          }
           let key: string | undefined = (rec[idField] as string | undefined) ?? (rec.id as string | undefined) ?? (rec.linkId as string | undefined) ?? (rec.grantId as string | undefined) ?? (rec.reportId as string | undefined);
           if (!key) {
             const r = raw as { id?: unknown; link_id?: unknown; grant_id?: unknown; report_id?: unknown };
@@ -337,9 +373,94 @@ export async function hydrateSupabaseToVault(vault: LocalVaultManager, patientId
   return hydrateFromSupabase(patientId, vault);
 }
 
+// ------------------------------------------------------------------
+// Doctor-side hydration — care_circle payload rows carry doctor→patient
+// links (seeded per doctor), but the doctor dashboard reads the local-only
+// doctorPatientLinks map. Pull rows by payload->>doctorId / doctorEmail and
+// mirror them into the map silently so dashboard + view_patient_as_doctor
+// RBAC resolve on a fresh doctor browser.
+// ------------------------------------------------------------------
+
+/**
+ * Hydrates doctor→patient links from Supabase care_circle into vault.doctorPatientLinks.
+ * Matches rows by payload doctorId OR doctorEmail. Silent Map.set (no events, no sync-back).
+ * Returns the hydrated active links; never throws.
+ */
+export async function hydrateDoctorLinksFromSupabase(doctorId: string, doctorEmail: string | undefined, vault: LocalVaultManager): Promise<DoctorPatientLink[]> {
+  if (!doctorId || doctorId.trim() === '') return [];
+  if (!isSupabaseEnabled()) return [];
+  try {
+    const res = await fetchCareCircleByDoctor<unknown>(doctorId.trim(), doctorEmail?.trim().toLowerCase());
+    if (res.skipped || res.error) return [];
+    const rows = res.data ?? [];
+    if (rows.length === 0) return [];
+    const linksMap = (vault as unknown as { doctorPatientLinks?: Map<string, DoctorPatientLink> }).doctorPatientLinks;
+    if (!linksMap || typeof linksMap.set !== 'function') return [];
+    const hydrated: DoctorPatientLink[] = [];
+    for (const raw of rows) {
+      try {
+        const rec = normalizeRow('care_circle', raw) as unknown as DoctorPatientLink;
+        if (!rec || typeof rec !== 'object') continue;
+        if (rec.status !== 'active') continue;
+        const key = rec.linkId || String((raw as { link_id?: string })?.link_id || '');
+        if (!key) continue;
+        if (!linksMap.has(key)) {
+          linksMap.set(key, rec);
+          hydrated.push(rec);
+        } else {
+          hydrated.push(linksMap.get(key) as DoctorPatientLink);
+        }
+      } catch { /* skip malformed row */ }
+    }
+    return hydrated;
+  } catch {
+    return [];
+  }
+}
+
+// Tables needed for doctor dashboard card stats (meds/labs/alerts/due/pending counts)
+const DOCTOR_STATS_TABLES = ['labs', 'medications', 'danger_reports', 'due_cards', 'proposals'] as const;
+
+/**
+ * Hydrates per-patient stats tables (labs, meds, danger reports, due cards, proposals)
+ * for the patients linked to a doctor so dashboard cards show real counts.
+ * Parallel per patient; silent Map.set; never throws.
+ */
+export async function hydratePatientsForDoctor(patientIds: string[], vault: LocalVaultManager): Promise<number> {
+  const ids = patientIds.filter((p) => p && typeof p === 'string' && p.trim() !== '');
+  if (ids.length === 0 || !isSupabaseEnabled()) return 0;
+  let total = 0;
+  await Promise.all(ids.map(async (pid) => {
+    try {
+      await Promise.all(DOCTOR_STATS_TABLES.map(async (table) => {
+        try {
+          const res = await fetchSupabaseTable<unknown>(table, pid);
+          if (res.skipped || res.error) return;
+          const vaultObj = vault as unknown as { [key: string]: Map<string, unknown> };
+          const mapKey = table === 'medications' ? 'meds' : table === 'labs' ? 'labs' : table === 'danger_reports' ? 'dangerReports' : table === 'due_cards' ? 'dueCards' : 'proposals';
+          const map = vaultObj[mapKey];
+          if (!map || typeof map.set !== 'function') return;
+          for (const raw of res.data ?? []) {
+            try {
+              const rec = normalizeRow(table, raw);
+              if (typeof rec.patientId !== 'string' || rec.patientId.trim() !== pid) continue;
+              const key = (rec.id as string | undefined) ?? (rec.reportId as string | undefined) ?? String((raw as { id?: unknown })?.id ?? '');
+              if (!key) continue;
+              if (!map.has(key)) { map.set(key, rec); total++; }
+            } catch { /* skip malformed row */ }
+          }
+        } catch { /* per-table failure is non-fatal */ }
+      }));
+    } catch { /* per-patient failure is non-fatal */ }
+  }));
+  return total;
+}
+
 export default {
   syncToSupabase,
   hydrateFromSupabase,
   hydrateFromSupabaseToVault,
   hydrateSupabaseToVault,
+  hydrateDoctorLinksFromSupabase,
+  hydratePatientsForDoctor,
 };
