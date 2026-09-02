@@ -26,6 +26,7 @@ const PRIMARY_KEYS: { [key: string]: string } = {
   due_cards: 'id',
   danger_reports: 'report_id',
   question_bank: 'id',
+  interaction_cache: 'id',
 };
 
 // Lazy pg pool
