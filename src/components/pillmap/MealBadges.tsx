@@ -49,7 +49,13 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     }
   };
 
-  // Compile individual badges from flags and dynamic dietBadges
+  // Compile individual badges from flags and dynamic dietBadges.
+  // Dedupe rule: when the interaction engine already emitted a diet badge for
+  // a concept (grapefruit / empty-stomach / dairy), skip the redundant
+  // per-med flag chip so pills don't show two badges for the same rule
+  // (e.g. Lipitor "No grapefruit" + "Avoid Grapefruit").
+  const engineText = dietBadges.map((d) => (d.badgeText || '').toLowerCase()).join(' | ');
+  const engineCovers = (concept: RegExp) => concept.test(engineText);
   const badgesToRender: {
     key: string;
     label: string;
@@ -76,7 +82,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     });
   }
 
-  if (emptyStomach) {
+  if (emptyStomach && !engineCovers(/empty\s*stomach/)) {
     badgesToRender.push({
       key: 'empty_stomach',
       label: 'Empty stomach',
@@ -90,7 +96,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     });
   }
 
-  if (avoidGrapefruit) {
+  if (avoidGrapefruit && !engineCovers(/grapefruit/)) {
     badgesToRender.push({
       key: 'no_grapefruit',
       label: 'No grapefruit',
@@ -118,7 +124,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     });
   }
 
-  if (avoidDairy) {
+  if (avoidDairy && !engineCovers(/dairy|calcium/)) {
     badgesToRender.push({
       key: 'no_dairy',
       label: 'No dairy 2h',
@@ -170,10 +176,10 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
                 severity: b.severity
               });
             }}
-            className={`badge-btn inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors shrink-0 min-w-0 min-h-0 ${b.bgColor} ${b.textColor} ${b.borderColor}`}
+            className={`badge-btn inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors shrink-0 min-w-0 max-w-full min-h-0 ${b.bgColor} ${b.textColor} ${b.borderColor}`}
             title={`Click for dietary instruction: ${b.label}`}
           >
-            <span className="truncate max-w-[120px]">{b.label}</span>
+            <span className="truncate max-w-full">{b.label}</span>
           </button>
         ))}
       </div>

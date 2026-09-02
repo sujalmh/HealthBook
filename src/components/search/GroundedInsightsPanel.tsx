@@ -164,27 +164,29 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-muted cursor-pointer">
-            <input type="checkbox" checked={fresh} onChange={(e) => setFresh(e.target.checked)} className="rounded border-canvas-border" />
-            Fresh (livecrawl)
-          </label>
-          <span className="text-[11px] text-muted">cached=fast; fresh=livecrawl (maxAgeHours:0)</span>
-          {fresh && <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold">maxAgeHours: 0</span>}
-          <span className="ml-2 text-[11px] text-muted hidden sm:inline">• AI search</span>
-          <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-bold">AI accuracy • no hardcoded domains</span>
-          <select
-            value={searchType}
-            onChange={(e)=> setSearchType(e.target.value as unknown as 'auto' | 'fast' | 'instant')}
-            className="ml-auto px-2 py-1.5 bg-white border border-canvas-border rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-teal-500 min-h-[32px]"
-            aria-label="Search type"
-            title="Exa search type: instant (~250ms), fast (~450ms), auto (~1s)"
-          >
-            <option value="auto">auto (~1s) balanced</option>
-            <option value="fast">fast (~450ms)</option>
-            <option value="instant">instant (~250ms)</option>
-          </select>
-        </div>
+        <details className="rounded-xl border border-canvas-border bg-white/60 px-3 py-2">
+          <summary className="text-xs font-semibold text-muted cursor-pointer list-none flex items-center gap-1.5 min-h-[32px]">
+            <span aria-hidden="true">⚙️</span> Search options
+          </summary>
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-muted cursor-pointer">
+              <input type="checkbox" checked={fresh} onChange={(e) => setFresh(e.target.checked)} className="rounded border-canvas-border" />
+              Fresh results
+            </label>
+            {fresh && <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold">Live lookup</span>}
+            <select
+              value={searchType}
+              onChange={(e)=> setSearchType(e.target.value as unknown as 'auto' | 'fast' | 'instant')}
+              className="ml-auto px-2 py-1.5 bg-white border border-canvas-border rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-teal-500 min-h-[32px]"
+              aria-label="Search type"
+              title="Search speed: instant, fast, or balanced"
+            >
+              <option value="auto">Balanced</option>
+              <option value="fast">Fast</option>
+              <option value="instant">Instant</option>
+            </select>
+          </div>
+        </details>
 
         {contextFacts && (
           <div className="bg-teal-50/70 border border-teal-200 rounded-xl px-3 py-2 flex items-start gap-2">
@@ -301,7 +303,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
 
         {!insight && !isLoading && !error && (
           <p className="text-xs text-muted leading-relaxed bg-canvas-muted border border-dashed border-canvas-border rounded-xl px-3 py-2.5">
-            Type a health question and press Ground — we query Exa with <span className="font-mono">contents.highlights: true</span> (token-efficient) and show cited excerpts. For deep research, highlights + text are combined. Fresh forces <span className="font-mono">maxAgeHours:0</span> livecrawl.
+            Type a health question and press Ground — we look up trusted medical sources and show cited excerpts you can open.
           </p>
         )}
       </div>

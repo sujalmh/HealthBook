@@ -120,17 +120,19 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
         <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm overflow-x-auto scrollbar-none max-w-full">
           <button
             onClick={() => handleSwitch('self')}
-            className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] ${
+            title="Self (Personal Vault)"
+            className={`px-3 py-2 rounded-lg font-bold transition-all whitespace-nowrap min-h-[40px] shrink-0 ${
               !isProxy
                 ? 'bg-primary text-white shadow-md shadow-primary/20'
                 : 'text-slate-600 hover:text-slate-800'
             }`}
           >
-            Self (Personal Vault)
+            <span className="sm:hidden">Self</span>
+            <span className="hidden sm:inline">Self (Personal Vault)</span>
           </button>
 
           {linkedFamily.length === 0 ? (
-            <span className="px-3 py-2 text-caption text-muted">No linked family — add via Manage Access</span>
+            <span className="px-3 py-2 text-caption text-muted leading-snug min-w-0">No linked family — add via Manage Access</span>
           ) : (
             linkedFamily.map((link) => {
               const label = link.caregiverName || link.patientName || 'Family member';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Shield,
   Activity,
@@ -35,8 +35,7 @@ import { CreateAccountView } from '@/components/auth/CreateAccountView';
 import { SignInView } from '@/components/auth/SignInView';
 import { MCPAuthBridge } from '@/components/auth/MCPAuthBridge';
 import { SettingsView } from '@/components/settings/SettingsView';
-import { AskWhyPanel } from '@/components/ask/AskWhyPanel';
-import { GroundedInsightsPanel } from '@/components/search/GroundedInsightsPanel';
+import { AskChat } from '@/components/ask/AskChat';
 import { DoctorDashboard } from '@/components/doctor/DoctorDashboard';
 import { DoctorPatientView } from '@/components/doctor/DoctorPatientView';
 import { localVault } from '@/core/vault/LocalVault';
@@ -313,17 +312,6 @@ export const App: React.FC = () => {
         { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Trusted helpers' },
       ];
 
-  const askContextFacts = useMemo(() => {
-    try {
-      if (!activeProfile?.userId) return '';
-      const meds = localVault.getMedications(activeProfile.userId) || [];
-      const labs = localVault.getLabs(activeProfile.userId) || [];
-      const lastLab = labs.length ? `${labs[labs.length - 1]?.marker ?? ''} ${labs[labs.length - 1]?.normalizedValue ?? ''}` : '';
-      const medStr = meds.length ? `Meds: ${meds.slice(0, 3).map((m) => (m as unknown as { genericName?: string; name?: string }).genericName || (m as unknown as { name?: string }).name).join(', ')}` : '';
-      return [lastLab, medStr].filter(Boolean).join(' | ');
-    } catch { return ''; }
-  }, [activeProfile?.userId]);
-
   const pastelActive = 'bg-primary-light text-primary-text border-primary-border shadow-sm';
   const pastelIconActive = 'text-primary-text';
   const pastelIconIdle = 'text-muted';
@@ -595,12 +583,12 @@ export const App: React.FC = () => {
                 aria-controls="meds-pillmap-panel"
                 id="meds-pillmap-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setMedicinesSub('pillmap'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                className={`flex-1 flex items-center justify-center gap-2 px-2 sm:px-4 py-2.5 rounded-xl text-[13px] sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                   medicinesSub === 'pillmap' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >
-                <Pill className={`w-4 h-4 ${medicinesSub === 'pillmap' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
-                <span>Weekly Planner</span>
+                <Pill className={`w-4 h-4 shrink-0 ${medicinesSub === 'pillmap' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span className="whitespace-nowrap">Weekly Planner</span>
               </button>
               <button
                 role="tab"
@@ -608,12 +596,12 @@ export const App: React.FC = () => {
                 aria-controls="meds-rxbridge-panel"
                 id="meds-rxbridge-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setMedicinesSub('rxbridge'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                className={`flex-1 flex items-center justify-center gap-2 px-2 sm:px-4 py-2.5 rounded-xl text-[13px] sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                   medicinesSub === 'rxbridge' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >
-                <FileCheck2 className={`w-4 h-4 ${medicinesSub === 'rxbridge' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
-                <span>Medicine Review</span>
+                <FileCheck2 className={`w-4 h-4 shrink-0 ${medicinesSub === 'rxbridge' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
+                <span className="whitespace-nowrap">Medicine Review</span>
               </button>
             </div>
             <p className="px-2 pt-1.5 text-caption text-muted hidden sm:block">Your weekly pill box and the hospital list that fills it — one flow.</p>
@@ -667,31 +655,9 @@ export const App: React.FC = () => {
           )}
         </div>
 
-        {/* ASK — separate page (ex-Questions). Quiet agenda header: amber rule marks it
-            as the visit-prep flow; the count is enough emphasis, no gradient billboard. */}
+        {/* ASK — simple chatbot: ask, get a grounded answer, save for your visit. */}
         <div className={activeModule === 'ask' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'ask'}>
-          <div className="border border-canvas-border border-l-4 border-l-amber-500 rounded-lg bg-white px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-3 min-w-0">
-              <HelpCircle className="w-5 h-5 text-amber-600 shrink-0" aria-hidden="true" />
-              <div className="min-w-0">
-                <h2 className="text-heading-lg text-slate-900">Ask</h2>
-                <p className="text-body-sm text-muted leading-snug">Your doctor visit agenda — add questions, review, print.</p>
-              </div>
-            </div>
-            <span className="inline-flex self-start sm:self-auto text-caption px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
-              {questionCount} {questionCount === 1 ? 'question' : 'questions'}
-            </span>
-          </div>
-          <AskWhyPanel patientId={activeProfile.userId} initialMarker={askWhyPrefill?.marker} initialQuery={askWhyPrefill?.query} />
-          {activeModule === 'ask' && (
-            <GroundedInsightsPanel
-              patientId={activeProfile.userId}
-              initialQuery=""
-              contextFacts={askContextFacts}
-              mode="general"
-            />
-          )}
-          <QuestionBank patientId={activeProfile.userId} asPage />
+          <AskChat patientId={activeProfile.userId} initialQuery={askWhyPrefill?.query} />
         </div>
 
         {/* SETTINGS — accessed via header gear */}
@@ -731,7 +697,7 @@ export const App: React.FC = () => {
                 <span className="relative">
                   <Icon className={`w-5 h-5 ${isAsk ? (isActive ? 'text-white' : 'text-amber-600') : isActive ? 'text-primary-text' : 'text-slate-500'}`} aria-hidden="true" />
                   {item.badge && (
-                    <span className={`absolute -top-1.5 -right-2 text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-bold border-2 border-white leading-none ${isAsk ? 'bg-white text-amber-700 border-amber-600' : 'bg-amber-500 text-white'}`}>
+                    <span className={`absolute -top-2 -right-3 text-[9px] min-w-[20px] h-[18px] px-1 rounded-full flex items-center justify-center font-bold border-2 border-white leading-none ${isAsk ? 'bg-white text-amber-700 border-amber-600' : 'bg-amber-500 text-white'}`}>
                       {Number(item.badge) > 99 ? '99+' : item.badge}
                     </span>
                   )}

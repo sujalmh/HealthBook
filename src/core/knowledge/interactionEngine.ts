@@ -464,6 +464,12 @@ export class ClinicalInteractionEngine {
         const totalMg = occurrences.reduce((acc, o) => acc + o.ingredientAmountMg, 0);
         const maxLimit = rule ? rule.maxDailySafeMg : 4000;
         const isOver = totalMg > maxLimit;
+        // Class-based groups (e.g. "NSAID Class") count co-prescribed medicines,
+        // not milligrams — phrase as a count so the banner never reads "2mg/day".
+        const isClassGroup = ingredient.toLowerCase().includes('class');
+        const narration = isClassGroup
+          ? `Duplicate class detected: "${ingredient}" — ${occurrences.map(o => o.name).join(' and ')} are ${occurrences.length} medicines from the same class taken together. ⚠️ Avoid combining; ask your doctor or pharmacist which one to keep.`
+          : 'Duplicate active ingredient detected: "' + ingredient + '" is present in ' + occurrences.map(o => o.name).join(' and ') + ' (Total: ' + totalMg + 'mg/day). ' + (isOver ? '⚠️ Exceeds max recommended daily dose of ' + maxLimit + 'mg.' : 'Verify dosage with clinician.');
 
         alerts.push({
           id: deterministicDuplicateId(ingredient, occurrences.map(o => o.name)),
@@ -472,7 +478,7 @@ export class ClinicalInteractionEngine {
           totalCumulativeDoseMg: totalMg,
           maxSafeDailyDoseMg: maxLimit,
           isOverLimit: isOver,
-          plainNarration: 'Duplicate active ingredient detected: "' + ingredient + '" is present in ' + occurrences.map(o => o.name).join(' and ') + ' (Total: ' + totalMg + 'mg/day). ' + (isOver ? '⚠️ Exceeds max recommended daily dose of ' + maxLimit + 'mg.' : 'Verify dosage with clinician.')
+          plainNarration: narration
         });
       }
     }

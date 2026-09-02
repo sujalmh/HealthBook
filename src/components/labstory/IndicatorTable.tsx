@@ -173,16 +173,16 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
       </div>
 
       <div className="overflow-x-auto -mx-1 scrollbar-none">
-        <table className="w-full text-left text-body-sm min-w-[760px]">
+        <table className="w-full text-left text-body-sm min-w-[540px] sm:min-w-[760px]">
           <thead>
             <tr className="border-b border-canvas-border text-caption text-muted uppercase tracking-wider">
               <th className="py-2.5 px-3 font-semibold">Biomarker</th>
               <th className="py-2.5 px-3 font-semibold">Latest Value</th>
               <th className="py-2.5 px-3 font-semibold">Reference</th>
-              <th className="py-2.5 px-3 font-semibold">Best Done As</th>
+              <th className="py-2.5 px-3 font-semibold hidden md:table-cell">Best Done As</th>
               <th className="py-2.5 px-3 font-semibold">Status</th>
-              <th className="py-2.5 px-3 font-semibold">Last Draw</th>
-              <th className="py-2.5 px-3 font-semibold">History</th>
+              <th className="py-2.5 px-3 font-semibold hidden md:table-cell">Last Draw</th>
+              <th className="py-2.5 px-3 font-semibold hidden md:table-cell">History</th>
             </tr>
           </thead>
           {CATEGORY_ORDER.map((category) => {
@@ -229,10 +229,10 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                     <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
                       {g.value as string | number} <span className="font-normal text-muted text-caption">{g.unit}</span>
                     </td>
-                    <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
+                    <td className="py-3 px-3 text-muted text-body-sm">
                       {g.referenceRange?.low ?? 0}–{g.referenceRange?.high ?? 100} {g.unit}
                     </td>
-                    <td className="py-3 px-3 text-body-sm text-slate-600">
+                    <td className="py-3 px-3 text-body-sm text-slate-600 hidden md:table-cell">
                       {g.method}
                     </td>
                     <td className="py-3 px-3">
@@ -242,10 +242,10 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                         {g.isCritical ? ' • CRITICAL' : ''}
                       </span>
                     </td>
-                    <td className="py-3 px-3 whitespace-nowrap text-slate-900 font-medium">
+                    <td className="py-3 px-3 whitespace-nowrap text-slate-900 font-medium hidden md:table-cell">
                       {g.latest.drawDate ? new Date(g.latest.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                     </td>
-                    <td className="py-3 px-3">
+                    <td className="py-3 px-3 hidden md:table-cell">
                       <span className="inline-flex items-center gap-1 text-caption text-muted">
                         <Calendar className="w-3 h-3" /> {g.count} {g.count === 1 ? 'draw' : 'draws'}
                       </span>
