@@ -242,6 +242,22 @@ function toRestBaseUrl(url: string): string | null {
   return null;
 }
 
+const TABLE_ALLOWED_COLUMNS: Record<string, Set<string>> = {
+  facts: new Set(['id', 'patient_id', 'category', 'name', 'value', 'fact_key', 'fact_value', 'unit', 'confidence', 'status', 'approval_status', 'source_doc_id', 'document_id', 'plain_explanation', 'plain_narration', 'author', 'metadata', 'timestamp', 'created_at', 'payload']),
+  medications: new Set(['id', 'patient_id', 'name', 'brand_name', 'generic_name', 'dosage', 'unit', 'frequency', 'timing_slots', 'with_food', 'avoid_grapefruit', 'avoid_alcohol', 'avoid_dairy', 'empty_stomach', 'status', 'source', 'start_date', 'stop_date', 'indication', 'color_badge', 'created_at', 'payload']),
+  meds: new Set(['id', 'patient_id', 'name', 'brand_name', 'generic_name', 'dosage', 'unit', 'frequency', 'timing_slots', 'with_food', 'status', 'created_at', 'payload']),
+  labs: new Set(['id', 'patient_id', 'marker', 'marker_code', 'value', 'unit', 'normalized_value', 'normalized_unit', 'draw_date', 'reference_range', 'optimal_range', 'is_borderline', 'is_critical', 'flag', 'source_doc_id', 'doctor_comments', 'created_at', 'payload']),
+  conditions: new Set(['id', 'patient_id', 'condition_name', 'name', 'icd10', 'diagnosed_date', 'status', 'source_doc_id', 'created_at', 'payload']),
+  allergies: new Set(['id', 'patient_id', 'allergen', 'reaction', 'severity', 'status', 'recorded_date', 'source_doc_id', 'created_at', 'payload']),
+  proposals: new Set(['id', 'patient_id', 'doctor_name', 'doctor_id', 'type', 'med_id', 'med_name', 'previous_dose', 'proposed_dose', 'previous_slot', 'proposed_slot', 'reason', 'plain_narration', 'linked_lab_id', 'linked_danger_id', 'status', 'timestamp', 'approved_at', 'approved_by', 'approval_role', 'on_behalf_of', 'created_at', 'payload']),
+  calendar_events: new Set(['id', 'patient_id', 'title', 'event_type', 'scheduled_date', 'reason', 'status', 'description', 'provider_name', 'notify_hours_before', 'is_completed', 'synced_to_calendar', 'ics_data', 'shared_with_caregivers', 'created_at', 'payload']),
+  care_circle: new Set(['link_id', 'patient_id', 'patient_name', 'relationship', 'caregiver_id', 'caregiver_user_id', 'caregiver_name', 'permission_level', 'linked_date', 'granted_date', 'status', 'created_at', 'payload']),
+  due_cards: new Set(['id', 'patient_id', 'test_panel', 'biomarkers', 'due_date', 'prescribed_by', 'prescribed_date', 'instructions', 'status', 'completed_lab_id', 'created_at', 'payload']),
+  danger_reports: new Set(['report_id', 'patient_id', 'symptom_tags', 'free_text', 'severity_rating', 'vital_signs', 'photo_attachment', 'timestamp', 'triage_priority', 'first_aid_advice', 'created_at', 'payload']),
+  documents: new Set(['id', 'patient_id', 'file_name', 'name', 'title', 'doc_type', 'type', 'page_count', 'upload_timestamp', 'uploaded_at', 'extracted_text', 'raw_buffer', 'extracted_fact_ids', 'created_at', 'payload']),
+  question_bank: new Set(['id', 'patient_id', 'question_text', 'category', 'source_module', 'origin_module', 'context', 'linked_med_name', 'linked_lab_marker', 'priority', 'clinical_rationale', 'status', 'included_in_export', 'created_at', 'payload']),
+};
+
 class LightweightTableClient implements SupabaseTableClient {
   constructor(private baseUrl: string | null, private table: string, private anonKey: string | null) {}
 
@@ -398,6 +414,22 @@ class LightweightTableClient implements SupabaseTableClient {
         if (r[k] === undefined) r[k] = v;
       }
       // Camel not in map -> skip (only in payload)
+    }
+    // Table-specific semantic mappings
+    if (this.table === 'conditions') {
+      if (src.name && !r.condition_name) r.condition_name = src.name;
+    } else if (this.table === 'calendar_events') {
+      if (src.description && !r.reason) r.reason = src.description;
+      if (src.type && !r.event_type) r.event_type = src.type;
+    }
+    // Filter against known table schema columns so unknown top-level keys never trigger PostgREST PGRST204 errors
+    const allowed = TABLE_ALLOWED_COLUMNS[this.table];
+    if (allowed) {
+      for (const k of Object.keys(r)) {
+        if (!allowed.has(k)) {
+          delete r[k];
+        }
+      }
     }
     // Ensure primary id field only if source had id (do not auto-create id from link_id/grant_id for tables where PK is link_id etc)
     if (!r.id && src.id !== undefined) {

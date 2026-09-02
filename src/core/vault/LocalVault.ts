@@ -425,6 +425,8 @@ export class LocalVaultManager {
     if (this.eventBus) {
       this.eventBus.emit('fact_status_changed', payload);
     }
+    // Sync updated fact status (confirmed/rejected) to Supabase
+    this.syncFireAndForget('facts', fact);
     // No direct downstream auto-propagation here — vaultTools confirm_fact handles med/lab creation on confirmed only
     // Rejected never propagates (no med/lab creation)
     return fact;
