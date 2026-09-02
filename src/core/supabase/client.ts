@@ -37,22 +37,23 @@ export const CANONICAL_PATIENT_ID = 'patient-s-devi';
 
 function readViteEnv(key: string): string | null {
   try {
-    // Access import.meta.env safely — Vite provides it, Node/tests may not
-    const meta: any = typeof import.meta !== 'undefined' ? (import.meta as any) : undefined;
+    const meta = typeof import.meta !== 'undefined' ? (import.meta as unknown as { env?: { [key: string]: unknown } }) : undefined;
     const env = meta?.env;
-    if (env && typeof env[key] === 'string' && env[key].trim() !== '') {
-      return env[key].trim();
+    if (env && typeof env[key] === 'string' && (env[key] as string).trim() !== '') {
+      return (env[key] as string).trim();
     }
   } catch {
-    // ignore — env not available in this runtime
+    // ignore
   }
   return null;
 }
 
 function readProcessEnv(key: string): string | null {
   try {
-    if (typeof process !== 'undefined' && (process as any).env) {
-      const v = (process as any).env[key];
+    const proc = typeof process !== 'undefined' ? (globalThis as unknown as { process?: { env?: { [key: string]: unknown } } }).process : undefined;
+    const env = proc?.env;
+    if (env) {
+      const v = env[key];
       if (typeof v === 'string' && v.trim() !== '') return v.trim();
     }
   } catch {
@@ -169,7 +170,7 @@ export const SUPABASE_TABLES = [
 
 export type SupabaseTableName = (typeof SUPABASE_TABLES)[number] | string;
 
-export interface SupabaseResult<T = any> {
+export interface SupabaseResult<T = unknown> {
   data: T | null;
   error: string | null;
   skipped?: boolean;
@@ -177,13 +178,13 @@ export interface SupabaseResult<T = any> {
 
 export interface SupabaseTableClient {
   /** Fetch rows scoped to a patientId (exact ===) */
-  selectByPatient<T = any>(patientId: string): Promise<SupabaseResult<T[]>>;
+  selectByPatient<T = unknown>(patientId: string): Promise<SupabaseResult<T[]>>;
   /** Generic select with patientId filter via eq */
-  select<T = any>(filters?: Record<string, any>): Promise<SupabaseResult<T[]>>;
+  select<T = unknown>(filters?: { [key: string]: unknown }): Promise<SupabaseResult<T[]>>;
   /** Insert a single record (patientId required if record is patient-scoped) */
-  insert<T = any>(record: T): Promise<SupabaseResult<T>>;
+  insert<T = unknown>(record: T): Promise<SupabaseResult<T>>;
   /** Upsert (insert or update on id conflict) */
-  upsert<T = any>(record: T): Promise<SupabaseResult<T>>;
+  upsert<T = unknown>(record: T): Promise<SupabaseResult<T>>;
   /** Delete by id (and patientId for safety where applicable) */
   delete(id: string): Promise<SupabaseResult<null>>;
 }
@@ -226,14 +227,13 @@ function toRestBaseUrl(url: string): string | null {
     // but during SSR we still return proxy path — fetch will be relative and handled by Vercel.
     // Check if we are in a real browser-like env with location
     try {
-      if (typeof process !== 'undefined' && (process as any).env?.VITEST !== 'true') {
-        // In vercel serverless, process is node but we still want proxy path for server-side fetch
-        // However server-side fetch to /api/supabase would be relative and not work;
-        // for server-side we return null and let caller fallback to direct pg via sync helper?
-        // For now, return proxy path for browser, null for pure node tests.
+      const procEnv = typeof process !== 'undefined' ? (globalThis as unknown as { process?: { env?: { VITEST?: string } } }).process?.env : undefined;
+      if (procEnv?.VITEST !== 'true') {
         return '/api/supabase';
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
     return null;
   }
   return null;
@@ -247,7 +247,7 @@ class LightweightTableClient implements SupabaseTableClient {
     return toRestBaseUrl(this.baseUrl);
   }
 
-  async selectByPatient<T = any>(patientId: string): Promise<SupabaseResult<T[]>> {
+  async selectByPatient<T = unknown>(patientId: string): Promise<SupabaseResult<T[]>> {
     if (!patientId) return { data: [], error: 'patientId required' };
     return this.select<T>({ patient_id: patientId });
   }
@@ -262,9 +262,9 @@ class LightweightTableClient implements SupabaseTableClient {
   }
 
   private toDbRecord<T>(record: T): T {
-    const src: any = record as any;
+    const src = record as unknown as { [key: string]: unknown; payload?: unknown; patientId?: unknown; id?: unknown };
     // Comprehensive camel->snake map derived from supabaseSync SNAKE_TO_CAMEL reverse
-    const camelToSnake: Record<string, string> = {
+    const camelToSnake: { [key: string]: string } = {
       patientId: 'patient_id',
       linkId: 'link_id',
       grantId: 'grant_id',
@@ -362,16 +362,16 @@ class LightweightTableClient implements SupabaseTableClient {
       plainNarration: 'plain_narration',
       approvalStatus: 'approval_status',
     };
-    const r: any = {};
+    const r: { [key: string]: unknown } = {};
     // Preserve payload as full original record for JSONB flexibility
-    if (src.payload && typeof src.payload === 'object' && src.payload.patientId) {
-      r.payload = { ...src.payload };
-    } else if (src.payload && typeof src.payload === 'object') {
-      r.payload = { ...src.payload, ...src };
-      // Ensure payload has patientId etc for hydrator preference
-      if (src.patientId && !r.payload.patientId) r.payload.patientId = src.patientId;
+    const srcPayload = src.payload as { patientId?: unknown; [key: string]: unknown } | undefined;
+    if (srcPayload && typeof srcPayload === 'object' && srcPayload.patientId) {
+      r.payload = { ...srcPayload };
+    } else if (srcPayload && typeof srcPayload === 'object') {
+      r.payload = { ...srcPayload, ...(src as object) };
+      if (src.patientId && !(r.payload as { patientId?: unknown }).patientId) (r.payload as { patientId?: unknown }).patientId = src.patientId;
     } else {
-      r.payload = { ...src };
+      r.payload = { ...(src as object) };
     }
     // Map known camel->snake to top-level columns
     for (const [camel, snake] of Object.entries(camelToSnake)) {
@@ -404,7 +404,7 @@ class LightweightTableClient implements SupabaseTableClient {
     return r as T;
   }
 
-  async select<T = any>(filters?: Record<string, any>): Promise<SupabaseResult<T[]>> {
+  async select<T = unknown>(filters?: { [key: string]: unknown }): Promise<SupabaseResult<T[]>> {
     const base = this.restBase;
     if (!base) {
       // Postgres URL or missing REST base -> stub no-op (local fallback).
@@ -419,13 +419,12 @@ class LightweightTableClient implements SupabaseTableClient {
         }
       }
       const url = `${base}/rest/v1/${this.table}${params.toString() ? `?${params.toString()}` : ''}`;
-      const headers: Record<string, string> = {
+      const headers: { [key: string]: string } = {
         apikey: this.anonKey || '',
         Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
         'Content-Type': 'application/json',
         Prefer: 'return=representation',
       };
-      // Remove empty auth headers if no anon key
       if (!this.anonKey) {
         delete headers.apikey;
         delete headers.Authorization;
@@ -437,17 +436,18 @@ class LightweightTableClient implements SupabaseTableClient {
       }
       const data = (await res.json()) as T[];
       return { data, error: null };
-    } catch (e: any) {
-      return { data: null, error: e?.message || String(e) };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { data: null, error: msg };
     }
   }
 
-  async insert<T = any>(record: T): Promise<SupabaseResult<T>> {
+  async insert<T = unknown>(record: T): Promise<SupabaseResult<T>> {
     const base = this.restBase;
     if (!base) return { data: null, error: null, skipped: true };
     try {
       const url = `${base}/rest/v1/${this.table}`;
-      const headers: Record<string, string> = {
+      const headers: { [key: string]: string } = {
         apikey: this.anonKey || '',
         Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
         'Content-Type': 'application/json',
@@ -463,20 +463,21 @@ class LightweightTableClient implements SupabaseTableClient {
         const text = await res.text().catch(() => res.statusText);
         return { data: null, error: `insert ${this.table} failed: ${res.status} ${text}` };
       }
-      const data = (await res.json()) as any;
-      const row = Array.isArray(data) ? data[0] : data;
+      const data = (await res.json()) as unknown;
+      const row = Array.isArray(data) ? (data as unknown[])[0] : data;
       return { data: (row as T) ?? (record as T), error: null };
-    } catch (e: any) {
-      return { data: null, error: e?.message || String(e) };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { data: null, error: msg };
     }
   }
 
-  async upsert<T = any>(record: T): Promise<SupabaseResult<T>> {
+  async upsert<T = unknown>(record: T): Promise<SupabaseResult<T>> {
     const base = this.restBase;
     if (!base) return { data: null, error: null, skipped: true };
     try {
       const url = `${base}/rest/v1/${this.table}`;
-      const headers: Record<string, string> = {
+      const headers: { [key: string]: string } = {
         apikey: this.anonKey || '',
         Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
         'Content-Type': 'application/json',
@@ -492,11 +493,12 @@ class LightweightTableClient implements SupabaseTableClient {
         const text = await res.text().catch(() => res.statusText);
         return { data: null, error: `upsert ${this.table} failed: ${res.status} ${text}` };
       }
-      const data = (await res.json()) as any;
-      const row = Array.isArray(data) ? data[0] : data;
+      const data = (await res.json()) as unknown;
+      const row = Array.isArray(data) ? (data as unknown[])[0] : data;
       return { data: (row as T) ?? (record as T), error: null };
-    } catch (e: any) {
-      return { data: null, error: e?.message || String(e) };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { data: null, error: msg };
     }
   }
 
@@ -505,7 +507,7 @@ class LightweightTableClient implements SupabaseTableClient {
     if (!base) return { data: null, error: null, skipped: true };
     try {
       const url = `${base}/rest/v1/${this.table}?id=eq.${encodeURIComponent(id)}`;
-      const headers: Record<string, string> = {
+      const headers: { [key: string]: string } = {
         apikey: this.anonKey || '',
         Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
         'Content-Type': 'application/json',
@@ -520,8 +522,9 @@ class LightweightTableClient implements SupabaseTableClient {
         return { data: null, error: `delete ${this.table} failed: ${res.status} ${text}` };
       }
       return { data: null, error: null };
-    } catch (e: any) {
-      return { data: null, error: e?.message || String(e) };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { data: null, error: msg };
     }
   }
 }
@@ -604,7 +607,8 @@ async function syncRecord<T extends { id?: string; reportId?: string; grantId?: 
   record: T,
   patientId: string | undefined
 ): Promise<SyncResult> {
-  const pid = (record as any)?.patientId ?? patientId;
+  const rawPid = (record as unknown as { patientId?: unknown })?.patientId;
+  const pid = typeof rawPid === 'string' ? rawPid : patientId;
   const validationError = requirePatientId(pid, `sync ${table}`);
   if (validationError) return { ok: false, error: validationError };
 
@@ -692,7 +696,7 @@ export async function fetchCalendarEventsFromSupabase(patientId: string = CANONI
 }
 
 export async function syncCareCircleMemberToSupabase(record: LinkedCareProfile): Promise<SyncResult> {
-  return syncRecord('care_circle', record as any, record.patientId);
+  return syncRecord('care_circle', record as unknown as { patientId?: string; id?: string }, record.patientId);
 }
 export async function syncCareCircleToSupabase(record: LinkedCareProfile): Promise<SyncResult> {
   return syncCareCircleMemberToSupabase(record);
@@ -702,7 +706,7 @@ export async function fetchCareCircleFromSupabase(patientId: string = CANONICAL_
 }
 
 export async function syncDoctorGrantToSupabase(record: DoctorAccessGrant): Promise<SyncResult> {
-  return syncRecord('doctor_grants', record as any, record.patientId);
+  return syncRecord('doctor_grants', record as unknown as { patientId?: string; id?: string }, record.patientId);
 }
 export async function fetchDoctorGrantsFromSupabase(patientId: string = CANONICAL_PATIENT_ID) {
   return fetchByPatient<DoctorAccessGrant>('doctor_grants', patientId);
@@ -716,7 +720,7 @@ export async function fetchDueCardsFromSupabase(patientId: string = CANONICAL_PA
 }
 
 export async function syncDangerReportToSupabase(record: DangerSignReport): Promise<SyncResult> {
-  return syncRecord('danger_reports', record as any, record.patientId);
+  return syncRecord('danger_reports', record as unknown as { patientId?: string; id?: string }, record.patientId);
 }
 export async function fetchDangerReportsFromSupabase(patientId: string = CANONICAL_PATIENT_ID) {
   return fetchByPatient<DangerSignReport>('danger_reports', patientId);
@@ -740,11 +744,11 @@ export async function fetchQuestionBankFromSupabase(patientId: string = CANONICA
 }
 
 // Generic helpers for hydration layer (ws-02-01 will use patient-isolated fetch)
-export async function fetchSupabaseTable<T = any>(table: SupabaseTableName, patientId: string): Promise<{ data: T[]; error: string | null; skipped?: boolean }> {
+export async function fetchSupabaseTable<T = unknown>(table: SupabaseTableName, patientId: string): Promise<{ data: T[]; error: string | null; skipped?: boolean }> {
   return fetchByPatient<T>(table, patientId);
 }
-export async function upsertSupabaseRecord<T = any>(table: SupabaseTableName, record: T & { patientId?: string }): Promise<SyncResult> {
-  return syncRecord(table, record as any, (record as any)?.patientId);
+export async function upsertSupabaseRecord<T = unknown>(table: SupabaseTableName, record: T & { patientId?: string }): Promise<SyncResult> {
+  return syncRecord(table, record as unknown as { patientId?: string; id?: string }, (record as unknown as { patientId?: string })?.patientId);
 }
 
 // Canonical re-exports for ergonomic barrel

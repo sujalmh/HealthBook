@@ -1,7 +1,6 @@
 /**
  * CareCanvas AI Core — Config
  * Runtime configuration with SettingsStore > Environment variables precedence.
- * Standardizes endpoints for OpenAI-compatible providers (/chat/completions & /responses).
  */
 
 import type { AIConfig, AIProvider } from './types.ts';
@@ -22,40 +21,38 @@ const SETTINGS_KEYS = [
   'VITE_AI_TIMEOUT_MS',
 ] as const;
 
-function readSettingsStoreOverrides(): Record<string, any> {
-  const overrides: Record<string, any> = {};
+function readSettingsStoreOverrides(): Record<string, unknown> {
+  const overrides: Record<string, unknown> = {};
   if (typeof localStorage === 'undefined') return overrides;
 
-  // 1. Read JSON blob settings
   for (const storeKey of SETTINGS_STORE_KEYS) {
     try {
       const raw = localStorage.getItem(storeKey);
       if (!raw) continue;
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(raw) as unknown;
       if (parsed && typeof parsed === 'object') {
-        for (const [k, v] of Object.entries(parsed)) {
+        for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
           if (v !== undefined && v !== null && v !== '' && overrides[k] === undefined) {
             overrides[k] = v;
           }
         }
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
   }
 
-  // 2. Read individual localStorage items
   for (const k of SETTINGS_KEYS) {
     try {
       const v = localStorage.getItem(k) ?? localStorage.getItem(`carecanvas_${k}`);
       if (v !== null && v !== '' && overrides[k] === undefined) {
         overrides[k] = v;
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
   }
 
   return overrides;
 }
 
-function resolveValue(overrides: Record<string, any>, env: Record<string, any>, key: string, fallback: any): any {
+function resolveValue(overrides: Record<string, unknown>, env: Record<string, unknown>, key: string, fallback: unknown): unknown {
   if (overrides[key] !== undefined && overrides[key] !== null && overrides[key] !== '') {
     return overrides[key];
   }
@@ -65,7 +62,7 @@ function resolveValue(overrides: Record<string, any>, env: Record<string, any>, 
   return fallback;
 }
 
-function parseBoolean(val: any, fallback: boolean): boolean {
+function parseBoolean(val: unknown, fallback: boolean): boolean {
   if (val === undefined || val === null || val === '') return fallback;
   if (typeof val === 'boolean') return val;
   const s = String(val).trim().toLowerCase();
@@ -74,13 +71,13 @@ function parseBoolean(val: any, fallback: boolean): boolean {
   return fallback;
 }
 
-function parseNumber(val: any, fallback: number): number {
+function parseNumber(val: unknown, fallback: number): number {
   if (val === undefined || val === null || val === '') return fallback;
   const n = Number(val);
   return Number.isFinite(n) ? n : fallback;
 }
 
-function parseProvider(val: any, fallback: AIProvider): AIProvider {
+function parseProvider(val: unknown, fallback: AIProvider): AIProvider {
   if (typeof val === 'string') {
     const p = val.trim().toLowerCase() as AIProvider;
     if (VALID_PROVIDERS.includes(p)) return p;
@@ -89,10 +86,12 @@ function parseProvider(val: any, fallback: AIProvider): AIProvider {
 }
 
 export function getAIConfig(): AIConfig {
-  const env: Record<string, any> = (() => {
+  const env: Record<string, unknown> = (() => {
     try {
-      const metaEnv = (import.meta as any)?.env ?? {};
-      const procEnv = typeof process !== 'undefined' ? (process as any).env ?? {} : {};
+      const metaEnv = (import.meta as unknown as { env?: Record<string, unknown> })?.env ?? {};
+      const procEnv = typeof globalThis !== 'undefined' && 'process' in globalThis
+        ? ((globalThis as unknown as { process?: { env?: Record<string, unknown> } }).process?.env ?? {})
+        : {};
       return { ...procEnv, ...metaEnv };
     } catch {
       return {};
@@ -162,7 +161,6 @@ export function isAIEnabled(config?: AIConfig): boolean {
   const model = getAIModel(c);
   const hasModel = typeof model === 'string' && model.trim().length > 0;
   const isProxyBase = typeof c.baseURL === 'string' && c.baseURL.trim().startsWith('/api/');
-  // For proxy bases (/api/ai, /api/ai-proxy) the server injects the key, so client doesn't need it
   const hasKeyOrProxy = hasKey || isProxyBase;
   return c.enabled === true && hasKeyOrProxy && hasBase && hasModel;
 }
@@ -176,7 +174,8 @@ export function isResponsesProvider(config?: AIConfig): boolean {
 
 function isRealBrowser(): boolean {
   if (typeof window === 'undefined' || typeof window.location === 'undefined') return false;
-  if (typeof process !== 'undefined' && (process as any).env?.VITEST === 'true') return false;
+  const proc = (globalThis as unknown as { process?: { env?: Record<string, unknown> } }).process;
+  if (proc?.env?.VITEST === 'true') return false;
   return typeof window.location.origin === 'string' && window.location.origin.startsWith('http');
 }
 
@@ -192,7 +191,6 @@ export function getAIEndpoint(config?: AIConfig): string {
     fullUrl = isResponsesProvider(c) ? `${base}/responses` : `${base}/chat/completions`;
   }
 
-  // In browser, proxy opencode.ai calls through same-origin /api/ai-proxy to avoid CORS preflight failures
   if (isRealBrowser() && fullUrl.startsWith('https://opencode.ai/')) {
     return fullUrl.replace('https://opencode.ai/', '/api/ai-proxy/');
   }
@@ -204,10 +202,11 @@ export function getAIModel(config?: AIConfig, forVision: boolean = false): strin
   const c = config ?? getAIConfig();
   if (forVision && c.visionModel && c.visionModel.trim() !== '') return c.visionModel.trim();
   if (c.model && c.model.trim() !== '') return c.model.trim();
+  // Config-driven fallback: single source of truth for default models (literal appears only here)
   return isResponsesProvider(c) ? 'muse-spark-1.2-contributor' : 'deepseek-v4-flash-vision-exp';
 }
 
-export function getAIConfigSource(): { source: 'settings' | 'env'; overrides: Record<string, any> } {
+export function getAIConfigSource(): { source: 'settings' | 'env'; overrides: Record<string, unknown> } {
   const overrides = readSettingsStoreOverrides();
   return {
     source: Object.keys(overrides).length > 0 ? 'settings' : 'env',

@@ -1,14 +1,6 @@
 /**
  * CareCanvas Search Core — Exa Client
- * Implements https://exa.ai/docs/reference/search-best-practices correctly.
- *
- * Correctness per docs:
- * - POST https://api.exa.ai/search with Authorization: Bearer <key>
- * - Parameters: query (required), type, numResults, category, includeDomains, excludeDomains, startPublishedDate etc.
- * - Contents nested under `contents` object: { text, highlights, summary, livecrawlTimeout, maxAgeHours, subpages }
- * - highlights: true for agent workflows (token efficient), text for deep research with maxCharacters
- * - livecrawl via contents.maxAgeHours: 0 (not `livecrawl: "always"` — deprecated)
- * - No deprecated params: useAutoprompt, includeUrls, excludeUrls, numSentences, highlightsPerUrl, tokensNum
+ * POST https://api.exa.ai/search with Authorization: Bearer <key>
  */
 
 import { getExaConfig, isExaEnabled, getExaEndpoint } from './exaConfig.ts';
@@ -19,9 +11,9 @@ export type ExaCategory = 'company' | 'people' | 'publication' | 'news' | 'perso
 export interface ExaContentsParams {
   text?: boolean | { maxCharacters?: number; includeHtmlTags?: boolean; verbosity?: 'compact' | 'standard' | 'full'; includeSections?: string[]; excludeSections?: string[] };
   highlights?: boolean | { query?: string; dynamic?: boolean; maxCharacters?: number };
-  summary?: boolean | { query?: string; schema?: Record<string, any> };
-  livecrawlTimeout?: number; // default 10000
-  maxAgeHours?: number; // 0 = always livecrawl, -1 = never, omit = fallback
+  summary?: boolean | { query?: string; schema?: Record<string, unknown> };
+  livecrawlTimeout?: number;
+  maxAgeHours?: number;
   subpages?: number;
   subpageTarget?: string | string[];
   extras?: { links?: number; imageLinks?: number };
@@ -30,19 +22,18 @@ export interface ExaContentsParams {
 export interface ExaSearchParams {
   query: string;
   type?: ExaSearchType;
-  numResults?: number; // 1-100 default 10
+  numResults?: number;
   category?: ExaCategory;
-  userLocation?: string; // ISO country e.g. US
+  userLocation?: string;
   includeDomains?: string[];
   excludeDomains?: string[];
-  startPublishedDate?: string; // ISO 8601
+  startPublishedDate?: string;
   endPublishedDate?: string;
   moderation?: boolean;
   additionalQueries?: string[];
   systemPrompt?: string;
-  outputSchema?: Record<string, any>; // JSON schema for output.content, depth <=2, props <=10
+  outputSchema?: Record<string, unknown>;
   contents?: ExaContentsParams;
-  // Stream? we default false; streaming needs SSE handle, not used for grounding now
 }
 
 export interface ExaSearchResult {
@@ -56,23 +47,22 @@ export interface ExaSearchResult {
   text?: string;
   highlights?: string[];
   summary?: string;
-  subpages?: any[];
+  subpages?: unknown[];
   extras?: { links?: string[]; imageLinks?: string[] };
 }
 
 export interface ExaSearchResponse {
   requestId: string;
   results: ExaSearchResult[];
-  output?: { content: string | Record<string, any>; grounding?: Array<{ field: string; citations: Array<{ url: string; title: string }>; confidence: 'low' | 'medium' | 'high' }> };
+  output?: { content: string | Record<string, unknown>; grounding?: Array<{ field: string; citations: Array<{ url: string; title: string }>; confidence: 'low' | 'medium' | 'high' }> };
   costDollars?: { total: number };
-  // For non-deep types without outputSchema, output is absent
 }
 
 export interface ExaClientOptions {
   timeoutMs?: number;
   apiKeyOverride?: string;
   signal?: AbortSignal;
-  betaHeaders?: Record<string, string>; // e.g. for dynamic highlights
+  betaHeaders?: Record<string, string>;
 }
 
 export class ExaClientError extends Error {
@@ -86,17 +76,13 @@ export class ExaClientError extends Error {
   }
 }
 
-/**
- * Validate params per docs — catches common LLM mistakes early.
- */
 function validateParams(params: ExaSearchParams): string[] {
   const errors: string[] = [];
   if (!params.query || typeof params.query !== 'string' || !params.query.trim()) errors.push('query is required (non-empty string)');
   if (params.numResults !== undefined && (params.numResults < 1 || params.numResults > 100)) errors.push('numResults must be 1-100');
   if (params.category && !['company','people','publication','news','personal site','financial report'].includes(params.category)) errors.push('category invalid');
   if (params.type && !['auto','fast','instant','deep-lite','deep','deep-reasoning'].includes(params.type)) errors.push('type invalid');
-  // Common mistakes: top-level text/highlights/summary without contents wrapper
-  const anyP = params as any;
+  const anyP = params as unknown as Record<string, unknown>;
   if (anyP.text !== undefined && !params.contents) errors.push('text must be nested under contents, not top-level — use contents: { text: ... }');
   if (anyP.highlights !== undefined && !params.contents) errors.push('highlights must be nested under contents');
   if (anyP.summary !== undefined && !params.contents) errors.push('summary must be nested under contents');
@@ -104,30 +90,29 @@ function validateParams(params: ExaSearchParams): string[] {
   if (anyP.includeUrls !== undefined || anyP.excludeUrls !== undefined) errors.push('use includeDomains/excludeDomains, not includeUrls/excludeUrls');
   if (anyP.livecrawl !== undefined) errors.push('livecrawl is deprecated — use contents.maxAgeHours: 0');
   if (anyP.numSentences !== undefined || anyP.highlightsPerUrl !== undefined || anyP.tokensNum !== undefined) errors.push('numSentences/highlightsPerUrl/tokensNum are deprecated');
-  // Category restrictions: company/people disable many filters
   if ((params.category === 'company' || params.category === 'people') && (params.excludeDomains || params.startPublishedDate || params.endPublishedDate)) {
     errors.push(`category "${params.category}" does not support excludeDomains/startPublishedDate/endPublishedDate`);
   }
-  // OutputSchema depth check (max depth 2, max props 10)
   if (params.outputSchema) {
     try {
-      const propsCount = params.outputSchema.properties ? Object.keys(params.outputSchema.properties).length : 0;
+      const propsCount = params.outputSchema.properties ? Object.keys(params.outputSchema.properties as Record<string, unknown>).length : 0;
       if (propsCount > 10) errors.push('outputSchema max total properties 10 exceeded');
-      // depth check shallow
-      for (const v of Object.values((params.outputSchema.properties || {}) as Record<string, any>)) {
-        if (v && typeof v === 'object' && v.properties && typeof v.properties === 'object') {
-          for (const vv of Object.values(v.properties as Record<string, any>)) {
-            if (vv && typeof vv === 'object' && vv.properties) errors.push('outputSchema max nesting depth 2 exceeded');
+      for (const v of Object.values((params.outputSchema.properties || {}) as Record<string, unknown>)) {
+        const rec = v as Record<string, unknown>;
+        if (rec && typeof rec === 'object' && rec.properties && typeof rec.properties === 'object') {
+          for (const vv of Object.values(rec.properties as Record<string, unknown>)) {
+            const rec2 = vv as Record<string, unknown>;
+            if (rec2 && typeof rec2 === 'object' && rec2.properties) errors.push('outputSchema max nesting depth 2 exceeded');
           }
         }
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
   }
   return errors;
 }
 
-function buildRequestBody(params: ExaSearchParams, defaults: { type: ExaSearchType; numResults: number; maxAgeHours?: number }): Record<string, any> {
-  const body: Record<string, any> = {
+function buildRequestBody(params: ExaSearchParams, defaults: { type: ExaSearchType; numResults: number; maxAgeHours?: number }): Record<string, unknown> {
+  const body: Record<string, unknown> = {
     query: params.query.trim(),
     type: params.type ?? defaults.type,
     numResults: params.numResults ?? defaults.numResults,
@@ -143,48 +128,54 @@ function buildRequestBody(params: ExaSearchParams, defaults: { type: ExaSearchTy
   if (params.systemPrompt) body.systemPrompt = params.systemPrompt;
   if (params.outputSchema) body.outputSchema = params.outputSchema;
 
-  // Contents — ensure nesting under contents, not top-level
   if (params.contents) {
-    const c: Record<string, any> = {};
+    const c: Record<string, unknown> = {};
     if (params.contents.text !== undefined) c.text = params.contents.text;
     if (params.contents.highlights !== undefined) c.highlights = params.contents.highlights;
     if (params.contents.summary !== undefined) c.summary = params.contents.summary;
     if (params.contents.livecrawlTimeout !== undefined) c.livecrawlTimeout = params.contents.livecrawlTimeout;
-    // maxAgeHours: explicit from params.contents wins, else default from config if defined, else omit for fallback
     if (params.contents.maxAgeHours !== undefined) c.maxAgeHours = params.contents.maxAgeHours;
     else if (defaults.maxAgeHours !== undefined) c.maxAgeHours = defaults.maxAgeHours;
     if (params.contents.subpages !== undefined) c.subpages = params.contents.subpages;
     if (params.contents.subpageTarget !== undefined) c.subpageTarget = params.contents.subpageTarget;
     if (params.contents.extras !== undefined) c.extras = params.contents.extras;
-    // Only include contents if at least one key
     if (Object.keys(c).length > 0) body.contents = c;
   } else if (defaults.maxAgeHours !== undefined) {
-    // If no contents but default maxAgeHours set, still need contents wrapper
     body.contents = { maxAgeHours: defaults.maxAgeHours };
-  }
-
-  // Default: if no contents at all and no text/highlights/summary needed, recommend highlights for agent workflows
-  // Callers should explicitly set contents.highlights = true for token efficiency unless they need full text
-  if (!body.contents) {
-    // Leave empty — will use Exa default (no extra content fetch, fastest). For grounding we recommend highlights.
-    // Do NOT auto-add highlights to avoid surprising token cost; let healthGrounding decide.
   }
 
   return body;
 }
 
-/**
- * Core search — follows Exa docs token efficiency guidance:
- * - Use highlights for agent workflows (multi-step, factual questions) — 10x fewer tokens
- * - Use text for deep research when full context needed, capped via maxCharacters
- * - Omit maxAgeHours for cached fallback (fast); set 0 only when freshness required
- */
+function resolveAuthHeader(config: ReturnType<typeof getExaConfig>, options?: ExaClientOptions): string {
+  if (options?.apiKeyOverride && String(options.apiKeyOverride).trim()) {
+    return `Bearer ${String(options.apiKeyOverride).trim()}`;
+  }
+  if (typeof localStorage !== 'undefined') {
+    const k = localStorage.getItem('VITE_EXA_API_KEY') || localStorage.getItem('carecanvas_VITE_EXA_API_KEY') || localStorage.getItem('EXA_API_KEY');
+    if (k && k.trim()) return `Bearer ${k.trim()}`;
+  }
+  try {
+    const metaEnv = (import.meta as unknown as { env?: Record<string, unknown> })?.env ?? {};
+    const fallback = (metaEnv.VITE_EXA_API_KEY as string) || (metaEnv.EXA_API_KEY as string);
+    if (fallback && String(fallback).trim()) return `Bearer ${String(fallback).trim()}`;
+  } catch { /* intentionally empty */ }
+  if (config.apiKey && String(config.apiKey).trim()) {
+    return `Bearer ${String(config.apiKey).trim()}`;
+  }
+  try {
+    const proc = (globalThis as unknown as { process?: { env?: Record<string, string> } }).process;
+    const procKey = proc?.env?.EXA_API_KEY || proc?.env?.VITE_EXA_API_KEY || '';
+    if (procKey && procKey.trim()) return `Bearer ${procKey.trim()}`;
+  } catch { /* intentionally empty */ }
+  return '';
+}
+
 export async function searchExa(
   params: ExaSearchParams,
   options?: ExaClientOptions
 ): Promise<ExaSearchResponse> {
   const config = getExaConfig();
-  // Allow search even if not fully enabled if caller passes apiKeyOverride or proxy base (server injects key)
   const enabled = isExaEnabled(config) || !!options?.apiKeyOverride;
   if (!enabled && !getExaEndpoint(config).startsWith('/api/')) {
     throw new ExaClientError('Exa search is disabled or not configured — set EXA_API_KEY and EXA_BASE_URL (or use /api/exa-proxy with server EXA_API_KEY)', 401);
@@ -207,36 +198,7 @@ export async function searchExa(
   const signal = options?.signal ?? controller.signal;
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  // Determine auth header: prefer override, then localStorage/browser key, then via proxy (no header needed)
-  let authHeader = '';
-  if (options?.apiKeyOverride && String(options.apiKeyOverride).trim()) {
-    authHeader = `Bearer ${String(options.apiKeyOverride).trim()}`;
-  } else if (typeof localStorage !== 'undefined') {
-    // Try VITE_EXA_API_KEY variants from localStorage (Settings)
-    const k = localStorage.getItem('VITE_EXA_API_KEY') || localStorage.getItem('carecanvas_VITE_EXA_API_KEY') || localStorage.getItem('EXA_API_KEY');
-    if (k && k.trim()) authHeader = `Bearer ${k.trim()}`;
-  }
-  // Also try import.meta.env as fallback (local dev)
-  if (!authHeader) {
-    try {
-      const metaEnv = (import.meta as any)?.env ?? {};
-      const fallback = metaEnv.VITE_EXA_API_KEY || metaEnv.EXA_API_KEY;
-      if (fallback && String(fallback).trim()) authHeader = `Bearer ${String(fallback).trim()}`;
-    } catch {}
-  }
-  // Fallback to config apiKey (covers process.env.EXA_API_KEY in node, and VITE_EXA_API_KEY via config)
-  if (!authHeader && config.apiKey && String(config.apiKey).trim()) {
-    authHeader = `Bearer ${String(config.apiKey).trim()}`;
-  }
-  // Also fallback to process.env directly for node environments where import.meta.env not populated
-  if (!authHeader) {
-    try {
-      const procKey = (typeof process !== 'undefined' ? (process as any).env?.EXA_API_KEY || (process as any).env?.VITE_EXA_API_KEY : '') as string;
-      if (procKey && procKey.trim()) authHeader = `Bearer ${procKey.trim()}`;
-    } catch {}
-  }
-  // If endpoint is proxy (/api/exa-proxy/*), server will inject key if auth missing — we still send if we have one
-  // If endpoint is direct https://api.exa.ai/search and no key, let proxy error handle it but warn
+  const authHeader = resolveAuthHeader(config, options);
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (authHeader) headers.Authorization = authHeader;
   if (options?.betaHeaders) {
@@ -251,10 +213,11 @@ export async function searchExa(
       body: JSON.stringify(body),
       signal,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     clearTimeout(timer);
-    if (err?.name === 'AbortError') throw new ExaClientError(`Exa request timed out after ${timeoutMs}ms`, 504);
-    throw new ExaClientError(err?.message || 'Exa fetch failed', undefined, String(err));
+    const e = err as { name?: string; message?: string };
+    if (e?.name === 'AbortError') throw new ExaClientError(`Exa request timed out after ${timeoutMs}ms`, 504);
+    throw new ExaClientError(e?.message || 'Exa fetch failed', undefined, String(err));
   }
   clearTimeout(timer);
 
@@ -262,9 +225,9 @@ export async function searchExa(
     const txt = await resp.text().catch(() => '');
     let msg = txt.slice(0, 800);
     try {
-      const j = JSON.parse(txt);
-      msg = j.error || j.message || msg;
-    } catch {}
+      const j = JSON.parse(txt) as Record<string, unknown>;
+      msg = (j.error as string) || (j.message as string) || msg;
+    } catch { /* intentionally empty */ }
     throw new ExaClientError(`Exa API error (${resp.status} ${resp.statusText}): ${msg}`, resp.status, txt);
   }
 
@@ -274,10 +237,6 @@ export async function searchExa(
   return json;
 }
 
-/**
- * Convenience: search with highlights (recommended for agent workflows per docs).
- * Token-efficient — returns query-relevant excerpts only.
- */
 export async function searchWithHighlights(
   query: string,
   opts?: { numResults?: number; type?: ExaSearchType; category?: ExaCategory; includeDomains?: string[]; maxAgeHours?: number; systemPrompt?: string }
@@ -296,9 +255,6 @@ export async function searchWithHighlights(
   });
 }
 
-/**
- * Convenience: deep research with full text capped.
- */
 export async function searchWithText(
   query: string,
   opts?: { numResults?: number; maxCharacters?: number; type?: ExaSearchType; verbosity?: 'compact' | 'standard' | 'full' }
@@ -313,10 +269,6 @@ export async function searchWithText(
   });
 }
 
-/**
- * Combine highlights + text strategically — highlights for quick answer, fallback to text when needed.
- * Per docs: Combine modes strategically — request both in same call.
- */
 export async function searchWithHighlightsAndText(
   query: string,
   opts?: { numResults?: number; textMaxCharacters?: number }

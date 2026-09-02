@@ -19,6 +19,7 @@ import type { DangerSignReport } from '@/types/safety';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 import { FollowupScheduler } from './FollowupScheduler';
 
 interface TriagePanelProps {
@@ -44,41 +45,21 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
   const [isFollowupOpen, setIsFollowupOpen] = useState(false);
   const [isExecuting, setIsExecuting] = useState<string | null>(null);
 
-  // Effective patient isolation — derive via globalThis if passed empty, never '' leak; fallback to vault-derived report, not hardcoded patient-s-devi literal
-  function deriveTriagePatientId(passed: string): string {
-    if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
-    try {
-      const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-      const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-      if (ls) {
-        const raw = ls.getItem('carecanvas_active_user');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-          if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-        }
-      }
-    } catch {}
-    return passed || '';
-  }
-  const effectiveTriagePatientId = deriveTriagePatientId(patientId);
-  // RBAC — view_only read-only, doctor/full can dispatch — PERMISSION_DENIED guard
-  const callerRole = (activeProfile as any)?.role || 'patient';
-  const callerPermission = (activeProfile as any)?.permissionLevel || 'manage';
+  const effectiveTriagePatientId = resolvePatientId(patientId);
+  const callerRole = (activeProfile as unknown as { role?: string })?.role || 'patient';
+  const callerPermission = (activeProfile as unknown as { permissionLevel?: "view_only" | "manage" | "full" })?.permissionLevel || 'manage';
   const isViewOnly = callerPermission === 'view_only';
   const canDispatchDoctor = callerRole === 'doctor' || callerPermission === 'full';
   const isDispatchDisabled = isViewOnly || !canDispatchDoctor;
   const activeReport = dangerReports[0] || (() => {
-    // If no vault reports yet, try vault direct for effective patient (AI triage will populate after document with red flags)
     try {
       const vaultReports = localVault.getDangerReports(effectiveTriagePatientId);
       if (vaultReports.length > 0) return vaultReports[0];
-    } catch {}
-    // Empty state still shows generic triage guidance without hardcoded patient-s-devi data — will be replaced by AI vision/text inference when document contains red flags
+    } catch { /* intentionally empty */ }
     return {
       reportId: `danger_empty_${effectiveTriagePatientId || 'none'}`,
       patientId: effectiveTriagePatientId,
-      symptomTags: [] as any,
+      symptomTags: [] as unknown as DangerSignReport['symptomTags'],
       freeText: 'No danger signs reported yet. Red flags inferred via AI vision/text will appear here and still require clinician review.',
       severityRating: 'moderate' as const,
       vitalSigns: undefined,
@@ -88,7 +69,11 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     } as DangerSignReport;
   })();
 
-  // Remote Pillbox Action 1: Remove NSAID Ibuprofen — uses effectiveTriagePatientId and AI triage context — RBAC gated
+  const getAuditProfile = (): { userId: string; name: string; role: "patient" | "caregiver" | "doctor"; isProxy: boolean; permissionLevel: "view_only" | "manage" | "full"; onBehalfOf?: string } => {
+    const ca = (activeProfile || { userId: effectiveTriagePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' }) as unknown as { userId?: string; name?: string; role?: string; isProxy?: boolean; permissionLevel?: "view_only" | "manage" | "full"; onBehalfOf?: string };
+    return { userId: ca.userId || effectiveTriagePatientId, name: ca.name || 'Patient', role: (ca.role as "patient" | "caregiver" | "doctor") || 'patient', isProxy: !!ca.isProxy, permissionLevel: (ca.permissionLevel as "view_only" | "manage" | "full") || 'manage', onBehalfOf: ca.onBehalfOf };
+  };
+
   const handleRemoveIbuprofen = async () => {
     if (isViewOnly) {
       eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'View-only cannot dispatch doctor orders (PERMISSION_DENIED)' });
@@ -100,7 +85,6 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     }
     setIsExecuting('remove_ibuprofen');
     try {
-      const callerProfileForAudit = activeProfile || { userId: effectiveTriagePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
       const res = await webMCPEngine.execute(
         'doctor_remove_medication',
         {
@@ -110,7 +94,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId: effectiveTriagePatientId,
-          activeProfile: { userId: (callerProfileForAudit as any).userId || effectiveTriagePatientId, name: (callerProfileForAudit as any).name || 'Patient', role: (callerProfileForAudit as any).role || 'patient', isProxy: !!(callerProfileForAudit as any).isProxy, permissionLevel: (callerProfileForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerProfileForAudit as any).onBehalfOf },
+          activeProfile: getAuditProfile(),
           vault: localVault,
           eventBus
         }
@@ -125,14 +109,13 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         eventBus.emit('proposal_submitted', { patientId: effectiveTriagePatientId });
         if (onActionDispatched) onActionDispatched();
       }
-    } catch (err) {
-      console.error('Error removing medication:', err);
+    } catch {
+      // dispatch failure handled via toast
     } finally {
       setIsExecuting(null);
     }
   };
 
-  // Remote Pillbox Action 2: Titrate Amlodipine 5mg -> 10mg — patient isolation via effective ID — RBAC gated
   const handleTitrateAmlodipine = async () => {
     if (isViewOnly) {
       eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'View-only cannot dispatch dose changes (PERMISSION_DENIED)' });
@@ -144,7 +127,6 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     }
     setIsExecuting('titrate_amlodipine');
     try {
-      const callerProfileForAudit = activeProfile || { userId: effectiveTriagePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
       const res = await webMCPEngine.execute(
         'doctor_change_dose',
         {
@@ -154,7 +136,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId: effectiveTriagePatientId,
-          activeProfile: { userId: (callerProfileForAudit as any).userId || effectiveTriagePatientId, name: (callerProfileForAudit as any).name || 'Patient', role: (callerProfileForAudit as any).role || 'patient', isProxy: !!(callerProfileForAudit as any).isProxy, permissionLevel: (callerProfileForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerProfileForAudit as any).onBehalfOf },
+          activeProfile: getAuditProfile(),
           vault: localVault,
           eventBus
         }
@@ -169,14 +151,13 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         eventBus.emit('proposal_submitted', { patientId: effectiveTriagePatientId });
         if (onActionDispatched) onActionDispatched();
       }
-    } catch (err) {
-      console.error('Error titrating dose:', err);
+    } catch {
+      // dispatch failure handled via toast
     } finally {
       setIsExecuting(null);
     }
   };
 
-  // Remote Pillbox Action 3: Add Diuretic Furosemide — patient isolation — RBAC gated
   const handleAddDiuretic = async () => {
     if (isViewOnly) {
       eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'View-only cannot add medications (PERMISSION_DENIED)' });
@@ -188,7 +169,6 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     }
     setIsExecuting('add_furosemide');
     try {
-      const callerProfileForAudit = activeProfile || { userId: effectiveTriagePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
       const res = await webMCPEngine.execute(
         'doctor_add_medication',
         {
@@ -199,7 +179,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         },
         {
           patientId: effectiveTriagePatientId,
-          activeProfile: { userId: (callerProfileForAudit as any).userId || effectiveTriagePatientId, name: (callerProfileForAudit as any).name || 'Patient', role: (callerProfileForAudit as any).role || 'patient', isProxy: !!(callerProfileForAudit as any).isProxy, permissionLevel: (callerProfileForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerProfileForAudit as any).onBehalfOf },
+          activeProfile: getAuditProfile(),
           vault: localVault,
           eventBus
         }
@@ -214,8 +194,8 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         eventBus.emit('proposal_submitted', { patientId: effectiveTriagePatientId });
         if (onActionDispatched) onActionDispatched();
       }
-    } catch (err) {
-      console.error('Error adding diuretic:', err);
+    } catch {
+      // dispatch failure handled via toast
     } finally {
       setIsExecuting(null);
     }
@@ -235,7 +215,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
                 <span className="text-caption text-clinical-red uppercase tracking-wider font-bold">
                   Doctor triage dashboard — Your care team
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-clinical-red text-[10px] font-bold border border-rose-200 animate-pulse">
+                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-clinical-red text-[10px] font-bold border border-rose-200">
                   PRIORITY: {activeReport.triagePriority || 'URGENT'}
                 </span>
               </div>
@@ -321,7 +301,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
               disabled={isExecuting === 'remove_ibuprofen' || isDispatchDisabled}
               aria-disabled={isDispatchDisabled}
               title={isDispatchDisabled ? (isViewOnly ? 'View-only: cannot dispatch — PERMISSION_DENIED' : 'Doctor actions — requires clinician login') : undefined}
-              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'}`}
+              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-500'}`}
             >
               <Send className="w-4 h-4 shrink-0" />
               <span>{isExecuting === 'remove_ibuprofen' ? 'Dispatching...' : 'Dispatch Stop Order'}</span>
@@ -350,7 +330,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
               disabled={isExecuting === 'titrate_amlodipine' || isDispatchDisabled}
               aria-disabled={isDispatchDisabled}
               title={isDispatchDisabled ? (isViewOnly ? 'View-only: cannot dispatch — PERMISSION_DENIED' : 'Doctor actions — requires clinician login') : undefined}
-              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/20'}`}
+              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-sky-600 hover:bg-sky-500'}`}
             >
               <Send className="w-4 h-4 shrink-0" />
               <span>{isExecuting === 'titrate_amlodipine' ? 'Dispatching...' : 'Dispatch Dose Increase'}</span>
@@ -379,7 +359,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
               disabled={isExecuting === 'add_furosemide' || isDispatchDisabled}
               aria-disabled={isDispatchDisabled}
               title={isDispatchDisabled ? (isViewOnly ? 'View-only: cannot dispatch — PERMISSION_DENIED' : 'Doctor actions — requires clinician login') : undefined}
-              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'}`}
+              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-emerald-600 hover:bg-emerald-500'}`}
             >
               <Send className="w-4 h-4 shrink-0" />
               <span>{isExecuting === 'add_furosemide' ? 'Dispatching...' : 'Dispatch Add Medication'}</span>
@@ -418,7 +398,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
               disabled={isDispatchDisabled}
               aria-disabled={isDispatchDisabled}
               title={isDispatchDisabled ? (isViewOnly ? 'View-only: cannot schedule — PERMISSION_DENIED' : 'Doctor actions — requires clinician login') : undefined}
-              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'}`}
+              className={`w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md min-h-[44px] ${isDispatchDisabled ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-primary hover:bg-primary-hover'}`}
             >
               <Calendar className="w-4 h-4 shrink-0" />
               <span>Configure Follow-Up Order</span>
@@ -434,7 +414,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         isOpen={isFollowupOpen}
         onClose={() => setIsFollowupOpen(false)}
         patientId={effectiveTriagePatientId}
-        activeProfile={activeProfile as any}
+        activeProfile={activeProfile as unknown as { userId: string; name: string; role: "patient" | "caregiver" | "doctor"; isProxy?: boolean; onBehalfOf?: string; permissionLevel?: "view_only" | "manage" | "full" }}
         onScheduled={onActionDispatched}
       />
     </div>

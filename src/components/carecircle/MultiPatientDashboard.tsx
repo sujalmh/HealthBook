@@ -39,16 +39,19 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
     try {
       const raw = localStorage.getItem('carecanvas_active_user');
       if (raw) primaryId = JSON.parse(raw)?.userId || '';
-    } catch {}
+    } catch { /* intentionally empty */ }
     if (!primaryId) return [];
     const links = localVault.getCaregiverLinks(primaryId);
     if (links.length === 0) return [];
     return links.map((link) => {
       const pid = link.patientId || link.linkId;
-      const conditions = localVault.getConditions(pid).map((c: any) => c.name || c.code || 'Condition').slice(0, 3);
-      const dueCards = localVault.getDueCards(pid).filter((c: any) => c.status !== 'completed');
+      const conditions = localVault.getConditions(pid).map((c) => (c as unknown as { name?: string; code?: string }).name || (c as unknown as { code?: string }).code || 'Condition').slice(0, 3);
+      const dueCards = localVault.getDueCards(pid).filter((c) => (c as unknown as { status?: string }).status !== 'completed');
       const pending = localVault.getPendingProposals(pid);
-      const dangers = localVault.getDangerReports(pid).filter((r: any) => r.triagePriority === 'URGENT' || r.triagePriority === 'EMERGENCY');
+      const dangers = localVault.getDangerReports(pid).filter((r) => {
+        const tri = (r as unknown as { triagePriority?: string }).triagePriority;
+        return tri === 'URGENT' || tri === 'EMERGENCY';
+      });
       const events = localVault.getCalendarEvents(pid);
       const nextEv = events.length > 0 ? events[0].title : 'No upcoming events';
       const hasDanger = dangers.length > 0;
@@ -57,7 +60,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
         id: link.linkId,
         name: link.caregiverName || link.patientName || 'Family member',
         relationship: link.relationship || 'Family',
-        age: '—' as any,
+        age: '—',
         conditions: conditions.length ? conditions : ['No conditions recorded'],
         dueLabsCount: dueCards.length,
         pendingProposalsCount: pending.length,
@@ -105,7 +108,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
             <div
               key={p.id}
               onClick={() => onSelectPatient(p.id)}
-              className={`cursor-pointer rounded-2xl border p-5 transition-all shadow-sm hover:shadow-md hover:scale-[1.01] space-y-4 ${
+              className={`cursor-pointer rounded-2xl border p-5 transition-all shadow-sm hover:shadow-md space-y-4 ${
                 isCritical
                   ? 'bg-rose-50 border-rose-200'
                   : isAttention
@@ -135,7 +138,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase ${
                     isCritical
-                      ? 'bg-rose-500/20 text-rose-700 border-rose-200 animate-pulse'
+                      ? 'bg-rose-500/20 text-rose-700 border-rose-200'
                       : isAttention
                       ? 'bg-amber-500/20 text-amber-700 border-amber-200'
                       : 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
@@ -151,7 +154,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
                   <div className="text-caption text-muted font-semibold">Danger alerts</div>
                   <div
                     className={`text-heading-md font-bold ${
-                      p.activeDangerAlertsCount > 0 ? 'text-clinical-red font-black' : 'text-muted'
+                      p.activeDangerAlertsCount > 0 ? 'text-clinical-red font-bold' : 'text-muted'
                     }`}
                   >
                     {p.activeDangerAlertsCount}
@@ -162,7 +165,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
                   <div className="text-caption text-muted font-semibold">Due labs</div>
                   <div
                     className={`text-heading-md font-bold ${
-                      p.dueLabsCount > 0 ? 'text-clinical-amber font-black' : 'text-muted'
+                      p.dueLabsCount > 0 ? 'text-clinical-amber font-bold' : 'text-muted'
                     }`}
                   >
                     {p.dueLabsCount}
@@ -173,7 +176,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
                   <div className="text-caption text-muted font-semibold">Proposals</div>
                   <div
                     className={`text-heading-md font-bold ${
-                      p.pendingProposalsCount > 0 ? 'text-clinical-blue font-black' : 'text-muted'
+                      p.pendingProposalsCount > 0 ? 'text-clinical-blue font-bold' : 'text-muted'
                     }`}
                   >
                     {p.pendingProposalsCount}

@@ -10,16 +10,19 @@ import {
   Activity,
   Layers,
   Settings,
-  Sparkles
+  Sparkles,
+  Stethoscope
 } from 'lucide-react';
 import { CaregiverSwitcher } from './CaregiverSwitcher';
 import { ScopedPermissionsModal } from './ScopedPermissionsModal';
 import { AuditLogViewer } from './AuditLogViewer';
 import { MultiPatientDashboard } from './MultiPatientDashboard';
 import { ProfileIndicator } from './ProfileIndicator';
+import { DoctorLinkModal } from '../doctor/DoctorLinkModal';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
-import type { LinkedCareProfile } from '@/types/carecircle';
+import { resolvePatientId as deriveCarePatientId } from '@/components/common/resolvePatientId';
+import type { LinkedCareProfile, DoctorPatientLink } from '@/types/carecircle';
 import type { AuditLogEntry } from '@/types/vault';
 
 interface CareCircleViewProps {
@@ -36,24 +39,6 @@ interface CareCircleViewProps {
   onProfileChange: (target: 'self' | 'mother' | 'child') => void;
 }
 
-function deriveCarePatientId(passed: string, fallback?: string): string {
-  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
-  if (fallback && fallback.trim() !== '' && fallback !== 'patient-s-devi') return fallback.trim();
-  try {
-    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-    if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-      }
-    }
-  } catch {}
-  return passed || fallback || '';
-}
-
 export const CareCircleView: React.FC<CareCircleViewProps> = ({
   patientId,
   activeProfile,
@@ -62,36 +47,51 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
   const effectivePatientId = deriveCarePatientId(patientId, activeProfile.userId);
   const [activeTab, setActiveTab] = useState<'overview' | 'multi_patient' | 'audit_log'>('overview');
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
+  const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
   const [caregiverLinks, setCaregiverLinks] = useState<LinkedCareProfile[]>([]);
+  const [doctorLinks, setDoctorLinks] = useState<DoctorPatientLink[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
 
   const loadData = () => {
     // Read-only vault loads — effectivePatientId for isolation, reflects AI-derived timeline citations
     const links = effectivePatientId ? localVault.getCaregiverLinks(effectivePatientId) : [];
     setCaregiverLinks(links);
+    const dLinks = effectivePatientId ? localVault.getDoctorLinksForPatient(effectivePatientId) : [];
+    setDoctorLinks(dLinks);
 
     const logs = effectivePatientId ? localVault.getAuditLogs(effectivePatientId) : [];
     setAuditLogs(logs);
   };
 
-  // M2 Relevant-only: CareCircle listens to caregiver_linked, doctor_grant_added/revoked, audit_logged
+  // M2 Relevant-only: CareCircle listens to caregiver_linked, doctor_grant_added/revoked, doctor_linked/revoked, audit_logged
   // proposal_status_changed / lab_* are irrelevant — spurious guard; reflects new facts via dossier audit
   useEffect(() => {
     loadData();
 
-    const guard = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId || (p.details && p.details.patientId === effectivePatientId);
-    const mk = (h: () => void) => (payload: any) => { if (guard(payload)) h(); };
+    const guard = (p: unknown) => {
+      if (!p || typeof p !== 'object') return true;
+      const obj = p as { patientId?: unknown; details?: { patientId?: unknown } };
+      if (typeof obj.patientId !== 'string') return true;
+      if (obj.patientId === effectivePatientId) return true;
+      if (obj.details && typeof obj.details.patientId === 'string' && obj.details.patientId === effectivePatientId) return true;
+      return !obj.patientId;
+    };
+    const mk = (h: () => void) => (payload: unknown) => { if (guard(payload)) h(); };
 
     const u1 = eventBus.on('caregiver_linked', mk(loadData));
     const u2 = eventBus.on('audit_logged', mk(loadData));
     const u3 = eventBus.on('doctor_grant_added', mk(loadData));
     const u4 = eventBus.on('doctor_grant_revoked', mk(loadData));
+    const u5 = eventBus.on('doctor_linked', mk(loadData));
+    const u6 = eventBus.on('doctor_revoked', mk(loadData));
 
     return () => {
       u1();
       u2();
       u3();
       u4();
+      u5();
+      u6();
     };
   }, [effectivePatientId]);
 
@@ -118,6 +118,15 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
         {/* View Mode Navigation */}
         <div className="flex items-center gap-2.5">
+          {activeProfile.role !== 'doctor' && (
+            <button
+              onClick={() => setIsDoctorModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm"
+            >
+              <Stethoscope className="w-4 h-4" />
+              <span>My Doctors ({doctorLinks.length})</span>
+            </button>
+          )}
           <button
             onClick={() => setIsPermissionsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-sm"
@@ -238,8 +247,44 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Proxy Audit Trail Snippet */}
+          {/* Right Column: Proxy Audit Trail + My Doctors */}
           <div className="lg:col-span-5 space-y-6">
+            {/* My Doctors — patient links doctors (RBAC doctor ↔ patient) */}
+            {activeProfile.role !== 'doctor' && (
+              <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-canvas-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <Stethoscope className="w-5 h-5 text-emerald-600" />
+                    <h3 className="text-heading-md text-slate-900">My Doctors</h3>
+                  </div>
+                  <button onClick={() => setIsDoctorModalOpen(true)} className="text-body-sm text-emerald-700 hover:underline font-semibold">Manage</button>
+                </div>
+                {doctorLinks.length === 0 ? (
+                  <div className="bg-canvas-muted rounded-xl p-6 text-center border border-canvas-border">
+                    <Stethoscope className="w-8 h-8 text-muted-light mx-auto mb-2" />
+                    <p className="text-body-sm font-semibold text-slate-900">No doctors linked</p>
+                    <p className="text-body-sm text-muted">Link your doctor for remote review.</p>
+                    <button onClick={() => setIsDoctorModalOpen(true)} className="inline-flex items-center gap-1.5 text-body-sm text-emerald-700 font-bold hover:underline mt-2"><UserPlus className="w-3.5 h-3.5" /> Link a doctor</button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {doctorLinks.slice(0,3).map((d) => (
+                      <div key={d.linkId} className="bg-canvas-muted rounded-xl p-3 border border-canvas-border flex items-center justify-between gap-2 text-body-sm">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm border border-emerald-200 shrink-0">{d.doctorName.charAt(0)}</div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 truncate">{d.doctorName} <span className="text-caption text-muted">• {d.specialty || 'Doctor'}</span></p>
+                            <p className="text-caption text-muted font-mono truncate">{d.doctorEmail}</p>
+                          </div>
+                        </div>
+                        <span className="text-caption px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold uppercase shrink-0">{d.permissionLevel}</span>
+                      </div>
+                    ))}
+                    {doctorLinks.length > 3 && <p className="text-caption text-muted text-center">+ {doctorLinks.length - 3} more — tap Manage to see all</p>}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-canvas-border pb-3">
                 <div className="flex items-center gap-2">
@@ -309,6 +354,12 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         onClose={() => setIsPermissionsModalOpen(false)}
         patientId={effectivePatientId}
         onPermissionsUpdated={loadData}
+      />
+      <DoctorLinkModal
+        isOpen={isDoctorModalOpen}
+        onClose={() => setIsDoctorModalOpen(false)}
+        patientId={effectivePatientId}
+        onLinksUpdated={loadData}
       />
     </div>
   );

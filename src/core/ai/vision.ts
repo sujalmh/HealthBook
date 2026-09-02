@@ -1,6 +1,5 @@
 /**
  * CareCanvas AI Core — Vision & Multimodal Message Composition
- * Builds multimodal messages for chat (image_url) and responses (input_image) endpoints.
  */
 
 import type {
@@ -81,7 +80,7 @@ export function buildResponsesInput(
   ];
 }
 
-export function isMultimodalRequestBody(body: any, provider: AIProvider): boolean {
+export function isMultimodalRequestBody(body: unknown, provider: AIProvider): boolean {
   try {
     const s = typeof body === 'string' ? body : JSON.stringify(body);
     if (provider === 'responses') {

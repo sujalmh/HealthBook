@@ -6,16 +6,8 @@
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
-import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
+import { shouldUseAI, gateIfViewOnly } from '../core/rbac/canAccess.ts';
 import type {  TimeSlot, DayOfWeek  } from '../types/pillmap.ts';
-
-function shouldUseAI(): boolean {
-  try {
-    // In VITEST, use fixture for deterministic tests (AI + Exa would require network)
-    if (typeof process !== 'undefined' && (process as any).env?.VITEST === 'true') return false;
-    return isAIEnabled(getAIConfig());
-  } catch { return false; }
-}
 
 export const addMedicationTool: WebMCPToolDefinition = {
   name: 'add_medication',
@@ -45,17 +37,8 @@ export const addMedicationTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { name: string; dose: string; frequency?: string; slot: string; days?: string[]; withFood?: boolean }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'add_medication',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'add_medication');
+    if (denied) return denied;
     const slotNormalized = params.slot?.toLowerCase() as TimeSlot;
     if (!['morning', 'noon', 'evening', 'bedtime'].includes(slotNormalized)) {
       return {

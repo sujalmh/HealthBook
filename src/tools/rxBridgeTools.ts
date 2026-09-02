@@ -8,16 +8,9 @@
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
 import { ClinicalReconciliationEngine } from '../core/knowledge/reconciliationEngine.ts';
-import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 import { callAI } from '../core/ai/client.ts';
 import type { Patient3ListDischargeDataset } from '../types/rxbridge.ts';
-
-function shouldUseAI(): boolean {
-  try {
-    if (typeof process !== 'undefined' && (process as any).env?.VITEST === 'true') return false;
-    return isAIEnabled(getAIConfig());
-  } catch { return false; }
-}
+import { shouldUseAI } from '../core/rbac/canAccess.ts';
 
 export const explainMedChangeTool: WebMCPToolDefinition = {
   name: 'explain_med_change',

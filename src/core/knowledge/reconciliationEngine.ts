@@ -21,17 +21,8 @@ import type {
   Patient3ListDischargeDataset
 } from '../../types/rxbridge.ts';
 import type { TimeSlot } from '../../types/pillmap.ts';
-import { getAIConfig, isAIEnabled } from '../ai/config.ts';
 import { callAI } from '../ai/client.ts';
-
-function isReconciliationAIEnabled(): boolean {
-  try {
-    const cfg = getAIConfig();
-    return isAIEnabled(cfg);
-  } catch {
-    return false;
-  }
-}
+import { shouldUseAI } from '../rbac/canAccess.ts';
 
 // Unified AI caller for medication reconciliation reasoning
 async function callReconciliationAI(
@@ -309,7 +300,7 @@ export class ClinicalReconciliationEngine {
     dataset: Patient3ListDischargeDataset,
     opts?: { imageDataUrl?: string; documentContext?: string }
   ): Promise<ReconciledMedChangeItem[]> {
-    if (!isReconciliationAIEnabled()) return this.reconcileThreeLists(dataset);
+    if (!shouldUseAI()) return this.reconcileThreeLists(dataset);
     // For now, perform standard reconciliation but enrich explanations via AI single request vision+text structured
     const items = this.reconcileThreeLists(dataset);
     // Enhance each item's plainExplanation and questions via AI in batch single request
@@ -435,7 +426,7 @@ export class ClinicalReconciliationEngine {
     reason?: string,
     opts?: { imageDataUrl?: string; documentContext?: string }
   ): Promise<string> {
-    if (!isReconciliationAIEnabled()) {
+    if (!shouldUseAI()) {
       return fallbackPlainLanguageExplanation(medName, generic, preDose, hospAction, postDose, statusBadge, reason);
     }
     try {
@@ -487,7 +478,7 @@ export class ClinicalReconciliationEngine {
     postDose?: string,
     opts?: { imageDataUrl?: string; documentContext?: string }
   ): Promise<string[]> {
-    if (!isReconciliationAIEnabled()) {
+    if (!shouldUseAI()) {
       return fallbackDoctorQuestions(medName, generic, statusBadge, preDose, postDose);
     }
     try {
@@ -595,7 +586,7 @@ export class ClinicalReconciliationEngine {
     items: ReconciledMedChangeItem[],
     dataset: Patient3ListDischargeDataset
   ): Promise<void> {
-    if (!isReconciliationAIEnabled()) {
+    if (!shouldUseAI()) {
       this.enrichInteractions(items, dataset);
       return;
     }

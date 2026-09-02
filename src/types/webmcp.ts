@@ -10,9 +10,9 @@ export interface WebMCPToolParameterSchema {
     type: 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object';
     description: string;
     enum?: string[] | number[];
-    items?: any;
-    properties?: Record<string, any>;
-    default?: any;
+    items?: unknown;
+    properties?: Record<string, unknown>;
+    default?: unknown;
     minimum?: number;
     maximum?: number;
   }>;
@@ -42,11 +42,11 @@ export interface WebMCPToolDefinition<TInput = any, TOutput = any> {
   approvalGateType: WebMCPApprovalGateType;
   parameters: WebMCPToolParameterSchema;
   /** Spec alias: when present, used as inputSchema object (stringified via JSON.stringify).
-   *  Internal 40 tools keep `parameters` for backward compat; adapter maps parameters → inputSchema.
+   *  Internal 42 tools keep `parameters` for backward compat; adapter maps parameters → inputSchema.
    *  Grep gate expects `inputSchema` in src/types/webmcp.ts or src/core/webmcp/
    */
   inputSchema?: WebMCPToolParameterSchema | string;
-  returns: Record<string, any>;
+  returns: Record<string, unknown>;
   execute: (params: TInput, context: WebMCPExecutionContext) => Promise<WebMCPToolResult<TOutput>>;
   uiSideEffects?: WebMCPSideEffects;
 }
@@ -60,7 +60,7 @@ export interface ModelContextTool {
   name: string;
   description: string;
   /** JSON Schema object — will be stringified internally via JSON.stringify for RegisteredTool.inputSchema */
-  inputSchema: WebMCPToolParameterSchema | Record<string, any>;
+  inputSchema: WebMCPToolParameterSchema | Record<string, unknown>;
   title?: string;
   annotations?: {
     readOnlyHint?: boolean;
@@ -68,9 +68,9 @@ export interface ModelContextTool {
     idempotentHint?: boolean;
     openWorldHint?: boolean;
     untrustedContentHint?: boolean;
-    [k: string]: any;
+    [k: string]: unknown;
   };
-  execute: (inputObject: any, options?: { signal?: AbortSignal }) => Promise<any>;
+  execute: (inputObject: unknown, options?: { signal?: AbortSignal }) => Promise<unknown>;
 }
 
 /** Options for registerTool (§4.2.3) */
@@ -98,7 +98,7 @@ export interface RegisteredTool {
   title?: string;
   annotations?: {
     readOnlyHint?: boolean;
-    [k: string]: any;
+    [k: string]: unknown;
   };
   /** Origin of the registering document — location.origin */
   origin: string;
@@ -111,9 +111,9 @@ export interface ModelContext extends EventTarget {
   registerTool(tool: ModelContextTool, options?: ModelContextRegisterToolOptions): Promise<undefined>;
   getTools(options?: ModelContextGetToolOptions): Promise<RegisteredTool[]>;
   executeTool(tool: RegisteredTool, inputObject?: object, options?: ModelContextExecuteToolOptions): Promise<string>;
-  ontoolchange: ((event: Event) => any) | null;
-  addEventListener(type: 'toolchange', listener: (event: Event) => any, options?: boolean | AddEventListenerOptions): void;
-  removeEventListener(type: 'toolchange', listener: (event: Event) => any, options?: boolean | EventListenerOptions): void;
+  ontoolchange: ((event: Event) => unknown) | null;
+  addEventListener(type: 'toolchange', listener: (event: Event) => unknown, options?: boolean | AddEventListenerOptions): void;
+  removeEventListener(type: 'toolchange', listener: (event: Event) => unknown, options?: boolean | EventListenerOptions): void;
   dispatchEvent(event: Event): boolean;
 }
 
@@ -146,18 +146,18 @@ export interface WebMCPToolResult<T = any> {
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }
 
 export interface ToolInvocationRecord {
   id: string;
   toolName: string;
-  params: any;
+  params: any; // boundary: arbitrary tool payload, validated via schema before use
   timestamp: string;
   durationMs: number;
   status: 'executed' | 'pending_approval' | 'approved' | 'rejected' | 'error' | 'success' | 'awaiting_approval' | string;
-  result?: any;
+  result?: any; // boundary: WebMCPToolResult, validated before display
   error?: string;
   caller?: {
     userId: string;
@@ -183,7 +183,7 @@ export interface PendingApprovalItem {
   type?: 'fact' | 'proposal' | 'safety' | 'reconciliation' | string;
   title?: string;
   description?: string;
-  params?: any;
+  params?: any; // boundary: arbitrary, validated before use
   data?: any;
   gateType?: WebMCPApprovalGateType;
   approvalStatus?: 'pending_approval' | 'approved' | 'rejected';

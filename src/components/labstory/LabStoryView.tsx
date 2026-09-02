@@ -29,6 +29,7 @@ import { localVault } from '@/core/vault/LocalVault';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { eventBus } from '@/core/events/eventBus';
 import { ModalPortal } from '../common/ModalPortal';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 import type { LabRecord } from '@/types/vault';
 
 interface LabStoryViewProps {
@@ -43,31 +44,13 @@ interface LabStoryViewProps {
   onBusyChange?: (busy: boolean) => void;
 }
 
-function deriveLabPatientId(passed: string, fallbackUserId?: string): string {
-  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
-  if (fallbackUserId && fallbackUserId.trim() !== '' && fallbackUserId !== 'patient-s-devi') return fallbackUserId.trim();
-  try {
-    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-    if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-      }
-    }
-  } catch {}
-  return passed || fallbackUserId || '';
-}
-
 export const LabStoryView: React.FC<LabStoryViewProps> = ({
   patientId,
   activeProfile = { userId: patientId, name: 'Patient', role: 'patient' },
   className = '',
   onBusyChange,
 }) => {
-  const effectivePatientId = deriveLabPatientId(patientId, activeProfile?.userId);
+  const effectivePatientId = resolvePatientId(patientId, activeProfile?.userId);
   const [labs, setLabs] = useState<LabRecord[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<string>('eGFR');
   const [activeZoom, setActiveZoom] = useState<ZoomWindow>('5Y');
@@ -84,32 +67,30 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   const [manualUnit, setManualUnit] = useState('mg/dL');
   const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Load labs from LocalVault for active patient — read-only, no per-view seeding (centralized seed.ts via main.tsx owns baseline).
-  // Uses effectivePatientId derived via globalThis for patient isolation never '' leak; normalized via BIOMARKER_STANDARDS ±10% borderline + critical flags and AI correlate_meds trajectory
   const loadLabs = () => {
     const patientLabs = effectivePatientId ? localVault.getLabs(effectivePatientId) : [];
     setLabs(patientLabs);
   };
 
-  // M2 Relevant-only: LabStory listens to lab_added (alias lab_extracted), fact_confirmed (alias fact_status_changed/fact_added), medication_updated (overlay)
-  // Does NOT subscribe to danger_report, calendar, due_card, proposal_* — spurious guard.
-  // Alias dispatch ensures legacy emits (lab_extracted, fact_status_changed) still trigger canonical listeners without double subscription.
   useEffect(() => {
     loadLabs();
 
-    const guard = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId;
-    const onLabAdded = (payload: any) => { if (guard(payload)) loadLabs(); };
-    const onFactConfirmed = (payload: any) => {
-      const pid = payload?.patientId || payload?.fact?.patientId;
+    const guard = (p: unknown) => {
+      const pid = (p as { patientId?: string })?.patientId;
+      return !p || !pid || pid === effectivePatientId;
+    };
+    const onLabAdded = (payload: unknown) => { if (guard(payload)) loadLabs(); };
+    const onFactConfirmed = (payload: unknown) => {
+      const rec = payload as { patientId?: string; fact?: { patientId?: string } };
+      const pid = rec?.patientId || rec?.fact?.patientId;
       if (!pid || pid === effectivePatientId) loadLabs();
     };
-    const onMedOverlay = (payload: any) => { if (guard(payload)) loadLabs(); };
+    const onMedOverlay = (payload: unknown) => { if (guard(payload)) loadLabs(); };
 
-    const u1 = eventBus.on('lab_added', onLabAdded);
-    const u2 = eventBus.on('fact_confirmed', onFactConfirmed);
-    const u3 = eventBus.on('medication_updated', onMedOverlay);
-    // alias for legacy lab_status_changed used by DoctorInbox — distinct, not in main alias group
-    const u4 = eventBus.on('lab_status_changed', onLabAdded);
+    const u1 = eventBus.on('lab_added', onLabAdded as (p: unknown) => void);
+    const u2 = eventBus.on('fact_confirmed', onFactConfirmed as (p: unknown) => void);
+    const u3 = eventBus.on('medication_updated', onMedOverlay as (p: unknown) => void);
+    const u4 = eventBus.on('lab_status_changed', onLabAdded as (p: unknown) => void);
 
     return () => {
       u1();
@@ -146,7 +127,6 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     return labs.filter((l) => (l.marker ?? '').toLowerCase() === sel);
   }, [labs, selectedMarker]);
 
-  // Overall timeline min and max timestamp
   const { minEpoch, maxEpoch } = useMemo(() => {
     if (labs.length === 0) {
       const now = Date.now();
@@ -160,7 +140,8 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     return { minEpoch: Math.min(...times), maxEpoch: Math.max(...times) };
   }, [labs]);
 
-  // Ingest Multi-Doc Drop via WebMCP extract_labs tool — uses effectivePatientId for isolation
+  const sortedLabsDesc = useMemo(() => [...labs].sort((a, b) => new Date(b.drawDate ?? 0).getTime() - new Date(a.drawDate ?? 0).getTime()), [labs]);
+
   const handleIngestDataset = async (type: 'shanti' | 'jenkins' | 'custom') => {
     setIsLoading(true);
     try {
@@ -177,11 +158,11 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         eventBus
       };
 
-      await webMCPEngine.execute('extract_labs', { documentId: docId, patientId: effectivePatientId }, context);
+      await webMCPEngine.execute('extract_labs', { documentId: docId, patientId: effectivePatientId }, context as unknown as Record<string, unknown>);
       loadLabs();
       setIsDropzoneOpen(false);
-    } catch (err: any) {
-      console.error('[LabStoryView] Error in extract_labs:', err);
+    } catch {
+      // extract_labs failure handled via toast in engine
     } finally {
       setIsLoading(false);
     }
@@ -205,14 +186,12 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     }
   };
 
-  // Submit Manual Lab Entry — delegates normalization to LocalVault.normalizeLabRecord via LOCAL_BIOMARKER_STANDARDS (all 9) ±10% + AI trajectory
   const handleManualAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const val = parseFloat(manualValue);
     if (isNaN(val)) return;
 
-    // Delegates flag/referenceRange/isBorderline/isCritical to LocalVault.normalizeLabRecord via LOCAL_BIOMARKER_STANDARDS
-    const newRecord: any = {
+    const newRecord = {
       id: `lab_${effectivePatientId}_${manualMarker.toLowerCase()}_${Date.now()}`,
       patientId: effectivePatientId,
       marker: manualMarker,
@@ -221,17 +200,17 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       normalizedValue: val,
       normalizedUnit: manualUnit,
       drawDate: new Date(manualDate).toISOString(),
-      referenceRange: undefined as any,
-      optimalRange: undefined as any,
+      referenceRange: undefined,
+      optimalRange: undefined,
       isBorderline: false,
       isCritical: false,
-      flag: undefined as any,
-    };
+      flag: undefined,
+    } as unknown as LabRecord;
 
     localVault.addLab(newRecord, {
       userId: activeProfile.userId,
       userName: activeProfile.name,
-      role: activeProfile.role as any
+      role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
     });
 
     loadLabs();
@@ -391,10 +370,10 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-canvas-border text-slate-700 font-medium">
-                {[...labs]
-                  .sort((a, b) => new Date(b.drawDate ?? 0).getTime() - new Date(a.drawDate ?? 0).getTime())
+                {sortedLabsDesc
                   .map((r) => {
-                    const docComment = (r as any).doctorComment || (r as any).doctorComments?.[0];
+                    const rec = r as unknown as { doctorComment?: { doctorName: string; comment: string }; doctorComments?: { doctorName: string; comment: string }[] };
+                    const docComment = rec.doctorComment || rec.doctorComments?.[0];
                     const isSelectedRow = (r.marker ?? '').toLowerCase() === (selectedMarker ?? '').toLowerCase();
                     const dotColor = r.isCritical
                       ? 'bg-rose-500'
@@ -434,7 +413,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
                           </span>
                         </td>
                         <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
-                          {(r.normalizedValue ?? r.value ?? '—') as any} <span className="font-normal text-muted text-caption">{r.normalizedUnit ?? r.unit ?? ''}</span>
+                          {(r.normalizedValue ?? r.value ?? '—') as string | number} <span className="font-normal text-muted text-caption">{r.normalizedUnit ?? r.unit ?? ''}</span>
                         </td>
                         <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
                           {(r.referenceRange?.low ?? 0)}–{(r.referenceRange?.high ?? 100)} {(r.normalizedUnit ?? r.unit ?? '')}

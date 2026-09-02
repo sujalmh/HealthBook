@@ -6,33 +6,23 @@ import { BoundingBoxViewer } from '@/components/common/BoundingBoxViewer';
 import { GroundedInsightsPanel } from '@/components/search/GroundedInsightsPanel';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
+import type { BoundingBox } from '@/types/vault';
 
 interface MyRecordsViewProps {
   patientId: string;
-  activeProfile?: any;
+  activeProfile?: unknown;
   onBusyChange?: (busy: boolean) => void;
 }
 
 export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyChange }) => {
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<Array<{ id: string; fileName?: string; name?: string; uploadTimestamp: string }>>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | undefined>(undefined);
   const [isBusy, setIsBusy] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [highlightBox, setHighlightBox] = useState<any>(null);
+  const [highlightBox, setHighlightBox] = useState<BoundingBox | null>(null);
 
-  const effectivePatientId =
-    patientId ||
-    (() => {
-      try {
-        const raw = localStorage.getItem('carecanvas_active_user');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          return parsed?.userId || parsed?.id || '';
-        }
-      } catch {}
-      return '';
-    })() ||
-    '';
+  const effectivePatientId = resolvePatientId(patientId);
 
   const loadDocuments = async () => {
     if (!effectivePatientId) {
@@ -41,8 +31,8 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
     }
     try {
       const docs = await localVault.getDocuments(effectivePatientId);
-      const sorted = [...docs].sort((a: any, b: any) => new Date(a.uploadTimestamp).getTime() - new Date(b.uploadTimestamp).getTime());
-      setDocuments(sorted);
+      const sorted = [...docs].sort((a, b) => new Date(a.uploadTimestamp).getTime() - new Date(b.uploadTimestamp).getTime());
+      setDocuments(sorted as typeof documents);
       if (sorted.length > 0) {
         const exists = selectedDocId ? sorted.find((d) => d.id === selectedDocId) : null;
         if (!exists) {
@@ -69,9 +59,8 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
     };
   }, [effectivePatientId]);
 
-  // R2: preview hidden by default, shown only on explicit tap (gallery or Source highlight) — Q5 shown on tap
   useEffect(() => {
-    const unsub = eventBus.onHighlightDocument((payload: any) => {
+    const unsub = eventBus.onHighlightDocument((payload) => {
       if (payload?.documentId) setSelectedDocId(payload.documentId);
       if (payload?.boundingBox) setHighlightBox(payload.boundingBox);
       setIsPreviewOpen(true);
@@ -149,8 +138,20 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
           try {
             const facts = localVault.getFactsByPatient(effectivePatientId, 'confirmed') || localVault.getPendingFacts(effectivePatientId) || [];
             if (facts.length === 0) return '';
-            const meds = facts.filter((f:any)=> String(f.category).toLowerCase().includes('med')).slice(0,3).map((f:any)=> f.name).join(', ');
-            const labs = facts.filter((f:any)=> String(f.category).toLowerCase().includes('lab')).slice(0,2).map((f:any)=> `${f.name} ${typeof f.value==='string'? f.value : JSON.stringify(f.value)}`).join('; ');
+            const meds = facts
+              .filter((f) => String(f.category).toLowerCase().includes('med'))
+              .slice(0, 3)
+              .map((f) => (f as { name?: string }).name ?? '')
+              .join(', ');
+            const labs = facts
+              .filter((f) => String(f.category).toLowerCase().includes('lab'))
+              .slice(0, 2)
+              .map((f) => {
+                const fv = (f as { name?: string; value?: unknown }).value;
+                const vs = typeof fv === 'string' ? fv : JSON.stringify(fv);
+                return `${(f as { name?: string }).name ?? ''} ${vs}`;
+              })
+              .join('; ');
             return [labs, meds ? `Meds: ${meds}` : ''].filter(Boolean).join(' | ');
           } catch { return ''; }
         })()}

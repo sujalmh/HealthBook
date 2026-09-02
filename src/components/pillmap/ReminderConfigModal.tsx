@@ -45,7 +45,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Daily Medication Reminders">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-primary to-accent border-b border-canvas-border flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-primary border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white">
               <Bell className="w-4 h-4" />
@@ -118,7 +118,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
             {/* Bedtime */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
-                <Moon className="w-4 h-4 text-indigo-500" />
+                <Moon className="w-4 h-4 text-teal-500" />
                 <span className="font-semibold text-slate-800">Bedtime Dose</span>
               </div>
               <input

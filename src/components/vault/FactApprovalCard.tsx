@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, Pill, FlaskConical, HeartPulse, ShieldAlert, Apple, CalendarDays, HelpCircle, AlertTriangle, FileText, Eye } from 'lucide-react';
 import { FactEntity } from '@/types/vault';
+import type { BoundingBox } from '@/types/vault';
 import { eventBus } from '@/core/events/eventBus';
 
 interface FactApprovalCardProps {
@@ -10,10 +11,11 @@ interface FactApprovalCardProps {
 
 export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact }) => {
   const handleHighlightSource = () => {
-    const bbox: any = (fact as any).boundingBox || (fact as any).sourceBoundingBox || null;
-    const docId = fact.sourceDocId || (fact as any).documentId || '';
-    if (bbox) eventBus.highlightSourceDocument({ documentId: docId, boundingBox: bbox } as any);
-    else eventBus.highlightSourceDocument(docId, bbox);
+    const extra = fact as unknown as FactEntity & { boundingBox?: BoundingBox; sourceBoundingBox?: BoundingBox; documentId?: string };
+    const bbox = extra.boundingBox || extra.sourceBoundingBox || null;
+    const docId = fact.sourceDocId || extra.documentId || '';
+    if (bbox) eventBus.highlightSourceDocument({ documentId: docId, boundingBox: bbox });
+    else eventBus.highlightSourceDocument(docId, bbox as unknown as BoundingBox);
   };
 
   const getCategoryMeta = (category: FactEntity['category']) => {
@@ -25,18 +27,20 @@ export const FactApprovalCard: React.FC<FactApprovalCardProps> = ({ fact }) => {
     if (cat.includes('vital')) return { label: 'Vital', short: 'VS', color: 'bg-teal-50 text-teal-700 border-teal-200', Icon: HeartPulse };
     if (cat.includes('diet')) return { label: 'Diet', short: 'DIET', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', Icon: Apple };
     if (cat.includes('follow')) return { label: 'Follow', short: 'FU', color: 'bg-blue-50 text-blue-700 border-blue-200', Icon: CalendarDays };
-    if (cat.includes('due')) return { label: 'Due', short: 'DUE', color: 'bg-indigo-50 text-indigo-700 border-indigo-200', Icon: FlaskConical };
+    if (cat.includes('due')) return { label: 'Due', short: 'DUE', color: 'bg-teal-50 text-teal-800 border-teal-200', Icon: FlaskConical };
     if (cat.includes('question')) return { label: 'Q', short: 'Q', color: 'bg-slate-50 text-slate-600 border-slate-200', Icon: HelpCircle };
     if (cat.includes('danger')) return { label: 'Safety', short: '!', color: 'bg-red-50 text-red-700 border-red-200', Icon: AlertTriangle };
     return { label: String(category || 'Clin').slice(0, 4), short: String(category || 'GEN').slice(0, 3).toUpperCase(), color: 'bg-slate-50 text-slate-600 border-slate-200', Icon: FileText };
   };
 
-  const { short, color, Icon } = getCategoryMeta(fact.category as string);
+  const { short, color, Icon } = getCategoryMeta(fact.category);
   const confidencePct = Math.round((fact.confidence ?? 0.92) * 100);
-  const displayValue = typeof fact.value === 'object' ? JSON.stringify(fact.value) : String(fact.value ?? fact.factValue ?? '');
-  const displayName = fact.name || fact.factKey || 'Clinical';
+  const extraFact = fact as unknown as { factKey?: string; factValue?: unknown; plainNarration?: string };
+  const rawVal = (fact as { value?: unknown }).value ?? extraFact.factValue ?? '';
+  const displayValue = typeof rawVal === 'object' && rawVal !== null ? JSON.stringify(rawVal) : String(rawVal);
+  const displayName = fact.name || extraFact.factKey || 'Clinical';
   const truncatedValue = displayValue.length > 40 ? displayValue.slice(0, 40) + '…' : displayValue;
-  const explanation = fact.plainExplanation || fact.plainNarration || '';
+  const explanation = fact.plainExplanation || extraFact.plainNarration || '';
   const shortExp = explanation.length > 60 ? explanation.slice(0, 60) + '…' : explanation;
 
   return (

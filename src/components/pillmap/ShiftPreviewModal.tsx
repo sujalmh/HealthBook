@@ -22,21 +22,21 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
 }) => {
   const chronotypeLabels: Record<Chronotype, string> = {
     early_bird: 'Early Lark 🌅',
-    standard: 'Standard ☀️',
-    night_owl: 'Night Owl 🌙'
+    standard: 'Standard',
+    night_owl: 'Night Owl'
   };
 
   return (
     <ModalPortal isOpen={true} onClose={onReject} ariaLabel="Intelligent Schedule Optimizer">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
         {/* Header */}
-        <div className="p-4 sm:p-6 bg-gradient-to-r from-emerald-50 via-canvas-muted to-sky-50 border-b border-canvas-border flex items-center justify-between">
+        <div className="p-4 sm:p-6 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-200 flex items-center justify-center text-emerald-500 shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-body sm:text-lg font-black tracking-tight text-slate-900">
+              <h2 className="text-body sm:text-lg font-bold tracking-tight text-slate-900">
                 Intelligent Schedule Optimizer
               </h2>
               <p className="text-caption text-emerald-600 font-semibold">
@@ -99,7 +99,7 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
                       </div>
                     </div>
                     <p className="text-body-sm text-slate-700 leading-relaxed bg-white p-2.5 rounded-xl border border-canvas-border">
-                      💡 {shift.reason}
+                      <span className="font-semibold">Why: </span>{shift.reason}
                     </p>
                   </div>
                 ))}
@@ -121,7 +121,7 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
             type="button"
             onClick={onApprove}
             disabled={suggestion.proposedShifts.length === 0}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-body-sm font-bold shadow-sm transition-all disabled:opacity-50 min-h-[44px]"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-body-sm font-bold shadow-sm transition-all disabled:opacity-50 min-h-[44px]"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Approve & Apply Schedule Shifts</span>

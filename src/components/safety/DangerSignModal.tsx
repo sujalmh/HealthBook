@@ -16,6 +16,7 @@ import type { DangerSymptomTag } from '@/types/safety';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 import { ModalPortal } from '../common/ModalPortal';
 
 interface DangerSignModalProps {
@@ -34,34 +35,17 @@ interface DangerSignModalProps {
 }
 
 const AVAILABLE_SYMPTOMS: { tag: DangerSymptomTag; label: string; urgent?: boolean }[] = [
-  { tag: 'edema_feet', label: '🦶 Swollen Feet / Ankle Edema', urgent: true },
-  { tag: 'dyspnea', label: '🫁 Shortness of Breath / Breathing Difficulty', urgent: true },
-  { tag: 'chest_pain', label: '💔 Chest Pain / Pressure', urgent: true },
-  { tag: 'dizziness', label: '💫 Severe Dizziness / Fainting' },
-  { tag: 'bleeding_bruising', label: '🩸 Unexplained Bleeding / Bruising', urgent: true },
-  { tag: 'confusion', label: '🧠 Confusion / Altered State', urgent: true },
-  { tag: 'headache', label: '🤕 Sudden Severe Headache' },
-  { tag: 'vision_changes', label: '👁️ Blurred / Vision Changes' },
-  { tag: 'shakiness', label: '🫨 Shakiness / Cold Sweats' },
-  { tag: 'sweating', label: '💦 Profuse Sweating' }
+  { tag: 'edema_feet', label: 'Swollen feet / Ankle Edema', urgent: true },
+  { tag: 'dyspnea', label: 'Shortness of breath / Breathing Difficulty', urgent: true },
+  { tag: 'chest_pain', label: 'Chest pain / Pressure', urgent: true },
+  { tag: 'dizziness', label: 'Severe dizziness / Fainting' },
+  { tag: 'bleeding_bruising', label: 'Unexplained bleeding / Bruising', urgent: true },
+  { tag: 'confusion', label: 'Confusion / Altered State', urgent: true },
+  { tag: 'headache', label: 'Sudden severe headache' },
+  { tag: 'vision_changes', label: 'Blurred / Vision Changes' },
+  { tag: 'shakiness', label: 'Shakiness / Cold Sweats' },
+  { tag: 'sweating', label: 'Profuse sweating' }
 ];
-
-function deriveModalPatientId(passed: string): string {
-  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
-  try {
-    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-    if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-      }
-    }
-  } catch {}
-  return passed || '';
-}
 
 export const DangerSignModal: React.FC<DangerSignModalProps> = ({
   isOpen,
@@ -70,9 +54,9 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
   activeProfile,
   onReportSubmitted
 }) => {
-  const effectivePatientId = deriveModalPatientId(patientId);
-  const callerRole = (activeProfile as any)?.role || 'patient';
-  const callerPermission = (activeProfile as any)?.permissionLevel || 'manage';
+  const effectivePatientId = resolvePatientId(patientId);
+  const callerRole = (activeProfile as unknown as { role?: string })?.role || 'patient';
+  const callerPermission = (activeProfile as unknown as { permissionLevel?: string })?.permissionLevel || 'manage';
   const isViewOnly = callerPermission === 'view_only';
   const [selectedTags, setSelectedTags] = useState<DangerSymptomTag[]>(['edema_feet', 'dyspnea']);
   const [freeText, setFreeText] = useState(
@@ -114,14 +98,15 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
       // Patient isolation via effectivePatientId, danger triage via AI vision+text multimodal when photo present (image_url/input_image) but clinician path still required
       // Use caller activeProfile role + onBehalfOf for correct audit performedBy — PERMISSION_DENIED already gated above for view_only
       const callerForAudit = activeProfile || { userId: effectivePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
+      const ca = callerForAudit as unknown as { userId?: string; name?: string; role?: string; isProxy?: boolean; permissionLevel?: string; onBehalfOf?: string };
       const auditProfile = {
-        userId: (callerForAudit as any).userId || effectivePatientId,
-        name: (callerForAudit as any).name || 'Patient',
-        role: (callerForAudit as any).role || 'patient',
-        isProxy: !!(callerForAudit as any).isProxy,
-        permissionLevel: (callerForAudit as any).permissionLevel || 'manage',
-        onBehalfOf: (callerForAudit as any).onBehalfOf
-      } as any;
+        userId: ca.userId || effectivePatientId,
+        name: ca.name || 'Patient',
+        role: (ca.role as "patient" | "caregiver" | "doctor") || 'patient',
+        isProxy: !!ca.isProxy,
+        permissionLevel: ca.permissionLevel || 'manage',
+        onBehalfOf: ca.onBehalfOf
+      } as unknown as { userId: string; name: string; role: "patient" | "caregiver" | "doctor"; isProxy: boolean; permissionLevel: "view_only" | "manage" | "full"; onBehalfOf?: string };
       const hasVisionPhoto = hasPhoto;
       // Use AI-derived image data URL when available — single multimodal request where model supports it; file input would provide real data URL, fallback to generated minimal data URL for AI vision path (not hardcoded placeholder)
       const visionDataUrl = hasVisionPhoto ? 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD' : undefined;
@@ -174,11 +159,11 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
           : 'Report sent to clinical triage queue.'
       });
 
-      eventBus.emit('danger_reported', { patientId: effectivePatientId, report: reportRes.data });
+      eventBus.emit('danger_reported', { patientId: effectivePatientId, report: (reportRes as unknown as { data?: { reportId?: string } }).data });
       if (onReportSubmitted) onReportSubmitted();
       onClose();
-    } catch (err) {
-      console.error('Error reporting danger sign:', err);
+    } catch {
+      // reporting failure handled via toast
     } finally {
       setIsSubmitting(false);
     }
@@ -219,7 +204,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
             </div>
             <a
               href="tel:911"
-              className="px-3 py-1 bg-white text-rose-700 rounded-xl text-xs font-black shrink-0 hover:bg-slate-100 transition-colors flex items-center gap-1"
+              className="px-3 py-1 bg-white text-rose-700 rounded-xl text-xs font-bold shrink-0 hover:bg-slate-100 transition-colors flex items-center gap-1"
             >
               <PhoneCall className="w-3.5 h-3.5" />
               <span>Call 911</span>
@@ -263,7 +248,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
               <label className="text-xs font-semibold text-slate-700">Self-Assessed Severity</label>
               <select
                 value={severityRating}
-                onChange={(e) => setSeverityRating(e.target.value as any)}
+                onChange={(e) => setSeverityRating(e.target.value as unknown as typeof severityRating)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 font-bold min-h-[44px]"
               >
                 <option value="mild">Mild (Noticeable but stable)</option>
@@ -354,7 +339,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
             disabled={isSubmitting || selectedTags.length === 0 || isViewOnly}
             aria-disabled={isViewOnly}
             title={isViewOnly ? 'View-only: cannot dispatch — Permission denied (PERMISSION_DENIED)' : undefined}
-            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-lg min-h-[44px] ${isViewOnly ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/30'}`}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-lg min-h-[44px] ${isViewOnly ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-500'}`}
           >
             <Send className="w-4 h-4" />
             <span>{isViewOnly ? 'View-only blocked (PERMISSION_DENIED)' : isSubmitting ? 'Dispatching...' : 'Dispatch Alert to Your Doctor'}</span>

@@ -43,10 +43,11 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
         setActiveDocId(payload.documentId);
         // try to resolve fileName from vault
         try {
-          const doc = localVault.getDocument(payload.documentId) || (localVault as any).documents?.get?.(payload.documentId);
+          const vaultUnknown = localVault as unknown as { documents?: Map<string, { fileName?: string; name?: string }> };
+          const doc = localVault.getDocument(payload.documentId) || vaultUnknown.documents?.get?.(payload.documentId);
           if (doc?.fileName) setActiveFileName(doc.fileName);
           else if (doc?.name) setActiveFileName(doc.name);
-        } catch {}
+        } catch { /* intentionally empty */ }
       }
       if (payload.boundingBox) {
         setActiveBox(payload.boundingBox);
@@ -82,19 +83,20 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
   const handleZoomOut = () => setZoom((z) => Math.max(z - 0.2, 0.7));
   const handleResetZoom = () => setZoom(1);
 
-  // Derive document and facts for formatted preview
-  const activeDoc: any = (() => {
+  const activeDoc = (() => {
     if (!activeDocId) return null;
     try {
-      return localVault.getDocument(activeDocId) || (localVault as any).documents?.get?.(activeDocId) || null;
+      const vaultUnknown = localVault as unknown as { documents?: Map<string, { fileName?: string; name?: string; docType?: string; type?: string; uploadTimestamp?: string; pageCount?: number }> };
+      return localVault.getDocument(activeDocId) || vaultUnknown.documents?.get?.(activeDocId) || null;
     } catch { return null; }
-  })();
+  })() as { fileName?: string; name?: string; docType?: string; type?: string; uploadTimestamp?: string; pageCount?: number } | null;
 
-  const factsForDoc: any[] = (() => {
+  const factsForDoc: Array<{ id: string; category: string; name?: string; value?: unknown; unit?: string; plainExplanation?: string; plainNarration?: string; sourceDocId?: string; documentId?: string }> = (() => {
     if (!activeDocId) return [];
     try {
-      const all = Array.from((localVault as any).facts?.values?.() || []) as any[];
-      return all.filter((f) => f.sourceDocId === activeDocId || f.documentId === activeDocId);
+      const vaultUnknown = localVault as unknown as { facts?: Map<string, { sourceDocId?: string; documentId?: string; category?: string }> };
+      const all = Array.from(vaultUnknown.facts?.values?.() || []) as Array<{ sourceDocId?: string; documentId?: string; category?: string; id: string; name?: string; value?: unknown }>;
+      return all.filter((f) => f.sourceDocId === activeDocId || f.documentId === activeDocId) as typeof factsForDoc;
     } catch { return []; }
   })();
 
@@ -246,8 +248,8 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                         <tr><th className="px-3 py-1.5 font-semibold">Name</th><th className="px-3 py-1.5 font-semibold">Value / Dose</th><th className="px-3 py-1.5 font-semibold">Notes</th></tr>
                       </thead>
                       <tbody className="divide-y divide-canvas-border bg-white">
-                        {grouped.meds.map((f: any) => {
-                          const val = typeof f.value === 'object' ? (f.value?.rawSnippet || JSON.stringify(f.value).slice(0, 60)) : String(f.value || f.factValue || '');
+                        {grouped.meds.map((f) => {
+                          const val = typeof f.value === 'object' && f.value !== null ? ((f.value as { rawSnippet?: string }).rawSnippet || JSON.stringify(f.value).slice(0, 60)) : String(f.value || (f as { factValue?: unknown }).factValue || '');
                           const isHighlighted = activeBox?.textSnippet && val.toLowerCase().includes(String(activeBox.textSnippet).toLowerCase().slice(0, 12));
                           return (
                             <tr key={f.id} className={`${isHighlighted ? 'bg-amber-50' : ''} hover:bg-canvas-muted/50`}>
@@ -276,9 +278,9 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                         <tr><th className="px-3 py-1.5 font-semibold">Marker</th><th className="px-3 py-1.5 font-semibold">Value</th><th className="px-3 py-1.5 font-semibold">Explanation</th></tr>
                       </thead>
                       <tbody className="divide-y divide-canvas-border bg-white">
-                        {grouped.labs.map((f: any) => {
-                          const val = typeof f.value === 'object' ? (f.value?.rawSnippet || JSON.stringify(f.value).slice(0, 50)) : String(f.value || f.factValue || '');
-                          const isHighlighted = activeBox?.textSnippet && (f.name.toLowerCase().includes(String(activeBox.textSnippet).toLowerCase().slice(0, 8)) || val.toLowerCase().includes(String(activeBox.textSnippet).toLowerCase().slice(0, 8)));
+                        {grouped.labs.map((f) => {
+                          const val = typeof f.value === 'object' && f.value !== null ? ((f.value as { rawSnippet?: string }).rawSnippet || JSON.stringify(f.value).slice(0, 50)) : String(f.value || (f as { factValue?: unknown }).factValue || '');
+                          const isHighlighted = activeBox?.textSnippet && ((f.name ?? '').toLowerCase().includes(String(activeBox.textSnippet).toLowerCase().slice(0, 8)) || val.toLowerCase().includes(String(activeBox.textSnippet).toLowerCase().slice(0, 8)));
                           return (
                             <tr key={f.id} className={`${isHighlighted ? 'bg-amber-50 ring-1 ring-amber-200' : ''} hover:bg-canvas-muted/50`}>
                               <td className="px-3 py-2 font-semibold text-slate-900">{f.name}</td>
@@ -300,7 +302,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                     <div className="space-y-1.5">
                       <h4 className="font-bold font-sans text-caption text-rose-700 uppercase tracking-wider border-b border-rose-100 pb-1">Allergies & Warnings</h4>
                       <ul className="space-y-1.5">
-                        {grouped.allergies.map((f: any) => (
+                        {grouped.allergies.map((f) => (
                           <li key={f.id} className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-body-sm text-rose-900 flex items-start justify-between gap-2">
                             <span><strong>{f.name}</strong> — {f.plainExplanation || String(f.value || '').slice(0, 100)}</span>
                             {activeBox?.textSnippet && String(f.name).toLowerCase().includes(String(activeBox.textSnippet).toLowerCase().slice(0,6)) && <span className="px-2 py-0.5 rounded-full bg-amber-400 text-white text-caption font-bold shrink-0">● Highlighted</span>}
@@ -313,7 +315,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                     <div className="space-y-1.5">
                       <h4 className="font-bold font-sans text-caption text-amber-700 uppercase tracking-wider border-b border-amber-100 pb-1">Conditions</h4>
                       <ul className="space-y-1.5">
-                        {grouped.conditions.map((f: any) => (
+                        {grouped.conditions.map((f) => (
                           <li key={f.id} className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-body-sm text-amber-900">{f.name} — {f.plainExplanation || String(f.value || '').slice(0, 100)}</li>
                         ))}
                       </ul>
@@ -326,7 +328,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                 <div className="space-y-1.5">
                   <h4 className="font-bold font-sans text-caption text-slate-700 uppercase tracking-wider border-b border-canvas-border pb-1">Other Extracted Details</h4>
                   <div className="space-y-1.5">
-                    {grouped.others.map((f: any) => (
+                    {grouped.others.map((f) => (
                       <div key={f.id} className="p-2.5 rounded-xl bg-canvas-muted border border-canvas-border text-body-sm">
                         <div className="flex items-center gap-2"><span className="text-caption font-bold uppercase px-2 py-0.5 rounded-full bg-white border border-canvas-border text-muted">{f.category}</span><span className="font-semibold text-slate-900 truncate">{f.name}</span></div>
                         <p className="text-muted mt-1 line-clamp-2">{f.plainExplanation || String(f.value || '').slice(0, 120)}</p>
@@ -353,7 +355,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                 height: `${Math.max(2, Math.min(100, activeBox.height * 100))}%`,
               }}
             >
-              <div className="absolute -top-6 left-0 flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-sky-500 text-white font-sans font-bold text-caption px-2 py-0.5 rounded-lg shadow-md whitespace-nowrap">
+              <div className="absolute -top-6 left-0 flex items-center gap-1.5 bg-amber-300 text-amber-950 font-sans font-bold text-caption px-2 py-0.5 rounded-lg shadow-md whitespace-nowrap">
                 <Sparkles className="w-3 h-3 text-white" />
                 <span>Verified source</span>
               </div>

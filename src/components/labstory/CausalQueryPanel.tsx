@@ -32,7 +32,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
 }) => {
   const [queryText, setQueryText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [causalResult, setCausalResult] = useState<any | null>(null);
+  const [causalResult, setCausalResult] = useState<{ biomarker?: string; trajectory?: string; causalStorySentence?: string; correlatedMedications?: string[]; recommendedDoctorQuestion?: string; timeWindow?: { start: string; end: string } } | null>(null);
   const [isQuestionAdded, setIsQuestionAdded] = useState(false);
 
   const handleExecuteQuery = async (customQuery?: string, targetMarker?: string) => {
@@ -76,8 +76,8 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
           });
         }
       }
-    } catch (err: any) {
-      console.error('[CausalQueryPanel] Error executing correlate_meds:', err);
+    } catch {
+      // correlate_meds failure silent
     } finally {
       setIsLoading(false);
     }

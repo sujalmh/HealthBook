@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { Volume2, CheckCircle, Clock, Sun, CloudSun, Sunset, Moon, Sparkles, Check } from 'lucide-react';
+import { Volume2, CheckCircle, Clock, Sun, CloudSun, Sunset, Moon, Sparkles, Check, Pill } from 'lucide-react';
 import type { PillSlotItem, TimeSlot, Chronotype } from '../../types/pillmap.ts';
 import { CHRONOTYPE_TIMES } from '../../types/pillmap.ts';
 
@@ -39,28 +39,28 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
       time: times.morning,
       icon: <Sun className="w-8 h-8 text-amber-400" />,
       mealNote: 'Take with breakfast and a full glass of water.',
-      bg: 'from-amber-50 via-slate-50 to-white'
+      bg: 'bg-amber-50/60'
     },
     noon: {
       label: 'Afternoon Dose',
       time: times.noon,
       icon: <CloudSun className="w-8 h-8 text-sky-400" />,
       mealNote: 'Take with lunch.',
-      bg: 'from-sky-50 via-slate-50 to-white'
+      bg: 'bg-sky-50/60'
     },
     evening: {
       label: 'Evening Dose',
       time: times.evening,
       icon: <Sunset className="w-8 h-8 text-orange-400" />,
       mealNote: 'Take with dinner.',
-      bg: 'from-orange-50 via-slate-50 to-white'
+      bg: 'bg-orange-50/60'
     },
     bedtime: {
       label: 'Bedtime Dose',
       time: times.bedtime,
-      icon: <Moon className="w-8 h-8 text-indigo-400" />,
+      icon: <Moon className="w-8 h-8 text-teal-500" />,
       mealNote: 'Take before sleep.',
-      bg: 'from-indigo-50 via-slate-50 to-white'
+      bg: 'bg-teal-50/60'
     }
   };
 
@@ -124,7 +124,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
 
       {/* Main Focus Card */}
       <div
-        className={`rounded-2xl border border-canvas-border bg-gradient-to-b ${meta.bg} p-4 sm:p-8 shadow-sm space-y-5 sm:space-y-6 text-slate-900`}
+        className={`rounded-2xl border border-canvas-border ${meta.bg} p-4 sm:p-8 shadow-sm space-y-5 sm:space-y-6 text-slate-900`}
       >
         {/* Header with Slot, Time & Voice Read-Aloud */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-slate-200 pb-5 sm:pb-6">
@@ -134,7 +134,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">{meta.label}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">{meta.label}</h2>
                 <span className="px-2.5 py-0.5 rounded-xl bg-sky-500/20 text-sky-700 font-mono font-bold text-xs sm:text-sm border border-sky-500/40">
                   {meta.time}
                 </span>
@@ -181,10 +181,10 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div
-                      className="w-10 h-10 rounded-2xl border border-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0"
+                      className="w-10 h-10 rounded-xl border border-white flex items-center justify-center shrink-0"
                       style={{ backgroundColor: pill.color || '#3B82F6' }}
                     >
-                      💊
+                      <Pill className="w-5 h-5 text-white" aria-hidden="true" />
                     </div>
                     <div>
                       <h4 className="text-heading-md text-slate-900">{pill.name}</h4>
@@ -196,10 +196,10 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
                           {pill.dosage}
                         </span>
                         {pill.withFood && (
-                          <span className="text-emerald-700 font-semibold">🍽️ With food</span>
+                          <span className="text-emerald-700 font-semibold">With food</span>
                         )}
                         {pill.emptyStomach && (
-                          <span className="text-amber-700 font-semibold">🥣 On empty stomach</span>
+                          <span className="text-amber-700 font-semibold">On empty stomach</span>
                         )}
                       </div>
                     </div>
@@ -219,7 +219,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
               className={`w-full py-3.5 sm:py-4 rounded-2xl font-bold text-body sm:text-heading-md flex items-center justify-center gap-2.5 sm:gap-3 transition-all shadow-sm min-h-[44px] ${
                 isTaken
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent-hover text-white hover:scale-[1.01]'
+                  : 'bg-primary hover:bg-primary-hover text-white'
               }`}
             >
               {isTaken ? (

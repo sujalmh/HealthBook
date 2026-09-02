@@ -407,7 +407,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                 fontSize="11"
                 fontWeight="bold"
               >
-                ⚡ Causal Window: {causalHighlightWindow.label || 'Drug Interaction Shift'}
+                Causal Window: {causalHighlightWindow.label || 'Drug Interaction Shift'}
               </text>
             </g>
           )}
@@ -618,7 +618,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
 
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-muted">Your value:</span>
-                    <span className="text-body font-black text-slate-900">
+                    <span className="text-body font-bold text-slate-900">
                       {p.normalizedValue} {p.normalizedUnit}
                     </span>
                   </div>

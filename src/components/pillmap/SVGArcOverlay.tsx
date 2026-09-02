@@ -22,7 +22,7 @@ export function calculateArcPath(
   const dx = endX - startX;
   const dy = endY - startY;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  
+
   if (dist < 1) {
     return `M ${startX} ${startY} L ${endX} ${endY}`;
   }
@@ -235,7 +235,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
                     fontSize="11"
                     fontWeight="bold"
                   >
-                    {isContraindicated ? '⛔' : isMajor ? '⚠️' : '⚡'}
+                    {isContraindicated ? 'X' : isMajor ? '!' : '•'}
                   </text>
                 </g>
               )}

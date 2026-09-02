@@ -79,7 +79,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
       case 'doctor_notes':
         return <Pin className="w-4 h-4 text-amber-400" />;
       case 'visits':
-        return <Calendar className="w-4 h-4 text-indigo-400" />;
+        return <Calendar className="w-4 h-4 text-teal-500" />;
       default:
         return <FileText className="w-4 h-4 text-slate-600" />;
     }
@@ -122,7 +122,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search timeline & notes..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
           />
         </div>
       </div>
@@ -177,7 +177,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
                     )}
                   </div>
 
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 font-bold border border-indigo-500/20 uppercase tracking-wider self-start sm:self-auto">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-800 font-bold border border-teal-500/20 uppercase tracking-wider self-start sm:self-auto">
                     {item.category.replace(/_/g, ' ')}
                   </span>
                 </div>

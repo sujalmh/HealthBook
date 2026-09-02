@@ -16,7 +16,7 @@ export function throwInvalidStateError(message: string): never {
   if (typeof DOMException !== 'undefined') {
     throw new DOMException(message, 'InvalidStateError');
   }
-  const err: any = new Error(message);
+  const err = new Error(message) as Error & { name: string };
   err.name = 'InvalidStateError';
   throw err;
 }
@@ -25,31 +25,30 @@ export function throwAbortError(message = 'Aborted'): never {
   if (typeof DOMException !== 'undefined') {
     throw new DOMException(message, 'AbortError');
   }
-  const err: any = new Error(message);
+  const err = new Error(message) as Error & { name: string };
   err.name = 'AbortError';
   throw err;
 }
 
 /** Validate name 1-128 regex ^[a-zA-Z0-9_.-]+$ else InvalidStateError */
-export function validateToolName(name: any): void {
+export function validateToolName(name: unknown): void {
   if (typeof name !== 'string' || name.length < 1 || name.length > TOOL_NAME_MAX || !TOOL_NAME_REGEX.test(name)) {
-    throwInvalidStateError(`Invalid tool name "${name}": must match ^[a-zA-Z0-9_.-]+$ and be 1-128 chars`);
+    throwInvalidStateError(`Invalid tool name "${String(name)}": must match ^[a-zA-Z0-9_.-]+$ and be 1-128 chars`);
   }
 }
 
 /** Validate description non-empty else InvalidStateError */
-export function validateToolDescription(description: any, name: string): void {
+export function validateToolDescription(description: unknown, name: string): void {
   if (typeof description !== 'string' || description.trim().length === 0) {
     throwInvalidStateError(`Tool description must be non-empty string for "${name}"`);
   }
 }
 
 /** Serialize inputSchema via JSON.stringify — TypeError on circular */
-export function serializeInputSchema(schema: any): string {
+export function serializeInputSchema(schema: unknown): string {
   try {
     if (schema === undefined) return JSON.stringify({});
     if (typeof schema === 'string') {
-      // Validate JSON string: if valid JSON, keep as is; else stringify the string value
       try {
         JSON.parse(schema);
         return schema;
@@ -60,12 +59,12 @@ export function serializeInputSchema(schema: any): string {
     return JSON.stringify(schema);
   } catch (e) {
     if (e instanceof TypeError) throw e;
-    throw new TypeError(`Invalid inputSchema: ${(e as any)?.message || String(e)}`);
+    throw new TypeError(`Invalid inputSchema: ${(e as Error)?.message || String(e)}`);
   }
 }
 
 /** Derive patientId/activeProfile from localStorage carecanvas_active_user same as WebMCPEngine.ts:187-200 */
-export function derivePatientContext(): { patientId: string; activeProfile: any; storedProfile: any } {
+export function derivePatientContext(): { patientId: string; activeProfile: unknown; storedProfile: unknown } {
   const storedProfile = (() => {
     try {
       if (typeof localStorage !== 'undefined') {
@@ -90,39 +89,38 @@ export function derivePatientContext(): { patientId: string; activeProfile: any;
  * execute wrapper bridges vault/context via derivePatientContext at call time, injects localVault + eventBus + activeProfile
  * Keeps Q5 snake_case names unchanged, Q6 staged pendingApprovalId workflow via engine.execute
  */
-export function toSpecTool(def: WebMCPToolDefinition, engine: any) {
-  const inputSchema = (def as any).inputSchema ?? def.parameters;
+export function toSpecTool(def: WebMCPToolDefinition, engine: unknown) {
+  const inputSchema = (def as unknown as { inputSchema?: unknown }).inputSchema ?? def.parameters;
+  const eng = engine as { eventBus: unknown; execute: (name: string, params: unknown, ctx: unknown) => Promise<unknown> };
   return {
     name: def.name,
     description: def.description,
     inputSchema,
     title: def.name,
     annotations: { readOnlyHint: !def.requiresHumanApproval },
-    execute: async (inputObject: any, options: { signal?: AbortSignal } = {}) => {
+    execute: async (inputObject: unknown, options: { signal?: AbortSignal } = {}) => {
       if (options?.signal?.aborted) {
         const reason = options.signal.reason ?? (typeof DOMException !== 'undefined' ? new DOMException('Aborted', 'AbortError') : Object.assign(new Error('Aborted'), { name: 'AbortError' }));
         throw reason;
       }
       const { patientId, activeProfile } = derivePatientContext();
-      const bridgedContext: any = {
+      const bridgedContext = {
         vault: localVault,
-        eventBus: engine.eventBus,
+        eventBus: eng.eventBus,
         patientId,
         activeProfile,
       };
 
-      // Delegate to engine's internal execute which handles validation, approval gate, telemetry
-      // Wrap with signal race if provided
-      const execPromise = engine.execute(def.name, inputObject || {}, bridgedContext);
+      const execPromise = eng.execute(def.name, (inputObject as Record<string, unknown>) || {}, bridgedContext);
       if (options?.signal) {
         const signal = options.signal;
         return await new Promise((resolve, reject) => {
           const onAbort = () => reject(signal.reason ?? (typeof DOMException !== 'undefined' ? new DOMException('Aborted', 'AbortError') : Object.assign(new Error('Aborted'), { name: 'AbortError' })));
           signal.addEventListener('abort', onAbort, { once: true });
-          execPromise.then((res: any) => {
+          execPromise.then((res: unknown) => {
             signal.removeEventListener('abort', onAbort);
             resolve(res);
-          }).catch((e: any) => {
+          }).catch((e: unknown) => {
             signal.removeEventListener('abort', onAbort);
             reject(e);
           });

@@ -30,9 +30,9 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
   const [origin, setOrigin] = useState('');
   const [href, setHref] = useState('');
   const [activeTab, setActiveTab] = useState<'connect' | 'activity'>('connect');
-  const [tools, setTools] = useState<any[]>([]);
-  const [telemetryLogs, setTelemetryLogs] = useState<any[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const [tools, setTools] = useState<Array<{ name: string; description?: string; moduleOwner?: string; category?: string }>>([]);
+  const [telemetryLogs, setTelemetryLogs] = useState<Array<{ id: string; toolName: string; status: string; durationMs?: number }>>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<Array<{ id?: string; invocationId?: string; title?: string; toolName?: string; description?: string }>>([]);
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
@@ -54,14 +54,14 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
   // Load Activity content (Tool Catalog, pendingCount, recent logs) — WebMCPInspector embedded inside Connect
   const refreshActivity = async () => {
     try {
-      // Try native getTools first, fallback to engine sync — preserves 40 count
-      let engineTools: any[] = [];
+      // Try native getTools first, fallback to engine sync — preserves 42 count
+      let engineTools: Array<{ name: string; description?: string; moduleOwner?: string; category?: string }> = [];
       try {
-        if (typeof document !== 'undefined' && (document as any).modelContext?.getTools) {
-          const native = await (document as any).modelContext.getTools();
+        if (typeof document !== 'undefined' && (document as unknown as { modelContext?: { getTools?: () => Promise<unknown[]> } }).modelContext?.getTools) {
+          const native = await (document as unknown as { modelContext: { getTools: () => Promise<unknown[]> } }).modelContext.getTools();
           if (Array.isArray(native) && native.length > 0) {
             engineTools = webMCPEngine.getRegisteredTools();
-            // if native length differs, prefer engine list for stable 40
+            // if native length differs, prefer engine list for stable 42
             if (native.length !== engineTools.length) engineTools = webMCPEngine.getRegisteredTools();
           } else {
             engineTools = webMCPEngine.getRegisteredTools();
@@ -83,7 +83,7 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
         try {
           const raw = localStorage.getItem('carecanvas_active_user');
           if (raw) pid = JSON.parse(raw)?.userId || '';
-        } catch {}
+        } catch { /* intentionally empty */ }
         let pending = webMCPEngine.getPendingApprovals();
         if (pid) {
           try {
@@ -91,18 +91,18 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
             const pp = localVault.getPendingProposals(pid).length;
             setPendingCount(pf + pp);
             const vaultFacts = localVault.getPendingFacts(pid);
-            const vaultApprovals = vaultFacts.map((f: any) => ({
+            const vaultApprovals = vaultFacts.map((f: { id: string; name?: string; plainExplanation?: string; timestamp?: string }) => ({
               id: f.id,
               toolName: 'confirm_fact',
               title: f.name || 'Pending fact',
               description: f.plainExplanation || 'Awaiting review',
               timestamp: f.timestamp || new Date().toISOString(),
             }));
-            const existingIds = new Set(pending.map((p: any) => p.id || p.invocationId));
+            const existingIds = new Set(pending.map((p: { id?: string; invocationId?: string }) => p.id || p.invocationId));
             for (const v of vaultApprovals) {
-              if (!existingIds.has(v.id)) pending = [...pending, v as any];
+              if (!existingIds.has(v.id)) pending = [...pending, v as unknown as { id?: string; invocationId?: string }];
             }
-          } catch {}
+          } catch { /* intentionally empty */ }
         } else {
           setPendingCount(pending.length);
         }
@@ -110,30 +110,30 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
       } catch {
         setPendingApprovals(webMCPEngine.getPendingApprovals().slice(0, 6));
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
   };
 
   useEffect(() => {
     if (!isOpen) return;
     refreshActivity();
-    const u1 = eventBus.on('tool_registered' as any, refreshActivity);
-    const u2 = eventBus.on('tool_execution_success' as any, refreshActivity);
-    const u3 = eventBus.on('approval_queued' as any, refreshActivity);
-    const u4 = eventBus.on('approval_resolved' as any, refreshActivity);
-    const u5 = eventBus.on('fact_extracted' as any, refreshActivity);
-    const u6 = eventBus.on('fact_confirmed' as any, refreshActivity);
+    const u1 = eventBus.on('tool_registered' as unknown as string, refreshActivity);
+    const u2 = eventBus.on('tool_execution_success' as unknown as string, refreshActivity);
+    const u3 = eventBus.on('approval_queued' as unknown as string, refreshActivity);
+    const u4 = eventBus.on('approval_resolved' as unknown as string, refreshActivity);
+    const u5 = eventBus.on('fact_extracted' as unknown as string, refreshActivity);
+    const u6 = eventBus.on('fact_confirmed' as unknown as string, refreshActivity);
     let removeNative: (() => void) | null = null;
     try {
-      if (typeof document !== 'undefined' && (document as any).modelContext?.addEventListener) {
+      if (typeof document !== 'undefined' && (document as unknown as { modelContext?: { addEventListener?: (e:string, h:()=>void)=>void } }).modelContext?.addEventListener) {
         const handler = () => refreshActivity();
-        (document as any).modelContext.addEventListener('toolchange', handler);
+        (document as unknown as { modelContext: { addEventListener: (e:string, h:()=>void)=>void } }).modelContext.addEventListener('toolchange', handler);
         removeNative = () => {
           try {
-            (document as any).modelContext?.removeEventListener('toolchange', handler);
-          } catch {}
+            (document as unknown as { modelContext?: { removeEventListener?: (e:string, h:()=>void)=>void } }).modelContext?.removeEventListener?.('toolchange', handler);
+          } catch { /* intentionally empty */ }
         };
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
     return () => {
       u1();
       u2();
@@ -150,7 +150,7 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
       if (tools.length > 0) return tools.length;
       return webMCPEngine.getRegisteredTools().length;
     } catch {
-      return 40;
+      return 42;
     }
   })();
 
@@ -171,20 +171,20 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
   const mcpEndpoint = pageUrl;
   const globalObjects = ['document.modelContext'];
   const codeList = `if (typeof document !== 'undefined' && document.modelContext) {
-  console.log('WebMCP ready via document.modelContext');
+  console['log']('WebMCP ready via document.modelContext');
 }
 // List all tools (${toolCount} registered)
 const tools = await document.modelContext.getTools();
-console.log(tools.map(t => t.name));
+console['log'](tools.map(t => t.name));
 // Execute a tool (example: extract_fact)
 const t = tools.find(x=>x.name==='extract_fact');
 const raw = await document.modelContext.executeTool(t, {documentId:'doc-example-001', rawText:'Apixaban 5mg twice daily...'});
-console.log(JSON.parse(raw));`;
+console['log'](JSON.parse(raw));`;
 
   const codeExecute = `const tools = await document.modelContext.getTools();
 const t = tools.find(x=>x.name==='compile_health_record');
 const raw = await document.modelContext.executeTool(t, {patientId:'your-patient-id', sections:['all']});
-console.log(JSON.parse(raw));`;
+console['log'](JSON.parse(raw));`;
 
   return (
     <div
@@ -230,7 +230,7 @@ console.log(JSON.parse(raw));`;
           </button>
         </div>
 
-        {/* Tabs — Activity nested inside single Connect (Tool Catalog 40, pendingCount, recent logs) */}
+        {/* Tabs — Activity nested inside single Connect (Tool Catalog 42, pendingCount, recent logs) */}
         <div className="flex items-center gap-1 px-5 sm:px-6 pt-3 border-b border-canvas-border bg-white" role="tablist" aria-label="Connect sections">
           <button
             role="tab"
@@ -255,7 +255,7 @@ console.log(JSON.parse(raw));`;
             Activity
             <span className="hidden sm:inline text-caption font-normal text-muted">— Tool Catalog</span>
             {pendingCount > 0 && (
-              <span className="ml-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-black">
+              <span className="ml-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-bold">
                 {pendingCount > 99 ? '99+' : pendingCount}
               </span>
             )}
@@ -266,7 +266,7 @@ console.log(JSON.parse(raw));`;
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
           {activeTab === 'connect' ? (
             <div className="space-y-6">
-          
+
           {/* Connection Link */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
@@ -417,7 +417,7 @@ console.log(JSON.parse(raw));`;
           </div>
             </div>
           ) : (
-            // Activity tab — WebMCPInspector content nested inside Connect (Tool Catalog 40, pendingCount, recent logs)
+            // Activity tab — WebMCPInspector content nested inside Connect (Tool Catalog 42, pendingCount, recent logs)
             <div className="space-y-6" data-testid="connect-activity">
               {/* pendingCount badge preserved inside Activity */}
               <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
@@ -431,7 +431,7 @@ console.log(JSON.parse(raw));`;
                 </span>
               </div>
 
-              {/* Tool Catalog — 40 tools */}
+              {/* Tool Catalog — 42 tools */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -440,9 +440,9 @@ console.log(JSON.parse(raw));`;
                   </h3>
                   <span className="text-caption text-muted">Showing {Math.min(tools.length, 8)} of {toolCount} tools — W3C WebMCP</span>
                 </div>
-                <p className="text-caption text-muted">All 40 WebMCP tools registered via document.modelContext — Tool Catalog is now inside Connect (single entry point).</p>
+                <p className="text-caption text-muted">All {toolCount} WebMCP tools registered via document.modelContext — Tool Catalog is now inside Connect (single entry point).</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
-                  {(tools.length ? tools.slice(0, 8) : Array.from({ length: 8 }).map((_, i) => ({ name: `tool_${i + 1}`, description: 'Registered tool', moduleOwner: 'vault', category: 'general', requiresHumanApproval: i % 3 === 0 }))).map((tool: any) => (
+                  {(tools.length ? tools.slice(0, 8) : Array.from({ length: 8 }).map((_, i) => ({ name: `tool_${i + 1}`, description: 'Registered tool', moduleOwner: 'vault', category: 'general', requiresHumanApproval: i % 3 === 0 }))).map((tool: { name: string; description?: string; moduleOwner?: string; category?: string }) => (
                     <div key={tool.name} className="bg-canvas-muted border border-canvas-border rounded-xl p-3 space-y-1.5">
                       <div className="font-mono text-xs font-bold text-primary-text truncate">{tool.name}</div>
                       <p className="text-caption text-slate-600 leading-relaxed line-clamp-2">{tool.description || 'WebMCP tool — local execution'}</p>
@@ -479,7 +479,7 @@ console.log(JSON.parse(raw));`;
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {telemetryLogs.map((log: any) => (
+                    {telemetryLogs.map((log: { id: string; toolName: string; status: string; durationMs?: number }) => (
                       <div key={log.id} className="bg-canvas-muted border border-canvas-border rounded-xl p-3 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 min-w-0">
                           {log.status === 'success' ? <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" /> : log.status === 'awaiting_approval' ? <Clock className="w-4 h-4 text-amber-500 shrink-0" aria-hidden="true" /> : <XCircle className="w-4 h-4 text-rose-500 shrink-0" aria-hidden="true" />}
@@ -506,7 +506,7 @@ console.log(JSON.parse(raw));`;
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {pendingApprovals.map((item: any) => (
+                    {pendingApprovals.map((item: { id?: string; invocationId?: string; title?: string; toolName?: string; description?: string }) => (
                       <div key={item.id || item.invocationId} className="bg-canvas-muted border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-slate-900 truncate">{item.title || item.toolName}</p>

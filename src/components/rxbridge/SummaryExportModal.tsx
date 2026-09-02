@@ -59,11 +59,11 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
         <div className="border-b border-slate-200 pb-4 space-y-3 print:hidden">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-500/20 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shrink-0">
                 <FileCheck2 className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-base font-black text-slate-900 truncate">1-Page Patient Discharge Home Summary</h3>
+                <h3 className="text-base font-bold text-slate-900 truncate">1-Page Patient Discharge Home Summary</h3>
                 <p className="text-xs text-slate-600 line-clamp-1">Printable & downloadable guide for patient, caregiver, and pharmacy</p>
               </div>
             </div>
@@ -84,7 +84,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
               <Globe className="w-3.5 h-3.5 text-slate-600 mr-1.5 shrink-0" />
               <select
                 value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value as any)}
+                onChange={(e) => setSelectedLanguage(e.target.value as unknown as typeof selectedLanguage)}
                 className="bg-transparent text-slate-800 font-bold focus:outline-none cursor-pointer text-xs"
               >
                 <option value="en">English (EN)</option>
@@ -105,7 +105,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
             {/* Download JSON Button */}
             <button
               onClick={handleDownloadJSON}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md shadow-sky-600/30 transition-colors min-h-[40px]"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-colors min-h-[40px]"
             >
               {downloadSuccess ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
               <span>{downloadSuccess ? 'Downloaded!' : 'Export JSON'}</span>
@@ -119,7 +119,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
           <div className="border-b-2 border-slate-200 print:border-black pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-black text-xl text-slate-900 print:text-black tracking-tight">CareCanvas</span>
+                <span className="font-bold text-xl text-slate-900 print:text-black tracking-tight">CareCanvas</span>
                 <span className="text-caption px-2 py-0.5 rounded bg-sky-50 text-clinical-blue print:text-black print:border-black font-bold uppercase border border-sky-200">
                   Discharge handoff document
                 </span>
@@ -136,7 +136,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
 
           {/* Section 1: What Changed (High Priority Box) */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-black uppercase tracking-wider text-purple-400 print:text-black flex items-center gap-1.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400 print:text-black flex items-center gap-1.5">
               <Sparkles className="w-4 h-4" />
               <span>1. What Changed (Discharge Transitions & Discontinued Medications)</span>
             </h4>
@@ -157,7 +157,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
                     }`}
                   >
                     <div className="flex items-center justify-between font-bold">
-                      <span className="text-slate-900 print:text-black font-black">{item.medName}</span>
+                      <span className="text-slate-900 print:text-black font-bold">{item.medName}</span>
                       <span
                         className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full border ${
                           isStopped
@@ -181,7 +181,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
 
           {/* Section 2: Active Daily Medication Schedule */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-black uppercase tracking-wider text-sky-400 print:text-black flex items-center gap-1.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-sky-400 print:text-black flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
               <span>2. Active Daily Medication Schedule</span>
             </h4>
@@ -192,7 +192,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
                   key={sIdx}
                   className="p-3.5 rounded-xl bg-canvas-card border border-canvas-border print:bg-gray-100 print:border-gray-300 space-y-2 text-body-sm"
                 >
-                  <div className="font-extrabold uppercase text-caption text-clinical-blue print:text-black border-b border-canvas-border print:border-gray-300 pb-1.5 flex items-center justify-between">
+                  <div className="font-bold uppercase text-caption text-clinical-blue print:text-black border-b border-canvas-border print:border-gray-300 pb-1.5 flex items-center justify-between">
                     <span>{slotItem.slot}</span>
                     <span className="text-caption text-muted print:text-gray-600 font-mono">
                       {slotItem.timeString.split(' ')[0]}
@@ -219,7 +219,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Food Rules */}
             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 print:bg-amber-50 print:border-amber-200 text-xs text-amber-700 print:text-black space-y-2">
-              <h4 className="font-black uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-amber-400 print:text-black">
+              <h4 className="font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-amber-400 print:text-black">
                 <Utensils className="w-3.5 h-3.5" />
                 <span>3. Food & Supplement Guidelines</span>
               </h4>
@@ -232,7 +232,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
 
             {/* Red Flag Warning Signs */}
             <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 print:bg-rose-50 print:border-rose-200 text-xs text-rose-700 print:text-black space-y-2">
-              <h4 className="font-black uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-rose-400 print:text-black">
+              <h4 className="font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-rose-400 print:text-black">
                 <AlertOctagon className="w-3.5 h-3.5" />
                 <span>4. Red Flag Symptoms (When to Seek Urgent Care)</span>
               </h4>
@@ -247,7 +247,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
           {/* Section 5: Doctor Follow-Up Questions */}
           {summary.doctorQuestionBankItems && summary.doctorQuestionBankItems.length > 0 && (
             <div className="p-4 rounded-2xl bg-white border border-slate-200 print:bg-gray-100 print:border-gray-300 text-xs space-y-2">
-              <h4 className="font-black uppercase tracking-wider text-[11px] text-slate-700 print:text-black">
+              <h4 className="font-bold uppercase tracking-wider text-[11px] text-slate-700 print:text-black">
                 5. Questions to Ask Your Doctor at First Post-Discharge Visit:
               </h4>
               <ul className="space-y-1 text-[11px] text-slate-600 print:text-gray-800 list-decimal list-inside leading-tight">

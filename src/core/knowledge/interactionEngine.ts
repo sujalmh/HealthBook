@@ -24,20 +24,10 @@ import type {
   TimeSlot,
   DayOfWeek
 } from '../../types/pillmap.ts';
-import { getAIConfig, isAIEnabled } from '../ai/config.ts';
 import { callAI } from '../ai/client.ts';
 import { isHealthGroundingAvailable } from '../search/healthGrounding.ts';
 import { searchExa } from '../search/exaClient.ts';
-
-function isKnowledgeAIEnabled(): boolean {
-  try {
-    if (typeof process !== 'undefined' && (process as any).env?.VITEST === 'true') return false;
-    const cfg = getAIConfig();
-    return isAIEnabled(cfg);
-  } catch {
-    return false;
-  }
-}
+import { shouldUseAI } from '../rbac/canAccess.ts';
 
 // Unified AI caller for knowledge reasoning via central AI client
 async function callKnowledgeAI(
@@ -89,7 +79,7 @@ export class ClinicalInteractionEngine {
 
   /** AI-enhanced generic resolution (async) — reads meds array via AI when enabled */
   public static async resolveGenericNameAI(drugName: string): Promise<string> {
-    if (!isKnowledgeAIEnabled()) return this.resolveGenericName(drugName);
+    if (!shouldUseAI()) return this.resolveGenericName(drugName);
     try {
       const schema = {
         type: 'object',
@@ -158,7 +148,7 @@ export class ClinicalInteractionEngine {
 
   /** AI-enhanced drug-drug interaction detection — AI search grounded via Exa for accuracy */
   public static async checkDrugInteractionsAI(medNames: string[]): Promise<InteractionArc[]> {
-    if (!isKnowledgeAIEnabled()) return this.checkDrugInteractions(medNames);
+    if (!shouldUseAI()) return this.checkDrugInteractions(medNames);
     try {
       // Pipeline: AI search first for authoritative interaction evidence (no hardcoded domains) — skip in VITEST for determinism
       let exaContext = '';
@@ -339,7 +329,7 @@ export class ClinicalInteractionEngine {
       alcoholFrequency?: string;
     }
   ): Promise<DietBadge[]> {
-    if (!isKnowledgeAIEnabled()) return this.checkDietInteractions(medNames, patientDiet);
+    if (!shouldUseAI()) return this.checkDietInteractions(medNames, patientDiet);
     try {
       let exaContext = '';
       const isVitest = typeof process !== 'undefined' && (process as any).env?.VITEST === 'true';
@@ -484,7 +474,7 @@ export class ClinicalInteractionEngine {
 
   /** AI-enhanced duplicate ingredient detection — reads meds array via AI with confidence */
   public static async checkDuplicateIngredientsAI(meds: { name: string; dose?: string }[]): Promise<DuplicateIngredientAlert[]> {
-    if (!isKnowledgeAIEnabled()) return this.checkDuplicateIngredients(meds);
+    if (!shouldUseAI()) return this.checkDuplicateIngredients(meds);
     try {
       const schema = {
         type: 'object',
@@ -601,7 +591,7 @@ export class ClinicalInteractionEngine {
     meds: { id: string; name: string; currentSlot: TimeSlot }[],
     chronotype: 'early_bird' | 'night_owl' | 'standard' = 'standard'
   ): Promise<ScheduleSuggestionResult> {
-    if (!isKnowledgeAIEnabled()) return this.suggestSchedule(meds, chronotype);
+    if (!shouldUseAI()) return this.suggestSchedule(meds, chronotype);
     try {
       const schema = {
         type: 'object',

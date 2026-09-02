@@ -9,39 +9,11 @@ import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } f
 import type { ProposalRecord } from '../types/vault.ts';
 import { extractWithAI } from '../core/ai/client.ts';
 import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
+import { findBiomarkerStandard } from './labStoryTools.ts';
+import { gateIfViewOnly } from '../core/rbac/canAccess.ts';
 
-/**
- * LOCAL_BIOMARKER_STANDARDS mirrors LocalVault.ts:62-72 for lab normalization ±10% borderline + critical flags
- * Ensures flag correctness per vault standards for all 9 markers, not fallback NORMAL.
- */
-const LOCAL_BIOMARKER_STANDARDS: Record<string, { canonicalName: string; standardUnit: string; refRange: { low: number; high: number }; optimalRange: { low: number; high: number }; criticalLow?: number; criticalHigh?: number }> = {
-  creatinine: { canonicalName: 'Creatinine', standardUnit: 'mg/dL', refRange: { low: 0.6, high: 1.2 }, optimalRange: { low: 0.7, high: 1.0 }, criticalHigh: 3.0 },
-  egfr: { canonicalName: 'eGFR', standardUnit: 'mL/min/1.73m2', refRange: { low: 60, high: 120 }, optimalRange: { low: 90, high: 120 }, criticalLow: 15 },
-  hba1c: { canonicalName: 'HbA1c', standardUnit: '%', refRange: { low: 4.0, high: 5.6 }, optimalRange: { low: 4.5, high: 5.4 }, criticalHigh: 10.0 },
-  'glucose fasting': { canonicalName: 'Glucose Fasting', standardUnit: 'mg/dL', refRange: { low: 70, high: 99 }, optimalRange: { low: 75, high: 90 }, criticalLow: 50, criticalHigh: 250 },
-  potassium: { canonicalName: 'Potassium', standardUnit: 'mEq/L', refRange: { low: 3.5, high: 5.0 }, optimalRange: { low: 3.8, high: 4.6 }, criticalLow: 2.8, criticalHigh: 6.0 },
-  'cholesterol total': { canonicalName: 'Cholesterol Total', standardUnit: 'mg/dL', refRange: { low: 125, high: 200 }, optimalRange: { low: 140, high: 180 }, criticalHigh: 300 },
-  ldl: { canonicalName: 'LDL', standardUnit: 'mg/dL', refRange: { low: 50, high: 100 }, optimalRange: { low: 50, high: 80 }, criticalHigh: 190 },
-  hdl: { canonicalName: 'HDL', standardUnit: 'mg/dL', refRange: { low: 40, high: 80 }, optimalRange: { low: 50, high: 80 }, criticalLow: 25 },
-  triglycerides: { canonicalName: 'Triglycerides', standardUnit: 'mg/dL', refRange: { low: 50, high: 150 }, optimalRange: { low: 60, high: 100 }, criticalHigh: 500 },
-};
-
-function findLocalStandard(markerName: string) {
-  const m = markerName.toLowerCase().trim();
-  if (m.includes('creat')) return LOCAL_BIOMARKER_STANDARDS['creatinine'];
-  if (m.includes('egfr') || m.includes('gfr')) return LOCAL_BIOMARKER_STANDARDS['egfr'];
-  if (m.includes('hba1c') || m.includes('a1c')) return LOCAL_BIOMARKER_STANDARDS['hba1c'];
-  if (m.includes('glucose') || m.includes('glu')) return LOCAL_BIOMARKER_STANDARDS['glucose fasting'];
-  if (m.includes('potassium') || m === 'k' || m === 'k+') return LOCAL_BIOMARKER_STANDARDS['potassium'];
-  if (m.includes('ldl')) return LOCAL_BIOMARKER_STANDARDS['ldl'];
-  if (m.includes('hdl')) return LOCAL_BIOMARKER_STANDARDS['hdl'];
-  if (m.includes('triglyceride')) return LOCAL_BIOMARKER_STANDARDS['triglycerides'];
-  if (m.includes('cholesterol')) return LOCAL_BIOMARKER_STANDARDS['cholesterol total'];
-  return null;
-}
-
-function resolveFileDataUrl(params: any): string | undefined {
-  const candidate = params.imageDataUrl || params.fileDataUrl || params.imageBlob || params.imageUrl;
+function resolveFileDataUrl(params: Record<string, unknown>): string | undefined {
+  const candidate = (params['imageDataUrl'] as unknown) || (params['fileDataUrl'] as unknown) || (params['imageBlob'] as unknown) || (params['imageUrl'] as unknown);
   if (typeof candidate === 'string' && candidate.startsWith('data:')) return candidate;
   return undefined;
 }
@@ -76,17 +48,8 @@ export const uploadLabImageTool: WebMCPToolDefinition = {
     params: { imageBlob: string; patientId?: string; linkedDueCardId?: string; rawText?: string; imageDataUrl?: string },
     context: WebMCPExecutionContext
   ): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'upload_lab_image',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'upload_lab_image');
+    if (denied) return denied;
     const patientId = params.patientId || context.patientId;
     const documentId = `doc_homelab_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
@@ -99,14 +62,14 @@ export const uploadLabImageTool: WebMCPToolDefinition = {
       }
     }
 
-    const fileDataUrl = resolveFileDataUrl(params);
+    const fileDataUrl = resolveFileDataUrl(params as unknown as Record<string, unknown>);
     const rawText = params.rawText || (typeof params.imageBlob === 'string' && !params.imageBlob.startsWith('data:') ? params.imageBlob : '');
 
     const config = getAIConfig();
     const aiEnabled = isAIEnabled(config);
 
     let extractedValues: { marker: string; value: number; unit: string; flag: string; confidence: number }[] = [];
-    let facts: any[] = [];
+    let facts: Array<Record<string, unknown>> = [];
 
     if (aiEnabled) {
       try {
@@ -136,23 +99,15 @@ export const uploadLabImageTool: WebMCPToolDefinition = {
           const unit = f.unit || '';
           const confidence = f.confidence || 0.9;
 
-          const std = findLocalStandard(markerName);
+          const std = findBiomarkerStandard(markerName);
           let flag: string = 'NORMAL';
-          let isBorderline = false;
-          let isCritical = false;
           if (std) {
-            if (std.criticalHigh !== undefined && rawVal >= std.criticalHigh) { isCritical = true; flag = 'CRITICAL_HIGH'; }
-            else if (std.criticalLow !== undefined && rawVal <= std.criticalLow) { isCritical = true; flag = 'CRITICAL_LOW'; }
+            if (std.criticalHigh !== undefined && rawVal >= std.criticalHigh) flag = 'CRITICAL_HIGH';
+            else if (std.criticalLow !== undefined && rawVal <= std.criticalLow) flag = 'CRITICAL_LOW';
             else if (rawVal > std.refRange.high) flag = 'HIGH';
             else if (rawVal < std.refRange.low) flag = 'LOW';
             else flag = 'NORMAL';
-            const span = std.refRange.high - std.refRange.low;
-            const buffer10 = span * 0.10;
-            const isNearHigh = rawVal >= (std.refRange.high - buffer10) && rawVal <= (std.refRange.high + buffer10);
-            const isNearLow = rawVal >= (std.refRange.low - buffer10) && rawVal <= (std.refRange.low + buffer10);
-            isBorderline = isNearHigh || isNearLow;
           }
-          void isBorderline; void isCritical;
 
           extractedValues.push({ marker: markerName, value: rawVal, unit, flag, confidence });
           facts.push({
@@ -170,8 +125,8 @@ export const uploadLabImageTool: WebMCPToolDefinition = {
             timestamp: f.timestamp || new Date().toISOString(),
           });
         }
-      } catch (err: any) {
-        console.warn('[homeLabTools] AI lab extraction error:', err?.message || err);
+      } catch (err: unknown) {
+        // AI extraction failure is non-fatal; fallback is empty narration
       }
     }
 
@@ -230,17 +185,8 @@ export const doctorReviewCommentTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { labId: string; commentText: string; doctorId?: string; doctorName?: string; pinnedMarker?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'doctor_review_comment',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied2 = gateIfViewOnly(context.activeProfile, 'doctor_review_comment');
+    if (denied2) return denied2;
     if (!params.commentText || params.commentText.trim().length === 0) {
       return {
         success: false,
@@ -317,17 +263,8 @@ export const proposeDosageChangeTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { medName: string; currentDose?: string; proposedDose: string; reason: string; linkedLabId?: string; doctorName?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'propose_dosage_change',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied3 = gateIfViewOnly(context.activeProfile, 'propose_dosage_change');
+    if (denied3) return denied3;
     const proposal: ProposalRecord = {
       id: `prop_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
       patientId: context.patientId,
@@ -388,20 +325,11 @@ export const approveDosageChangeTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { proposalId: string; action?: 'approve' | 'reject'; approvedBy?: string; role?: string; onBehalfOf?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'approve_dosage_change',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied4 = gateIfViewOnly(context.activeProfile, 'approve_dosage_change');
+    if (denied4) return denied4;
     const isApprove = params.action !== 'reject';
     const approverName = params.approvedBy || context.activeProfile.name;
-    const role = (params.role || context.activeProfile.role) as any;
+    const role = (params.role || context.activeProfile.role) as unknown as string;
     const onBehalfOf = params.onBehalfOf || context.activeProfile.onBehalfOf;
 
     const updated = context.vault.updateProposalStatus(
@@ -467,17 +395,8 @@ export const syncPillmapFromProposalTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { proposalId: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'sync_pillmap_from_proposal',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied5 = gateIfViewOnly(context.activeProfile, 'sync_pillmap_from_proposal');
+    if (denied5) return denied5;
     const proposal = context.vault.proposals.get(params.proposalId);
     if (!proposal) {
       return {
@@ -493,7 +412,10 @@ export const syncPillmapFromProposalTool: WebMCPToolDefinition = {
 
     // Update medication in vault
     const meds = context.vault.getMedications(proposal.patientId);
-    const targetMed = meds.find((m: any) => m.genericName?.toLowerCase().includes(proposal.medName.toLowerCase()) || proposal.medName.toLowerCase().includes(m.genericName?.toLowerCase()));
+    const targetMed = meds.find((m: unknown) => {
+      const med = m as { genericName?: string };
+      return med.genericName?.toLowerCase().includes(proposal.medName.toLowerCase()) || proposal.medName.toLowerCase().includes(med.genericName?.toLowerCase() || '');
+    });
 
     if (targetMed && proposal.proposedDose) {
       context.vault.updateMedication(

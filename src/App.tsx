@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Shield,
   Activity,
@@ -10,16 +10,17 @@ import {
   Users,
   FolderLock,
   AlertTriangle,
-  LogOut,
   Plug,
   Settings,
   Layers,
+  Stethoscope,
 } from 'lucide-react';
 import { PrivacyBadge } from '@/components/common/PrivacyBadge';
 import { QuestionBank } from '@/components/common/QuestionBank';
 import { WebMCPInspector } from '@/components/common/WebMCPInspector';
 import { ConnectWebMCPModal } from '@/components/common/ConnectWebMCPModal';
 import { ProfileIndicator } from '@/components/carecircle/ProfileIndicator';
+import { ProfileDetails } from '@/components/carecircle/ProfileDetails';
 import { ModalPortal } from '@/components/common/ModalPortal';
 import { ToastContainer } from '@/components/common/ToastContainer';
 import { MyRecordsView } from '@/components/vault/MyRecordsView';
@@ -32,9 +33,12 @@ import { CareCircleView } from '@/components/carecircle/CareCircleView';
 import { DossierView } from '@/components/dossier/DossierView';
 import { CreateAccountView } from '@/components/auth/CreateAccountView';
 import { SignInView } from '@/components/auth/SignInView';
+import { MCPAuthBridge } from '@/components/auth/MCPAuthBridge';
 import { SettingsView } from '@/components/settings/SettingsView';
 import { AskWhyPanel } from '@/components/ask/AskWhyPanel';
 import { GroundedInsightsPanel } from '@/components/search/GroundedInsightsPanel';
+import { DoctorDashboard } from '@/components/doctor/DoctorDashboard';
+import { DoctorPatientView } from '@/components/doctor/DoctorPatientView';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { isViewOnly as isViewOnlyUtil } from '@/core/rbac/canAccess';
@@ -45,7 +49,8 @@ import { isViewOnly as isViewOnlyUtil } from '@/core/rbac/canAccess';
 // Medicines= My Medicines (pillmap) + Medicine Review (rxbridge)
 // Help     = Get Help (safety) | Family = Family (carecircle)
 // Settings stays header gear. 5-item bottom bar: Health | Medicines | Ask | Help | Family (Ask centered)
-export type ActiveModule = 'health' | 'medicines' | 'ask' | 'safety' | 'family' | 'settings';
+// Doctor  = My Patients dashboard when role === 'doctor' (RBAC doctor ↔ patient linking)
+export type ActiveModule = 'health' | 'medicines' | 'ask' | 'safety' | 'family' | 'settings' | 'doctor';
 export type HealthSub = 'vault' | 'labstory' | 'homelab' | 'dossier';
 export type MedicinesSub = 'pillmap' | 'rxbridge';
 
@@ -77,6 +82,8 @@ export const App: React.FC = () => {
   const [questionCount, setQuestionCount] = useState(0);
   const [isVaultBusy, setIsVaultBusy] = useState(false);
   const [askWhyPrefill, setAskWhyPrefill] = useState<{ marker?: string; query?: string } | null>(null);
+  const [doctorSelectedPatientId, setDoctorSelectedPatientId] = useState<string | null>(null);
+  const [isProfileDetailsOpen, setIsProfileDetailsOpen] = useState(false);
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -99,9 +106,60 @@ export const App: React.FC = () => {
           setActiveProfile(normalized);
         }
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
     setIsHydrated(true);
   }, []);
+
+  // MCP auth bridge: AI prepared sign-up/sign-in (human-only password) — switch gate view and hydrate profile on completion
+  useEffect(() => {
+    const onPending = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent).detail as { mode?: string };
+        if (!activeProfile && detail?.mode === 'create') setAuthMode('create');
+        else if (!activeProfile && detail?.mode === 'signin') setAuthMode('signin');
+      } catch { /* ignore */ }
+    };
+    const onCompleted = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent).detail as Partial<ActiveProfile>;
+        if (detail?.userId) {
+          const normalized: ActiveProfile = {
+            userId: String(detail.userId),
+            name: String(detail.name || 'Anonymous').slice(0, 64) || 'Anonymous',
+            role: (detail.role as string) || 'patient',
+            isProxy: !!detail.isProxy,
+            relationship: detail.relationship,
+            onBehalfOf: detail.onBehalfOf,
+            permissionLevel: (detail.permissionLevel as ActiveProfile['permissionLevel']) || 'manage',
+            email: detail.email,
+            createdAt: detail.createdAt,
+          };
+          setActiveProfile(normalized);
+        } else {
+          // Fallback: re-read from localStorage
+          const raw = localStorage.getItem('carecanvas_active_user');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.userId) handleCreated(parsed);
+          }
+        }
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('carecanvas_mcp_auth_pending', onPending as EventListener);
+    window.addEventListener('carecanvas_mcp_prefill', onPending as EventListener);
+    window.addEventListener('carecanvas_mcp_auth_completed', onCompleted as EventListener);
+    window.addEventListener('carecanvas_auth_completed', onCompleted as EventListener);
+    const off1 = eventBus.on('mcp_auth_pending' as unknown as string, onPending as unknown as () => void);
+    const off2 = eventBus.on('mcp_auth_completed' as unknown as string, onCompleted as unknown as () => void);
+    return () => {
+      window.removeEventListener('carecanvas_mcp_auth_pending', onPending as EventListener);
+      window.removeEventListener('carecanvas_mcp_prefill', onPending as EventListener);
+      window.removeEventListener('carecanvas_mcp_auth_completed', onCompleted as EventListener);
+      window.removeEventListener('carecanvas_auth_completed', onCompleted as EventListener);
+      off1();
+      off2();
+    };
+  }, [activeProfile]);
 
   // Unified pending/question counts — single source of truth for header badges.
   const refreshCounts = async () => {
@@ -134,19 +192,19 @@ export const App: React.FC = () => {
     };
   }, [activeProfile?.userId]);
 
-  // Navigate to Ask from Lab Results — prefill AskWhy panel
   useEffect(() => {
-    const onNavigateAsk = (payload: any) => {
-      setAskWhyPrefill({ marker: payload?.marker, query: payload?.query });
+    const onNavigateAsk = (payload: unknown) => {
+      const obj = payload as { marker?: string; query?: string };
+      setAskWhyPrefill({ marker: obj?.marker, query: obj?.query });
       setActiveModule('ask');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    const off1 = eventBus.on('navigate_ask' as any, onNavigateAsk);
-    const onWindow = (e: any) => onNavigateAsk(e.detail);
-    window.addEventListener('carecanvas_navigate_ask' as any, onWindow as any);
+    const off1 = eventBus.on('navigate_ask' as unknown as string, onNavigateAsk as unknown as () => void);
+    const onWindow = (e: Event) => onNavigateAsk((e as CustomEvent).detail);
+    window.addEventListener('carecanvas_navigate_ask', onWindow as EventListener);
     return () => {
       off1();
-      window.removeEventListener('carecanvas_navigate_ask' as any, onWindow as any);
+      window.removeEventListener('carecanvas_navigate_ask', onWindow as EventListener);
     };
   }, []);
 
@@ -167,156 +225,102 @@ export const App: React.FC = () => {
     };
   }, [isMCPMenuOpen]);
 
-  const handleCreated = (profile: any) => {
+  const handleCreated = (profile: unknown) => {
+    const p = profile as Partial<ActiveProfile> & { userId?: unknown; name?: unknown; role?: unknown; isProxy?: unknown };
     const normalized: ActiveProfile = {
-      userId: String(profile.userId),
-      name: String(profile.name || 'Anonymous').slice(0, 64) || 'Anonymous',
-      role: profile.role || 'patient',
-      isProxy: !!profile.isProxy,
-      relationship: profile.relationship,
-      onBehalfOf: profile.onBehalfOf,
-      permissionLevel: profile.permissionLevel || 'manage',
-      email: profile.email,
-      createdAt: profile.createdAt,
+      userId: String(p.userId),
+      name: String((p.name as string) || 'Anonymous').slice(0, 64) || 'Anonymous',
+      role: (p.role as string) || 'patient',
+      isProxy: !!p.isProxy,
+      relationship: p.relationship,
+      onBehalfOf: p.onBehalfOf,
+      permissionLevel: (p.permissionLevel as ActiveProfile['permissionLevel']) || 'manage',
+      email: p.email,
+      createdAt: p.createdAt,
     };
     setActiveProfile(normalized);
   };
 
-  const handleSignOut = () => {
-    try {
-      localStorage.removeItem('carecanvas_active_user');
-    } catch {}
-    setActiveProfile(null);
-    setPendingCount(0);
-    setQuestionCount(0);
-    eventBus.dispatchToast({
-      type: 'info',
-      title: 'Signed out',
-      message: 'Session cleared. Create an account or sign in again.',
-    });
-  };
-
   const handleSwitchProfile = (role: 'patient' | 'caregiver' | 'self' | 'mother' | 'child') => {
     if (!activeProfile) return;
-    if (role === 'caregiver' || role === 'mother') {
-      const links = (() => {
-        try { return localVault.getCaregiverLinks(activeProfile.userId); } catch { return []; }
-      })();
+    const getLinks = () => {
+      try { return localVault.getCaregiverLinks(activeProfile.userId); } catch { return []; }
+    };
+    const needProxy = role === 'caregiver' || role === 'mother' || role === 'child';
+    if (needProxy) {
+      const links = getLinks();
       if (links.length === 0) {
-        eventBus.dispatchToast({
-          type: 'info',
-          title: 'No family helpers linked',
-          message: 'Add a family member in Family → Manage Access before switching to proxy mode. No mock profile shown.',
-        });
+        eventBus.dispatchToast({ type: 'info', title: 'No family helpers linked', message: 'Add a family member in Family → Manage Access before switching to proxy mode. No mock profile shown.' });
         return;
       }
+      const isChild = role === 'child';
+      const link = isChild ? (links.find((l) => ['daughter', 'son', 'children', 'child'].includes((l.relationship || '').toLowerCase())) || links[0]) : links[0];
       const baseName = activeProfile.isProxy ? activeProfile.onBehalfOf || activeProfile.name : activeProfile.name;
-      const firstLink = links[0];
-      const derivedName = firstLink?.caregiverName?.trim() || 'Family member';
-      const derivedRelationship = firstLink?.relationship || 'son';
-      const derivedPermission = (firstLink?.permissionLevel as any) || 'manage';
-      const next: ActiveProfile = {
-        ...activeProfile,
-        name: derivedName,
-        role: 'caregiver',
-        isProxy: true,
-        relationship: derivedRelationship,
-        onBehalfOf: baseName,
-        permissionLevel: derivedPermission,
-      };
+      const derivedName = link?.caregiverName?.trim() || 'Family member';
+      const derivedRel = link?.relationship || (isChild ? 'father' : 'son');
+      const derivedPerm = (link?.permissionLevel as unknown as ActiveProfile['permissionLevel']) || 'manage';
+      const next: ActiveProfile = { ...activeProfile, name: derivedName, role: 'caregiver', isProxy: true, relationship: derivedRel, onBehalfOf: isChild ? 'Child' : baseName, permissionLevel: derivedPerm };
       setActiveProfile(next);
-      eventBus.dispatchToast({
-        type: 'info',
-        title: 'Proxy Mode Active',
-        message: `Switched to ${next.name} (${derivedRelationship}) acting on behalf of ${baseName}.`,
-      });
-    } else if (role === 'child') {
-      const links = (() => {
-        try { return localVault.getCaregiverLinks(activeProfile.userId); } catch { return []; }
-      })();
-      if (links.length === 0) {
-        eventBus.dispatchToast({
-          type: 'info',
-          title: 'No family helpers linked',
-          message: 'Add a family member in Family → Manage Access before switching to proxy mode. No mock profile shown.',
-        });
+      eventBus.dispatchToast({ type: 'info', title: 'Proxy Mode Active', message: isChild ? `Switched to ${next.name} acting on behalf of ${next.onBehalfOf} (${derivedRel}).` : `Switched to ${next.name} (${derivedRel}) acting on behalf of ${baseName}.` });
+      return;
+    }
+    try {
+      const raw = localStorage.getItem('carecanvas_active_user');
+      if (raw) {
+        const stored = JSON.parse(raw) as { userId?: string; name?: string; email?: string; createdAt?: string };
+        const restored: ActiveProfile = { userId: String(stored.userId), name: String(stored.name || 'Anonymous').slice(0, 64) || 'Anonymous', role: 'patient', isProxy: false, relationship: undefined, onBehalfOf: undefined, permissionLevel: 'manage', email: stored.email, createdAt: stored.createdAt };
+        setActiveProfile(restored);
+        eventBus.dispatchToast({ type: 'info', title: 'Patient Profile', message: `Active profile: ${restored.name} (Primary Patient).` });
         return;
       }
-      // vault-derived caregiverName — fallback to 'Family member' for legacy links
-      const childLink = links.find((l) => ['daughter', 'son', 'children', 'child'].includes((l.relationship || '').toLowerCase())) || links[0];
-      const derivedChildName = childLink?.caregiverName?.trim() || 'Family member';
-      const derivedChildRel = childLink?.relationship || 'father';
-      const derivedChildPerm = (childLink?.permissionLevel as any) || 'manage';
-      const next: ActiveProfile = {
-        ...activeProfile,
-        name: derivedChildName,
-        role: 'caregiver',
-        isProxy: true,
-        relationship: derivedChildRel,
-        onBehalfOf: 'Child',
-        permissionLevel: derivedChildPerm,
-      };
-      setActiveProfile(next);
-      eventBus.dispatchToast({
-        type: 'info',
-        title: 'Proxy Mode Active',
-        message: `Switched to ${next.name} acting on behalf of ${next.onBehalfOf} (${derivedChildRel}).`,
-      });
-    } else {
-      // Back to patient — restore from stored original
-      try {
-        const raw = localStorage.getItem('carecanvas_active_user');
-        if (raw) {
-          const stored = JSON.parse(raw);
-          const restored: ActiveProfile = {
-            userId: String(stored.userId),
-            name: String(stored.name || 'Anonymous').slice(0, 64) || 'Anonymous',
-            role: 'patient',
-            isProxy: false,
-            relationship: undefined,
-            onBehalfOf: undefined,
-            permissionLevel: 'manage',
-            email: stored.email,
-            createdAt: stored.createdAt,
-          };
-          setActiveProfile(restored);
-          eventBus.dispatchToast({
-            type: 'info',
-            title: 'Patient Profile',
-            message: `Active profile: ${restored.name} (Primary Patient).`,
-          });
-          return;
-        }
-      } catch {}
-      const fallback: ActiveProfile = {
-        ...activeProfile,
-        role: 'patient',
-        isProxy: false,
-        relationship: undefined,
-        onBehalfOf: undefined,
-        permissionLevel: 'manage',
-      };
-      setActiveProfile(fallback);
-      eventBus.dispatchToast({
-        type: 'info',
-        title: 'Patient Profile',
-        message: `Active profile: ${fallback.name} (Primary Patient).`,
-      });
-    }
+    } catch {}
+    const fallback: ActiveProfile = { ...activeProfile, role: 'patient', isProxy: false, relationship: undefined, onBehalfOf: undefined, permissionLevel: 'manage' };
+    setActiveProfile(fallback);
+    eventBus.dispatchToast({ type: 'info', title: 'Patient Profile', message: `Active profile: ${fallback.name} (Primary Patient).` });
   };
 
-  // RBAC derived — view_only read-only degraded not blank (R8 global)
-  const isViewOnly = isViewOnlyUtil(activeProfile as any);
+  const isViewOnly = isViewOnlyUtil(activeProfile as unknown as { permissionLevel?: string });
   const viewOnlyTooltip = 'View-only: cannot approve — ask primary holder';
+  const isDoctor = activeProfile?.role === 'doctor';
+  const isPatient = activeProfile?.role === 'patient' || !isDoctor;
+
+  // Auto-switch doctor to doctor module on login
+  useEffect(() => {
+    if (activeProfile?.role === 'doctor' && activeModule !== 'doctor') {
+      setActiveModule('doctor');
+      setDoctorSelectedPatientId(null);
+    } else if (activeProfile?.role === 'patient' && activeModule === 'doctor') {
+      setActiveModule('health');
+    }
+  }, [activeProfile?.role]);
+
   // Merged nav: 5 items with Ask centered + highlighted. Health merges Records+Labs (4 sub-tabs).
   // Gated per role/tier: view_only shows disabled tooltip but remains visible for read
-  const navItems = [
-    { id: 'health' as ActiveModule, label: 'Health', shortLabel: 'Health', icon: Layers, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Records + Labs + For Doctor' },
-    { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Weekly Box + Review' },
-    { id: 'ask' as ActiveModule, label: 'Ask', shortLabel: 'Ask', icon: HelpCircle, badge: questionCount > 0 ? `${questionCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Doctor Questions — ask', highlight: true as const },
-    { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Urgent help + appointments' },
-    { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Trusted helpers' },
-  ];
+  // Doctor role gets My Patients as primary nav (RBAC doctor ↔ patient)
+  const navItems = isDoctor
+    ? [
+        { id: 'doctor' as ActiveModule, label: 'My Patients', shortLabel: 'Patients', icon: Stethoscope, badge: null, desc: 'Patients who linked you — doctor access' },
+        { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: 'Family helpers (caregiver links)' },
+        { id: 'settings' as ActiveModule, label: 'Settings', shortLabel: 'Settings', icon: Settings, badge: null, desc: 'Settings' },
+      ]
+    : [
+        { id: 'health' as ActiveModule, label: 'Health', shortLabel: 'Health', icon: Layers, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Records + Labs + For Doctor' },
+        { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Weekly Box + Review' },
+        { id: 'ask' as ActiveModule, label: 'Ask', shortLabel: 'Ask', icon: HelpCircle, badge: questionCount > 0 ? `${questionCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Doctor Questions — ask', highlight: true as const },
+        { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Urgent help + appointments' },
+        { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Trusted helpers' },
+      ];
+
+  const askContextFacts = useMemo(() => {
+    try {
+      if (!activeProfile?.userId) return '';
+      const meds = localVault.getMedications(activeProfile.userId) || [];
+      const labs = localVault.getLabs(activeProfile.userId) || [];
+      const lastLab = labs.length ? `${labs[labs.length - 1]?.marker ?? ''} ${labs[labs.length - 1]?.normalizedValue ?? ''}` : '';
+      const medStr = meds.length ? `Meds: ${meds.slice(0, 3).map((m) => (m as unknown as { genericName?: string; name?: string }).genericName || (m as unknown as { name?: string }).name).join(', ')}` : '';
+      return [lastLab, medStr].filter(Boolean).join(' | ');
+    } catch { return ''; }
+  }, [activeProfile?.userId]);
 
   const pastelActive = 'bg-primary-light text-primary-text border-primary-border shadow-sm';
   const pastelIconActive = 'text-primary-text';
@@ -342,12 +346,11 @@ export const App: React.FC = () => {
             <SignInView onSignedIn={handleCreated} onSwitchToCreate={() => setAuthMode('create')} />
           )}
         </div>
+        <MCPAuthBridge />
         <ToastContainer />
       </div>
     );
   }
-
-  // (proxy initials moved to Family page; kept for handleSwitchProfile logic)
 
   const handleNav = (id: ActiveModule) => {
     if (isVaultBusy) {
@@ -355,8 +358,7 @@ export const App: React.FC = () => {
       return;
     }
     // R8 global RBAC gate — view_only read-only degraded not blank, manage onBehalfOf, full admin
-    // handleNav 346-353 now checks permissionLevel; direct setActiveModule bypass still gated inside render
-    const perm = (activeProfile as any)?.permissionLevel;
+    const perm = activeProfile?.permissionLevel;
     if (perm === 'view_only') {
       // Show degraded toast but still allow navigation for read-only viewing (not blank)
       // Sensitive module deep gates inside SafetyView/TriagePanel will block write actions with PERMISSION_DENIED
@@ -372,17 +374,17 @@ export const App: React.FC = () => {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-xl focus:shadow-lg focus:border focus:border-canvas-border focus:outline-none focus:ring-2 focus:ring-primary">
         Skip to main content
       </a>
-      {/* Top Application Bar — glass, soft shadow, full-width */}
-      <header className="border-b border-canvas-border bg-white/95 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 shadow-sm w-full">
+      {/* Top Application Bar — solid, bordered; no glass or blur */}
+      <header className="border-b border-canvas-border bg-white sticky top-0 z-40 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 w-full">
         <div className="w-full max-w-none flex items-center justify-between gap-1.5 sm:gap-4">
-          {/* Logo & Subtitle — refined typography, token gradient */}
+          {/* Logo & Subtitle — flat clinical-teal mark, serif wordmark */}
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 shrink-0 ring-1 ring-primary/10" aria-hidden="true">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-primary flex items-center justify-center shrink-0" aria-hidden="true">
               <HeartPulse className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-900 truncate">CareCanvas</h1>
+                <h1 className="font-display text-sm sm:text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap leading-none">CareCanvas</h1>
                 <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border hidden sm:inline-flex items-center leading-none">
                   Private & Secure
                 </span>
@@ -390,21 +392,12 @@ export const App: React.FC = () => {
               <p className="text-caption font-medium text-muted hidden sm:block leading-none mt-0.5">Your health, all in one place</p>
             </div>
           </div>
-          {/* Profile indicator — vault-derived completeness, visible in header near logo */}
-          <div className="hidden sm:flex items-center shrink-0">
-            <ProfileIndicator activeProfile={activeProfile} pendingCount={pendingCount} />
-          </div>
-          {/* Mobile profile indicator compact */}
-          <div className="flex sm:hidden items-center shrink-0">
-            <ProfileIndicator activeProfile={activeProfile} pendingCount={pendingCount} compact />
-          </div>
-
           {/* Center Privacy Badge — hidden on mobile to save space, visible lg */}
           <div className="hidden lg:flex items-center shrink-0">
             <PrivacyBadge patientId={activeProfile.userId} />
           </div>
 
-          {/* Right Action Bar: MCP grouped, Settings, Sign Out — proxy moved to Family page, Ask centered in bottom nav */}
+          {/* Right Action Bar: MCP grouped, Settings, Profile (top right) — proxy moved to Family page, Ask centered in bottom nav */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
 
             {/* MCP single Connect — header single entry, tools & logs nested inside Connect modal */}
@@ -417,7 +410,7 @@ export const App: React.FC = () => {
             >
               <Plug className="w-4 h-4 text-emerald-300 shrink-0" aria-hidden="true" />
               {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-black border-2 border-white leading-none shadow-xs">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-bold border-2 border-white leading-none shadow-xs">
                   {pendingCount > 99 ? '99+' : pendingCount}
                 </span>
               )}
@@ -433,7 +426,7 @@ export const App: React.FC = () => {
               <Plug className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
               <span className="hidden md:inline">Connect</span>
               {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 md:static md:top-auto md:right-auto bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1.5 rounded-full font-bold animate-pulse shrink-0 flex items-center justify-center leading-none shadow-xs">
+                <span className="absolute -top-1 -right-1 md:static md:top-auto md:right-auto bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1.5 rounded-full font-bold shrink-0 flex items-center justify-center leading-none shadow-xs">
                   {pendingCount > 99 ? '99+' : pendingCount}
                 </span>
               )}
@@ -455,16 +448,8 @@ export const App: React.FC = () => {
               <span className="hidden md:inline">Settings</span>
             </button>
 
-            {/* Sign Out — clears localStorage and shows gate */}
-            <button
-              onClick={handleSignOut}
-              className="flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 text-xs font-semibold border border-canvas-border hover:border-rose-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-rose-500"
-              aria-label="Sign out"
-              title={`Signed in as ${activeProfile.name} — click to sign out`}
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-              <span className="hidden md:inline">Sign Out</span>
-            </button>
+            {/* Profile indicator — vault-derived completeness, top right after Settings, visible 375+1024, click reveals details */}
+            <ProfileIndicator activeProfile={activeProfile} onClick={() => setIsProfileDetailsOpen(true)} />
           </div>
         </div>
       </header>
@@ -475,7 +460,7 @@ export const App: React.FC = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeModule === item.id;
-            const isAsk = (item as any).highlight;
+            const isAsk = (item as unknown as { highlight?: boolean }).highlight;
             return (
               <button
                 key={item.id}
@@ -483,7 +468,7 @@ export const App: React.FC = () => {
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 min-h-[44px] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
                   isAsk
                     ? isActive
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500 ring-offset-1 focus-visible:ring-amber-500'
+                      ? 'bg-amber-500 text-white border border-amber-600 focus-visible:ring-amber-500'
                       : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 shadow-sm focus-visible:ring-amber-500'
                     : isActive
                       ? `${pastelActive} focus-visible:ring-primary`
@@ -654,36 +639,56 @@ export const App: React.FC = () => {
           />
         </div>
 
-        {/* ASK — separate page (ex-Questions), renamed, centered in menu, highlighted */}
+        {/* DOCTOR: My Patients dashboard + patient record access (RBAC doctor ↔ patient) */}
+        <div className={activeModule === 'doctor' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'doctor'}>
+          {isDoctor ? (
+            doctorSelectedPatientId ? (
+              <DoctorPatientView
+                patientId={doctorSelectedPatientId}
+                doctorId={activeProfile.userId}
+                doctorProfile={activeProfile}
+                onBack={() => setDoctorSelectedPatientId(null)}
+              />
+            ) : (
+              <DoctorDashboard
+                doctorId={activeProfile.userId}
+                doctorProfile={activeProfile}
+                onSelectPatient={(pid) => setDoctorSelectedPatientId(pid)}
+              />
+            )
+          ) : (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center space-y-2">
+              <Stethoscope className="w-8 h-8 text-amber-600 mx-auto" />
+              <p className="text-body-sm font-bold text-amber-800">Doctor access only</p>
+              <p className="text-body-sm text-amber-700">This view is available when signed in as a doctor. Create a doctor account or sign in with a doctor email.</p>
+            </div>
+          )}
+        </div>
+
+        {/* ASK — separate page (ex-Questions). Quiet agenda header: amber rule marks it
+            as the visit-prep flow; the count is enough emphasis, no gradient billboard. */}
         <div className={activeModule === 'ask' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'ask'}>
-          <div className="bg-gradient-to-br from-amber-500 to-orange-500 border border-amber-600 rounded-2xl p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white">
+          <div className="border border-canvas-border border-l-4 border-l-amber-500 rounded-lg bg-white px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-xl bg-white text-amber-600 border border-amber-600 flex items-center justify-center shadow-sm shrink-0" aria-hidden="true">
-                <HelpCircle className="w-6 h-6" />
-              </div>
+              <HelpCircle className="w-5 h-5 text-amber-600 shrink-0" aria-hidden="true" />
               <div className="min-w-0">
-                <h2 className="text-xl font-bold tracking-tight text-white">Ask</h2>
-                <p className="text-sm text-white/90 leading-snug">Your doctor visit agenda — tap Ask, review, print.</p>
+                <h2 className="text-heading-lg text-slate-900">Ask</h2>
+                <p className="text-body-sm text-muted leading-snug">Your doctor visit agenda — add questions, review, print.</p>
               </div>
             </div>
-            <span className="inline-flex self-start sm:self-auto text-caption px-3 py-1.5 rounded-full bg-white text-amber-700 font-black border border-amber-600 shadow-sm shrink-0">
-              {questionCount} {questionCount === 1 ? 'question' : 'questions'} • highlighted
+            <span className="inline-flex self-start sm:self-auto text-caption px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
+              {questionCount} {questionCount === 1 ? 'question' : 'questions'}
             </span>
           </div>
           <AskWhyPanel patientId={activeProfile.userId} initialMarker={askWhyPrefill?.marker} initialQuery={askWhyPrefill?.query} />
-          <GroundedInsightsPanel
-            patientId={activeProfile.userId}
-            initialQuery=""
-            contextFacts={(() => {
-              try {
-                const meds = localVault.getMedications(activeProfile.userId) || [];
-                const labs = localVault.getLabs(activeProfile.userId) || [];
-                const lastLab = labs.length ? `${labs[labs.length-1]?.marker ?? ''} ${labs[labs.length-1]?.normalizedValue ?? ''}` : '';
-                return [lastLab, meds.length ? `Meds: ${meds.slice(0,3).map((m:any)=>m.genericName||m.name).join(', ')}` : ''].filter(Boolean).join(' | ');
-              } catch { return ''; }
-            })()}
-            mode="general"
-          />
+          {activeModule === 'ask' && (
+            <GroundedInsightsPanel
+              patientId={activeProfile.userId}
+              initialQuery=""
+              contextFacts={askContextFacts}
+              mode="general"
+            />
+          )}
           <QuestionBank patientId={activeProfile.userId} asPage />
         </div>
 
@@ -693,17 +698,17 @@ export const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav — 5 items grid, no scroll, 44px+ targets, safe-area, accessible */}
+      {/* Mobile Bottom Nav — grid cols adapt to role (patient 5 vs doctor 3), no scroll, 44px+ targets, safe-area, accessible */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-canvas-border shadow-[0_-4px_12px_rgba(0,0,0,0.06)] z-40"
         style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom, 0px))' }}
         aria-label="Primary mobile"
       >
-        <div className="grid grid-cols-5 gap-1 px-1 py-1.5 max-w-md mx-auto items-end">
+        <div className={`grid gap-1 px-1 py-1.5 max-w-md mx-auto items-end ${navItems.length === 3 ? 'grid-cols-3' : navItems.length === 4 ? 'grid-cols-4' : 'grid-cols-5'}`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeModule === item.id;
-            const isAsk = (item as any).highlight;
+            const isAsk = (item as unknown as { highlight?: boolean }).highlight;
             return (
               <button
                 key={item.id}
@@ -711,8 +716,8 @@ export const App: React.FC = () => {
                 className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold leading-none transition-all duration-200 focus-visible:ring-2 focus-visible:outline-none relative ${
                   isAsk
                     ? isActive
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-lg min-h-[62px] -mt-1 scale-[1.03] ring-2 ring-amber-500 ring-offset-1 focus-visible:ring-amber-500'
-                      : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 shadow-sm min-h-[58px] -mt-0.5 focus-visible:ring-amber-500'
+                      ? 'bg-amber-500 text-white border border-amber-600 min-h-[56px] focus-visible:ring-amber-500'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 min-h-[56px] focus-visible:ring-amber-500'
                     : isActive
                       ? 'bg-primary-light text-primary-text border border-primary-border shadow-xs min-h-[56px] focus-visible:ring-primary'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-canvas-muted border border-transparent min-h-[56px] focus-visible:ring-primary'
@@ -724,12 +729,12 @@ export const App: React.FC = () => {
                 <span className="relative">
                   <Icon className={`w-5 h-5 ${isAsk ? (isActive ? 'text-white' : 'text-amber-600') : isActive ? 'text-primary-text' : 'text-slate-500'}`} aria-hidden="true" />
                   {item.badge && (
-                    <span className={`absolute -top-1.5 -right-2 text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-black border-2 border-white leading-none ${isAsk ? 'bg-white text-amber-700 border-amber-600' : 'bg-amber-500 text-white'}`}>
+                    <span className={`absolute -top-1.5 -right-2 text-[8px] min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center font-bold border-2 border-white leading-none ${isAsk ? 'bg-white text-amber-700 border-amber-600' : 'bg-amber-500 text-white'}`}>
                       {Number(item.badge) > 99 ? '99+' : item.badge}
                     </span>
                   )}
                 </span>
-                <span className={`text-[10px] tracking-tight text-center leading-tight truncate w-full px-0.5 ${isAsk ? 'font-black' : ''}`}>{item.shortLabel}</span>
+                <span className={`text-[10px] tracking-tight text-center leading-tight truncate w-full px-0.5 ${isAsk ? 'font-bold' : ''}`}>{item.shortLabel}</span>
               </button>
             );
           })}
@@ -745,6 +750,8 @@ export const App: React.FC = () => {
 
       <WebMCPInspector isOpen={isInspectorOpen} onClose={() => setIsInspectorOpen(false)} />
       <ConnectWebMCPModal isOpen={isConnectOpen} onClose={() => setIsConnectOpen(false)} />
+      <ProfileDetails isOpen={isProfileDetailsOpen} onClose={() => setIsProfileDetailsOpen(false)} activeProfile={activeProfile} />
+      <MCPAuthBridge />
       <ToastContainer />
     </div>
   );

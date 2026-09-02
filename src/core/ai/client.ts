@@ -1,15 +1,10 @@
 /**
  * CareCanvas AI Core — Client
- * Single unified HTTP communication client for all OpenAI-compatible endpoints (/chat/completions & /responses).
- * Features:
- * - Unified multimodal body composition (chat image_url vs responses input_image)
- * - Structured JSON schema enforcement with resilient fallback parsing
- * - AbortController signal lifecycle with configurable timeouts
- * - Dedicated extraction & normalization pipeline for Vault facts
+ * Unified HTTP client for OpenAI-compatible endpoints (/chat/completions & /responses).
  */
 
 import type { Fact } from '../../types/vault.ts';
-import type { AIConfig, AICallOptions } from './types.ts';
+import type { AICallOptions } from './types.ts';
 import { getAIConfig, isAIEnabled, getAIEndpoint, getAIModel, isResponsesProvider } from './config.ts';
 import { buildChatMessages, buildResponsesInput, isDataUrl, isVisionSupportedImage } from './vision.ts';
 import { runDocumentOCR } from './ocr.ts';
@@ -77,11 +72,7 @@ const CATEGORY_PROMPTS = [
   { name: 'Diet, Follow-ups & Safety', prompt: PROMPT_CARE_SAFETY },
 ];
 
-/**
- * Universal AI calling engine for CareCanvas.
- * Handles chat and responses endpoints, multimodal images, JSON schemas, and error extraction.
- */
-export async function callAI<T = any>(
+export async function callAI<T = unknown>(
   systemPrompt: string,
   userText: string,
   options?: AICallOptions
@@ -109,7 +100,7 @@ export async function callAI<T = any>(
   const maxTokens = Math.max(options?.maxTokens || config.maxTokens || 4096, isResp ? 16384 : 8192);
   const temperature = options?.temperature ?? config.temperature ?? 0.1;
 
-  let requestBody: any;
+  let requestBody: Record<string, unknown>;
   if (isResp) {
     const input = buildResponsesInput(systemPrompt, userText, options?.imageDataUrl);
     requestBody = {
@@ -132,22 +123,9 @@ export async function callAI<T = any>(
   }
 
   const timeoutMs = options?.timeoutMs || config.timeoutMs || 120000;
-  const controller = new (globalThis as any).AbortController();
+  const controller = new AbortController();
   const fetchSignal = controller.signal;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  console.log('[AI] callAI request', {
-    endpoint,
-    model,
-    provider: config.provider,
-    isVision,
-    isResp,
-    temperature,
-    maxTokens,
-    systemPromptPreview: systemPrompt.slice(0, 300),
-    userTextPreview: userText.slice(0, 600),
-    requestBodyKeys: Object.keys(requestBody || {}),
-  });
 
   let response: Response;
   try {
@@ -160,9 +138,9 @@ export async function callAI<T = any>(
       body: JSON.stringify(requestBody),
       signal: fetchSignal,
     });
-  } catch (err: any) {
-    console.log('[AI] fetch threw exception:', err?.message || err, err);
-    if (err?.name === 'AbortError') {
+  } catch (err: unknown) {
+    const e = err as { name?: string };
+    if (e?.name === 'AbortError') {
       throw new Error(`AI request timed out after ${timeoutMs}ms`);
     }
     throw err;
@@ -170,49 +148,32 @@ export async function callAI<T = any>(
     clearTimeout(timeoutId);
   }
 
-  console.log(`[AI] response HTTP ${response.status} ${response.statusText}`);
-
   if (!response.ok) {
     const text = await response.text().catch(() => '');
-    console.log('[AI] Error response body:', text.slice(0, 2000));
     throw new Error(`AI API request failed (${response.status} ${response.statusText}): ${text.slice(0, 400)}`);
   }
 
-  const json = await response.json().catch(() => null);
-  console.log('[AI] Raw AI Response JSON:', JSON.stringify(json, null, 2));
+  const json = await response.json().catch(() => null) as unknown;
   if (!json) {
     throw new Error('AI API returned an empty or invalid JSON response');
   }
 
-  // Extract raw string content from provider response shape
   const textContent = extractTextFromProviderResponse(json, config.provider);
-  console.log('[AI] Extracted textContent length:', textContent?.length || 0, 'preview:', (textContent || '').slice(0, 800));
   if (!textContent) {
-    // If provider directly returned the target object shape
-    if (typeof json === 'object' && !json.choices && !json.output) {
-      console.log('[AI] Provider returned direct object shape — returning json as T', json);
+    if (typeof json === 'object' && json !== null && !('choices' in (json as object)) && !('output' in (json as object))) {
       return json as T;
     }
-    console.error('[AI Text Extraction Failed. Raw JSON:]', JSON.stringify(json, null, 2));
-    console.log('[AI] Full failure JSON logged above');
     throw new Error('No text content could be extracted from the AI response payload');
   }
 
-  // Parse JSON from text
   const parsed = parseJsonContent<T>(textContent);
-  console.log('[AI] Parsed JSON content:', JSON.stringify(parsed, null, 2));
   if (!parsed) {
-    console.log('[AI] parseJsonContent returned null for textContent:', textContent.slice(0, 2000));
     throw new Error('AI response text content could not be parsed into valid JSON');
   }
 
   return parsed;
 }
 
-/**
- * Standardized Clinical Fact Extraction.
- * Extracts medications, labs, conditions, and vitals from document text and/or images.
- */
 export async function extractWithAI(
   rawText: string,
   imageDataUrl?: string,
@@ -233,44 +194,29 @@ export async function extractWithAI(
   let effectiveText = rawText?.trim() || '';
   let effectiveImageDataUrl: string | undefined = undefined;
 
-  // Path A: High-Precision OCR Pre-Processing First (Mistral OCR with client-side fallback — preserving tables/blocks)
   if (extractionPath === 'ocr_then_ai' && imageDataUrl) {
     if (context?.onStepProgress) {
       context.onStepProgress('ocr', 'Running high-precision Mistral OCR document pre-processing (preserving tables & structure)...');
     }
-
     try {
       const ocrResult = await runDocumentOCR(imageDataUrl, {
         apiKey: config.ocrApiKey,
         model: config.ocrModel,
         patientId,
       });
-
-      console.log('[extractWithAI] OCRResult from runDocumentOCR:', JSON.stringify(ocrResult, null, 2));
-
       if (ocrResult.markdown && ocrResult.markdown.trim().length > 0) {
         effectiveText = effectiveText
           ? `${effectiveText}\n\n${ocrResult.markdown}`
           : ocrResult.markdown;
-        console.log('[extractWithAI] effectiveText after OCR merge length:', effectiveText.length, 'preview:', effectiveText.slice(0, 600));
-        if (ocrResult.tables && ocrResult.tables.length > 0) {
-          console.log('[extractWithAI] Tables preserved:', ocrResult.tables.length);
-        }
-      } else {
-        console.log('[extractWithAI] OCR returned empty markdown, keeping original effectiveText length:', effectiveText.length);
       }
     } catch (err) {
       console.warn('[extractWithAI] OCR pre-processing notice:', err);
-      console.log('[extractWithAI] OCR exception full:', err);
     }
   }
 
-  // Path B: Direct Vision for images only — NO manual PDF text extraction (use OCR pipeline for PDFs)
   if (imageDataUrl && isVisionSupportedImage(imageDataUrl)) {
     effectiveImageDataUrl = imageDataUrl;
   } else if (imageDataUrl && !effectiveText) {
-    // PDF without OCR text: do not fallback to manual pdfjs extraction per prod pipeline.
-    // If OCR failed and no text, the AI call will surface the issue rather than using inaccurate manual extraction.
     console.warn('[extractWithAI] No OCR text and no vision image for PDF — skipping manual pdfjs fallback (OCR-only pipeline)');
   }
 
@@ -281,12 +227,9 @@ export async function extractWithAI(
   const promptDocContext = docType ? ` Document type: ${docType}.` : '';
   const userText = `${effectiveText ? effectiveText.slice(0, 16000) : 'Extract clinical facts from this document image.'}${promptDocContext}`;
 
-  // Execute all 4 category extractions in parallel for maximum speed and accuracy
-  console.log('[extractWithAI] Starting 4-category parallel extraction with userText length:', userText.length, 'hasImage:', !!effectiveImageDataUrl);
   const categoryTasks = CATEGORY_PROMPTS.map(async (cat) => {
     try {
-      console.log(`[extractWithAI] ⏳ Calling AI for category "${cat.name}"`);
-      const response = await callAI<{ facts: any[] }>(
+      const response = await callAI<{ facts: unknown[] }>(
         cat.prompt,
         userText,
         {
@@ -298,30 +241,29 @@ export async function extractWithAI(
           timeoutMs: context?.timeoutMs || 45000,
         }
       );
-      console.log(`[extractWithAI] ✅ AI raw response for "${cat.name}":`, JSON.stringify(response, null, 2));
       const validated = validateStructuredFacts(response);
-      console.log(`[extractWithAI] Validated facts for "${cat.name}":`, validated.facts.length, validated.errors);
-      return validated.facts.length > 0 ? validated.facts : (Array.isArray(response) ? response : response.facts || []);
-    } catch (err) {
-      console.warn(`[extractWithAI] Parallel category "${cat.name}" extraction notice:`, (err as any)?.message || err);
-      console.log(`[extractWithAI] Category "${cat.name}" failed fully:`, err);
+      const factsFromResponse = (response as unknown as { facts?: unknown[] })?.facts;
+      if (validated.facts.length > 0) return validated.facts;
+      if (Array.isArray(response)) return response as unknown[];
+      if (Array.isArray(factsFromResponse)) return factsFromResponse as unknown[];
+      return [];
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[extractWithAI] Parallel category "${cat.name}" extraction notice:`, msg);
       return [];
     }
   });
 
   const settledResults = await Promise.allSettled(categoryTasks);
-  console.log('[extractWithAI] All categories settled:', settledResults.map(r => r.status));
-  settledResults.forEach((r, idx) => {
-    console.log(`[extractWithAI] Category ${CATEGORY_PROMPTS[idx].name} result:`, r.status === 'fulfilled' ? JSON.stringify(r.value).slice(0, 800) : (r as any).reason);
-  });
-  const aggregatedFacts: any[] = [];
+  const aggregatedFacts: unknown[] = [];
   const seenFactKeys = new Set<string>();
 
   for (const res of settledResults) {
     if (res.status === 'fulfilled' && Array.isArray(res.value)) {
       for (const f of res.value) {
         if (!f || typeof f !== 'object') continue;
-        const key = `${(f.category || '').toLowerCase()}_${(f.name || '').toLowerCase()}`;
+        const obj = f as { category?: unknown; name?: unknown };
+        const key = `${String(obj.category || '').toLowerCase()}_${String(obj.name || '').toLowerCase()}`;
         if (!seenFactKeys.has(key)) {
           seenFactKeys.add(key);
           aggregatedFacts.push(f);
@@ -330,15 +272,11 @@ export async function extractWithAI(
     }
   }
 
-  console.log('[extractWithAI] Aggregated facts before vault mapping:', JSON.stringify(aggregatedFacts, null, 2));
-  console.log('[extractWithAI] Total aggregated facts count:', aggregatedFacts.length);
-
   if (context?.onStepProgress) {
     context.onStepProgress('done', `Extracted ${aggregatedFacts.length} clinical facts across 4 categories.`);
   }
 
   const mapped = mapToVaultFacts(aggregatedFacts, patientId, documentId, docType);
-  console.log('[extractWithAI] Final mapped Vault Facts:', JSON.stringify(mapped, null, 2));
   return mapped;
 }
 
@@ -356,27 +294,28 @@ function normalizeUnit(category: string, name: string, unit?: string): string {
 }
 
 function mapToVaultFacts(
-  aiFacts: any[],
+  aiFacts: unknown[],
   patientId: string,
   documentId: string,
   docType?: string
 ): Fact[] {
   return aiFacts.map((f, idx) => {
-    const name = typeof f.name === 'string' && f.name.trim() ? f.name.trim().slice(0, 100) : `Fact ${idx + 1}`;
-    const category = typeof f.category === 'string' && f.category.trim() ? f.category.trim().toLowerCase() : 'medication';
-    const rawConfidence = typeof f.confidence === 'number' ? f.confidence : 0.88;
+    const obj = (f && typeof f === 'object' ? f : {}) as { name?: unknown; category?: unknown; confidence?: unknown; plainExplanation?: unknown; value?: unknown; unit?: unknown };
+    const name = typeof obj.name === 'string' && obj.name.trim() ? obj.name.trim().slice(0, 100) : `Fact ${idx + 1}`;
+    const category = typeof obj.category === 'string' && obj.category.trim() ? obj.category.trim().toLowerCase() : 'medication';
+    const rawConfidence = typeof obj.confidence === 'number' ? obj.confidence : 0.88;
     const confidence = Math.max(0.2, Math.min(1.0, Number.isFinite(rawConfidence) ? rawConfidence : 0.88));
-    const plainExplanation = typeof f.plainExplanation === 'string' && f.plainExplanation.trim()
-      ? f.plainExplanation.trim().slice(0, 300)
+    const plainExplanation = typeof obj.plainExplanation === 'string' && obj.plainExplanation.trim()
+      ? obj.plainExplanation.trim().slice(0, 300)
       : `${name} noted.`;
-    const unit = normalizeUnit(category, name, f.unit);
+    const unit = normalizeUnit(category, name, typeof obj.unit === 'string' ? obj.unit : undefined);
 
     return {
       id: `fact_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
       patientId,
-      category: category as any,
+      category: category as unknown as Fact['category'],
       name,
-      value: f.value ?? name,
+      value: ((obj.value as unknown) ?? name) as unknown as Fact['value'],
       unit,
       confidence: Math.round(confidence * 100) / 100,
       status: 'unconfirmed' as const,
@@ -394,10 +333,13 @@ function derivePatientId(): string {
     if (typeof localStorage !== 'undefined') {
       const raw = localStorage.getItem('carecanvas_active_user');
       if (raw) {
-        const parsed = JSON.parse(raw);
-        return parsed?.userId || parsed?.id || parsed?.patientId || 'patient-unknown';
+        const parsed = JSON.parse(raw) as unknown as { userId?: unknown; id?: unknown; patientId?: unknown };
+        const p = parsed as { userId?: unknown; id?: unknown; patientId?: unknown };
+        const val = p?.userId ?? p?.id ?? p?.patientId;
+        if (typeof val === 'string' && val.trim()) return val.trim();
+        if (typeof val === 'string') return val;
       }
     }
-  } catch {}
+  } catch { /* intentionally empty */ }
   return 'patient-unknown';
 }

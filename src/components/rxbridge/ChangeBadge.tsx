@@ -43,7 +43,7 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
           label: customLabel || 'NEW',
           icon: Sparkles,
           bgClass: 'bg-purple-50 text-clinical-purple border-purple-200 hover:bg-purple-100',
-          dotClass: 'bg-clinical-purple shadow-purple-400/50',
+          dotClass: 'bg-clinical-purple',
           defaultTooltip: 'Brand new medication started in hospital or on discharge.'
         };
       case 'DOSE_CHANGED':
@@ -51,7 +51,7 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
           label: customLabel || 'DOSE CHANGED',
           icon: ArrowUpDown,
           bgClass: 'bg-sky-50 text-clinical-blue border-sky-200 hover:bg-sky-100',
-          dotClass: 'bg-clinical-blue shadow-sky-400/50',
+          dotClass: 'bg-clinical-blue',
           defaultTooltip: 'Dose, frequency, or administration route was modified.'
         };
       case 'STOPPED':
@@ -59,7 +59,7 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
           label: customLabel || 'STOPPED',
           icon: XOctagon,
           bgClass: 'bg-rose-50 text-clinical-red border-rose-200 hover:bg-rose-100',
-          dotClass: 'bg-clinical-red shadow-rose-400/50',
+          dotClass: 'bg-clinical-red',
           defaultTooltip: 'Medication discontinued in hospital. Do NOT take old supply.'
         };
       case 'HELD_AND_RESUMED':
@@ -76,7 +76,7 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
           label: customLabel || 'CONTINUED',
           icon: CheckCircle2,
           bgClass: 'bg-emerald-50 text-clinical-emerald border-emerald-200 hover:bg-emerald-100',
-          dotClass: 'bg-clinical-emerald shadow-emerald-400/50',
+          dotClass: 'bg-clinical-emerald',
           defaultTooltip: 'Unchanged from regular home baseline regimen.'
         };
     }

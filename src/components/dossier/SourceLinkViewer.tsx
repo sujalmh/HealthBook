@@ -133,7 +133,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-black text-slate-900 tracking-tight">{activeFileName}</h3>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">{activeFileName}</h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 font-bold border border-emerald-200 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" />
                 Verified Ground Truth
@@ -390,10 +390,10 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
           {/* Animated Gold & Sky Bounding Box Highlight */}
           {activeBox && (!activeBox.pageIndex || activeBox.pageIndex === currentPage) && (
             <div
-              className="absolute pointer-events-none rounded-md transition-all duration-300 border-2 border-amber-400 bg-amber-400/20 shadow-lg shadow-amber-400/30 animate-pulse"
+              className="absolute pointer-events-none rounded-md transition-all duration-300 border-2 border-amber-400 bg-amber-400/20 animate-pulse"
               style={getBoxStyle(activeBox)}
             >
-              <div className="absolute -top-7 left-0 flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-sky-500 text-slate-900 font-sans font-black text-[9px] px-2 py-0.5 rounded shadow-md whitespace-nowrap">
+              <div className="absolute -top-7 left-0 flex items-center gap-1.5 bg-amber-100 text-amber-900 font-sans font-bold text-[9px] px-2 py-0.5 rounded shadow-md whitespace-nowrap">
                 <Sparkles className="w-3 h-3 text-slate-900" />
                 <span>Source ground truth highlight</span>
               </div>

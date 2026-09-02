@@ -8,18 +8,18 @@ import type { LabRecord, MedicationRecord, AllergyRecord, ConditionRecord, Fact 
 
 export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR4Bundle {
   const patientId = dossier.patientId || '';
+  const now = new Date().toISOString();
+  const fallbackMrn = `MRN-${patientId.replace(/[^A-Z0-9]/gi, '').slice(0, 6).toUpperCase() || 'XXXXXX'}`;
   const profile = dossier.patientProfile || {
     id: patientId,
     name: 'Patient',
-    mrn: 'MRN-984210',
-    dob: '1948-03-14',
-    age: 78,
-    gender: 'female',
+    mrn: fallbackMrn,
+    dob: '1950-01-01',
+    age: 55,
+    gender: 'Other',
     allergies: [],
     chronicConditions: []
   };
-
-  const now = new Date().toISOString();
   const bundleId = `bundle-cc-${patientId.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
   const entries: FHIRR4Bundle['entry'] = [];
 
@@ -31,7 +31,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
       {
         use: 'usual',
         system: 'urn:oid:carecanvas:mrn',
-        value: profile.mrn || 'MRN-984210'
+        value: profile.mrn || fallbackMrn
       }
     ],
     active: true,
@@ -39,12 +39,12 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
       {
         use: 'official',
         text: profile.name,
-        family: profile.name.split(' ').slice(-1)[0] || 'Devi',
+        family: profile.name.split(' ').slice(-1)[0] || 'Patient',
         given: profile.name.split(' ').slice(0, -1)
       }
     ],
     gender: (profile.gender?.toLowerCase().startsWith('m') ? 'male' : 'female') as 'male' | 'female',
-    birthDate: profile.dob || '1948-03-14',
+    birthDate: profile.dob || '1950-01-01',
     meta: {
       source: 'urn:carecanvas:localvault',
       lastUpdated: now
@@ -110,7 +110,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
           reference: `urn:uuid:${patientId}`,
           display: profile.name
         },
-        recordedDate: cond.diagnosedDate || '2024-04-12'
+        recordedDate: cond.diagnosedDate || now.slice(0, 10)
       }
     });
   }
@@ -161,7 +161,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
           reference: `urn:uuid:${patientId}`,
           display: profile.name
         },
-        recordedDate: allergy.recordedDate || '2018-05-10',
+        recordedDate: allergy.recordedDate || now.slice(0, 10),
         reaction: [
           {
             manifestation: [
@@ -200,7 +200,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
           display: profile.name
         },
         effectivePeriod: {
-          start: med.startDate || '2026-08-25'
+          start: med.startDate || now.slice(0, 10)
         },
         dosage: [
           {
@@ -322,7 +322,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
         },
         title: 'CareCanvas Chronic Disease Management & Post-Discharge Care Plan',
         period: {
-          start: '2026-08-25'
+          start: now.slice(0, 10)
         },
         activity: (dossier.dueCards || []).map((card, idx) => ({
           detail: {

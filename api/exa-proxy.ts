@@ -1,14 +1,7 @@
 /**
  * CareCanvas Serverless Exa Search Proxy
- * Proxies healthcare grounding search requests to https://api.exa.ai/search
- * Docs: https://exa.ai/docs/reference/search-best-practices
- * Endpoint: POST https://api.exa.ai/search — Auth via Authorization: Bearer <EXA_API_KEY>
- *
- * Best practices followed:
- * - Accepts exact /search JSON body per Exa docs (contents nested, not top-level)
- * - Server injects key from EXA_API_KEY / VITE_EXA_API_KEY so browser never needs to expose it
- * - If client already sends Authorization, proxy respects it (Settings override)
- * - Dual-runtime: Node Serverless (Vercel) + Web Request (Edge) — mirrors ocr-proxy/ai-proxy
+ * POST https://api.exa.ai/search — Auth via Authorization: Bearer <EXA_API_KEY>
+ * Server injects key from EXA_API_KEY / VITE_EXA_API_KEY so browser never exposes it.
  */
 
 export const maxDuration = 30;
@@ -30,37 +23,58 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  // Health check for production UI: GET /api/exa-proxy/health or /api/exa-proxy?health=1
+  // Note: Vercel rewrite strips :match*, so check x-forwarded headers and query
+  try {
+    const url = new URL(req.url);
+    const forwarded = req.headers.get('x-forwarded-uri') || req.headers.get('x-matched-path') || '';
+    const isHealth = url.pathname.endsWith('/health') || url.searchParams.get('health') === '1' || forwarded.includes('/health') || forwarded.includes('health=1') || req.headers.get('x-health-check') === '1';
+    if (isHealth) {
+      const key = resolveServerKey();
+      return new Response(JSON.stringify({ enabled: !!key, hasKey: !!key, base: '/api/exa-proxy', status: key ? 'ready' : 'missing_api_key' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+  } catch {}
   return handleWebProxy(req);
 }
 
 function resolveServerKey(): string {
   try {
-    const env: any = (typeof process !== 'undefined' ? (process as any).env : {}) || {};
-    // Support multiple var names user might have set
-    return (
-      env.EXA_API_KEY ||
-      env.VITE_EXA_API_KEY ||
-      env.VITE_EXA_KEY ||
-      env.EXA_KEY ||
-      ""
-    ).trim();
+    const env = (typeof globalThis !== 'undefined' && 'process' in globalThis
+      ? ((globalThis as unknown as { process?: { env?: Record<string, string> } }).process?.env ?? {})
+      : {}) as Record<string, string>;
+    return (env.EXA_API_KEY || env.VITE_EXA_API_KEY || "").trim();
   } catch {
     return "";
   }
 }
 
-export default async function handler(req: any, res?: any) {
-  if (res && typeof res.setHeader === 'function') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.setHeader('Access-Control-Max-Age', '86400');
-    if (req.method === 'OPTIONS') return res.status(204).end();
+export default async function handler(req: unknown, res?: unknown) {
+  const r = req as { headers?: Record<string, string>; method?: string; body?: unknown; text?: () => Promise<string>; on?: (e: string, cb: (c: unknown) => void) => void; url?: string };
+  const response = res as { setHeader?: (k: string, v: string) => void; status?: (c: number) => { json: (o: unknown) => unknown; end: () => unknown; send: (b: string) => unknown }; json?: (o: unknown) => unknown };
+  if (response && typeof response.setHeader === 'function') {
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    response.setHeader('Access-Control-Max-Age', '86400');
+    if (r.method === 'OPTIONS') return (response.status as (n:number)=>{end:()=>void})(204).end();
+    // Health check for production UI (server truth) — handle Vercel rewrite stripping
+    try {
+      const rawUrl: string = (r as any).url || '';
+      const forwarded: string = ((r.headers?.['x-forwarded-uri'] as string) || (r.headers?.['x-matched-path'] as string) || '') as string;
+      const isHealth = rawUrl.includes('/health') || rawUrl.includes('health=1') || forwarded.includes('/health') || forwarded.includes('health=1');
+      if (r.method === 'GET' && isHealth) {
+        const key = resolveServerKey();
+        return (response.status as (n:number)=>{json:(o:unknown)=>unknown})(200).json({ enabled: !!key, hasKey: !!key, base: '/api/exa-proxy', status: key ? 'ready' : 'missing_api_key' });
+      }
+    } catch {}
 
     try {
       const targetUrl = 'https://api.exa.ai/search';
 
-      const authHeader: string = req.headers?.['authorization'] || req.headers?.['Authorization'] || '';
+      const authHeader: string = (r.headers?.['authorization'] || r.headers?.['Authorization'] || '') as string;
       const serverKey = resolveServerKey();
       const effectiveAuth =
         authHeader && authHeader.trim().length > 7 && !authHeader.toLowerCase().includes('bearer undefined')
@@ -70,36 +84,35 @@ export default async function handler(req: any, res?: any) {
             : '';
 
       if (!effectiveAuth) {
-        return res.status(401).json({
+        return (response.status as (n:number)=>{json:(o:unknown)=>unknown})(401).json({
           error: 'EXA_API_KEY not configured — set EXA_API_KEY in Vercel env or VITE_EXA_API_KEY locally',
           type: 'missing_api_key',
         });
       }
 
       let body: string | undefined = undefined;
-      if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
-        if (typeof req.body === 'string') body = req.body;
-        else if (req.body && typeof req.body === 'object') body = JSON.stringify(req.body);
-        else if (typeof req.text === 'function') {
-          try { body = await req.text(); } catch {}
+      if (r.method === 'POST' || r.method === 'PUT' || r.method === 'PATCH') {
+        if (typeof r.body === 'string') body = r.body;
+        else if (r.body && typeof r.body === 'object') body = JSON.stringify(r.body);
+        else if (typeof r.text === 'function') {
+          try { body = await r.text(); } catch { /* intentionally empty */ }
         } else {
           body = await new Promise<string>((resolve) => {
             let data = '';
-            req.on?.('data', (c: any) => (data += c));
-            req.on?.('end', () => resolve(data));
-            req.on?.('error', () => resolve(''));
+            (r.on as unknown as (e:string, cb:(c:string)=>void)=>void)?.('data', (c: string) => (data += c));
+            (r.on as unknown as (e:string, cb:()=>void)=>void)?.('end', () => resolve(data));
+            (r.on as unknown as (e:string, cb:()=>void)=>void)?.('error', () => resolve(''));
             setTimeout(() => resolve(data), 2000);
-          }).catch(() => undefined) as any;
+          }).catch(() => undefined) as unknown as string;
           if (body === '') body = undefined;
         }
       }
 
-      // Minimal body validation — must have query per docs
       if (body) {
         try {
-          const parsed = JSON.parse(body);
+          const parsed = JSON.parse(body) as Record<string, unknown>;
           if (!parsed.query || typeof parsed.query !== 'string' || !parsed.query.trim()) {
-            return res.status(400).json({ error: 'query is required (string)', type: 'bad_request' });
+            return (response.status as (n:number)=>{json:(o:unknown)=>unknown})(400).json({ error: 'query is required (string)', type: 'bad_request' });
           }
         } catch {
           // forward anyway, let Exa validate
@@ -109,10 +122,9 @@ export default async function handler(req: any, res?: any) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 25000);
 
-      // Copy Exa-Beta header for dynamic highlights if present
-      const betaHeader: string | undefined = req.headers?.['exa-beta'] || req.headers?.['Exa-Beta'] || req.headers?.['x-exa-beta'];
+      const betaHeader: string | undefined = r.headers?.['exa-beta'] || r.headers?.['Exa-Beta'] || r.headers?.['x-exa-beta'];
 
-      const response = await fetch(targetUrl, {
+      const fetchResponse = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,22 +135,22 @@ export default async function handler(req: any, res?: any) {
         signal: controller.signal,
       });
       clearTimeout(timer);
-      const responseBody = await response.text();
-      res.status(response.status);
-      res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
-      // Pass through cost header if present
-      const cost = response.headers.get('x-cost-dollars') || response.headers.get('x-exa-cost');
-      if (cost) res.setHeader('X-Exa-Cost', cost);
-      return res.send(responseBody);
-    } catch (err: any) {
-      const isTimeout = err?.name === 'AbortError' || err?.message?.includes('timeout') || err?.message?.includes('aborted');
-      return res.status(isTimeout ? 504 : 500).json({
-        error: isTimeout ? 'Exa request timed out after 25s' : (err?.message || 'Exa proxy error'),
+      const responseBody = await fetchResponse.text();
+      (response.status as (n:number)=>unknown)(fetchResponse.status);
+      response.setHeader?.('Content-Type', fetchResponse.headers.get('content-type') || 'application/json');
+      const cost = fetchResponse.headers.get('x-cost-dollars') || fetchResponse.headers.get('x-exa-cost');
+      if (cost) response.setHeader?.('X-Exa-Cost', cost);
+      return (response as unknown as { send: (b:string)=>unknown }).send(responseBody);
+    } catch (err: unknown) {
+      const e = err as { name?: string; message?: string };
+      const isTimeout = e?.name === 'AbortError' || e?.message?.includes('timeout') || e?.message?.includes('aborted');
+      return (response.status as (n:number)=>{json:(o:unknown)=>unknown})(isTimeout ? 504 : 500).json({
+        error: isTimeout ? 'Exa request timed out after 25s' : (e?.message || 'Exa proxy error'),
         type: isTimeout ? 'timeout_error' : 'proxy_error',
       });
     }
   }
-  return handleWebProxy(req);
+  return handleWebProxy(req as Request);
 }
 
 async function handleWebProxy(req: Request) {
@@ -160,14 +172,14 @@ async function handleWebProxy(req: Request) {
     if (req.method === 'POST') body = await req.text().catch(() => undefined);
     if (body) {
       try {
-        const parsed = JSON.parse(body);
+        const parsed = JSON.parse(body) as Record<string, unknown>;
         if (!parsed.query || typeof parsed.query !== 'string' || !parsed.query.trim()) {
           return new Response(JSON.stringify({ error: 'query is required (string)', type: 'bad_request' }), {
             status: 400,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           });
         }
-      } catch {}
+      } catch { /* intentionally empty */ }
     }
 
     const betaHeader = req.headers.get('exa-beta') || req.headers.get('Exa-Beta');
@@ -192,9 +204,10 @@ async function handleWebProxy(req: Request) {
         'Access-Control-Allow-Origin': '*',
       },
     });
-  } catch (err: any) {
-    const isTimeout = err?.name === 'AbortError';
-    return new Response(JSON.stringify({ error: isTimeout ? 'Exa request timed out' : (err?.message || 'Proxy error'), type: isTimeout ? 'timeout_error' : 'proxy_error' }), {
+  } catch (err: unknown) {
+    const e = err as { name?: string; message?: string };
+    const isTimeout = e?.name === 'AbortError';
+    return new Response(JSON.stringify({ error: isTimeout ? 'Exa request timed out' : (e?.message || 'Proxy error'), type: isTimeout ? 'timeout_error' : 'proxy_error' }), {
       status: isTimeout ? 504 : 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });

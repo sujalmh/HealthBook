@@ -166,7 +166,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-extrabold text-slate-900 text-base">{item.medName}</span>
+                    <span className="font-bold text-slate-900 text-base">{item.medName}</span>
                     {item.isOTC && (
                       <span className="text-caption px-1.5 py-0.5 rounded bg-amber-50 text-clinical-amber font-mono border border-amber-200">
                         OTC
@@ -308,7 +308,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
 
                   {/* Medication Name & Crosswalk */}
                   <td className="py-3.5 px-4">
-                    <div className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                    <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
                       <span>{item.medName}</span>
                       {item.isOTC && (
                         <span className="text-caption px-1.5 py-0.5 rounded bg-amber-50 text-clinical-amber font-mono border border-amber-200">

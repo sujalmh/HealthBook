@@ -90,7 +90,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
               <span className="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-700 font-mono font-bold text-xs border border-sky-500/40">
                 Step {currentIndex + 1} of {items.length}
               </span>
-              <h3 className="text-lg font-black text-slate-900">Conversational Medication Walkthrough</h3>
+              <h3 className="text-lg font-bold text-slate-900">Conversational Medication Walkthrough</h3>
             </div>
             <p className="text-xs text-slate-600 mt-0.5">
               Review each medication change one-by-one with clear clinical explanations before confirming your home schedule.
@@ -107,7 +107,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             </div>
             <div className="w-16 h-2 bg-canvas-border rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-primary to-clinical-emerald transition-all duration-300"
+                className="h-full bg-primary transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -185,7 +185,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block">
               1. Pre-Admission (Home)
             </span>
-            <div className="text-base font-extrabold text-slate-800">
+            <div className="text-base font-bold text-slate-800">
               {currentItem.preHospDose !== 'None' ? currentItem.preHospDose : <span className="text-slate-600 italic">None</span>}
             </div>
             <div className="text-xs text-slate-600">
@@ -198,7 +198,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block">
               2. In-Hospital Action
             </span>
-            <div className="text-base font-extrabold text-sky-700">
+            <div className="text-base font-bold text-sky-700">
               {currentItem.inHospAction}
             </div>
             {currentItem.inHospReason && (
@@ -221,7 +221,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             <span className="text-[10px] font-mono uppercase tracking-wider font-bold block opacity-80">
               3. Discharge Order
             </span>
-            <div className="text-lg font-black tracking-tight">
+            <div className="text-lg font-bold tracking-tight">
               {currentItem.dischargeDose}
             </div>
             <div className="text-xs font-medium opacity-90">
@@ -237,7 +237,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
               <Bot className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-caption font-black uppercase tracking-wider text-clinical-blue">
+              <h4 className="text-caption font-bold uppercase tracking-wider text-clinical-blue">
                 CareCanvas clinical agent explanation
               </h4>
               <p className="text-caption text-muted">Plain-language why this medication changed</p>
@@ -260,7 +260,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
         {((currentItem.interactions && currentItem.interactions.length > 0) ||
           (currentItem.dietInteractions && currentItem.dietInteractions.length > 0)) && (
           <div className="space-y-3">
-            <h4 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4" />
               <span>Safety & Interaction Screen Results</span>
             </h4>
@@ -375,7 +375,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
               className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs shadow-lg transition-all min-h-[44px] ${
                 isApproved
                   ? 'bg-emerald-600 text-white shadow-emerald-900/30'
-                  : 'bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-sky-900/30 hover:scale-[1.01]'
+                  : 'bg-sky-700 hover:bg-sky-800 text-white'
               }`}
             >
               <Check className="w-4 h-4" />

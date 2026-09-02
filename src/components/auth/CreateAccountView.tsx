@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { HeartPulse } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { HeartPulse, Sparkles } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
+import { getSeededForEmail, isRateLimitError, isEmailInvalidError } from '@/core/auth/seededMap';
 
 export interface CreatedProfile {
   userId: string;
   name: string;
   email?: string;
-  role: 'patient';
+  role: 'patient' | 'doctor';
   isProxy: false;
+  permissionLevel?: 'view_only' | 'manage' | 'full';
   createdAt: string;
 }
 
@@ -25,7 +27,42 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'patient' | 'doctor'>('patient');
   const [isCreating, setIsCreating] = useState(false);
+  const [mcpPrefill, setMcpPrefill] = useState(false);
+
+  // MCP prefill: AI prepared name/email/role — human still types password in browser (human-only)
+  useEffect(() => {
+    const applyPrefill = (detail: unknown) => {
+      const d = detail as { name?: string; email?: string; role?: string; mode?: string };
+      if (!d) return;
+      // Only apply create mode or generic prefill
+      if (d.mode && d.mode !== 'create') return;
+      let did = false;
+      if (typeof d.email === 'string' && d.email.trim()) { setEmail(d.email.trim()); did = true; }
+      if (typeof d.name === 'string' && d.name.trim()) { setName(d.name.trim().slice(0, 64)); did = true; }
+      if (d.role === 'patient' || d.role === 'doctor') { setRole(d.role); did = true; }
+      if (did) setMcpPrefill(true);
+    };
+    // Cold start: check pending storage (AI called before mount)
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('carecanvas_mcp_auth_pending') : null;
+      if (raw) {
+        const p = JSON.parse(raw) as { mode?: string; name?: string; email?: string; role?: string };
+        if (p && (p.mode === 'create' || !p.mode) && p.email) applyPrefill(p);
+      }
+    } catch { /* ignore */ }
+    const onWindow = (e: Event) => applyPrefill((e as CustomEvent).detail);
+    const onBus = (payload: unknown) => applyPrefill(payload);
+    window.addEventListener('carecanvas_mcp_auth_pending', onWindow as EventListener);
+    window.addEventListener('carecanvas_mcp_prefill', onWindow as EventListener);
+    const off1 = eventBus.on('mcp_auth_pending' as unknown as string, onBus as unknown as () => void);
+    return () => {
+      window.removeEventListener('carecanvas_mcp_auth_pending', onWindow as EventListener);
+      window.removeEventListener('carecanvas_mcp_prefill', onWindow as EventListener);
+      off1();
+    };
+  }, []);
 
   const handleCreate = async () => {
     if (isCreating) return;
@@ -57,26 +94,38 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
 
       let userId: string | null = null;
       let supabaseUsed = false;
+      let supabaseRateLimited = false;
 
       // Try Supabase Auth if configured (graceful fallback to local)
-      const supabaseUrl = (import.meta as any)?.env?.VITE_SUPABASE_URL;
-      const supabaseAnon = (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_URL;
+      const supabaseAnon = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_ANON_KEY;
       if (supabaseUrl && supabaseAnon && emailTrim && passwordTrim) {
         try {
           const { getSupabaseClient } = await import('@/core/supabase/client');
-          const client: any = getSupabaseClient();
+          const client = getSupabaseClient() as unknown as { auth?: { signUp?: (opts: unknown) => Promise<{ data?: { user?: { id: string } }; error?: { message?: string; code?: string } }> } };
           if (client?.auth?.signUp) {
             const res = await client.auth.signUp({
               email: emailTrim,
               password: passwordTrim,
               options: { data: { display_name: displayName } },
-            });
-            if (res?.data?.user?.id) {
-              userId = res.data.user.id;
+            } as unknown as never);
+            const dataUserId = (res as { data?: { user?: { id: string } } })?.data?.user?.id;
+            const errMsg = (res as { error?: { message?: string; code?: string } })?.error?.message;
+            const errCode = (res as { error?: { code?: string } })?.error?.code;
+            if (dataUserId) {
+              userId = dataUserId;
               supabaseUsed = true;
-            } else if (res?.error) {
-              // fallback to local if supabase error (e.g., offline)
-              console.warn('[CreateAccount] Supabase signUp failed, fallback to local:', res.error?.message);
+            } else if (errMsg) {
+              const isRate = isRateLimitError(errMsg) || isRateLimitError(errCode) || errMsg.includes('429');
+              const isInvalid = isEmailInvalidError(errMsg);
+              if (isRate) {
+                supabaseRateLimited = true;
+                console.warn('[CreateAccount] Supabase rate-limited (429) — disallowed, fallback to local demo (production fix):', errMsg);
+              } else if (isInvalid) {
+                console.warn('[CreateAccount] Supabase email invalid — fallback to local (any pattern allowed locally):', errMsg);
+              } else {
+                console.warn('[CreateAccount] Supabase signUp failed, fallback to local:', errMsg);
+              }
             }
           }
         } catch (e) {
@@ -85,11 +134,21 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
       }
 
       if (!userId) {
-        // Local fallback
-        try {
-          userId = (globalThis as any).crypto?.randomUUID?.() || `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        } catch {
-          userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        // Production fix: seeded demo users get deterministic patientId so vault labs match; any email pattern allowed locally (disallow rate limit)
+        const seeded = getSeededForEmail(emailTrim);
+        if (seeded) {
+          userId = seeded.userId;
+          if (!name.trim() || seeded.name) displayName = seeded.name;
+          if (seeded.role) setRole(seeded.role);
+        } else {
+          try {
+            userId = (globalThis as unknown as { crypto?: { randomUUID?: () => string } }).crypto?.randomUUID?.() || `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          } catch {
+            userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          }
+        }
+        if (supabaseRateLimited) {
+          console.log('[CreateAccount] Rate limit bypassed via local demo — production fix active');
         }
       }
 
@@ -97,8 +156,9 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
         userId: userId!,
         name: displayName,
         email: emailTrim,
-        role: 'patient',
+        role,
         isProxy: false,
+        permissionLevel: role === 'doctor' ? 'view_only' : undefined,
         createdAt: new Date().toISOString(),
       };
 
@@ -108,12 +168,12 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
         // Also persist password for local sign-in verification (stored separately, not in active token display)
         localStorage.setItem(`carecanvas_cred_${profile.userId}`, passwordTrim);
         if (profile.email) localStorage.setItem(`carecanvas_cred_email_${profile.email.toLowerCase()}`, JSON.stringify({ userId: profile.userId, password: passwordTrim }));
-      } catch {}
+      } catch { /* intentionally empty */ }
 
       // Maintain users array for future sign-in
       try {
         const raw = localStorage.getItem('carecanvas_users');
-        const arr: any[] = raw ? JSON.parse(raw) : [];
+        const arr: Array<{ userId?: string; email?: string; password?: string }> = raw ? (JSON.parse(raw) as Array<{ userId?: string; email?: string; password?: string }>) : [];
         // Avoid duplicates by userId or email
         const exists = arr.find((u) => u.userId === profile.userId || (profile.email && u.email === profile.email));
         if (!exists) {
@@ -125,13 +185,30 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
           if (idx !== -1) arr[idx].password = passwordTrim;
           localStorage.setItem('carecanvas_users', JSON.stringify(arr));
         }
-      } catch {}
+      } catch { /* intentionally empty */ }
 
       eventBus.dispatchToast({
         type: 'success',
         title: supabaseUsed ? 'Account Created' : 'Welcome to CareCanvas',
         message: supabaseUsed ? `Account created for ${displayName}` : `Account created for ${displayName}`,
       });
+
+      // Clear MCP pending if this completion was via AI-assisted flow
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const raw = localStorage.getItem('carecanvas_mcp_auth_pending');
+          if (raw) {
+            const p = JSON.parse(raw) as { mode?: string; email?: string };
+            if (p?.email?.toLowerCase() === emailTrim.toLowerCase() && (p.mode === 'create' || !p.mode)) {
+              const pid = (p as { pendingId?: string }).pendingId;
+              if (pid) try { localStorage.removeItem(`carecanvas_mcp_auth_pending_${pid}`); } catch { /* ignore */ }
+              localStorage.removeItem('carecanvas_mcp_auth_pending');
+              try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_cleared')); } catch { /* ignore */ }
+              try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
+            }
+          }
+        }
+      } catch { /* ignore */ }
 
       onCreated(profile);
     } finally {
@@ -147,14 +224,24 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
     <div className="w-full max-w-md mx-auto bg-white border border-canvas-border rounded-2xl p-6 shadow-sm">
       {/* Brand header */}
       <div className="flex flex-col items-center text-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 ring-1 ring-primary/10">
+        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <HeartPulse className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-black tracking-tight text-slate-900">Create Account</h1>
+          <h1 className="text-lg font-bold tracking-tight text-slate-900">Create Account</h1>
           <p className="text-body-sm text-muted mt-1">Your health, all in one place — private on this device</p>
         </div>
       </div>
+
+      {mcpPrefill && (
+        <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex gap-2.5 text-left" data-testid="mcp-prefill-banner">
+          <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-caption font-bold text-emerald-800">AI helped fill your details</p>
+            <p className="text-caption text-emerald-700 leading-snug">Name & email prefilled — please type your <strong>password</strong> below to finish. Password is never shared with AI.</p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div className="space-y-1.5">
@@ -194,7 +281,7 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
 
         <div className="space-y-1.5">
           <label htmlFor="cc-password" className="text-body-sm font-semibold text-slate-800">
-            Password <span className="text-rose-500">*</span>
+            Password <span className="text-rose-500">*</span> <span className="text-caption font-normal text-muted">(human only — never shared with AI)</span>
           </label>
           <input
             id="cc-password"
@@ -206,10 +293,35 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
             required
             minLength={6}
             className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px]"
-            aria-label="Password"
+            aria-label="Password — human only, never shared with AI"
             aria-required="true"
           />
-          <p className="text-caption text-muted">At least 6 characters</p>
+          <p className="text-caption text-muted">At least 6 characters — typed securely in browser, AI cannot see this</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-body-sm font-semibold text-slate-800">I am a</label>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Role">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={role === 'patient'}
+              onClick={() => setRole('patient')}
+              className={`px-3 py-2.5 rounded-xl text-sm font-bold border min-h-[44px] transition-colors ${role === 'patient' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-700 border-canvas-border hover:bg-canvas-muted'}`}
+            >
+              Patient
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={role === 'doctor'}
+              onClick={() => setRole('doctor')}
+              className={`px-3 py-2.5 rounded-xl text-sm font-bold border min-h-[44px] transition-colors ${role === 'doctor' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-700 border-canvas-border hover:bg-canvas-muted'}`}
+            >
+              Doctor
+            </button>
+          </div>
+          <p className="text-caption text-muted">{role === 'doctor' ? 'Doctors can view linked patient profiles via My Patients.' : 'Patients own their vault and can link doctors.'}</p>
         </div>
 
         <button

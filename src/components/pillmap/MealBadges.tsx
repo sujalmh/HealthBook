@@ -1,7 +1,7 @@
 /**
  * CareCanvas Component: MealBadges
  * Interactive meal-time badges and food interaction flags attached to medications.
- * Badges: 🍽️ Take with Food, 🥣 Empty Stomach, 🚫 No Grapefruit, 🥬 Vit K, 🥛 Separate Calcium, 🚫 Zero Alcohol, 🧂 K+ Salt.
+ * Badges: Take with Food, Empty Stomach, No Grapefruit, Vit K, Separate Calcium, Zero Alcohol, K+ Salt.
  */
 
 import React, { useState } from 'react';
@@ -66,7 +66,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     badgesToRender.push({
       key: 'with_food',
       label: 'With food',
-      icon: '🍽️',
+      icon: '',
       bgColor: 'bg-emerald-100',
       textColor: 'text-emerald-700',
       borderColor: 'border-emerald-200',
@@ -80,7 +80,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     badgesToRender.push({
       key: 'empty_stomach',
       label: 'Empty stomach',
-      icon: '🥣',
+      icon: '',
       bgColor: 'bg-amber-100',
       textColor: 'text-amber-700',
       borderColor: 'border-amber-200',
@@ -94,7 +94,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     badgesToRender.push({
       key: 'no_grapefruit',
       label: 'No grapefruit',
-      icon: '🍊',
+      icon: '',
       bgColor: 'bg-rose-100',
       textColor: 'text-rose-700',
       borderColor: 'border-rose-200',
@@ -108,7 +108,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     badgesToRender.push({
       key: 'no_alcohol',
       label: 'No alcohol',
-      icon: '🚫',
+      icon: '',
       bgColor: 'bg-rose-100',
       textColor: 'text-rose-700',
       borderColor: 'border-rose-200',
@@ -122,7 +122,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     badgesToRender.push({
       key: 'no_dairy',
       label: 'No dairy 2h',
-      icon: '🥛',
+      icon: '',
       bgColor: 'bg-amber-100',
       textColor: 'text-amber-700',
       borderColor: 'border-amber-200',
@@ -138,7 +138,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
       badgesToRender.push({
         key: db.id,
         label: db.badgeText,
-        icon: db.badgeText.includes('Vit K') ? '🥬' : db.badgeText.includes('Grapefruit') ? '🍊' : '🍽️',
+        icon: db.badgeText.includes('Vit K') ? '' : db.badgeText.includes('Grapefruit') ? '' : '',
         bgColor: db.severity === 'CONTRAINDICATED' ? 'bg-rose-100' : 'bg-amber-100',
         textColor: db.severity === 'CONTRAINDICATED' ? 'text-rose-700' : 'text-amber-700',
         borderColor: db.severity === 'CONTRAINDICATED' ? 'border-rose-200' : 'border-amber-700/60',
@@ -170,10 +170,9 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
                 severity: b.severity
               });
             }}
-            className={`badge-btn inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-all hover:scale-105 shrink-0 min-w-0 min-h-0 ${b.bgColor} ${b.textColor} ${b.borderColor}`}
+            className={`badge-btn inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors shrink-0 min-w-0 min-h-0 ${b.bgColor} ${b.textColor} ${b.borderColor}`}
             title={`Click for dietary instruction: ${b.label}`}
           >
-            <span>{b.icon}</span>
             <span className="truncate max-w-[120px]">{b.label}</span>
           </button>
         ))}
@@ -184,10 +183,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
         {selectedBadge && (
           <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
             <div className="p-4 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{selectedBadge.icon}</span>
-                <h3 className="font-bold text-sm text-slate-900">{selectedBadge.title}</h3>
-              </div>
+              <h3 className="font-bold text-sm text-slate-900">{selectedBadge.title}</h3>
               <button
                 onClick={() => setSelectedBadge(null)}
                 className="p-2 rounded-xl hover:bg-slate-200 text-slate-600 hover:text-slate-900 min-h-[44px] min-w-[44px] flex items-center justify-center"

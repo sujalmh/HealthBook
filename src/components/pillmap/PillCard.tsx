@@ -89,7 +89,7 @@ export const PillCard: React.FC<PillCardProps> = ({
       data-med-name={pill.name}
       className={`group relative rounded-xl p-3 transition-all select-none border ${
         isGhost
-          ? 'bg-emerald-50 border-dashed border-emerald-300 text-emerald-800 animate-pulse shadow-sm'
+          ? 'bg-emerald-50 border-dashed border-emerald-300 text-emerald-800 shadow-sm'
           : isDuplicate
           ? 'bg-white border-amber-300 shadow-sm shadow-amber-500/10 text-amber-900'
           : 'bg-white border-canvas-border hover:border-primary-border shadow-sm hover:shadow-md text-slate-900'

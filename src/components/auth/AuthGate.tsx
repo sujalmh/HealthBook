@@ -16,7 +16,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         const parsed = JSON.parse(raw) as CreatedProfile;
         if (parsed?.userId) setProfile(parsed);
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
     setHydrated(true);
   }, []);
 

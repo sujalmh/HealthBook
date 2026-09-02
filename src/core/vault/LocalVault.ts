@@ -4,7 +4,7 @@
  * Empty vault until user upload: seed is NO-OP (see seed.ts), no auto-population.
  */
 
-import type { 
+import type {
   Fact,
   DocumentRecord,
   MedicationRecord,
@@ -17,7 +17,7 @@ import type {
   QuestionBankItem,
   DueCardRecord
  } from '../../types/vault.ts';
-import type {  LinkedCareProfile, DoctorAccessGrant  } from '../../types/carecircle.ts';
+import type {  LinkedCareProfile, DoctorAccessGrant, DoctorPatientLink  } from '../../types/carecircle.ts';
 import type {  DangerSignReport  } from '../../types/safety.ts';
 import { WebMCPEventBus } from '../events/eventBus.ts';
 import { isSupabaseEnabled, upsertSupabaseRecord } from '../supabase/client.ts';
@@ -28,30 +28,27 @@ import { isSupabaseEnabled, upsertSupabaseRecord } from '../supabase/client.ts';
  */
 function derivePatientId(): string {
   try {
-    const g: any = typeof globalThis !== 'undefined' ? globalThis : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? localStorage : undefined);
+    const maybeGlobal = globalThis as unknown as { localStorage?: Storage };
+    const ls = maybeGlobal?.localStorage ?? (typeof localStorage !== 'undefined' ? localStorage : undefined);
     if (ls) {
       const raw = ls.getItem('carecanvas_active_user');
       if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '' && pid.trim() !== 'patient-s-devi') return pid.trim();
+        const parsed: unknown = JSON.parse(raw);
+        const obj = parsed as { userId?: unknown; id?: unknown; patientId?: unknown };
+        const pid = obj?.userId ?? obj?.id ?? obj?.patientId;
         if (typeof pid === 'string' && pid.trim() !== '' && pid.trim() !== 'patient-s-devi') return pid.trim();
       }
     }
-  } catch {}
+  } catch {
+    return '';
+  }
   return '';
 }
 
 function ensurePatientId(passed?: string): string {
   if (typeof passed === 'string' && passed.trim() !== '' && passed.trim() !== 'patient-s-devi') return passed.trim();
-  // never leak patient-s-devi when deriving — only use active user; filter devi in derived as well
   const derived = derivePatientId();
   if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') return derived;
-  if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') return derived;
-  // if derived is patient-s-devi or empty, force isolation '' and do not propagate devi (caller must provide explicit non-devi)
-  // Prevent orphan '' storage leaking devi — return '' for isolation (getter will return [])
-  if (typeof passed === 'string' && passed.trim() !== '' && passed.trim() !== 'patient-s-devi') return passed.trim();
   return '';
 }
 
@@ -59,7 +56,7 @@ function ensurePatientId(passed?: string): string {
  * BIOMARKER_STANDARDS for lab normalization ±10% borderline + critical flags
  * Mirrors src/tools/labStoryTools.ts BIOMARKER_STANDARDS to ensure cross-field consistency without import cycle.
  */
-const LOCAL_BIOMARKER_STANDARDS: Record<string, { canonicalName: string; standardUnit: string; refRange: { low: number; high: number }; optimalRange: { low: number; high: number }; criticalLow?: number; criticalHigh?: number }> = {
+const LOCAL_BIOMARKER_STANDARDS: { [key: string]: { canonicalName: string; standardUnit: string; refRange: { low: number; high: number }; optimalRange: { low: number; high: number }; criticalLow?: number; criticalHigh?: number } } = {
   creatinine: { canonicalName: 'Creatinine', standardUnit: 'mg/dL', refRange: { low: 0.6, high: 1.2 }, optimalRange: { low: 0.7, high: 1.0 }, criticalHigh: 3.0 },
   egfr: { canonicalName: 'eGFR', standardUnit: 'mL/min/1.73m2', refRange: { low: 60, high: 120 }, optimalRange: { low: 90, high: 120 }, criticalLow: 15 },
   hba1c: { canonicalName: 'HbA1c', standardUnit: '%', refRange: { low: 4.0, high: 5.6 }, optimalRange: { low: 4.5, high: 5.4 }, criticalHigh: 10.0 },
@@ -69,6 +66,21 @@ const LOCAL_BIOMARKER_STANDARDS: Record<string, { canonicalName: string; standar
   ldl: { canonicalName: 'LDL', standardUnit: 'mg/dL', refRange: { low: 50, high: 100 }, optimalRange: { low: 50, high: 80 }, criticalHigh: 190 },
   hdl: { canonicalName: 'HDL', standardUnit: 'mg/dL', refRange: { low: 40, high: 80 }, optimalRange: { low: 50, high: 80 }, criticalLow: 25 },
   triglycerides: { canonicalName: 'Triglycerides', standardUnit: 'mg/dL', refRange: { low: 50, high: 150 }, optimalRange: { low: 60, high: 100 }, criticalHigh: 500 },
+  hemoglobin: { canonicalName: 'Hemoglobin', standardUnit: 'g/dL', refRange: { low: 12.0, high: 16.0 }, optimalRange: { low: 13.0, high: 15.5 }, criticalLow: 7.0, criticalHigh: 20.0 },
+  // Asthma ATS/ERS/GINA — preserve explicit ranges to prevent 0-100 fallback misapplied
+  fev1: { canonicalName: 'FEV1', standardUnit: '% predicted', refRange: { low: 80, high: 120 }, optimalRange: { low: 90, high: 110 }, criticalLow: 60 },
+  'fev1/fvc': { canonicalName: 'FEV1/FVC', standardUnit: 'ratio', refRange: { low: 0.70, high: 1.0 }, optimalRange: { low: 0.75, high: 0.90 } },
+  fvc: { canonicalName: 'FVC', standardUnit: '% predicted', refRange: { low: 80, high: 120 }, optimalRange: { low: 90, high: 110 } },
+  pef: { canonicalName: 'PEF', standardUnit: '% predicted', refRange: { low: 80, high: 120 }, optimalRange: { low: 90, high: 110 } },
+  feno: { canonicalName: 'FeNO', standardUnit: 'ppb', refRange: { low: 5, high: 25 }, optimalRange: { low: 5, high: 25 }, criticalHigh: 50 },
+  'blood eosinophils': { canonicalName: 'Blood Eosinophils', standardUnit: 'cells/µL', refRange: { low: 0, high: 500 }, optimalRange: { low: 0, high: 300 }, criticalHigh: 1500 },
+  'total ige': { canonicalName: 'Total IgE', standardUnit: 'IU/mL', refRange: { low: 0, high: 100 }, optimalRange: { low: 0, high: 100 } },
+  'act score': { canonicalName: 'ACT Score', standardUnit: '/25', refRange: { low: 20, high: 25 }, optimalRange: { low: 20, high: 25 } },
+  // Endocrine thyroid ATA — TSH & Free T4
+  tsh: { canonicalName: 'TSH', standardUnit: 'µIU/mL', refRange: { low: 0.4, high: 4.0 }, optimalRange: { low: 0.5, high: 3.0 }, criticalHigh: 10, criticalLow: 0.1 },
+  'free t4': { canonicalName: 'Free T4', standardUnit: 'ng/dL', refRange: { low: 0.8, high: 1.8 }, optimalRange: { low: 0.9, high: 1.7 } },
+  // Hepatic AASLD — ALT
+  alt: { canonicalName: 'ALT', standardUnit: 'U/L', refRange: { low: 7, high: 56 }, optimalRange: { low: 10, high: 40 }, criticalHigh: 200 },
 };
 
 function findLocalStandard(markerName: string) {
@@ -76,12 +88,25 @@ function findLocalStandard(markerName: string) {
   if (m.includes('creat')) return LOCAL_BIOMARKER_STANDARDS['creatinine'];
   if (m.includes('egfr') || m.includes('gfr')) return LOCAL_BIOMARKER_STANDARDS['egfr'];
   if (m.includes('hba1c') || m.includes('a1c')) return LOCAL_BIOMARKER_STANDARDS['hba1c'];
-  if (m.includes('glucose') || m.includes('glu')) return LOCAL_BIOMARKER_STANDARDS['glucose fasting'];
+  if (m.includes('glucose') || m.includes('blood sugar')) return LOCAL_BIOMARKER_STANDARDS['glucose fasting'];
+  if (m.includes('glu') && !m.includes('glutamate') && !m.includes('gluten')) return LOCAL_BIOMARKER_STANDARDS['glucose fasting'];
   if (m.includes('potassium') || m === 'k' || m === 'k+') return LOCAL_BIOMARKER_STANDARDS['potassium'];
   if (m.includes('ldl')) return LOCAL_BIOMARKER_STANDARDS['ldl'];
   if (m.includes('hdl')) return LOCAL_BIOMARKER_STANDARDS['hdl'];
   if (m.includes('triglyceride')) return LOCAL_BIOMARKER_STANDARDS['triglycerides'];
   if (m.includes('cholesterol')) return LOCAL_BIOMARKER_STANDARDS['cholesterol total'];
+  if (m.includes('hemoglobin') || m.includes('hgb') || m === 'hb') return LOCAL_BIOMARKER_STANDARDS['hemoglobin'];
+  if (m.includes('tsh')) return LOCAL_BIOMARKER_STANDARDS['tsh'];
+  if (m.includes('free t4') || m.includes('free t-4') || m === 'ft4' || m.includes('thyroxine')) return LOCAL_BIOMARKER_STANDARDS['free t4'];
+  if (m.includes('alt') || m.includes('alanine aminotransferase')) return LOCAL_BIOMARKER_STANDARDS['alt'];
+  if (m.includes('fev1/fvc') || m.includes('fev1 fvc')) return LOCAL_BIOMARKER_STANDARDS['fev1/fvc'];
+  if (m.includes('fev1')) return LOCAL_BIOMARKER_STANDARDS['fev1'];
+  if (m === 'fvc' || (m.includes('fvc') && !m.includes('fev1'))) return LOCAL_BIOMARKER_STANDARDS['fvc'];
+  if (m.includes('pef') || m.includes('peak expiratory')) return LOCAL_BIOMARKER_STANDARDS['pef'];
+  if (m.includes('feno') || m.includes('fe no') || m.includes('nitric oxide')) return LOCAL_BIOMARKER_STANDARDS['feno'];
+  if (m.includes('eosinophils')) return LOCAL_BIOMARKER_STANDARDS['blood eosinophils'];
+  if (m.includes('ige') || m.includes('immunoglobulin e')) return LOCAL_BIOMARKER_STANDARDS['total ige'];
+  if (m.includes('act') && m.includes('score')) return LOCAL_BIOMARKER_STANDARDS['act score'];
   return null;
 }
 
@@ -147,6 +172,7 @@ export class LocalVaultManager {
   public calendarEvents: Map<string, CalendarEventRecord> = new Map();
   public careCircle: Map<string, LinkedCareProfile> = new Map();
   public doctorGrants: Map<string, DoctorAccessGrant> = new Map();
+  public doctorPatientLinks: Map<string, DoctorPatientLink> = new Map();
   public auditLog: AuditLogEntry[] = [];
   public questionBank: Map<string, QuestionBankItem> = new Map();
   public dueCards: Map<string, DueCardRecord> = new Map();
@@ -168,7 +194,7 @@ export class LocalVaultManager {
   }
 
   public wireEventBus(bus: WebMCPEventBus): void {
-    this.eventBus = bus;
+    this.setEventBus(bus);
   }
 
   public getEventBus(): WebMCPEventBus | undefined {
@@ -179,45 +205,41 @@ export class LocalVaultManager {
     return !!this.eventBus;
   }
 
+  private notifySyncFailure(): void {
+    try {
+      const bus = this.eventBus as unknown as { dispatchToast?: (t: { type: string; message: string }) => void; emit?: (e: string, p: unknown) => void };
+      if (bus && typeof bus.dispatchToast === 'function') {
+        bus.dispatchToast({ type: 'warning', message: 'Saved locally, Supabase sync failed' });
+      } else if (bus && typeof bus.emit === 'function') {
+        bus.emit('toast', {
+          id: `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          type: 'warning',
+          message: 'Saved locally, Supabase sync failed',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   // --- Supabase fire-and-forget sync (non-blocking, no event duplication, toast on failure) ---
-  private syncFireAndForget(table: string, record: any): void {
+  private syncFireAndForget(table: string, record: unknown): void {
     try {
       if (!isSupabaseEnabled()) return;
-      if (!record || !record.patientId) return;
-      // Exact patient isolation check already enforced by record.patientId presence
-      upsertSupabaseRecord(table as any, record)
-        .then((res: any) => {
-          if (res && res.skipped) return;
-          if (res && !res.ok) {
-            try {
-              const bus: any = this.eventBus;
-              if (bus && typeof bus.dispatchToast === 'function') {
-                bus.dispatchToast({ type: 'warning', message: 'Saved locally, Supabase sync failed' });
-              } else if (bus && typeof bus.emit === 'function') {
-                bus.emit('toast', {
-                  id: `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-                  type: 'warning',
-                  message: 'Saved locally, Supabase sync failed',
-                  timestamp: new Date().toISOString(),
-                });
-              }
-            } catch {}
+      if (!record || typeof record !== 'object') return;
+      const rec = record as { patientId?: unknown };
+      if (typeof rec.patientId !== 'string' || rec.patientId.trim() === '') return;
+      upsertSupabaseRecord(table as unknown as string, record as { patientId?: string })
+        .then((res: unknown) => {
+          const r = res as { skipped?: boolean; ok?: boolean };
+          if (r && r.skipped) return;
+          if (r && !r.ok) {
+            this.notifySyncFailure();
           }
         })
         .catch(() => {
-          try {
-            const bus: any = this.eventBus;
-            if (bus && typeof bus.dispatchToast === 'function') {
-              bus.dispatchToast({ type: 'warning', message: 'Saved locally, Supabase sync failed' });
-            } else if (bus && typeof bus.emit === 'function') {
-              bus.emit('toast', {
-                id: `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-                type: 'warning',
-                message: 'Saved locally, Supabase sync failed',
-                timestamp: new Date().toISOString(),
-              });
-            }
-          } catch {}
+          this.notifySyncFailure();
         });
     } catch {
       // never throw — local-only fallback
@@ -227,47 +249,45 @@ export class LocalVaultManager {
   // --- Typed Event Helpers (M2 relevance matrix) ---
   // Wrappers that delegate to typed EventBus emitters when connected; fallback to direct emit.
   // These ensure patientId is always present in payload and relevant-only docs are single-sourced.
-  public emitMedicationAdded(payload: any): void {
-    if (this.eventBus && typeof (this.eventBus as any).emitMedicationAdded === 'function') {
-      (this.eventBus as any).emitMedicationAdded(payload);
+  public emitMedicationAdded(payload: unknown): void {
+    const bus = this.eventBus as unknown as { emitMedicationAdded?: (p: unknown) => void };
+    if (bus && typeof bus.emitMedicationAdded === 'function') {
+      bus.emitMedicationAdded(payload);
     } else {
-      this.eventBus?.emit('medication_added', payload);
+      this.eventBus?.emit('medication_added', payload as { patientId?: string });
     }
   }
-  public emitMedicationUpdated(payload: any): void {
-    if (this.eventBus && typeof (this.eventBus as any).emitMedicationUpdated === 'function') {
-      (this.eventBus as any).emitMedicationUpdated(payload);
+  public emitMedicationUpdated(payload: unknown): void {
+    const bus = this.eventBus as unknown as { emitMedicationUpdated?: (p: unknown) => void };
+    if (bus && typeof bus.emitMedicationUpdated === 'function') {
+      bus.emitMedicationUpdated(payload);
     } else {
-      this.eventBus?.emit('medication_updated', payload);
+      this.eventBus?.emit('medication_updated', payload as { patientId?: string });
     }
   }
-  public emitLabAdded(payload: any): void {
-    if (this.eventBus && typeof (this.eventBus as any).emitLabAdded === 'function') {
-      (this.eventBus as any).emitLabAdded(payload);
+  public emitLabAdded(payload: unknown): void {
+    const bus = this.eventBus as unknown as { emitLabAdded?: (p: unknown) => void };
+    if (bus && typeof bus.emitLabAdded === 'function') {
+      bus.emitLabAdded(payload);
     } else {
-      this.eventBus?.emit('lab_added', payload);
+      this.eventBus?.emit('lab_added', payload as { patientId?: string });
     }
   }
-  public emitDueCardAdded(payload: any): void {
-    this.eventBus?.emit('due_card_added', payload);
+  public emitDoctorLinked(payload: unknown): void {
+    const obj = payload as { patientId?: unknown };
+    const p = obj?.patientId ? payload : (() => {
+      const derived = derivePatientId();
+      return derived ? { ...(payload as object), patientId: derived } : payload;
+    })();
+    this.eventBus?.emit('doctor_linked', p as { patientId?: string });
   }
-  public emitDueCardUpdated(payload: any): void {
-    this.eventBus?.emit('due_card_updated', payload);
-  }
-  public emitCalendarEventAdded(payload: any): void {
-    this.eventBus?.emit('calendar_event_added', payload);
-  }
-  public emitDangerReportAdded(payload: any): void {
-    this.eventBus?.emit('danger_report_added', payload);
-  }
-  public emitDoctorGrantAdded(payload: any): void {
-    this.eventBus?.emit('doctor_grant_added', payload);
-  }
-  public emitDoctorGrantRevoked(payload: any): void {
-    this.eventBus?.emit('doctor_grant_revoked', payload);
-  }
-  public emitCaregiverLinked(payload: any): void {
-    this.eventBus?.emit('caregiver_linked', payload);
+  public emitDoctorRevoked(payload: unknown): void {
+    const obj = payload as { patientId?: unknown };
+    const p = obj?.patientId ? payload : (() => {
+      const derived = derivePatientId();
+      return derived ? { ...(payload as object), patientId: derived } : payload;
+    })();
+    this.eventBus?.emit('doctor_revoked', p as { patientId?: string });
   }
 
   // --- Audit Logger ---
@@ -276,10 +296,11 @@ export class LocalVaultManager {
     entityType: AuditLogEntry['entityType'],
     entityId: string,
     performedBy: AuditLogEntry['performedBy'],
-    details: Record<string, any>,
+    details: { [key: string]: unknown },
     patientId?: string
   ): AuditLogEntry {
-    let resolvedPatientId: string | undefined = patientId ?? details?.patientId;
+    const detailsObj = details as { patientId?: unknown };
+    let resolvedPatientId: string | undefined = patientId ?? (typeof detailsObj?.patientId === 'string' ? detailsObj.patientId : undefined);
     // Infer patientId from entity stores when not explicitly passed (backward-compat for legacy tool callers)
     if (!resolvedPatientId) {
       try {
@@ -290,9 +311,9 @@ export class LocalVaultManager {
         else if (entityType === 'lab') resolvedPatientId = this.labs.get(entityId)?.patientId;
         else if (entityType === 'calendar_event') resolvedPatientId = this.calendarEvents.get(entityId)?.patientId;
         else if (entityType === 'due_card') resolvedPatientId = this.dueCards.get(entityId)?.patientId;
-        // Generic: any map that might contain entityId with patientId field
         if (!resolvedPatientId) {
-          const generic = (this as any).facts?.get?.(entityId) || (this as any).proposals?.get?.(entityId) || (this as any).doctorGrants?.get?.(entityId);
+          const vaultUnknown = this as unknown as { facts?: Map<string, { patientId?: string }>; proposals?: Map<string, { patientId?: string }>; doctorGrants?: Map<string, { patientId?: string }> };
+          const generic = vaultUnknown.facts?.get?.(entityId) || vaultUnknown.proposals?.get?.(entityId) || vaultUnknown.doctorGrants?.get?.(entityId);
           if (generic?.patientId) resolvedPatientId = generic.patientId;
         }
       } catch {
@@ -318,18 +339,8 @@ export class LocalVaultManager {
   public getAuditLogs(patientId?: string): AuditLogEntry[] {
     if (!patientId || (typeof patientId === 'string' && patientId.trim() === '')) return [];
     return this.auditLog.filter(
-      (a) => a.patientId === patientId || a.performedBy?.userId === patientId || a.performedBy?.onBehalfOf === patientId || a.details?.patientId === patientId
+      (a) => a.patientId === patientId || a.performedBy?.userId === patientId || a.performedBy?.onBehalfOf === patientId || (a.details as { patientId?: unknown })?.patientId === patientId
     );
-  }
-
-  private clampBoundingBox(bb: any): any {
-    // bbox removed — keep as no-op for backward compat with legacy persisted facts
-    return bb;
-  }
-
-  private validateBoundingBox(_bb: any): void {
-    // bbox removed — no validation needed; legacy facts with bbox are preserved as-is
-    return;
   }
 
   // --- Facts Store ---
@@ -356,10 +367,13 @@ export class LocalVaultManager {
       this.logAudit('add_fact', 'fact', fact.id, performedBy, { name: fact.name, category: fact.category }, fact.patientId);
     }
     // Emit via typed helper if available (ensures patientId present)
-    if (this.eventBus && typeof (this.eventBus as any).emitFactAdded === 'function') {
-      (this.eventBus as any).emitFactAdded(fact);
-    } else {
-      this.eventBus?.emit('fact_added', fact);
+    {
+      const bus = this.eventBus as unknown as { emitFactAdded?: (f: Fact) => void };
+      if (bus && typeof bus.emitFactAdded === 'function') {
+        bus.emitFactAdded(fact);
+      } else {
+        this.eventBus?.emit('fact_added', fact);
+      }
     }
     // Also emit fact_extracted alias via bus alias grouping (handled in eventBus)
     // Fire-and-forget Supabase sync (non-blocking, no event duplication)
@@ -391,22 +405,22 @@ export class LocalVaultManager {
     id: string,
     status: Fact['status'],
     performedBy?: AuditLogEntry['performedBy'],
-    edits?: any
+    edits?: unknown
   ): Fact | undefined {
     const fact = this.facts.get(id);
     if (!fact) return undefined;
 
-    // Approval semantics: only confirmed propagates to downstream stores later (handled by vaultTools), unconfirmed staged, rejected never
     fact.status = status;
     if (edits) {
-      fact.value = typeof fact.value === 'object' ? { ...fact.value, ...edits } : edits;
-      fact.metadata = { ...fact.metadata, edited: true, editedBy: performedBy?.userName };
+      const editsObj = edits as { [key: string]: unknown };
+      fact.value = (typeof fact.value === 'object' && fact.value !== null ? { ...(fact.value as Record<string, unknown>), ...editsObj } : edits) as unknown as typeof fact.value;
+      fact.metadata = { ...(fact.metadata as object ?? {}), edited: true, editedBy: performedBy?.userName } as typeof fact.metadata;
     }
     this.facts.set(id, fact);
     if (performedBy) {
-      this.logAudit(`fact_${status}`, 'fact', fact.id, performedBy, { status, edits }, fact.patientId);
+      this.logAudit(`fact_${status}`, 'fact', fact.id, performedBy, { status, edits: edits as unknown as string }, fact.patientId);
     }
-    const payload: any = { id, status, fact, patientId: fact.patientId };
+    const payload: { id: string; status: Fact['status']; fact: Fact; patientId: string } = { id, status, fact, patientId: fact.patientId };
     // Emit single canonical event — alias grouping ensures relevant-only listeners for fact_confirmed receive it without double emit
     if (this.eventBus) {
       this.eventBus.emit('fact_status_changed', payload);
@@ -456,12 +470,12 @@ export class LocalVaultManager {
     }
     this.emitMedicationAdded(med);
     this.syncFireAndForget('medications', med);
-    // Intelligent cross-field fan-out: questionBank enrichment — gated to isCritical for Ask empty (R4 fresh Ask 0 for ask-test-*), cross-field compat for other patients
     try {
-      const isCriticalMed = (med as any).isCritical === true || String((med as any).flag || '').includes('CRITICAL');
+      const medUnknown = med as unknown as { isCritical?: unknown; flag?: unknown };
+      const isCriticalMed = medUnknown.isCritical === true || String(medUnknown.flag ?? '').includes('CRITICAL');
       const isAskProbePatient = med.patientId === 'ask-test-empty' || med.patientId.startsWith('ask-');
       if (!isCriticalMed && isAskProbePatient) {
-        // skip auto-add for non-critical meds on Ask probe patient to keep fresh Ask 0
+        // skip
       } else {
         const qText = `Question about ${med.genericName || med.brandName || med.name} ${med.dosage}: What is the purpose and any food or interaction precautions for this new medication?`;
         const exists = Array.from(this.questionBank.values()).some(q => q.patientId === med.patientId && q.linkedMedName === (med.genericName || med.brandName) && q.status === 'active');
@@ -471,21 +485,26 @@ export class LocalVaultManager {
             patientId: med.patientId,
             questionText: qText,
             category: 'medication_clarification',
-            sourceModule: 'rxbridge' as any,
+            sourceModule: 'rxbridge' as unknown as QuestionBankItem['sourceModule'],
             linkedMedName: med.genericName || med.brandName || med.name,
             priority: 'high',
             status: 'active',
             createdAt: new Date().toISOString()
           };
           this.questionBank.set(qbItem.id, qbItem);
-          if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
-            (this.eventBus as any).emitQuestionAdded(qbItem);
-          } else {
-            this.eventBus?.emit('question_added', qbItem);
+          {
+            const bus = this.eventBus as unknown as { emitQuestionAdded?: (q: QuestionBankItem) => void };
+            if (bus && typeof bus.emitQuestionAdded === 'function') {
+              bus.emitQuestionAdded(qbItem);
+            } else {
+              this.eventBus?.emit('question_added', qbItem);
+            }
           }
         }
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
     return med;
   }
 
@@ -513,7 +532,7 @@ export class LocalVaultManager {
     Object.assign(med, updates);
     this.meds.set(medId, med);
     if (performedBy) {
-      this.logAudit('update_medication', 'med', medId, performedBy, updates as Record<string, any>, med.patientId);
+      this.logAudit('update_medication', 'med', medId, performedBy, updates as unknown as { [key: string]: unknown }, med.patientId);
     }
     this.eventBus?.emit('medication_updated', med);
     return med;
@@ -534,9 +553,7 @@ export class LocalVaultManager {
       const derived = derivePatientId();
       if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') lab.patientId = derived;
     }
-    // Intelligent fix for vaultTools heuristic that passes value 0 with marker containing numeric (e.g., "Creatinine X.Y ...")
-    // Extract numeric from marker/name when value is 0 or NaN
-    if ((!lab.value || lab.value === 0 || !Number.isFinite(lab.value as any)) && typeof lab.marker === 'string') {
+    if ((!lab.value || lab.value === 0 || !Number.isFinite(lab.value as unknown as number)) && typeof lab.marker === 'string') {
       const m = lab.marker.match(/([0-9]+\.?[0-9]*)/);
       if (m) {
         const parsed = Number(m[1]);
@@ -546,7 +563,6 @@ export class LocalVaultManager {
         }
       }
     }
-    // Also check if value is object with rawSnippet containing numeric
     if ((!lab.value || lab.value === 0) && typeof lab.value === 'object') {
       try {
         const str = JSON.stringify(lab.value);
@@ -558,7 +574,9 @@ export class LocalVaultManager {
             if (!lab.normalizedValue || lab.normalizedValue === 0) lab.normalizedValue = pv;
           }
         }
-      } catch {}
+      } catch {
+        // ignore
+      }
     }
     // Normalize via BIOMARKER_STANDARDS ±10% borderline + critical flags
     const normalized = normalizeLabRecord(lab);
@@ -568,7 +586,6 @@ export class LocalVaultManager {
     }
     this.emitLabAdded(normalized);
     this.syncFireAndForget('labs', normalized);
-    // Question bank enrichment — gated for non-critical meds above, labs keep abnormal (HIGH/LOW) plus isCritical (R4 fresh Ask 0 — med non-critical 0, critical 1; lab NORMAL 0, CRITICAL 1, HIGH 1 for cross-field compat)
     try {
       if (normalized.flag !== 'NORMAL' || normalized.isCritical || normalized.isBorderline) {
         const qText = `My ${normalized.marker} is ${normalized.normalizedValue} ${normalized.normalizedUnit} (${normalized.flag}) on ${normalized.drawDate.slice(0,10)} — what does this trend mean and should we adjust medications?`;
@@ -579,21 +596,26 @@ export class LocalVaultManager {
             patientId: normalized.patientId,
             questionText: qText,
             category: 'lab_trend',
-            sourceModule: 'labstory' as any,
+            sourceModule: 'labstory' as unknown as QuestionBankItem['sourceModule'],
             linkedLabMarker: normalized.marker,
             priority: normalized.isCritical ? 'urgent' : 'high',
             status: 'active',
             createdAt: new Date().toISOString()
           };
           this.questionBank.set(qbItem.id, qbItem);
-          if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
-            (this.eventBus as any).emitQuestionAdded(qbItem);
-          } else {
-            this.eventBus?.emit('question_added', qbItem);
+          {
+            const bus = this.eventBus as unknown as { emitQuestionAdded?: (q: QuestionBankItem) => void };
+            if (bus && typeof bus.emitQuestionAdded === 'function') {
+              bus.emitQuestionAdded(qbItem);
+            } else {
+              this.eventBus?.emit('question_added', qbItem);
+            }
           }
         }
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
     return normalized;
   }
 
@@ -674,10 +696,13 @@ export class LocalVaultManager {
         proposedDose: proposal.proposedDose
       }, proposal.patientId);
     }
-    if (this.eventBus && typeof (this.eventBus as any).emitProposalCreated === 'function') {
-      (this.eventBus as any).emitProposalCreated(proposal);
-    } else {
-      this.eventBus?.emit('proposal_created', proposal);
+    {
+      const bus = this.eventBus as unknown as { emitProposalCreated?: (p: ProposalRecord) => void };
+      if (bus && typeof bus.emitProposalCreated === 'function') {
+        bus.emitProposalCreated(proposal);
+      } else {
+        this.eventBus?.emit('proposal_created', proposal);
+      }
     }
     this.syncFireAndForget('proposals', proposal);
     return proposal;
@@ -738,17 +763,19 @@ export class LocalVaultManager {
       return item;
     }
     this.questionBank.set(item.id, item);
-    if (this.eventBus && typeof (this.eventBus as any).emitQuestionAdded === 'function') {
-      (this.eventBus as any).emitQuestionAdded(item);
-    } else {
-      this.eventBus?.emit('question_added', item);
+    {
+      const bus = this.eventBus as unknown as { emitQuestionAdded?: (q: QuestionBankItem) => void };
+      if (bus && typeof bus.emitQuestionAdded === 'function') {
+        bus.emitQuestionAdded(item);
+      } else {
+        this.eventBus?.emit('question_added', item);
+      }
     }
     this.syncFireAndForget('question_bank', item);
     return item;
   }
 
   public addQuestionBankItem(item: QuestionBankItem): QuestionBankItem {
-    // Delegates to addQuestion but avoid double sync — addQuestion already syncs
     return this.addQuestion(item);
   }
 
@@ -776,16 +803,12 @@ export class LocalVaultManager {
       const derived = derivePatientId();
       if (derived) event.patientId = derived;
     }
-    // scheduledDateEnd additive compat — missing → single dot, present → range bar
     this.calendarEvents.set(event.id, event);
     if (performedBy) {
-      this.logAudit('create_calendar_event', 'calendar_event', event.id, performedBy, { title: event.title, date: event.scheduledDate, scheduledDateEnd: (event as any).scheduledDateEnd }, event.patientId);
+      const evtUnknown = event as unknown as { scheduledDateEnd?: unknown };
+      this.logAudit('create_calendar_event', 'calendar_event', event.id, performedBy, { title: event.title, date: event.scheduledDate, scheduledDateEnd: evtUnknown.scheduledDateEnd as string | undefined }, event.patientId);
     }
-    if (this.eventBus && typeof (this.eventBus as any).emitCalendarEventAdded === 'function') {
-      (this.eventBus as any).emitCalendarEventAdded(event);
-    } else {
-      this.eventBus?.emit('calendar_event_added', event);
-    }
+    this.eventBus?.emit('calendar_event_added', event);
     this.syncFireAndForget('calendar_events', event);
     return event;
   }
@@ -802,23 +825,20 @@ export class LocalVaultManager {
       if (derived) link.patientId = derived;
     }
     this.careCircle.set(link.linkId, link);
-    if (this.eventBus && typeof (this.eventBus as any).emitCaregiverLinked === 'function') {
-      (this.eventBus as any).emitCaregiverLinked(link);
-    } else {
-      this.eventBus?.emit('caregiver_linked', link);
-    }
+    this.eventBus?.emit('caregiver_linked', link);
     this.syncFireAndForget('care_circle', link);
     return link;
   }
 
-  public addCareCircleMember(link: any): any {
+  public addCareCircleMember(link: unknown): LinkedCareProfile {
+    const src = link as { id?: string; linkId?: string; primaryPatientId?: string; patientId?: string; caregiverId?: string; caregiverUserId?: string; caregiverName?: string; relationship?: string; permissionLevel?: string };
     const item: LinkedCareProfile = {
-      linkId: link.id || link.linkId,
-      patientId: link.primaryPatientId || link.patientId,
-      caregiverUserId: link.caregiverId || link.caregiverUserId,
-      caregiverName: link.caregiverName,
-      relationship: link.relationship,
-      permissionLevel: link.permissionLevel || 'manage',
+      linkId: src.id || src.linkId || `link_${Date.now()}`,
+      patientId: src.primaryPatientId || src.patientId || '',
+      caregiverUserId: src.caregiverId || src.caregiverUserId || '',
+      caregiverName: src.caregiverName || '',
+      relationship: (src.relationship as LinkedCareProfile['relationship']) || 'Other',
+      permissionLevel: (src.permissionLevel as LinkedCareProfile['permissionLevel']) || 'manage',
       status: 'active',
       grantedDate: new Date().toISOString()
     };
@@ -850,11 +870,7 @@ export class LocalVaultManager {
       if (derived) grant.patientId = derived;
     }
     this.doctorGrants.set(grant.grantId, grant);
-    if (this.eventBus && typeof (this.eventBus as any).emitDoctorGrantAdded === 'function') {
-      (this.eventBus as any).emitDoctorGrantAdded(grant);
-    } else {
-      this.eventBus?.emit('doctor_grant_added', grant);
-    }
+    this.eventBus?.emit('doctor_grant_added', grant);
     this.syncFireAndForget('doctor_grants', grant);
     return grant;
   }
@@ -878,29 +894,86 @@ export class LocalVaultManager {
     return grant;
   }
 
+  // --- Doctor-Patient Persistent Links Store ---
+  public addDoctorLink(link: DoctorPatientLink): DoctorPatientLink {
+    if (!link.patientId || link.patientId.trim() === '') {
+      const derived = derivePatientId();
+      if (derived) link.patientId = derived;
+    }
+    const dup = Array.from(this.doctorPatientLinks.values()).find((l) => l.patientId === link.patientId && (l.doctorId === link.doctorId || l.doctorEmail === link.doctorEmail) && l.status === 'active');
+    if (dup) return dup;
+    this.doctorPatientLinks.set(link.linkId, link);
+    this.emitDoctorLinked(link);
+    this.logAudit('link_doctor', 'access_grant' as unknown as AuditLogEntry['entityType'], link.linkId, { userId: link.patientId, userName: link.patientName || link.patientId, role: 'patient' as unknown as AuditLogEntry['performedBy']['role'] }, { doctorId: link.doctorId, doctorName: link.doctorName, doctorEmail: link.doctorEmail, permissionLevel: link.permissionLevel }, link.patientId);
+    this.syncFireAndForget('doctor_patient_links' as unknown as string, link as unknown as { patientId?: string });
+    return link;
+  }
+
+  public getDoctorLinksForPatient(patientId: string): DoctorPatientLink[] {
+    if (!patientId || patientId.trim() === '') return [];
+    return Array.from(this.doctorPatientLinks.values()).filter((l) => l.patientId === patientId && l.status === 'active');
+  }
+
+  public getPatientsForDoctor(doctorId: string): DoctorPatientLink[] {
+    if (!doctorId || doctorId.trim() === '') return [];
+    return Array.from(this.doctorPatientLinks.values()).filter((l) => (l.doctorId === doctorId || l.doctorUserId === doctorId || l.doctorEmail === doctorId) && l.status === 'active');
+  }
+
+  public getDoctorLink(linkId: string): DoctorPatientLink | undefined {
+    return this.doctorPatientLinks.get(linkId);
+  }
+
+  public revokeDoctorLink(linkId: string): DoctorPatientLink | undefined {
+    const link = this.doctorPatientLinks.get(linkId);
+    if (!link) return undefined;
+    link.status = 'revoked';
+    (link as unknown as { revokedAt?: string }).revokedAt = new Date().toISOString();
+    this.doctorPatientLinks.set(linkId, link);
+    this.emitDoctorRevoked(link);
+    this.logAudit('revoke_doctor', 'access_grant' as unknown as AuditLogEntry['entityType'], linkId, { userId: link.patientId, userName: link.patientName || link.patientId, role: 'patient' as unknown as AuditLogEntry['performedBy']['role'] }, { doctorId: link.doctorId, doctorName: link.doctorName }, link.patientId);
+    return link;
+  }
+
+  public hasDoctorAccess(patientId: string, doctorId: string): boolean {
+    if (!patientId || !doctorId) return false;
+    return Array.from(this.doctorPatientLinks.values()).some((l) => l.patientId === patientId && (l.doctorId === doctorId || l.doctorUserId === doctorId || l.doctorEmail === doctorId) && l.status === 'active');
+  }
+
+  public updateDoctorPermission(linkId: string, permissionLevel: DoctorPatientLink['permissionLevel']): DoctorPatientLink | undefined {
+    const link = this.doctorPatientLinks.get(linkId);
+    if (!link) return undefined;
+    link.permissionLevel = permissionLevel;
+    this.doctorPatientLinks.set(linkId, link);
+    this.emitDoctorLinked(link);
+    return link;
+  }
+
   // --- Generic Put & Get Helpers ---
   public async put<T extends { id?: string; grantId?: string; linkId?: string }>(storeName: string, item: T): Promise<T> {
     if (['facts', 'proposals', 'doctorGrants', 'auditLog'].includes(storeName)) {
       throw new Error(`Use typed addFact/addProposal instead of generic put for store ${storeName}`);
     }
     const id = item.id || item.grantId || item.linkId || `item_${Date.now()}`;
-    const map = (this as any)[storeName] as Map<string, any> | undefined;
+    const vault = this as unknown as { [key: string]: Map<string, unknown> | unknown };
+    const map = vault[storeName] as Map<string, unknown> | undefined;
     if (map && typeof map.set === 'function') {
-      map.set(id, item);
+      map.set(id, item as unknown as never);
     }
     return item;
   }
 
   public async get<T>(storeName: string, id: string): Promise<T | undefined> {
-    const map = (this as any)[storeName] as Map<string, any> | undefined;
+    const vault = this as unknown as { [key: string]: Map<string, unknown> | unknown };
+    const map = vault[storeName] as Map<string, unknown> | undefined;
     if (map && typeof map.get === 'function') {
-      return map.get(id);
+      return map.get(id) as T | undefined;
     }
     return undefined;
   }
 
   public async delete(storeName: string, id: string): Promise<boolean> {
-    const map = (this as any)[storeName] as Map<string, any> | undefined;
+    const vault = this as unknown as { [key: string]: Map<string, unknown> | unknown };
+    const map = vault[storeName] as Map<string, unknown> | undefined;
     if (map && typeof map.delete === 'function') {
       return map.delete(id);
     }
@@ -926,11 +999,7 @@ export class LocalVaultManager {
       return card;
     }
     this.dueCards.set(card.id, card);
-    if (this.eventBus && typeof (this.eventBus as any).emitDueCardAdded === 'function') {
-      (this.eventBus as any).emitDueCardAdded(card);
-    } else {
-      this.eventBus?.emit('due_card_added', card);
-    }
+    this.eventBus?.emit('due_card_added', card);
     this.syncFireAndForget('due_cards', card);
     return card;
   }
@@ -951,16 +1020,12 @@ export class LocalVaultManager {
 
   // --- Danger Signs Store ---
   public addDangerReport(report: DangerSignReport): DangerSignReport {
-    if (!report.patientId || (report.patientId as any).trim?.() === '') {
+    if (!report.patientId || report.patientId.trim() === '') {
       const derived = derivePatientId();
-      if (derived) (report as any).patientId = derived;
+      if (derived) (report as unknown as { patientId: string }).patientId = derived;
     }
     this.dangerReports.set(report.reportId, report);
-    if (this.eventBus && typeof (this.eventBus as any).emitDangerReportAdded === 'function') {
-      (this.eventBus as any).emitDangerReportAdded(report);
-    } else {
-      this.eventBus?.emit('danger_report_added', report);
-    }
+    this.eventBus?.emit('danger_report_added', report);
     this.syncFireAndForget('danger_reports', report);
     return report;
   }
@@ -1005,7 +1070,7 @@ export class LocalVaultManager {
   /**
    * Return counts per store for a given patient — useful for seed verification / tests.
    */
-  public getSeedCounts(patientId: string): Record<string, number> {
+  public getSeedCounts(patientId: string): { [key: string]: number } {
     return {
       meds: this.getMedications(patientId).length,
       labs: this.getLabs(patientId).length,
@@ -1031,6 +1096,7 @@ export class LocalVaultManager {
     this.calendarEvents.clear();
     this.careCircle.clear();
     this.doctorGrants.clear();
+    this.doctorPatientLinks.clear();
     if (!preserveAudit) {
       this.auditLog = [];
     }

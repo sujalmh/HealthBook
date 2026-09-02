@@ -20,7 +20,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
   const [showKey, setShowKey] = useState(false);
   const [showExaKey, setShowExaKey] = useState(false);
   const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error'; msg: string }>({ type: 'idle', msg: '' });
-  const [source, setSource] = useState<{ source: 'settings' | 'env' | 'default'; overrides: Record<string, any> }>({ source: 'env', overrides: {} });
+  const [source, setSource] = useState<{ source: 'settings' | 'env' | 'default'; overrides: Record<string, unknown> }>({ source: 'env', overrides: {} });
   const [liveConfig, setLiveConfig] = useState<ReturnType<typeof getAIConfig> | null>(null);
   const [exaLive, setExaLive] = useState<ReturnType<typeof getExaConfig> | null>(null);
 
@@ -58,7 +58,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
     // Persist via SettingsStore — writes to carecanvas_settings JSON blob + individual VITE_AI_* keys + carecanvas_VITE_AI_*
     saveSettings(form);
     refreshSource();
-    setStatus({ type: 'success', msg: `Saved ${Object.keys(form).filter((k) => (form as any)[k]).length} keys to SettingsStore — Settings>env precedence active.` });
+    setStatus({ type: 'success', msg: `Saved ${Object.keys(form).filter((k) => (form as unknown as Record<string, unknown>)[k]).length} keys to SettingsStore — Settings>env precedence active.` });
     if (onSaved) onSaved();
     // Brief success reset
     setTimeout(() => setStatus({ type: 'idle', msg: '' }), 3500);
@@ -341,7 +341,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-bold text-emerald-950 flex items-center gap-2">
-                <span>📄 Mistral Document OCR Pre-Processing (Fast & High-Precision)</span>
+                <span>Mistral Document OCR Pre-Processing (Fast & High-Precision)</span>
               </h4>
               <p className="text-xs text-emerald-900/80 mt-0.5">
                 Converts uploaded PDFs & images into structured Markdown before AI analysis, cutting timeouts and improving precision.
@@ -383,14 +383,14 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
         </div>
 
         {/* Exa Healthcare Grounding — post-extraction intelligence */}
-        <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-4 space-y-4">
+        <div className="bg-teal-50/70 border border-teal-200 rounded-2xl p-4 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h4 className="text-sm font-black text-indigo-900 flex items-center gap-2">
-                <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs">Exa</span>
+              <h4 className="text-sm font-bold text-teal-950 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-teal-700 text-white flex items-center justify-center text-xs">Exa</span>
                 Healthcare Grounding — Web Evidence (after extraction)
               </h4>
-              <p className="text-xs text-indigo-800/80 mt-0.5">
+              <p className="text-xs text-teal-900/80 mt-0.5">
                 Extraction = what IS in document; Grounding = what it MEANS + latest guidelines with citations. Uses <span className="font-mono">contents.highlights: true</span> for token efficiency.
               </p>
             </div>
@@ -401,7 +401,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
                 onChange={(e) => handleToggle('VITE_EXA_ENABLED', e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-700"></div>
             </label>
           </div>
 
@@ -415,7 +415,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
-                Exa API Key <Shield className="w-3 h-3 text-indigo-500" />
+                Exa API Key <Shield className="w-3 h-3 text-teal-500" />
               </label>
               <div className="relative">
                 <input
@@ -423,7 +423,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
                   value={form.VITE_EXA_API_KEY || form.EXA_API_KEY || ''}
                   onChange={(e) => handleChange('VITE_EXA_API_KEY', e.target.value)}
                   placeholder="exa_... — server injects via /api/exa-proxy if EXA_API_KEY set in env"
-                  className="w-full px-3 py-2.5 pr-12 bg-white border border-indigo-200 rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 min-h-[44px] font-mono text-xs"
+                  className="w-full px-3 py-2.5 pr-12 bg-white border border-teal-200 rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-700 min-h-[44px] font-mono text-xs"
                 />
                 <button
                   type="button"
@@ -445,7 +445,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
                   value={form.VITE_EXA_BASE_URL || ''}
                   onChange={(e) => handleChange('VITE_EXA_BASE_URL', e.target.value)}
                   placeholder="/api/exa-proxy or https://api.exa.ai"
-                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 min-h-[44px] font-mono text-xs"
+                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-700 min-h-[44px] font-mono text-xs"
                 />
                 <p className="text-[11px] text-muted">Use <span className="font-mono">/api/exa-proxy</span> (server proxy) for privacy; direct <span className="font-mono">https://api.exa.ai</span> also auto-proxied in browser.</p>
               </div>
@@ -454,7 +454,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
                 <select
                   value={form.VITE_EXA_SEARCH_TYPE || 'auto'}
                   onChange={(e) => handleChange('VITE_EXA_SEARCH_TYPE', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 min-h-[44px]"
+                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-700 min-h-[44px]"
                 >
                   <option value="auto">auto — balanced (recommended)</option>
                   <option value="fast">fast — low latency</option>
@@ -476,7 +476,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
                   value={form.VITE_EXA_NUM_RESULTS || ''}
                   onChange={(e) => handleChange('VITE_EXA_NUM_RESULTS', e.target.value)}
                   placeholder="5"
-                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 min-h-[44px]"
+                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-700 min-h-[44px]"
                 />
               </div>
               <div className="space-y-1">
@@ -487,7 +487,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
                   value={form.VITE_EXA_TIMEOUT_MS || ''}
                   onChange={(e) => handleChange('VITE_EXA_TIMEOUT_MS', e.target.value)}
                   placeholder="15000"
-                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 min-h-[44px]"
+                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-700 min-h-[44px]"
                 />
               </div>
               <div className="space-y-1">
@@ -497,13 +497,13 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
                   value={form.VITE_EXA_MAX_AGE_HOURS || ''}
                   onChange={(e) => handleChange('VITE_EXA_MAX_AGE_HOURS', e.target.value)}
                   placeholder="omit = cached fallback"
-                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 min-h-[44px]"
+                  className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-700 min-h-[44px]"
                 />
                 <p className="text-[10px] text-muted">0 = livecrawl always, -1 = never, omit = fallback (fast).</p>
               </div>
             </div>
           </div>
-          <p className="text-[11px] text-indigo-800/70 bg-white border border-indigo-100 rounded-lg p-2">
+          <p className="text-[11px] text-teal-900/70 bg-white border border-teal-100 rounded-lg p-2">
             Best practice: <span className="font-mono">highlights: true</span> for agent workflows (10× fewer tokens), <span className="font-mono">maxAgeHours: 0</span> only when fresh (adds latency), <span className="font-mono">text: {"{maxCharacters: 8000}"}</span> for deep research. Never use deprecated <span className="font-mono">useAutoprompt</span>/<span className="font-mono">livecrawl:"always"</span>/<span className="font-mono">includeUrls</span>.
           </p>
         </div>
@@ -518,7 +518,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
               <span
                 key={k}
                 className={`px-2 py-1 rounded-lg text-[10px] font-mono font-semibold border ${
-                  (form as any)[k] ? 'bg-primary-light text-primary-text border-primary-border' : 'bg-white text-muted border-canvas-border'
+                  (form as unknown as Record<string, unknown>)[k] ? 'bg-primary-light text-primary-text border-primary-border' : 'bg-white text-muted border-canvas-border'
                 }`}
               >
                 {k}

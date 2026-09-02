@@ -51,7 +51,7 @@ export interface DossierTimelineItem {
   pageIndex?: number;
   boundingBox?: BoundingBox;
   snippetText?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface EmergencyContact {
@@ -124,7 +124,8 @@ export interface SourceDocumentCitation {
 export interface FHIRResource {
   resourceType: string;
   id: string;
-  [key: string]: any;
+  /** Open FHIR extension — unknown at boundary, validated via schema before use */
+  [key: string]: unknown;
 }
 
 export interface FHIRR4Bundle {

@@ -8,8 +8,6 @@
  */
 
 import type { LocalVaultManager } from './LocalVault.ts';
-import type { DueCardRecord, ProposalRecord, CalendarEventRecord } from '../../types/vault.ts';
-import type { DangerSignReport } from '../../types/safety.ts';
 
 // Legacy migration fallback — documented not to be used as default activeProfile.
 // Real patientId comes from authenticated session (localStorage carecanvas_active_user, Supabase auth).
@@ -43,92 +41,15 @@ export interface SeedResult {
   };
 }
 
-// Baseline helpers retained for potential legacy caller but NOT auto-invoked in seedVault.
-// They are unused in clean path; keep for backward compat if legacy test explicitly constructs records.
-function getBaselineDueCard(patientId: string): DueCardRecord {
-  return {
-    id: 'due_card_kidney_001',
-    patientId,
-    testPanel: 'Creatinine & eGFR Blood Test',
-    biomarkers: ['Serum Creatinine', 'eGFR', 'Serum Potassium'],
-    dueDate: new Date(Date.now() + 3 * 86400000).toISOString(),
-    prescribedBy: 'Your doctor',
-    prescribedDate: new Date(Date.now() - 11 * 86400000).toISOString(),
-    instructions: 'Monitor kidney function post-discharge. Upload smartphone photo of result slip.',
-    status: 'due_soon',
-  };
-}
-
-function getBaselineProposal(patientId: string): ProposalRecord {
-  return {
-    id: 'prop_metformin_titration_001',
-    patientId,
-    doctorName: 'Your doctor',
-    doctorId: 'clinician',
-    type: 'dose_change',
-    medName: 'Metformin',
-    previousDose: '1000 mg BID (Morning & Evening)',
-    proposedDose: '500 mg PO Daily (Morning Only)',
-    reason: 'Kidney filtration decreased to 28 mL/min on remote lab slip. Dose reduction avoids lactic acidosis risk while keeping glucose stable.',
-    plainNarration: 'Your doctor recommends halving your Metformin dose to 500mg daily because your kidney numbers require a lower dose for safety.',
-    linkedLabId: 'fact_homelab_egfr_28',
-    status: 'pending',
-    timestamp: new Date().toISOString(),
-  };
-}
-
-function getBaselineDangerReport(patientId: string): DangerSignReport {
-  return {
-    reportId: 'danger_edema_001',
-    patientId,
-    symptomTags: ['edema_feet', 'dyspnea'],
-    freeText: 'Sudden bilateral ankle swelling and shortness of breath climbing stairs.',
-    severityRating: 'severe',
-    vitalSigns: { systolicBP: 185, diastolicBP: 105, heartRate: 92 },
-    timestamp: new Date().toISOString(),
-    triagePriority: 'URGENT',
-    firstAidAdvice: "Report dispatched to your care team's triage queue. If chest pain occurs, call 911 immediately.",
-  };
-}
-
-function getBaselineCalendarEvents(patientId: string): CalendarEventRecord[] {
-  return [
-    {
-      id: 'cal_followup_001',
-      patientId,
-      title: '🏥 Clinic Follow-Up',
-      eventType: 'doctor_followup',
-      scheduledDate: new Date(Date.now() + 3 * 86400000).toISOString(),
-      reason: 'Urgent in-person clinical evaluation for ankle swelling and blood pressure control',
-      providerName: 'Healthcare provider',
-      notifyHoursBefore: [24, 2],
-      isCompleted: false,
-      syncedToCalendar: true,
-      sharedWithCaregivers: ['user_family'],
-    },
-    {
-      id: 'cal_lab_002',
-      patientId,
-      title: '🧪 Repeat eGFR & Serum Creatinine Lab',
-      eventType: 'lab_due',
-      scheduledDate: new Date(Date.now() + 28 * 86400000).toISOString(),
-      reason: 'Doctor prescribed renal function monitoring',
-      providerName: 'Healthcare provider',
-      notifyHoursBefore: [24, 2],
-      isCompleted: false,
-      syncedToCalendar: true,
-    },
-  ];
-}
-
 /**
  * Check if vault is already seeded for given patient.
  * Uses LocalVault.isSeeded if available, otherwise direct counts.
  */
 export function isSeeded(vault: LocalVaultManager, patientId: string = CANONICAL_PATIENT_ID): boolean {
-  if (typeof (vault as any).isSeeded === 'function') {
+  const v = vault as unknown as { isSeeded?: (p: string) => boolean };
+  if (typeof v.isSeeded === 'function') {
     try {
-      return (vault as any).isSeeded(patientId);
+      return v.isSeeded(patientId);
     } catch {
       // fallback
     }
@@ -159,20 +80,21 @@ export function seedIfEmpty(vault: LocalVaultManager, patientId: string = CANONI
           dangerReports: vault.getDangerReports(patientId).length,
           calendarEvents: vault.getCalendarEvents(patientId).length,
         };
+    const c = counts as unknown as { conditions?: number; allergies?: number; meds?: number; medications?: number; labs?: number; dueCards?: number; proposals?: number; dangerReports?: number; calendarEvents?: number };
     return {
       seeded: false,
       skipped: true,
       reason: 'already_seeded',
       counts: {
-        conditions: (counts as any).conditions ?? 0,
-        allergies: (counts as any).allergies ?? 0,
-        medications: (counts as any).meds ?? 0,
-        labs: (counts as any).labs ?? 0,
+        conditions: c.conditions ?? 0,
+        allergies: c.allergies ?? 0,
+        medications: c.meds ?? c.medications ?? 0,
+        labs: c.labs ?? 0,
         caregivers: vault.getCaregiverLinks(patientId).length,
-        dueCards: (counts as any).dueCards ?? 0,
-        proposals: (counts as any).proposals ?? 0,
-        dangerReports: (counts as any).dangerReports ?? 0,
-        calendarEvents: (counts as any).calendarEvents ?? 0,
+        dueCards: c.dueCards ?? 0,
+        proposals: c.proposals ?? 0,
+        dangerReports: c.dangerReports ?? 0,
+        calendarEvents: c.calendarEvents ?? 0,
       },
       inserted: {
         conditions: 0,
@@ -211,11 +133,10 @@ export function seedVault(vault: LocalVaultManager, patientId: string = CANONICA
   };
 
   // CLEAN: No mock insertion. Vault stays empty for new accounts.
-  // Baseline dueCard/proposal/danger/calendar helpers are retained but NOT invoked here.
   // This ensures cold start shows empty states (No records here yet) per M1 AC.
 
   const counts = vault.getSeedCounts
-    ? vault.getSeedCounts(patientId) as any
+    ? vault.getSeedCounts(patientId)
     : {
         meds: vault.getMedications(patientId).length,
         labs: vault.getLabs(patientId).length,
@@ -226,21 +147,22 @@ export function seedVault(vault: LocalVaultManager, patientId: string = CANONICA
         dangerReports: vault.getDangerReports(patientId).length,
         calendarEvents: vault.getCalendarEvents(patientId).length,
       };
+  const c = counts as unknown as { conditions?: number; allergies?: number; meds?: number; medications?: number; labs?: number; dueCards?: number; proposals?: number; dangerReports?: number; calendarEvents?: number };
 
   return {
     seeded: false,
     skipped: true,
     reason: 'mock_seeding_removed_empty_vault',
     counts: {
-      conditions: (counts as any).conditions ?? (counts as any).meds ?? 0,
-      allergies: (counts as any).allergies ?? 0,
-      medications: (counts as any).meds ?? (counts as any).medications ?? 0,
-      labs: (counts as any).labs ?? 0,
+      conditions: c.conditions ?? c.meds ?? 0,
+      allergies: c.allergies ?? 0,
+      medications: c.meds ?? c.medications ?? 0,
+      labs: c.labs ?? 0,
       caregivers: vault.getCaregiverLinks(patientId).length,
-      dueCards: (counts as any).dueCards ?? 0,
-      proposals: (counts as any).proposals ?? 0,
-      dangerReports: (counts as any).dangerReports ?? 0,
-      calendarEvents: (counts as any).calendarEvents ?? 0,
+      dueCards: c.dueCards ?? 0,
+      proposals: c.proposals ?? 0,
+      dangerReports: c.dangerReports ?? 0,
+      calendarEvents: c.calendarEvents ?? 0,
     },
     inserted,
   };
@@ -257,7 +179,7 @@ export function seedVault(vault: LocalVaultManager, patientId: string = CANONICA
 export async function hydrateOrSeed(
   vault: LocalVaultManager,
   patientId: string = CANONICAL_PATIENT_ID
-): Promise<SeedResult & { hydrated: number; hydratedCounts?: Record<string, number>; skippedHydration?: boolean; hydrationError?: string }> {
+): Promise<SeedResult & { hydrated: number; hydratedCounts?: { [key: string]: number }; skippedHydration?: boolean; hydrationError?: string }> {
   // Dynamic imports avoid static cycle and keep seed.ts deployable without supabase bundle when disabled
   try {
     const { isSupabaseEnabled } = await import('../supabase/client.ts');
@@ -266,9 +188,8 @@ export async function hydrateOrSeed(
         const { hydrateFromSupabase } = await import('./supabaseSync.ts');
         const h = await hydrateFromSupabase(patientId, vault);
         if (h.hydrated > 0) {
-          // Remote data present — skip seed to preserve idempotency and avoid duplicate baseline
           const counts = vault.getSeedCounts
-            ? vault.getSeedCounts(patientId) as any
+            ? vault.getSeedCounts(patientId)
             : {
                 meds: vault.getMedications(patientId).length,
                 labs: vault.getLabs(patientId).length,
@@ -279,20 +200,21 @@ export async function hydrateOrSeed(
                 dangerReports: vault.getDangerReports(patientId).length,
                 calendarEvents: vault.getCalendarEvents(patientId).length,
               };
+          const c = counts as unknown as { conditions?: number; allergies?: number; meds?: number; medications?: number; labs?: number; dueCards?: number; proposals?: number; dangerReports?: number; calendarEvents?: number };
           return {
             seeded: false,
             skipped: true,
             reason: 'hydrated_from_supabase',
             counts: {
-              conditions: (counts as any).conditions ?? 0,
-              allergies: (counts as any).allergies ?? 0,
-              medications: (counts as any).meds ?? (counts as any).medications ?? 0,
-              labs: (counts as any).labs ?? 0,
+              conditions: c.conditions ?? 0,
+              allergies: c.allergies ?? 0,
+              medications: c.meds ?? c.medications ?? 0,
+              labs: c.labs ?? 0,
               caregivers: vault.getCaregiverLinks(patientId).length,
-              dueCards: (counts as any).dueCards ?? 0,
-              proposals: (counts as any).proposals ?? 0,
-              dangerReports: (counts as any).dangerReports ?? 0,
-              calendarEvents: (counts as any).calendarEvents ?? 0,
+              dueCards: c.dueCards ?? 0,
+              proposals: c.proposals ?? 0,
+              dangerReports: c.dangerReports ?? 0,
+              calendarEvents: c.calendarEvents ?? 0,
             },
             inserted: {
               conditions: 0,
@@ -306,28 +228,27 @@ export async function hydrateOrSeed(
               calendarEvents: 0,
             },
             hydrated: h.hydrated,
-            hydratedCounts: h.counts as Record<string, number> | undefined,
+            hydratedCounts: h.counts as unknown as { [key: string]: number } | undefined,
             skippedHydration: !!h.skipped,
             hydrationError: h.error,
           };
         }
-        // hydrated===0 or skipped => return empty (no mock seed)
         const seedRes = seedIfEmpty(vault, patientId);
         return {
           ...seedRes,
           hydrated: h.hydrated,
-          hydratedCounts: h.counts as Record<string, number> | undefined,
+          hydratedCounts: h.counts as unknown as { [key: string]: number } | undefined,
           skippedHydration: !!h.skipped,
           hydrationError: h.error,
         };
-      } catch (e: any) {
-        // Hydration threw — return empty, never block mount
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
         const seedRes = seedIfEmpty(vault, patientId);
         return {
           ...seedRes,
           hydrated: 0,
           skippedHydration: true,
-          hydrationError: e?.message || String(e),
+          hydrationError: msg,
         };
       }
     }

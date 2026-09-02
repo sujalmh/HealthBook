@@ -101,7 +101,7 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                         Completed
                       </span>
                     ) : isOverdue ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-caption font-semibold border border-rose-200 animate-pulse">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-caption font-semibold border border-rose-200">
                         <AlertTriangle className="w-3 h-3" />
                         OVERDUE ({Math.abs(daysRemaining)}d ago)
                       </span>

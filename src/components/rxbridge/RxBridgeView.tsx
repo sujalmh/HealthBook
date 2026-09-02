@@ -10,7 +10,7 @@
  * - Cross-module handoff to PillMap Day 0 schedule & LocalVault meds.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   FileCheck2,
   Sparkles,
@@ -40,6 +40,7 @@ import { localVault } from '../../core/vault/LocalVault.ts';
 import { eventBus } from '../../core/events/eventBus.ts';
 import { getAIConfig, isAIEnabled } from '../../core/ai/config.ts';
 import { webMCPEngine } from '../../core/webmcp/WebMCPEngine.ts';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 import { ThreeListTable } from './ThreeListTable.tsx';
 import { ReconciliationWalk } from './ReconciliationWalk.tsx';
 import { TeachBackModal } from './TeachBackModal.tsx';
@@ -57,30 +58,11 @@ export interface RxBridgeViewProps {
   };
 }
 
-function deriveRxPatientId(passed: string, fallback?: string): string {
-  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
-  if (fallback && fallback.trim() !== '' && fallback !== 'patient-s-devi') return fallback.trim();
-  try {
-    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-    if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-      }
-    }
-  } catch {}
-  return passed || fallback || 'patient-unknown';
-}
-
 export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   patientId = '',
   activeProfile = { userId: '', name: 'Patient', role: 'patient' }
 }) => {
-  const effectivePatientId = deriveRxPatientId(patientId, activeProfile.userId);
-  // Real data — vault-derived (no mock case selection) — uses effectivePatientId for isolation
+  const effectivePatientId = resolvePatientId(patientId, activeProfile.userId) || 'patient-unknown';
   const emptyDataset: Patient3ListDischargeDataset = {
     patientId: effectivePatientId,
     patientName: activeProfile.name || 'Patient',
@@ -92,7 +74,6 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     inHospitalMeds: [],
     dischargeMeds: []
   };
-  const [selectedCaseId] = useState<'shanti' | 'jenkins'>('shanti');
   const [activeDataset, setActiveDataset] = useState<Patient3ListDischargeDataset>(emptyDataset);
 
   // Reconciliation state
@@ -106,15 +87,20 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [summaryData, setSummaryData] = useState<PatientHomeSummaryExport | null>(null);
 
-  // Load and reconcile data — AI-enhanced via knowledge engine when enabled (reconciliation + question synthesis)
   const loadReconciliation = async (dataset: Patient3ListDischargeDataset) => {
     try {
       let useAI = false;
-      try { useAI = isAIEnabled(getAIConfig()) && typeof (ClinicalReconciliationEngine as any).reconcileThreeListsAI === 'function'; } catch {}
-      const items = useAI
-        ? await (ClinicalReconciliationEngine as any).reconcileThreeListsAI(dataset)
-        : ClinicalReconciliationEngine.reconcileThreeLists(dataset);
-      setReconciledItems(items);
+      try {
+        const engineAI = ClinicalReconciliationEngine as unknown as { reconcileThreeListsAI?: (d: Patient3ListDischargeDataset) => Promise<ReconciledMedChangeItem[]> };
+        useAI = isAIEnabled(getAIConfig()) && typeof engineAI.reconcileThreeListsAI === 'function';
+        const items = useAI && engineAI.reconcileThreeListsAI
+          ? await engineAI.reconcileThreeListsAI(dataset)
+          : ClinicalReconciliationEngine.reconcileThreeLists(dataset);
+        setReconciledItems(items);
+      } catch {
+        const items = ClinicalReconciliationEngine.reconcileThreeLists(dataset);
+        setReconciledItems(items);
+      }
     } catch {
       const items = ClinicalReconciliationEngine.reconcileThreeLists(dataset);
       setReconciledItems(items);
@@ -126,26 +112,26 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   useEffect(() => {
     const meds = localVault.getMedications(effectivePatientId);
     if (!meds.length) { setActiveDataset(emptyDataset); loadReconciliation(emptyDataset); return; }
-    const preAdmissionMeds = meds.map((m:any)=> ({ medName: m.genericName||m.brandName||'Medication', dose: m.dosage||'Standard', frequency: m.frequency||'Once daily', isOTC:false }));
-    const dischargeMeds = meds.map((m:any)=> ({ medName: m.genericName||m.brandName||'Medication', dose: m.dosage||'Standard', frequency: m.frequency||'Once daily', status: m.status==='stopped'?'STOPPED':'CONTINUED' as any, reason:'Doctor order', timingSlots:m.timingSlots, dietInstructions:m.withFood?'Take with food':undefined }));
-    const dataset: Patient3ListDischargeDataset = { ...emptyDataset, preAdmissionMeds, dischargeMeds } as any;
+    const preAdmissionMeds = meds.map((m) => ({ medName: (m.genericName || m.brandName || 'Medication') as string, dose: (m.dosage || 'Standard') as string, frequency: (m.frequency || 'Once daily') as string, isOTC: false }));
+    const dischargeMeds = meds.map((m) => ({ medName: (m.genericName || m.brandName || 'Medication') as string, dose: (m.dosage || 'Standard') as string, frequency: (m.frequency || 'Once daily') as string, status: (m.status === 'stopped' ? 'STOPPED' : 'CONTINUED') as 'STOPPED' | 'CONTINUED', reason: 'Doctor order', timingSlots: m.timingSlots, dietInstructions: m.withFood ? 'Take with food' : undefined }));
+    const dataset: Patient3ListDischargeDataset = { ...emptyDataset, preAdmissionMeds, dischargeMeds } as unknown as Patient3ListDischargeDataset;
     setActiveDataset(dataset); loadReconciliation(dataset);
   }, [effectivePatientId, activeProfile.userId]);
 
-  // M2 Relevant-only: RxBridge listens to proposal_created/status_changed (alias proposal_submitted), lab_added (alias lab_extracted, eGFR flag), medication_added/updated
-  // medication adds outside RxBridge (e.g., PillMap) should refresh flags; irrelevant like danger_report/calendar filtered out
-  // Alias dispatch covers legacy names without double. Handlers trigger reconciler recompute guarded by patientId.
   useEffect(() => {
-    const guard = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId;
-    const onProposal = (payload: any) => { if (guard(payload)) loadReconciliation(activeDataset); };
-    const onLab = (payload: any) => { if (guard(payload)) loadReconciliation(activeDataset); };
-    const onMed = (payload: any) => { if (guard(payload)) loadReconciliation(activeDataset); };
+    const guard = (p: unknown) => {
+      const pid = (p as { patientId?: string })?.patientId;
+      return !p || !pid || pid === effectivePatientId;
+    };
+    const onProposal = (payload: unknown) => { if (guard(payload)) loadReconciliation(activeDataset); };
+    const onLab = (payload: unknown) => { if (guard(payload)) loadReconciliation(activeDataset); };
+    const onMed = (payload: unknown) => { if (guard(payload)) loadReconciliation(activeDataset); };
 
-    const u1 = eventBus.on('proposal_created', onProposal);
-    const u2 = eventBus.on('proposal_status_changed', onProposal);
-    const u3 = eventBus.on('lab_added', onLab);
-    const u4 = eventBus.on('medication_added', onMed);
-    const u5 = eventBus.on('medication_updated', onMed);
+    const u1 = eventBus.on('proposal_created', onProposal as (p: unknown) => void);
+    const u2 = eventBus.on('proposal_status_changed', onProposal as (p: unknown) => void);
+    const u3 = eventBus.on('lab_added', onLab as (p: unknown) => void);
+    const u4 = eventBus.on('medication_added', onMed as (p: unknown) => void);
+    const u5 = eventBus.on('medication_updated', onMed as (p: unknown) => void);
 
     return () => { u1(); u2(); u3(); u4(); u5(); };
   }, [effectivePatientId, activeDataset]);
@@ -267,11 +253,10 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           status: 'active',
           indication: d.reason
         },
-        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as any }
+        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
       );
     }
 
-    // Mark stopped meds
     for (const s of stoppedMeds) {
       const existing = localVault.getMedications(effectivePatientId).find(
         (m) => m.genericName?.toLowerCase().includes(s.medName?.toLowerCase()) || (m.brandName && m.brandName?.toLowerCase().includes(s.medName?.toLowerCase()))
@@ -280,7 +265,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         localVault.updateMedicationStatus(existing.id, 'stopped', {
           userId: activeProfile.userId,
           userName: activeProfile.name,
-          role: activeProfile.role as any
+          role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
         });
       }
     }
@@ -295,7 +280,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     for (const slot of activeSlots) {
       slotTimeMap[slot] = defaultTimes[slot] || '08:00';
       // Diet-aware annotation for empty-stomach / grapefruit avoidance is persisted on MedicationRecord; reminder reason carries it
-      const slotMeds = activeDischargeMeds.filter((d) => (d.timingSlots || ['morning']).includes(slot as any));
+      const slotMeds = activeDischargeMeds.filter((d) => (d.timingSlots || ['morning']).includes(slot as unknown as typeof d.timingSlots extends (infer U)[] | undefined ? U : string));
       const dietNotes = slotMeds
         .map((m) => m.dietInstructions)
         .filter(Boolean)
@@ -312,7 +297,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           isCompleted: false,
           syncedToCalendar: true
         },
-        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as any }
+        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
       );
     }
 
@@ -326,9 +311,30 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     });
   };
 
-  // Metrics
+  const handleDischargeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const d = reader.result as string;
+      const id = `doc_${Date.now()}_${f.name}`;
+      await localVault.addDocument({ id, patientId: effectivePatientId, fileName: f.name, name: f.name, docType: 'discharge_summary', pageCount: 1, uploadTimestamp: new Date().toISOString(), extractedText: '', extractedFactIds: [] } as unknown as import('@/types/vault').DocumentRecord);
+      try {
+        await webMCPEngine.execute('extract_fact', { documentId: id, rawText: f.name, imageDataUrl: d, docType: 'discharge_summary' } as unknown as Record<string, unknown>);
+      } catch { /* intentionally empty */ }
+      const meds = localVault.getMedications(effectivePatientId);
+      if (meds.length) {
+        const pre = meds.map((m) => ({ medName: m.genericName || m.brandName || 'Medication', dose: m.dosage || 'Standard', frequency: m.frequency || 'Once daily' }));
+        const dis = meds.map((m) => ({ medName: m.genericName || m.brandName || 'Medication', dose: m.dosage || 'Standard', frequency: m.frequency || 'Once daily', status: 'CONTINUED' as const, reason: 'Doctor order' }));
+        const ds = { ...emptyDataset, preAdmissionMeds: pre, dischargeMeds: dis } as unknown as Patient3ListDischargeDataset;
+        loadReconciliation(ds);
+        setActiveDataset(ds);
+      }
+    };
+    reader.readAsDataURL(f);
+  };
+
   const totalApproved = reconciledItems.filter((i) => i.isApprovedByPatient).length;
-  const progressPercent = reconciledItems.length > 0 ? Math.round((totalApproved / reconciledItems.length) * 100) : 0;
   const newCount = reconciledItems.filter((i) => i.statusBadge === 'NEW').length;
   const changedCount = reconciledItems.filter((i) => i.statusBadge === 'DOSE_CHANGED').length;
   const stoppedCount = reconciledItems.filter((i) => i.statusBadge === 'STOPPED').length;
@@ -336,9 +342,32 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     (acc, curr) => acc + (curr.interactions ? curr.interactions.length : 0),
     0
   );
-  const doctorSourceName = activeDataset.attendingPhysician!=='Care Team'?activeDataset.attendingPhysician:(localVault.getProposals(effectivePatientId).sort((a,b)=>new Date(b.timestamp).getTime()-new Date(a.timestamp).getTime())[0]?.doctorName||(localVault.getDoctorGrants(effectivePatientId).sort((a,b)=>new Date(b.issuedAt).getTime()-new Date(a.issuedAt).getTime())[0] as any)?.doctorName||'Care Team');
-  const lastUpdatedRaw = (()=>{let ts=activeDataset.dischargeDate;const p=localVault.getProposals(effectivePatientId);if(p.length){const l=[...p].sort((a,b)=>new Date(b.timestamp).getTime()-new Date(a.timestamp).getTime())[0];ts=(l as any).approvedAt||l.timestamp||ts;}const a=localVault.getAuditLogs(effectivePatientId);if(a.length){const la=[...a].sort((a,b)=>new Date(b.timestamp).getTime()-new Date(a.timestamp).getTime())[0].timestamp;if(new Date(la)>new Date(ts))ts=la;}return ts;})();
-  const isOutdated = (()=>{try{return Date.now()-new Date(lastUpdatedRaw).getTime()>30*24*60*60*1000;}catch{return false;}})();
+  const doctorSourceName = useMemo(() => {
+    if (activeDataset.attendingPhysician !== 'Care Team') return activeDataset.attendingPhysician;
+    const proposals = localVault.getProposals(effectivePatientId).slice().sort((a,b)=>new Date(b.timestamp).getTime()-new Date(a.timestamp).getTime());
+    if (proposals[0]?.doctorName) return proposals[0].doctorName;
+    const grants = localVault.getDoctorGrants(effectivePatientId).slice().sort((a,b)=>new Date(b.issuedAt).getTime()-new Date(a.issuedAt).getTime());
+    const g = grants[0] as unknown as { doctorName?: string } | undefined;
+    return g?.doctorName || 'Care Team';
+  }, [effectivePatientId, activeDataset.attendingPhysician]);
+  const lastUpdatedRaw = useMemo(() => {
+    let ts = activeDataset.dischargeDate;
+    const p = localVault.getProposals(effectivePatientId);
+    if (p.length){
+      const l = [...p].sort((a,b)=>new Date(b.timestamp).getTime()-new Date(a.timestamp).getTime())[0];
+      const rec = l as unknown as { approvedAt?: string; timestamp: string };
+      ts = rec.approvedAt || rec.timestamp || ts;
+    }
+    const a = localVault.getAuditLogs(effectivePatientId);
+    if (a.length){
+      const la = [...a].sort((aa,bb)=>new Date(bb.timestamp).getTime()-new Date(aa.timestamp).getTime())[0].timestamp;
+      if (new Date(la) > new Date(ts)) ts = la;
+    }
+    return ts;
+  }, [effectivePatientId, activeDataset.dischargeDate]);
+  const isOutdated = useMemo(() => {
+    try { return Date.now()-new Date(lastUpdatedRaw).getTime()>30*24*60*60*1000; } catch { return false; }
+  }, [lastUpdatedRaw]);
   const isPatientReadOnly = activeProfile.role!=='doctor' && !activeProfile.isProxy;
 
   return (
@@ -384,32 +413,32 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-canvas-border">
           <div className="p-3 rounded-xl bg-canvas-muted border border-canvas-border">
             <div className="text-caption font-mono text-muted uppercase font-bold">Total meds</div>
-            <div className="text-xl font-black text-slate-900 mt-0.5">{reconciledItems.length}</div>
+            <div className="text-xl font-bold text-slate-900 mt-0.5">{reconciledItems.length}</div>
           </div>
 
           <div className="p-3 rounded-xl bg-purple-50 border border-purple-200">
             <div className="text-caption font-mono text-clinical-purple uppercase font-bold">New meds</div>
-            <div className="text-xl font-black text-clinical-purple mt-0.5">{newCount}</div>
+            <div className="text-xl font-bold text-clinical-purple mt-0.5">{newCount}</div>
           </div>
 
           <div className="p-3 rounded-xl bg-sky-50 border border-sky-200">
             <div className="text-caption font-mono text-clinical-blue uppercase font-bold">Dose changed</div>
-            <div className="text-xl font-black text-clinical-blue mt-0.5">{changedCount}</div>
+            <div className="text-xl font-bold text-clinical-blue mt-0.5">{changedCount}</div>
           </div>
 
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
             <div className="text-caption font-mono text-clinical-red uppercase font-bold">Stopped / Omitted</div>
-            <div className="text-xl font-black text-clinical-red mt-0.5">{stoppedCount}</div>
+            <div className="text-xl font-bold text-clinical-red mt-0.5">{stoppedCount}</div>
           </div>
 
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
             <div className="text-caption font-mono text-clinical-amber uppercase font-bold">Conflicts flagged</div>
-            <div className="text-xl font-black text-clinical-amber mt-0.5">{interactionsCount}</div>
+            <div className="text-xl font-bold text-clinical-amber mt-0.5">{interactionsCount}</div>
           </div>
 
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
             <div className="text-caption font-mono text-clinical-emerald uppercase font-bold">Approved</div>
-            <div className="text-xl font-black text-clinical-emerald mt-0.5">{totalApproved}/{reconciledItems.length}</div>
+            <div className="text-xl font-bold text-clinical-emerald mt-0.5">{totalApproved}/{reconciledItems.length}</div>
           </div>
         </div>
         {isPatientReadOnly && reconciledItems.length > 0 && (
@@ -418,7 +447,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         {reconciledItems.length === 0 && (
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 text-center space-y-3">
             <p className="text-sm font-semibold text-slate-900">No hospital list yet — your doctor can share one, or add medicines in Weekly Planner</p>
-            <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold cursor-pointer"><span>Upload discharge paper</span><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={async (e)=>{const f=(e.target as HTMLInputElement).files?.[0];if(!f)return;const r=new FileReader();r.onload=async()=>{const d=r.result as string;const id=`doc_${Date.now()}_${f.name}`;await localVault.addDocument({id,patientId:effectivePatientId,fileName:f.name,name:f.name,docType:'discharge_summary' as any,pageCount:1,uploadTimestamp:new Date().toISOString(),extractedText:'',extractedFactIds:[]}as any);try{await webMCPEngine.execute('extract_fact',{documentId:id,rawText:f.name,imageDataUrl:d,docType:'discharge_summary'}as any);}catch{}const meds=localVault.getMedications(effectivePatientId);if(meds.length){const pre=meds.map((m:any)=>({medName:m.genericName||m.brandName||'Medication',dose:m.dosage||'Standard',frequency:m.frequency||'Once daily'}));const dis=meds.map((m:any)=>({medName:m.genericName||m.brandName||'Medication',dose:m.dosage||'Standard',frequency:m.frequency||'Once daily',status:'CONTINUED' as any,reason:'Doctor order'}));const ds={...emptyDataset,preAdmissionMeds:pre,dischargeMeds:dis}as any;loadReconciliation(ds);setActiveDataset(ds);}};r.readAsDataURL(f);}} /></label>
+            <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold cursor-pointer"><span>Upload discharge paper</span><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleDischargeUpload} /></label>
             <p className="text-caption text-muted">or add medicines in Weekly Planner</p>
           </div>
         )}
@@ -458,10 +487,10 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all min-h-[40px] ${
                 teachBackRecord?.comprehensionScore === 'accurate'
                   ? 'bg-emerald-600/30 text-emerald-700 border-emerald-500/50'
-                  : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-700 border-indigo-500/40'
+                  : 'bg-teal-700/20 hover:bg-teal-700/30 text-teal-800 border-teal-500/40'
               }`}
             >
-              <ShieldCheck className="w-4 h-4 text-indigo-400" />
+              <ShieldCheck className="w-4 h-4 text-teal-500" />
               <span>{teachBackRecord ? 'Checked ✓' : 'Check My Understanding'}</span>
             </button>
 
@@ -482,7 +511,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-body-sm font-bold shadow-md transition-all min-h-[44px] ${
                 totalApproved !== reconciledItems.length
                   ? 'bg-canvas-muted text-muted cursor-not-allowed border border-canvas-border'
-                  : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/20 hover:scale-[1.01]'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
               }`}
             >
               <Pill className="w-4 h-4" />

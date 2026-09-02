@@ -133,7 +133,7 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void; 
           />
           <select
             value={newPriority}
-            onChange={(e) => setNewPriority(e.target.value as any)}
+            onChange={(e) => setNewPriority(e.target.value as unknown as typeof newPriority)}
             className="px-3 py-2 bg-white border border-canvas-border rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px] sm:w-auto w-full"
             aria-label="Question priority"
           >

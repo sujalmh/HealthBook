@@ -37,7 +37,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
   const [pendingApprovals, setPendingApprovals] = useState<PendingApprovalItem[]>([]);
   const [selectedToolName, setSelectedToolName] = useState<string>('extract_fact');
   const [playgroundParams, setPlaygroundParams] = useState<string>('{\n  "documentId": "doc-example-001"\n}');
-  const [playgroundResult, setPlaygroundResult] = useState<any>(null);
+  const [playgroundResult, setPlaygroundResult] = useState<unknown>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [catalogFilterModule, setCatalogFilterModule] = useState<string>('all');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
@@ -46,37 +46,39 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     // Try native first: document.modelContext.getTools() Promise spec §4.2, fallback to engine sync for polyfill parity
     let nextTools: WebMCPToolDefinition[] | null = null;
     try {
-      if (typeof document !== 'undefined' && (document as any).modelContext?.getTools) {
-        const nativeTools: any[] = await (document as any).modelContext.getTools();
+      if (typeof document !== 'undefined' && (document as unknown as { modelContext?: { getTools?: () => Promise<unknown[]> } }).modelContext?.getTools) {
+        const nativeTools: unknown[] = await (document as unknown as { modelContext: { getTools: () => Promise<unknown[]> } }).modelContext.getTools();
         if (Array.isArray(nativeTools) && nativeTools.length > 0) {
           const byName = new Map(webMCPEngine.getRegisteredTools().map((t) => [t.name, t]));
-          nextTools = nativeTools.map((rt: any) => {
-            const cached = byName.get(rt.name);
+          nextTools = nativeTools.map((rt: unknown) => {
+            const typedRt = rt as { name: string; description?: string; inputSchema?: string; annotations?: { readOnlyHint?: boolean } };
+            const cached = byName.get(typedRt.name);
             if (cached) return cached;
-            let params: any = {};
+            let params: Record<string, unknown> = {};
             try {
-              const parsed = rt.inputSchema ? JSON.parse(rt.inputSchema) : {};
+              const parsed = typedRt.inputSchema ? JSON.parse(typedRt.inputSchema) : {};
               params = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
-            } catch {}
-            if (!params || !params.properties) {
-              if (params && typeof params === 'object' && !params.properties) {
-                // already object schema, wrap if needed
-                params = { type: 'object', properties: params.properties || params, required: params.required || [] };
-                if (!params.properties || typeof params.properties !== 'object') params.properties = {};
+            } catch { /* intentionally empty */ }
+            const props = (params as { properties?: unknown }).properties;
+            if (!params || !props) {
+              if (params && typeof params === 'object' && !props) {
+                const pRec = params as { properties?: unknown; required?: unknown };
+                params = { type: 'object', properties: pRec.properties || params, required: pRec.required || [] } as Record<string, unknown>;
+                if (!(params as { properties?: unknown }).properties || typeof (params as { properties?: unknown }).properties !== 'object') (params as { properties: unknown }).properties = {};
               } else {
                 params = { type: 'object', properties: {}, required: [] };
               }
             }
             return {
-              name: rt.name,
-              description: rt.description || '',
+              name: typedRt.name,
+              description: typedRt.description || '',
               moduleOwner: 'vault',
               category: 'general',
-              requiresHumanApproval: rt.annotations ? rt.annotations.readOnlyHint === false : false,
+              requiresHumanApproval: typedRt.annotations ? typedRt.annotations.readOnlyHint === false : false,
               parameters: params,
               execute: async () => ({
                 success: true,
-                tool: rt.name,
+                tool: typedRt.name,
                 timestamp: new Date().toISOString(),
                 data: null,
                 plainLanguageSummary: '',
@@ -86,7 +88,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
           });
         }
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
     if (nextTools) setTools(nextTools);
     else setTools(webMCPEngine.getRegisteredTools());
     setTelemetryLogs(webMCPEngine.getTelemetryLogs());
@@ -97,23 +99,25 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
       try {
         const raw = localStorage.getItem('carecanvas_active_user');
         if (raw) pid = JSON.parse(raw)?.userId || '';
-      } catch {}
+      } catch { /* intentionally empty */ }
       if (pid) {
         const vaultFacts = localVault.getPendingFacts(pid);
-        const vaultFactApprovals = vaultFacts.map((f: any) => ({
-          id: f.id,
-          toolName: 'confirm_fact',
-          title: f.name || f.factKey || 'Pending fact',
-          description: f.plainExplanation || f.plainNarration || 'Awaiting review in My Records',
-          timestamp: f.timestamp || f.createdAt || new Date().toISOString(),
-        }));
-        // Deduplicate by id and merge
-        const existingIds = new Set(pending.map((p: any) => p.id || p.invocationId));
+        const vaultFactApprovals = vaultFacts.map((f) => {
+          const extra = f as unknown as { factKey?: string; plainNarration?: string; timestamp?: string; createdAt?: string };
+          return {
+            id: f.id,
+            toolName: 'confirm_fact',
+            title: f.name || extra.factKey || 'Pending fact',
+            description: f.plainExplanation || extra.plainNarration || 'Awaiting review in My Records',
+            timestamp: extra.timestamp || f.createdAt || new Date().toISOString(),
+          };
+        });
+        const existingIds = new Set(pending.map((p) => (p as { id?: string; invocationId?: string }).id || (p as { invocationId?: string }).invocationId));
         for (const v of vaultFactApprovals) {
-          if (!existingIds.has(v.id)) pending = [...pending, v as any];
+          if (!existingIds.has(v.id)) pending = [...pending, v as unknown as unknown];
         }
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
     setPendingApprovals(pending);
   };
 
@@ -128,18 +132,18 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     // Native toolchange listener per W3C §4.4 — observe browser ModelContext EventTarget
     let removeNative: (() => void) | null = null;
     try {
-      if (typeof document !== 'undefined' && (document as any).modelContext?.addEventListener) {
+      if (typeof document !== 'undefined' && (document as unknown as { modelContext?: { addEventListener?: (e:string,h:()=>void)=>void } }).modelContext?.addEventListener) {
         const handler = () => {
           refreshData();
         };
-        (document as any).modelContext.addEventListener('toolchange', handler);
+        (document as unknown as { modelContext: { addEventListener: (e:string,h:()=>void)=>void } }).modelContext.addEventListener('toolchange', handler);
         removeNative = () => {
           try {
-            (document as any).modelContext?.removeEventListener('toolchange', handler);
-          } catch {}
+            (document as unknown as { modelContext?: { removeEventListener?: (e:string,h:()=>void)=>void } }).modelContext?.removeEventListener?.('toolchange', handler);
+          } catch { /* intentionally empty */ }
         };
       }
-    } catch {}
+    } catch { /* intentionally empty */ }
 
     return () => {
       u1();
@@ -172,7 +176,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
       try {
         const raw = localStorage.getItem('carecanvas_active_user');
         if (raw) return JSON.parse(raw)?.userId || 'current-patient';
-      } catch {}
+      } catch { /* intentionally empty */ }
       return 'current-patient';
     })();
     const samplePayloads: Record<string, object> = {
@@ -266,6 +270,14 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
         durationDays: 7,
         scope: 'full_dossier',
       },
+      create_account: {
+        name: 'Alex Morgan',
+        email: 'alex@example.com',
+        role: 'patient',
+      },
+      sign_in: {
+        email: 'alex@example.com',
+      },
     };
 
     const payload = samplePayloads[toolName] || {};
@@ -285,10 +297,11 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
       const result = await webMCPEngine.execute(selectedToolName, parsedParams);
       setPlaygroundResult(result);
       refreshData();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Execution error';
       setPlaygroundResult({
         success: false,
-        error: err?.message || 'Execution error',
+        error: msg,
       });
     } finally {
       setIsExecuting(false);
@@ -324,7 +337,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-heading-md sm:text-lg font-bold text-slate-900">CareCanvas WebMCP Inspector</h2>
                 <span className="text-caption px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                  {typeof document !== 'undefined' && (document as any).modelContext?.registerTool ? 'Native WebMCP' : 'Polyfill Adapter'}
+                  {(typeof document !== 'undefined' && (document as unknown as { modelContext?: { registerTool?: unknown } }).modelContext?.registerTool) ? 'Native WebMCP' : 'Polyfill Adapter'}
                 </span>
               </div>
               <p className="text-xs text-muted hidden sm:block">
@@ -624,20 +637,20 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
                     <div className="flex items-center justify-between gap-2 pb-2 border-b border-canvas-border font-sans flex-wrap">
                       <span
                         className={`text-caption font-bold px-2 py-0.5 rounded border ${
-                          playgroundResult.success
+                          (playgroundResult as { success?: boolean })?.success
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : 'bg-rose-50 text-rose-700 border-rose-200'
                         }`}
                       >
-                        {playgroundResult.success ? 'Success 200 OK' : 'Execution Failed'}
+                        {(playgroundResult as { success?: boolean })?.success ? 'Success 200 OK' : 'Execution Failed'}
                       </span>
-                      <span className="text-caption text-muted">{playgroundResult.timestamp}</span>
+                      <span className="text-caption text-muted">{(playgroundResult as { timestamp?: string })?.timestamp}</span>
                     </div>
 
-                    {playgroundResult.plainLanguageExplanation && (
+                    {(playgroundResult as { plainLanguageExplanation?: string })?.plainLanguageExplanation && (
                       <div className="bg-white p-3 rounded-xl border border-canvas-border text-slate-800 font-sans text-xs leading-relaxed">
                         <strong>Plain Language Narrative:</strong>
-                        <p className="mt-1 text-slate-700">{playgroundResult.plainLanguageExplanation}</p>
+                        <p className="mt-1 text-slate-700">{(playgroundResult as { plainLanguageExplanation?: string }).plainLanguageExplanation}</p>
                       </div>
                     )}
 
@@ -688,14 +701,14 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
 
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => webMCPEngine.resolveApproval(item.id || (item as any).invocationId || '', true)}
+                          onClick={() => webMCPEngine.resolveApproval(item.id || (item as unknown as { invocationId?: string }).invocationId || '', true)}
                           className="flex items-center gap-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors shadow focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 min-h-[44px]"
                         >
                           <Check className="w-3.5 h-3.5" />
                           Approve
                         </button>
                         <button
-                          onClick={() => webMCPEngine.resolveApproval(item.id || (item as any).invocationId || '', false)}
+                          onClick={() => webMCPEngine.resolveApproval(item.id || (item as unknown as { invocationId?: string }).invocationId || '', false)}
                           className="flex items-center gap-1 px-3 py-2 bg-white hover:bg-canvas-muted text-rose-700 rounded-xl text-xs font-medium border border-canvas-border transition-colors focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 min-h-[44px]"
                         >
                           <X className="w-3.5 h-3.5" />

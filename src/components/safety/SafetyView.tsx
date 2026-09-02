@@ -20,6 +20,7 @@ import { FollowupScheduler } from './FollowupScheduler';
 import { CalendarView } from './CalendarView';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 import type { DangerSignReport } from '@/types/safety';
 import type { CalendarEventRecord } from '@/types/vault';
 
@@ -36,32 +37,13 @@ interface SafetyViewProps {
   };
 }
 
-function deriveSafetyPatientId(passed: string, fallback?: string): string {
-  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
-  if (fallback && fallback.trim() !== '' && fallback !== 'patient-s-devi') return fallback.trim();
-  try {
-    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-    if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-      }
-    }
-  } catch {}
-  return passed || fallback || '';
-}
-
 export const SafetyView: React.FC<SafetyViewProps> = ({
   patientId,
   activeProfile = { userId: patientId, name: 'Patient', role: 'patient', permissionLevel: 'manage' as const }
 }) => {
-  const effectivePatientId = deriveSafetyPatientId(patientId, activeProfile?.userId);
+  const effectivePatientId = resolvePatientId(patientId, activeProfile?.userId);
   const [activeTab, setActiveTab] = useState<'patient_safety' | 'doctor_triage' | 'calendar'>('patient_safety');
-  // RBAC derived — view_only read-only, doctor/full for triage gate — PERMISSION_DENIED guard
-  const permissionLevel = (activeProfile as any)?.permissionLevel || 'manage';
+  const permissionLevel = (activeProfile as unknown as { permissionLevel?: "view_only" | "manage" | "full" })?.permissionLevel || 'manage';
   const profileRole = activeProfile?.role || 'patient';
   const isViewOnly = permissionLevel === 'view_only';
   const canAccessDoctorTriage = profileRole === 'doctor' || permissionLevel === 'full';
@@ -94,18 +76,18 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
     setCalendarEvents(events);
   };
 
-  // M2 Relevant-only: Safety listens to danger_report_added (alias danger_reported), calendar_event_added, proposal_created (alias proposal_submitted)
-  // lab_* / medication_* / due_card_* are irrelevant — alias dispatch covers legacy names without double
-  // Danger triage via AI vision+text inferred if document contains red flags but still requires clinician path
   useEffect(() => {
     loadData();
 
-    const guard = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId;
-    const mk = (h: () => void) => (payload: any) => { if (guard(payload)) h(); };
+    const guard = (p: unknown) => {
+      const pid = (p as { patientId?: string })?.patientId;
+      return !p || !pid || pid === effectivePatientId;
+    };
+    const mk = (h: () => void) => (payload: unknown) => { if (guard(payload)) h(); };
 
-    const u1 = eventBus.on('danger_report_added', mk(loadData));
-    const u2 = eventBus.on('calendar_event_added', mk(loadData));
-    const u3 = eventBus.on('proposal_created', mk(loadData));
+    const u1 = eventBus.on('danger_report_added', mk(loadData) as (p: unknown) => void);
+    const u2 = eventBus.on('calendar_event_added', mk(loadData) as (p: unknown) => void);
+    const u3 = eventBus.on('proposal_created', mk(loadData) as (p: unknown) => void);
 
     return () => {
       u1();
@@ -145,7 +127,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
             aria-disabled={isViewOnly}
             title={isViewOnly ? 'View-only: cannot report — Permission denied (PERMISSION_DENIED)' : undefined}
             className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md min-h-[44px] w-full sm:w-auto ${
-              isViewOnly ? 'bg-slate-300 text-slate-600 cursor-not-allowed opacity-60 shadow-none' : 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-600/20'
+              isViewOnly ? 'bg-slate-300 text-slate-600 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-700 text-white'
             }`}
           >
             <AlertTriangle className="w-4 h-4" />
@@ -325,7 +307,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           <TriagePanel
             patientId={effectivePatientId}
             dangerReports={dangerReports}
-            activeProfile={activeProfile as any}
+            activeProfile={activeProfile as unknown as { userId: string; name: string; role: string; isProxy?: boolean; onBehalfOf?: string; permissionLevel?: "view_only" | "manage" | "full" }}
             onActionDispatched={() => loadData()}
           />
         ) : (
@@ -349,12 +331,11 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         />
       )}
 
-      {/* Modals — pass activeProfile for correct audit performedBy role + view_only gate */}
       <DangerSignModal
         isOpen={isDangerModalOpen}
         onClose={() => setIsDangerModalOpen(false)}
         patientId={effectivePatientId}
-        activeProfile={activeProfile as any}
+        activeProfile={activeProfile as unknown as { userId: string; name: string; role: string; isProxy?: boolean; onBehalfOf?: string; permissionLevel?: "view_only" | "manage" | "full" }}
         onReportSubmitted={() => loadData()}
       />
 
@@ -362,7 +343,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         isOpen={isFollowupModalOpen}
         onClose={() => setIsFollowupModalOpen(false)}
         patientId={effectivePatientId}
-        activeProfile={activeProfile as any}
+        activeProfile={activeProfile as unknown as { userId: string; name: string; role: string; isProxy?: boolean; onBehalfOf?: string; permissionLevel?: "view_only" | "manage" | "full" }}
         onScheduled={() => loadData()}
       />
     </div>

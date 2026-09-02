@@ -95,7 +95,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
                     <span>
                       {entry.performedBy?.userName || 'User'}
                       {isProxy && (
-                        <span className="text-indigo-700 font-semibold">
+                        <span className="text-teal-800 font-semibold">
                           {' '}
                           (acting on behalf of {entry.performedBy.onBehalfOf})
                         </span>

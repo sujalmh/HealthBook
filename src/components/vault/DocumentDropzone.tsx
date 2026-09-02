@@ -4,6 +4,8 @@ import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { runDocumentOCR, type OCRResult } from '@/core/ai/ocr';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
+import type { DocumentRecord } from '@/types/vault';
 
 export const DocumentDropzone: React.FC<{
   patientId?: string;
@@ -21,19 +23,7 @@ export const DocumentDropzone: React.FC<{
 
   const extractionPath = 'ocr_then_ai' as const;
 
-  const effectivePatientId =
-    patientId ||
-    (() => {
-      try {
-        const raw = localStorage.getItem('carecanvas_active_user');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          return parsed?.userId || parsed?.id || '';
-        }
-      } catch {}
-      return '';
-    })() ||
-    'patient-unknown';
+  const effectivePatientId = resolvePatientId(patientId) || 'patient-unknown';
 
   const handleRealExtract = async (file: File, fileDataUrl: string, rawText?: string) => {
     setIsExtracting(true);
@@ -63,7 +53,7 @@ export const DocumentDropzone: React.FC<{
         patientId: effectivePatientId,
         fileName: file.name,
         name: file.name,
-        docType: docType as any,
+        docType: docType as unknown as DocumentRecord['docType'],
         pageCount: ocrMeta?.pageCount ?? 1,
         uploadTimestamp: new Date().toISOString(),
         extractedText: ocrOutputText,
@@ -74,7 +64,7 @@ export const DocumentDropzone: React.FC<{
 
       setCurrentStage('ai');
 
-      const execParams: any = {
+      const execParams: Record<string, unknown> = {
         documentId,
         rawText: ocrOutputText || file.name,
         imageDataUrl: fileDataUrl,
@@ -89,15 +79,16 @@ export const DocumentDropzone: React.FC<{
       eventBus.dispatchToast({
         type: 'success',
         title: 'Done',
-        message: (result as any).plainLanguageSummary || 'We found details from your paper. Please review below.',
+        message: (result as unknown as { plainLanguageSummary?: string }).plainLanguageSummary || 'We found details from your paper. Please review below.',
       });
 
       if (onExtracted) onExtracted();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Please try again with a clear PDF or photo.';
       eventBus.dispatchToast({
         type: 'error',
         title: 'Could not read paper',
-        message: err?.message || 'Please try again with a clear PDF or photo.',
+        message: msg,
       });
     } finally {
       setIsExtracting(false);

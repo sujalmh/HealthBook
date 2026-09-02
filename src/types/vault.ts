@@ -14,17 +14,45 @@ export interface BoundingBox {
   textSnippet?: string;
 }
 
-export type FactCategory = 'lab' | 'medication' | 'allergy' | 'condition' | 'supplement' | 'vital_sign' | 'diet_habit' | string;
+export type FactCategory =
+  | 'lab'
+  | 'medication'
+  | 'allergy'
+  | 'condition'
+  | 'supplement'
+  | 'vital_sign'
+  | 'diet_habit'
+  | 'demographics'
+  | 'due_card'
+  | 'danger_sign'
+  | 'followup'
+  | 'vital'
+  | 'general_care';
 export type FactStatus = 'unconfirmed' | 'confirmed' | 'rejected' | 'pending' | 'approved' | 'edited';
+
+export type FactValue =
+  | string
+  | number
+  | boolean
+  | null
+  | {
+      dose?: string;
+      dosage?: string;
+      rawSnippet?: string;
+      brand?: string;
+      numericValue?: number;
+      [key: string]: unknown;
+    };
 
 export interface Fact {
   id: string;
   patientId: string;
   category: FactCategory;
   name: string;
-  value: any;
+  /** Fact value — boundary validated: string dose or { dose, rawSnippet } or number */
+  value: FactValue;
   factKey?: string;
-  factValue?: any;
+  factValue?: FactValue;
   unit?: string;
   confidence?: number;
   status: FactStatus;
@@ -35,13 +63,14 @@ export interface Fact {
   sourceBoundingBox?: BoundingBox;
   plainExplanation: string;
   plainNarration?: string;
-  author: any;
+  /** Author — string identifier at boundary, validated via typeof string before use */
+  author: string | { userId: string; name: string; role: string } | unknown;
   actorName?: string;
   approvedBy?: string;
   approvedAt?: string;
   timestamp: string;
   createdAt?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type FactEntity = Fact;
@@ -196,7 +225,8 @@ export interface AuditLogEntry {
     role: 'patient' | 'caregiver' | 'doctor' | 'system';
     onBehalfOf?: string;
   };
-  details: Record<string, any>;
+  /** Boundary: validated via typeof string + schema before use */
+  details: Record<string, unknown>;
   /** Patient isolation key — populated when audit originates from a patient-scoped entity */
   patientId?: string;
   hash?: string;

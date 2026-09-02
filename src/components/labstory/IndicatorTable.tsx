@@ -60,7 +60,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
       const std = findLocalStandard(latest.marker ?? '');
       const canonical = std ? std.canonicalName : latest.marker;
       // Derive flag/status via vault logic: use latest's flag/isBorderline/isCritical already normalized by LocalVault 120-125
-      const flag = (latest.flag as any) || (latest.isBorderline ? 'BORDERLINE' : 'NORMAL');
+      const flag = (latest.flag as unknown as string) || (latest.isBorderline ? 'BORDERLINE' : 'NORMAL');
       return {
         key,
         canonical,
@@ -191,7 +191,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                     </span>
                   </td>
                   <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
-                    {g.value as any} <span className="font-normal text-muted text-caption">{g.unit}</span>
+                    {g.value as string | number} <span className="font-normal text-muted text-caption">{g.unit}</span>
                   </td>
                   <td className="py-3 px-3 text-muted text-body-sm whitespace-nowrap">
                     {g.referenceRange?.low ?? 0}–{g.referenceRange?.high ?? 100} {g.unit}
@@ -247,7 +247,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-canvas-muted border border-canvas-border rounded-xl p-4 space-y-2">
                   <div className="text-caption font-bold uppercase tracking-wider text-muted">Latest Value</div>
-                  <div className="text-2xl font-black text-slate-900 font-mono">
+                  <div className="text-2xl font-bold text-slate-900 font-mono">
                     {activeGroup.value} <span className="text-base font-normal text-muted">{activeGroup.unit}</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -284,7 +284,8 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
 
               {/* Doctor comment */}
               {(() => {
-                const dc: any = (activeGroup.latest as any).doctorComment || (activeGroup.latest as any).doctorComments?.[0];
+                const rec = activeGroup.latest as unknown as { doctorComment?: { doctorName: string; comment: string; timestamp?: string }; doctorComments?: { doctorName: string; comment: string; timestamp?: string }[] };
+                const dc = rec.doctorComment || rec.doctorComments?.[0];
                 if (!dc) return (
                   <div className="text-caption text-muted bg-canvas-muted border border-dashed border-canvas-border rounded-xl p-3">No clinician note pinned for this marker yet.</div>
                 );
@@ -331,8 +332,9 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-canvas-border bg-white">
-                      {[...activeGroup.labs].sort((a, b) => new Date(b.drawDate ?? 0).getTime() - new Date(a.drawDate ?? 0).getTime()).map((r) => {
-                        const dc: any = (r as any).doctorComment || (r as any).doctorComments?.[0];
+                      {[...activeGroup.labs].slice().sort((a, b) => new Date(b.drawDate ?? 0).getTime() - new Date(a.drawDate ?? 0).getTime()).map((r) => {
+                        const rec = r as unknown as { doctorComment?: { comment: string }; doctorComments?: { comment: string }[] };
+                        const dc = rec.doctorComment || rec.doctorComments?.[0];
                         return (
                           <tr key={r.id} className="hover:bg-canvas-muted/30">
                             <td className="py-2.5 px-3 whitespace-nowrap">{r.drawDate ? new Date(r.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>

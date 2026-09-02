@@ -234,9 +234,9 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
             <button
               type="button"
               onClick={() => setShowGrounding(v=>!v)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-amber-200 hover:bg-indigo-50 hover:border-indigo-200 text-sm font-bold text-slate-700 hover:text-indigo-700 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-amber-200 hover:bg-teal-50 hover:border-teal-200 text-sm font-bold text-slate-700 hover:text-teal-800 transition-colors"
             >
-              <Sparkles className="w-4 h-4 text-indigo-600" />
+              <Sparkles className="w-4 h-4 text-teal-700" />
               {showGrounding ? 'Hide web grounding' : 'Show web grounding (what latest guidelines say) — Exa'}
               {showGrounding ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
             </button>
@@ -244,20 +244,18 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
         </div>
       )}
 
-      {showGrounding && causalResult && (
+      {showGrounding && (
         <GroundedInsightsPanel
           patientId={patientId}
-          initialQuery={`${causalResult.biomarker} ${causalResult.trajectory?.replace(/_/g,' ') || ''} — ${causalResult.recommendedDoctorQuestion || queryText || 'interpretation and next steps'} per latest guidelines`}
-          contextFacts={vaultContext || `${causalResult.biomarker}: ${causalResult.trendMetrics?.endValue ?? ''} | ${causalResult.causalStorySentence}`}
-          mode="lab"
-        />
-      )}
-      {!causalResult && showGrounding && (
-        <GroundedInsightsPanel
-          patientId={patientId}
-          initialQuery={queryText || `${marker} interpretation and guidelines`}
-          contextFacts={vaultContext}
-          mode="general"
+          initialQuery={
+            causalResult
+              ? `${causalResult.biomarker} ${causalResult.trajectory?.replace(/_/g, ' ') || ''} — ${causalResult.recommendedDoctorQuestion || queryText || 'interpretation and next steps'} per latest guidelines`
+              : queryText || `${marker} interpretation and guidelines`
+          }
+          contextFacts={
+            causalResult ? vaultContext || `${causalResult.biomarker}: ${causalResult.trendMetrics?.endValue ?? ''} | ${causalResult.causalStorySentence}` : vaultContext
+          }
+          mode={causalResult ? 'lab' : 'general'}
         />
       )}
     </div>

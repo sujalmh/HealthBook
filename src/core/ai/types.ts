@@ -1,6 +1,5 @@
 /**
  * CareCanvas AI Core — Types
- * Strongly-typed contracts for multimodal AI extraction and knowledge inference.
  */
 
 import type { Fact } from '../../types/vault.ts';
@@ -35,7 +34,7 @@ export interface AIConfig {
 }
 
 export interface AICallOptions {
-  schema?: Record<string, any>;
+  schema?: Record<string, unknown>;
   imageDataUrl?: string;
   temperature?: number;
   maxTokens?: number;
@@ -50,7 +49,7 @@ export interface AICallOptions {
 export interface AIExtractedFact {
   name: string;
   category: AIFactCategory;
-  value: any;
+  value: unknown;
   unit?: string;
   confidence: number;
   plainExplanation: string;

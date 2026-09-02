@@ -84,7 +84,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
       label: 'Morning',
       time: times.morning,
       icon: <Sun className="w-4 h-4 text-amber-600" />,
-      mealIcon: '🍳',
+      mealIcon: '',
       mealLabel: 'Breakfast',
       headerBg: 'bg-amber-50 border-amber-200'
     },
@@ -92,7 +92,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
       label: 'Noon',
       time: times.noon,
       icon: <CloudSun className="w-4 h-4 text-sky-600" />,
-      mealIcon: '🥗',
+      mealIcon: '',
       mealLabel: 'Lunch',
       headerBg: 'bg-sky-50 border-sky-200'
     },
@@ -100,17 +100,17 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
       label: 'Evening',
       time: times.evening,
       icon: <Sunset className="w-4 h-4 text-orange-600" />,
-      mealIcon: '🍲',
+      mealIcon: '',
       mealLabel: 'Dinner',
       headerBg: 'bg-orange-50 border-orange-200'
     },
     bedtime: {
       label: 'Bedtime',
       time: times.bedtime,
-      icon: <Moon className="w-4 h-4 text-indigo-600" />,
-      mealIcon: '🌙',
+      icon: <Moon className="w-4 h-4 text-teal-700" />,
+      mealIcon: '',
       mealLabel: 'Snack / Rest',
-      headerBg: 'bg-indigo-50 border-indigo-200'
+      headerBg: 'bg-teal-50 border-teal-200'
     }
   };
 
@@ -225,8 +225,8 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
       if (typeof requestAnimationFrame === 'function') requestAnimationFrame(doUpdate);
       else doUpdate();
     };
-    container.addEventListener('scroll', onScroll, { passive: true } as any);
-    return () => container.removeEventListener('scroll', onScroll as any);
+    container.addEventListener('scroll', onScroll, { passive: true } as AddEventListenerOptions);
+    return () => container.removeEventListener('scroll', onScroll as EventListener);
   }, [activeDay]);
 
   // Check if a medication is involved in duplicate alert
@@ -260,7 +260,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         onDropPill(dragData, day, slot);
       }
     } catch (err) {
-      console.error('Pillbox drop error:', err);
+      
     }
   };
 
@@ -371,9 +371,8 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                       <div className="text-body-sm font-mono font-semibold text-primary-text bg-white px-2 py-1 rounded-lg border border-canvas-border inline-block shadow-sm">
                         {meta.time}
                       </div>
-                      <div className="flex items-center gap-1 text-caption text-muted pt-1 font-medium">
-                        <span>{meta.mealIcon}</span>
-                        <span>{meta.mealLabel}</span>
+                      <div className="text-caption text-muted pt-1 font-medium">
+                        {meta.mealLabel}
                       </div>
                     </div>
                   </td>

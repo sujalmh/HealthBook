@@ -30,7 +30,7 @@ export interface ProxyActionLog {
   onBehalfOfPatientName: string;
   role: string;
   timestamp: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   cryptographicSignature?: string;
 }
 
@@ -46,9 +46,30 @@ export interface DoctorAccessGrant {
   expiresAt: string;
   token: string;
   accessToken?: string;
-  accessLog?: any[];
+  /** Boundary: validated via Array.isArray before use */
+  accessLog?: unknown[];
   status: 'active' | 'expired' | 'revoked';
   revokedAt?: string;
+}
+
+export type DoctorPermissionLevel = 'view_only' | 'manage' | 'full';
+
+export interface DoctorPatientLink {
+  linkId: string;
+  patientId: string;
+  patientName?: string;
+  doctorId: string;
+  doctorUserId?: string;
+  doctorName: string;
+  doctorEmail?: string;
+  specialty?: string;
+  permissionLevel: DoctorPermissionLevel;
+  scope?: 'full_dossier' | 'snapshot_only' | 'labs_and_meds';
+  status: 'active' | 'revoked' | 'suspended';
+  linkedDate: string;
+  grantedDate?: string;
+  revokedAt?: string;
+  authToken?: string;
 }
 
 export interface ContinuityDossierBundle {

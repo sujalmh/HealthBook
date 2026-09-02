@@ -106,7 +106,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Add Medication to Pillbox">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-primary to-accent border-b border-canvas-border flex items-center justify-between">
+        <div className="p-4 sm:p-5 bg-primary border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white">
               <Pill className="w-4 h-4" />
@@ -213,7 +213,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                   }}
                   className="rounded bg-white border-canvas-border text-primary focus:ring-primary"
                 />
-                <span>🍽️ Take with Food</span>
+                <span>Take with food</span>
               </label>
 
               <label className="flex items-center gap-2 p-2.5 rounded-xl bg-canvas-muted border border-canvas-border cursor-pointer hover:bg-white transition-colors">
@@ -226,7 +226,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                   }}
                   className="rounded bg-white border-canvas-border text-primary focus:ring-primary"
                 />
-                <span>🥣 Empty Stomach</span>
+                <span>Empty stomach</span>
               </label>
 
               <label className="flex items-center gap-2 p-2.5 rounded-xl bg-canvas-muted border border-canvas-border cursor-pointer hover:bg-white transition-colors">
@@ -236,7 +236,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                   onChange={(e) => setAvoidGrapefruit(e.target.checked)}
                   className="rounded bg-white border-canvas-border text-primary focus:ring-primary"
                 />
-                <span>🍊 Avoid Grapefruit</span>
+                <span>Avoid grapefruit</span>
               </label>
 
               <label className="flex items-center gap-2 p-2.5 rounded-xl bg-canvas-muted border border-canvas-border cursor-pointer hover:bg-white transition-colors">
@@ -246,7 +246,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
                   onChange={(e) => setAvoidAlcohol(e.target.checked)}
                   className="rounded bg-white border-canvas-border text-primary focus:ring-primary"
                 />
-                <span>🚫 Avoid Alcohol</span>
+                <span>Avoid alcohol</span>
               </label>
             </div>
           </div>

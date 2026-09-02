@@ -55,7 +55,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
             activeProfile: {
               userId: activeProfile.userId,
               name: activeProfile.name,
-              role: activeProfile.role as any,
+              role: activeProfile.role as unknown as 'patient' | 'caregiver' | 'doctor',
               isProxy: false,
               onBehalfOf: undefined
             },
@@ -63,8 +63,8 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
             eventBus
           }
         );
-      } catch (err) {
-        console.error('Error switching profile:', err);
+      } catch {
+        /* boundary */
       }
       onProfileChange('self');
       return;
@@ -72,7 +72,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
     // dynamic family target — find the linked profile by linkId
     const link = linkedFamily.find((l) => l.linkId === target);
     if (!link) {
-      // No linked family yet — show guidance instead of mock (fixes #3).
+      // No linked family yet — show guidance instead of mock.
       eventBus.dispatchToast({
         type: 'info',
         title: 'No family member',
@@ -90,7 +90,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
           activeProfile: {
             userId: activeProfile.userId,
             name: activeProfile.name,
-            role: activeProfile.role as any,
+            role: activeProfile.role as unknown as 'patient' | 'caregiver' | 'doctor',
             isProxy: true,
             onBehalfOf: onBehalf
           },
@@ -98,8 +98,8 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
           eventBus
         }
       );
-    } catch (err) {
-      console.error('Error switching profile:', err);
+    } catch {
+      /* boundary */
     }
     // Map to legacy mother/child callbacks for compatibility — use first link as 'mother' if needed
     const legacyTarget = (link.relationship === 'child' ? 'child' : 'mother') as 'mother' | 'child';
@@ -163,7 +163,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-caption font-black text-primary uppercase tracking-wider">
+                <span className="text-caption font-bold text-primary uppercase tracking-wider">
                   Caregiver proxy mode active
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-canvas-card text-primary text-caption font-bold border border-primary-border flex items-center gap-1">

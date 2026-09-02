@@ -54,7 +54,7 @@ function findLocalStandard(markerName: string) {
   if (m.includes('cholesterol')) return LOCAL_BIOMARKER_STANDARDS['cholesterol total'];
   return null;
 }
-function deriveCorrectFlag(marker: string, value: any, fallbackFlag?: string): string {
+function deriveCorrectFlag(marker: string, value: unknown, fallbackFlag?: string): string {
   const numVal = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.]/g, ''));
   if (!Number.isFinite(numVal)) return fallbackFlag ? fallbackFlag : 'NORMAL';
   const std = findLocalStandard(marker);
@@ -77,7 +77,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [stage, setStage] = useState<'ocr' | 'ai' | 'idle'>('idle');
   const [isExtracted, setIsExtracted] = useState(false);
-  const [extractedValues, setExtractedValues] = useState<any[]>([]);
+  const [extractedValues, setExtractedValues] = useState<{ marker: string; value: string | number; unit?: string; flag?: string }[]>([]);
   const [plainNarration, setPlainNarration] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [lastDocumentId, setLastDocumentId] = useState<string>('');
@@ -113,30 +113,31 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           imageBlob,
           patientId,
           linkedDueCardId
-        } as any,
+        } as unknown as Record<string, unknown>,
         {
           patientId,
           activeProfile: { userId: patientId, name: 'Patient', role: 'patient', isProxy: false },
           vault: localVault,
           eventBus
-        } as any
+        } as unknown as Record<string, unknown>
       );
 
       if (result.success && result.data) {
-        const vals = result.data.extractedValues || [];
+        const data = result.data as { extractedValues?: { marker: string; value: string | number; unit?: string; flag?: string }[]; plainNarration?: string; documentId?: string };
+        const vals = data.extractedValues || [];
         setExtractedValues(vals);
-        setPlainNarration(result.plainLanguageSummary || result.data.plainNarration || '');
-        setLastDocumentId(result.data.documentId || `doc_homelab_${Date.now()}`);
+        setPlainNarration((result as unknown as { plainLanguageSummary?: string }).plainLanguageSummary || data.plainNarration || '');
+        setLastDocumentId(data.documentId || `doc_homelab_${Date.now()}`);
         setIsExtracted(true);
       } else {
         setExtractedValues([]);
-        setPlainNarration(result.plainLanguageSummary || 'No values extracted — AI required for vision.');
-        setLastDocumentId((result.data as any)?.documentId || '');
+        setPlainNarration((result as unknown as { plainLanguageSummary?: string }).plainLanguageSummary || 'No values extracted — AI required for vision.');
+        setLastDocumentId((result.data as unknown as { documentId?: string })?.documentId || '');
         setIsExtracted(true);
       }
     } catch (err) {
-      console.error('Error extracting lab image:', err);
-      eventBus.dispatchToast({ type: 'error', title: 'Extraction failed', message: (err as any)?.message || 'Failed to extract' });
+      const msg = (err as unknown as { message?: string })?.message || 'Failed to extract';
+      eventBus.dispatchToast({ type: 'error', title: 'Extraction failed', message: msg });
     } finally {
       setIsProcessing(false);
     }
@@ -199,13 +200,13 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           normalizedValue: numVal,
           normalizedUnit: item.unit || '',
           drawDate,
-          referenceRange: undefined as any,
-          optimalRange: undefined as any,
+          referenceRange: undefined,
+          optimalRange: undefined,
           isBorderline,
           isCritical,
           flag: correctFlag,
           sourceDocId
-        } as any);
+        } as unknown as import('@/types/vault').LabRecord);
         addedCount++;
       }
     }
@@ -295,7 +296,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
 
                 {/* Multi-stage Progress Status */}
                 {isProcessing && (
-                  <div className="p-4 bg-gradient-to-r from-primary-light/60 via-amber-50 to-emerald-50 border border-primary-border rounded-xl space-y-2 text-left animate-fade-in shadow-xs mt-2">
+                  <div className="p-4 bg-canvas-muted border border-primary-border rounded-xl space-y-2 text-left animate-fade-in shadow-xs mt-2">
                     <div className="flex items-center justify-between text-body-sm font-bold text-slate-800">
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -344,7 +345,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
 
                 <div className="bg-white rounded-xl p-3 text-body-sm font-mono text-slate-700 border border-canvas-border space-y-1">
                   {extractedValues.length > 0 ? (
-                    extractedValues.map((v: any, i: number) => (
+                    extractedValues.map((v, i) => (
                       <div key={i} className={v.flag?.includes('CRITICAL') || v.flag === 'HIGH' ? 'text-rose-600 font-bold' : 'text-muted'}>
                         {v.marker.toUpperCase()}: {v.value} {v.unit} {v.flag ? `[${v.flag}]` : ''}
                       </div>

@@ -16,7 +16,7 @@
     overflow-x: hidden;
     width: 100%;
     max-width: 100vw;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-feature-settings: 'ss01';
     -webkit-text-size-adjust: 100%;
   }
   #root {
@@ -31,35 +31,36 @@
   img, svg, canvas {
     max-width: 100%;
   }
-  /* Base typography — semantic scale via Tailwind fontSize tokens */
+  /* Base typography — serif display for headings gives the clinical-chart,
+     print-institutional character; sans for UI text keeps legibility. */
   h1 {
-    @apply text-heading-xl font-extrabold tracking-tight text-slate-900;
+    @apply font-display text-heading-xl tracking-tight text-slate-900;
   }
   h2 {
-    @apply text-heading-lg font-bold tracking-tight text-slate-900;
+    @apply font-display text-heading-lg tracking-tight text-slate-900;
   }
   h3 {
     @apply text-heading-md font-semibold text-slate-800;
   }
 }
 
-/* Custom accessible scrollbar - light */
+/* Custom accessible scrollbar — warm neutral to match paper canvas */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #F1EFEA;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #D6D3CD;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #A8A29E;
 }
 
 /* Scrollbar hide utility — for tab overflow rows (still scrollable, accessible) */
@@ -99,15 +100,15 @@
   padding-top: max(0.5rem, env(safe-area-inset-top));
 }
 
-/* Bounding box highlight pulse — uses primary indigo (79,70,229) */
+/* Bounding box highlight pulse — uses primary teal (15,118,110) */
 @keyframes highlightPulse {
   0%, 100% {
-    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.9), 0 0 15px rgba(79, 70, 229, 0.5);
-    background-color: rgba(79, 70, 229, 0.18);
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.9), 0 0 12px rgba(15, 118, 110, 0.4);
+    background-color: rgba(15, 118, 110, 0.14);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 1), 0 0 25px rgba(79, 70, 229, 0.75);
-    background-color: rgba(79, 70, 229, 0.28);
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 1), 0 0 20px rgba(15, 118, 110, 0.6);
+    background-color: rgba(15, 118, 110, 0.24);
   }
 }
 
@@ -163,8 +164,7 @@
   .bounding-box-highlight,
   .animate-pulse,
   .animate-fade-in,
-  .animate-slide-up,
-  .animate-glow-pulse {
+  .animate-slide-up {
     animation: none !important;
   }
 }

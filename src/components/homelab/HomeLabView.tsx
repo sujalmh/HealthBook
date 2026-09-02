@@ -21,6 +21,7 @@ import { ProposalCard } from './ProposalCard';
 import { DoctorInbox } from './DoctorInbox';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 import type { DueCardRecord, ProposalRecord, LabRecord } from '@/types/vault';
 
 interface HomeLabViewProps {
@@ -39,6 +40,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
   patientId,
   activeProfile = { userId: patientId, name: 'Patient', role: 'patient' }
 }) => {
+  const effectivePatientId = resolvePatientId(patientId, activeProfile?.userId);
   const [activeTab, setActiveTab] = useState<'patient_loop' | 'doctor_inbox'>('patient_loop');
   const [dueCards, setDueCards] = useState<DueCardRecord[]>([]);
   const [proposals, setProposals] = useState<ProposalRecord[]>([]);
@@ -47,32 +49,31 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
   const [selectedDueCardId, setSelectedDueCardId] = useState<string | undefined>(undefined);
 
   const loadData = () => {
-    // Read-only vault loads — no per-view seeding (centralized src/core/vault/seed.ts owns baseline via main.tsx bootstrap).
-    const cards = localVault.getDueCards(patientId);
+    const cards = localVault.getDueCards(effectivePatientId);
     setDueCards(cards);
 
-    const props = localVault.getProposals(patientId);
+    const props = localVault.getProposals(effectivePatientId);
     setProposals(props);
 
-    const patientLabs = localVault.getLabs(patientId);
+    const patientLabs = localVault.getLabs(effectivePatientId);
     setLabs(patientLabs);
   };
 
-  // M2 Relevant-only: HomeLab listens to due_card_* , proposal_created/status_changed (alias proposal_submitted), lab_added (alias lab_extracted), fact_confirmed
-  // medication_* / danger_* / calendar_* are irrelevant — spurious guard
-  // Alias dispatch covers legacy proposal_submitted / lab_extracted without double subscription.
   useEffect(() => {
     loadData();
 
-    const guard = (p: any) => !p || !p.patientId || p.patientId === patientId;
-    const mk = (h: () => void) => (payload: any) => { if (guard(payload)) h(); };
+    const guard = (p: unknown) => {
+      const pid = (p as { patientId?: string })?.patientId;
+      return !p || !pid || pid === effectivePatientId;
+    };
+    const mk = (h: () => void) => (payload: unknown) => { if (guard(payload)) h(); };
 
-    const u1 = eventBus.on('due_card_added', mk(loadData));
-    const u2 = eventBus.on('due_card_updated', mk(loadData));
-    const u3 = eventBus.on('proposal_created', mk(loadData));
-    const u4 = eventBus.on('proposal_status_changed', mk(loadData));
-    const u5 = eventBus.on('lab_added', mk(loadData));
-    const u6 = eventBus.on('fact_confirmed', mk(loadData));
+    const u1 = eventBus.on('due_card_added', mk(loadData) as (p: unknown) => void);
+    const u2 = eventBus.on('due_card_updated', mk(loadData) as (p: unknown) => void);
+    const u3 = eventBus.on('proposal_created', mk(loadData) as (p: unknown) => void);
+    const u4 = eventBus.on('proposal_status_changed', mk(loadData) as (p: unknown) => void);
+    const u5 = eventBus.on('lab_added', mk(loadData) as (p: unknown) => void);
+    const u6 = eventBus.on('fact_confirmed', mk(loadData) as (p: unknown) => void);
 
     return () => {
       u1();
@@ -82,7 +83,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
       u5();
       u6();
     };
-  }, [patientId]);
+  }, [effectivePatientId]);
 
   const handleOpenUpload = (cardId?: string) => {
     setSelectedDueCardId(cardId);
@@ -213,21 +214,19 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
           </div>
         </div>
       ) : (
-        /* Doctor Review Inbox Tab */
         <DoctorInbox
-          patientId={patientId}
+          patientId={effectivePatientId}
           labs={labs}
           onProposalCreated={() => loadData()}
           onCommentPinned={() => loadData()}
         />
       )}
 
-      {/* Upload Lab Modal */}
       <UploadLabModal
         isOpen={isUploadModalOpen}
         onClose={handleCloseUpload}
         linkedDueCardId={selectedDueCardId}
-        patientId={patientId}
+        patientId={effectivePatientId}
         onSuccess={() => loadData()}
       />
     </div>

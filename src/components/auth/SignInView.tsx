@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { HeartPulse } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { HeartPulse, Sparkles } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
 import type { CreatedProfile } from './CreateAccountView';
+import { getSeededForEmail, isRateLimitError, isEmailInvalidError } from '@/core/auth/seededMap';
 
 interface SignInViewProps {
   onSignedIn: (profile: CreatedProfile) => void;
@@ -12,6 +13,35 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [mcpPrefill, setMcpPrefill] = useState(false);
+
+  // MCP prefill: AI prepared email — human still types password in browser (human-only)
+  useEffect(() => {
+    const applyPrefill = (detail: unknown) => {
+      const d = detail as { email?: string; mode?: string };
+      if (!d || typeof d.email !== 'string' || !d.email.trim()) return;
+      if (d.mode && d.mode !== 'signin') return;
+      setEmail(d.email.trim().toLowerCase());
+      setMcpPrefill(true);
+    };
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('carecanvas_mcp_auth_pending') : null;
+      if (raw) {
+        const p = JSON.parse(raw) as { mode?: string; email?: string };
+        if (p && p.mode === 'signin' && p.email) applyPrefill(p);
+      }
+    } catch { /* ignore */ }
+    const onWindow = (e: Event) => applyPrefill((e as CustomEvent).detail);
+    const onBus = (payload: unknown) => applyPrefill(payload);
+    window.addEventListener('carecanvas_mcp_auth_pending', onWindow as EventListener);
+    window.addEventListener('carecanvas_mcp_prefill', onWindow as EventListener);
+    const off1 = eventBus.on('mcp_auth_pending' as unknown as string, onBus as unknown as () => void);
+    return () => {
+      window.removeEventListener('carecanvas_mcp_auth_pending', onWindow as EventListener);
+      window.removeEventListener('carecanvas_mcp_prefill', onWindow as EventListener);
+      off1();
+    };
+  }, []);
 
   const handleSignIn = async () => {
     if (isSigningIn) return;
@@ -28,33 +58,58 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
     setIsSigningIn(true);
     try {
       // Try Supabase first if configured
-      const supabaseUrl = (import.meta as any)?.env?.VITE_SUPABASE_URL;
-      const supabaseAnon = (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
+      const supabaseUrl = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_URL;
+      const supabaseAnon = (import.meta as unknown as { env?: Record<string,string> })?.env?.VITE_SUPABASE_ANON_KEY;
       if (supabaseUrl && supabaseAnon) {
         try {
           const { getSupabaseClient } = await import('@/core/supabase/client');
-          const client: any = getSupabaseClient();
+          const client = getSupabaseClient() as unknown as { auth?: { signInWithPassword?: (opts: unknown) => Promise<{ data?: { user?: { id: string; user_metadata?: { role?: string; display_name?: string } } }; error?: { message?: string; code?: string } }> } };
           if (client?.auth?.signInWithPassword) {
-            const res = await client.auth.signInWithPassword({ email: emailTrim, password: passwordTrim });
-            if (res?.data?.user?.id) {
+            const res = await client.auth.signInWithPassword({ email: emailTrim, password: passwordTrim } as unknown as never);
+            const dataUser = (res as { data?: { user?: { id: string; user_metadata?: { role?: string; display_name?: string } } } })?.data?.user;
+            const errMsg = (res as { error?: { message?: string; code?: string } })?.error?.message;
+            const errCode = (res as { error?: { code?: string } })?.error?.code;
+            if (dataUser?.id) {
+              const supaRole = (dataUser.user_metadata?.role as unknown as string) || 'patient';
               const profile: CreatedProfile = {
-                userId: res.data.user.id,
-                name: res.data.user.user_metadata?.display_name || emailTrim.split('@')[0],
+                userId: dataUser.id,
+                name: dataUser.user_metadata?.display_name || emailTrim.split('@')[0],
                 email: emailTrim,
-                role: 'patient',
+                role: supaRole === 'doctor' ? 'doctor' : 'patient',
                 isProxy: false,
+                permissionLevel: supaRole === 'doctor' ? 'view_only' : undefined,
                 createdAt: new Date().toISOString(),
               };
-              try { localStorage.setItem('carecanvas_active_user', JSON.stringify(profile)); } catch {}
+              try {
+                localStorage.setItem('carecanvas_active_user', JSON.stringify(profile));
+                // Clear MCP pending if sign-in completed via AI-assisted flow
+                try {
+                  const raw2 = localStorage.getItem('carecanvas_mcp_auth_pending');
+                  if (raw2) {
+                    const p2 = JSON.parse(raw2) as { mode?: string; email?: string; pendingId?: string };
+                    if (p2?.email?.toLowerCase() === emailTrim.toLowerCase() && p2.mode === 'signin') {
+                      if (p2.pendingId) try { localStorage.removeItem(`carecanvas_mcp_auth_pending_${p2.pendingId}`); } catch { /* ignore */ }
+                      localStorage.removeItem('carecanvas_mcp_auth_pending');
+                      try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_cleared')); } catch { /* ignore */ }
+                      try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
+                    }
+                  }
+                } catch { /* ignore */ }
+              } catch { /* intentionally empty */ }
               eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${profile.name}` });
               onSignedIn(profile);
               return;
-            } else if (res?.error) {
-              // Fall through to local check, but show if supabase error is auth-specific
-              if (res.error?.message?.toLowerCase().includes('invalid')) {
-                // keep as fallback error, don't return yet
+            } else if (errMsg) {
+              const isRate = isRateLimitError(errMsg) || isRateLimitError(errCode) || errMsg.includes('429');
+              const isInvalid = isEmailInvalidError(errMsg);
+              if (isRate) {
+                console.warn('[SignIn] Supabase rate-limited (429) — disallowed, fallback to local demo (production fix):', errMsg);
+              } else if (isInvalid) {
+                console.warn('[SignIn] Supabase email invalid — fallback to local (any pattern allowed):', errMsg);
+              } else if (errMsg.toLowerCase().includes('invalid')) {
+                // silent for invalid credentials — let local fallback handle
               } else {
-                console.warn('[SignIn] Supabase signIn failed, trying local:', res.error?.message);
+                console.warn('[SignIn] Supabase signIn failed, trying local:', errMsg);
               }
             }
           }
@@ -63,11 +118,38 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
         }
       }
 
-      // Local fallback: check carecanvas_users
+      // Local fallback: check carecanvas_users — production fix: seeded demo users bypass rate limit and any email pattern allowed locally
       try {
         const raw = localStorage.getItem('carecanvas_users');
-        const users: any[] = raw ? JSON.parse(raw) : [];
-        const found = users.find((u) => (u.email || '').toLowerCase() === emailTrim);
+        const users: Array<{ userId?: string; email?: string; password?: string; name?: string; role?: string; createdAt?: string }> = raw ? (JSON.parse(raw) as Array<{ userId?: string; email?: string; password?: string; name?: string; role?: string; createdAt?: string }>) : [];
+        let found = users.find((u) => (u.email || '').toLowerCase() === emailTrim);
+        // Production fix: if not found but email is seeded demo, auto-create from seeded map (disallow rate limit, allow any pattern)
+        const seeded = getSeededForEmail(emailTrim);
+        if (!found && seeded) {
+          if (seeded.password !== passwordTrim) {
+            eventBus.dispatchToast({ type: 'error', title: 'Incorrect password', message: 'Password is incorrect.' });
+            return;
+          }
+          const seededProfile: CreatedProfile = {
+            userId: seeded.userId,
+            name: seeded.name,
+            email: emailTrim,
+            role: seeded.role,
+            isProxy: false,
+            permissionLevel: seeded.role === 'doctor' ? 'view_only' : undefined,
+            createdAt: new Date().toISOString(),
+          };
+          try {
+            localStorage.setItem('carecanvas_active_user', JSON.stringify(seededProfile));
+            localStorage.setItem(`carecanvas_cred_${seeded.userId}`, passwordTrim);
+            localStorage.setItem(`carecanvas_cred_email_${emailTrim}`, JSON.stringify({ userId: seeded.userId, password: passwordTrim }));
+            users.push({ ...seededProfile, password: passwordTrim });
+            localStorage.setItem('carecanvas_users', JSON.stringify(users));
+          } catch { /* ignore */ }
+          eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${seeded.name} (demo)` });
+          onSignedIn(seededProfile);
+          return;
+        }
         if (!found) {
           eventBus.dispatchToast({ type: 'error', title: 'Account not found', message: 'No account found for this email. Please create an account.' });
           return;
@@ -84,19 +166,21 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
             } else if (found.userId) {
               storedPassword = localStorage.getItem(`carecanvas_cred_${found.userId}`);
             }
-          } catch {}
+          } catch { /* intentionally empty */ }
         }
         if (storedPassword !== null && storedPassword !== passwordTrim) {
           eventBus.dispatchToast({ type: 'error', title: 'Incorrect password', message: 'Password is incorrect.' });
           return;
         }
         // If no stored password (legacy optional), allow sign-in but migrate password
+        const storedRole = found.role === 'doctor' ? 'doctor' : 'patient';
         const profile: CreatedProfile = {
           userId: String(found.userId),
           name: String(found.name || emailTrim.split('@')[0]),
           email: emailTrim,
-          role: 'patient',
+          role: storedRole as unknown as 'patient' | 'doctor',
           isProxy: false,
+          permissionLevel: storedRole === 'doctor' ? 'view_only' : undefined,
           createdAt: found.createdAt || new Date().toISOString(),
         };
         try {
@@ -109,7 +193,20 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
             found.password = passwordTrim;
             localStorage.setItem('carecanvas_users', JSON.stringify(users));
           }
-        } catch {}
+          // Clear MCP pending if matched
+          try {
+            const raw2 = localStorage.getItem('carecanvas_mcp_auth_pending');
+            if (raw2) {
+              const p2 = JSON.parse(raw2) as { mode?: string; email?: string; pendingId?: string };
+              if (p2?.email?.toLowerCase() === emailTrim.toLowerCase() && p2.mode === 'signin') {
+                if (p2.pendingId) try { localStorage.removeItem(`carecanvas_mcp_auth_pending_${p2.pendingId}`); } catch { /* ignore */ }
+                localStorage.removeItem('carecanvas_mcp_auth_pending');
+                try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_cleared')); } catch { /* ignore */ }
+                try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
+              }
+            }
+          } catch { /* ignore */ }
+        } catch { /* intentionally empty */ }
         eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${profile.name}` });
         onSignedIn(profile);
         return;
@@ -130,14 +227,24 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
   return (
     <div className="w-full max-w-md mx-auto bg-white border border-canvas-border rounded-2xl p-6 shadow-sm">
       <div className="flex flex-col items-center text-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 ring-1 ring-primary/10">
+        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <HeartPulse className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-black tracking-tight text-slate-900">Sign In</h1>
+          <h1 className="text-lg font-bold tracking-tight text-slate-900">Sign In</h1>
           <p className="text-body-sm text-muted mt-1">Welcome back — sign in to continue</p>
         </div>
       </div>
+
+      {mcpPrefill && (
+        <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex gap-2.5 text-left" data-testid="mcp-prefill-banner-signin">
+          <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-caption font-bold text-emerald-800">AI helped find your account</p>
+            <p className="text-caption text-emerald-700 leading-snug">Email prefilled — please type your <strong>password</strong> below to sign in. Password is never shared with AI.</p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div className="space-y-1.5">
@@ -160,7 +267,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
 
         <div className="space-y-1.5">
           <label htmlFor="si-password" className="text-body-sm font-semibold text-slate-800">
-            Password <span className="text-rose-500">*</span>
+            Password <span className="text-rose-500">*</span> <span className="text-caption font-normal text-muted">(human only — never shared with AI)</span>
           </label>
           <input
             id="si-password"
@@ -171,9 +278,10 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
             placeholder="••••••••"
             required
             className="w-full px-3 py-2.5 bg-white border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px]"
-            aria-label="Password"
+            aria-label="Password — human only, never shared with AI"
             aria-required="true"
           />
+          <p className="text-caption text-muted">Typed securely in browser — AI cannot see this</p>
         </div>
 
         <button

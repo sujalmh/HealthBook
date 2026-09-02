@@ -5,7 +5,7 @@
  * schedule optimizer ghost preview, missed dose adherence simulator, and pharmacist export.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Pill,
   Sparkles,
@@ -48,6 +48,8 @@ import { AdherenceSimulatorModal } from './AdherenceSimulatorModal.tsx';
 import { PharmacistExportModal } from './PharmacistExportModal.tsx';
 import { AddMedicationModal } from './AddMedicationModal.tsx';
 import { ReminderConfigModal } from './ReminderConfigModal.tsx';
+import { COMMON_OTCS } from './otcCatalog.ts';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 
 export interface PillMapViewProps {
   patientId?: string;
@@ -60,39 +62,11 @@ export interface PillMapViewProps {
   };
 }
 
-const COMMON_OTCS = [
-  { name: "St. John's Wort", dose: '300mg', shape: 'capsule' as const, color: '#F59E0B', desc: 'Herbal (Serotonin Risk)' },
-  { name: 'Tylenol Extra Strength', dose: '500mg', shape: 'round' as const, color: '#EF4444', desc: 'Acetaminophen (APAP)' },
-  { name: 'Advil Liqui-Gels', dose: '200mg', shape: 'capsule' as const, color: '#3B82F6', desc: 'Ibuprofen (NSAID)' },
-  { name: 'Aleve', dose: '220mg', shape: 'oval' as const, color: '#0EA5E9', desc: 'Naproxen (NSAID)' },
-  { name: 'Fish Oil Omega-3', dose: '1200mg', shape: 'capsule' as const, color: '#EAB308', desc: 'Supplement (Bleed Risk)' },
-  { name: 'Calcium Carbonate', dose: '600mg', shape: 'round' as const, color: '#8B5CF6', desc: 'Mineral (Chelates Drugs)' },
-  { name: 'Aspirin Low Dose', dose: '81mg', shape: 'round' as const, color: '#EC4899', desc: 'Antiplatelet' },
-  { name: 'Vitamin D3', dose: '2000IU', shape: 'oval' as const, color: '#10B981', desc: 'Daily Supplement' }
-];
-
-function deriveEffectivePatientId(passed: string): string {
-  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
-  try {
-    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-    if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-      }
-    }
-  } catch {}
-  return passed || '';
-}
-
 export const PillMapView: React.FC<PillMapViewProps> = ({
   patientId = '',
   activeProfile = { userId: '', name: 'Patient', role: 'patient' }
 }) => {
-  const effectivePatientId = deriveEffectivePatientId(patientId || (activeProfile as any)?.userId || '');
+  const effectivePatientId = resolvePatientId(patientId || (activeProfile as unknown as { userId?: string })?.userId || '');
   const [chronotype, setChronotype] = useState<Chronotype>('standard');
   const [viewMode, setViewMode] = useState<'canvas' | 'elder'>('canvas');
   const [grid, setGrid] = useState<IPillboxGrid>(() => createEmptyGrid());
@@ -174,45 +148,39 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     recalculateEvaluations(vaultMeds);
   };
 
-  const recalculateEvaluations = async (vaultMeds: any[]) => {
-    const medNames = vaultMeds.map((m) => m.brandName || m.genericName || m.name);
+  const recalculateEvaluations = async (vaultMeds: { brandName?: string; genericName?: string; name?: string; dosage?: string }[]) => {
+    const medNames = vaultMeds.map((m) => m.brandName || m.genericName || m.name || '');
     const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
-    const shouldShowChecking = useAI && typeof (ClinicalInteractionEngine as any).checkDrugInteractionsAI === 'function';
+    const engineAI = ClinicalInteractionEngine as unknown as {
+      checkDrugInteractionsAI?: (names: string[]) => Promise<InteractionArc[]>;
+      checkDietInteractionsAI?: (names: string[], flags: Record<string, boolean>) => Promise<DietBadge[]> | DietBadge[];
+      checkDuplicateIngredientsAI?: (meds: { name: string; dose: string }[]) => Promise<DuplicateIngredientAlert[]> | DuplicateIngredientAlert[];
+    };
+    const shouldShowChecking = useAI && typeof engineAI.checkDrugInteractionsAI === 'function';
     if (shouldShowChecking) setIsChecking(true);
     try {
-      // 1. Drug-Drug Interactions — AI-enhanced via knowledge engine when enabled, fallback fixture otherwise (never hardcoded mock as primary)
-      const arcs = useAI && typeof (ClinicalInteractionEngine as any).checkDrugInteractionsAI === 'function'
-        ? await (ClinicalInteractionEngine as any).checkDrugInteractionsAI(medNames)
+      const arcs = useAI && typeof engineAI.checkDrugInteractionsAI === 'function'
+        ? await engineAI.checkDrugInteractionsAI(medNames)
         : ClinicalInteractionEngine.checkDrugInteractions(medNames);
       setInteractionArcs(arcs);
 
-      // 2. Diet Interactions — AI path
-      const badges = useAI && typeof (ClinicalInteractionEngine as any).checkDietInteractionsAI === 'function'
-        ? await (ClinicalInteractionEngine as any).checkDietInteractionsAI(medNames, {
-            drinksGrapefruitDaily: true,
-            frequentHighVitKGreens: true,
-            dairyBreakfast: true,
-            usesPotassiumSaltSubstitute: true
-          })
-        : ClinicalInteractionEngine.checkDietInteractions(medNames, {
-            drinksGrapefruitDaily: true,
-            frequentHighVitKGreens: true,
-            dairyBreakfast: true,
-            usesPotassiumSaltSubstitute: true
-          });
-      setDietBadges(badges);
+      const dietFlags = {
+        drinksGrapefruitDaily: true,
+        frequentHighVitKGreens: true,
+        dairyBreakfast: true,
+        usesPotassiumSaltSubstitute: true
+      };
+      const badges = useAI && typeof engineAI.checkDietInteractionsAI === 'function'
+        ? await engineAI.checkDietInteractionsAI(medNames, dietFlags)
+        : ClinicalInteractionEngine.checkDietInteractions(medNames, dietFlags);
+      setDietBadges(badges as DietBadge[]);
 
-      // 3. Duplicate Active Ingredients — AI path
-      const dups = useAI && typeof (ClinicalInteractionEngine as any).checkDuplicateIngredientsAI === 'function'
-        ? await (ClinicalInteractionEngine as any).checkDuplicateIngredientsAI(
-            vaultMeds.map((m) => ({ name: m.brandName || m.genericName, dose: m.dosage }))
-          )
-        : ClinicalInteractionEngine.checkDuplicateIngredients(
-            vaultMeds.map((m) => ({ name: m.brandName || m.genericName, dose: m.dosage }))
-          );
-      setDuplicateAlerts(dups);
-    } catch (e) {
-      // Fallback to fixture on AI error to keep canvas rendered
+      const dupInput = vaultMeds.map((m) => ({ name: m.brandName || m.genericName || '', dose: m.dosage || '' }));
+      const dups = useAI && typeof engineAI.checkDuplicateIngredientsAI === 'function'
+        ? await engineAI.checkDuplicateIngredientsAI(dupInput)
+        : ClinicalInteractionEngine.checkDuplicateIngredients(dupInput);
+      setDuplicateAlerts(dups as DuplicateIngredientAlert[]);
+    } catch {
       const arcs = ClinicalInteractionEngine.checkDrugInteractions(medNames);
       setInteractionArcs(arcs);
       const badges = ClinicalInteractionEngine.checkDietInteractions(medNames, {
@@ -223,7 +191,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       });
       setDietBadges(badges);
       const dups = ClinicalInteractionEngine.checkDuplicateIngredients(
-        vaultMeds.map((m) => ({ name: m.brandName || m.genericName, dose: m.dosage }))
+        vaultMeds.map((m) => ({ name: m.brandName || m.genericName || '', dose: m.dosage || '' }))
       );
       setDuplicateAlerts(dups);
     } finally {
@@ -231,19 +199,20 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     }
   };
 
-  // M2 Relevant-only subscription: PillMap reacts to medication_* + proposal_status_changed only.
-  // lab_* / danger_* / calendar_* are irrelevant and MUST NOT trigger reload (spurious guard).
   useEffect(() => {
     loadMedicationsFromVault();
 
-    const isRelevantMedPayload = (p: any) => !p || !p.patientId || p.patientId === effectivePatientId;
-    const onMedAdded = (payload: any) => { if (isRelevantMedPayload(payload)) loadMedicationsFromVault(); };
-    const onMedUpdated = (payload: any) => { if (isRelevantMedPayload(payload)) loadMedicationsFromVault(); };
-    const onProposalStatus = (payload: any) => { if (isRelevantMedPayload(payload)) loadMedicationsFromVault(); };
+    const isRelevantMedPayload = (p: unknown) => {
+      const pid = (p as { patientId?: string })?.patientId;
+      return !p || !pid || pid === effectivePatientId;
+    };
+    const onMedAdded = (payload: unknown) => { if (isRelevantMedPayload(payload)) loadMedicationsFromVault(); };
+    const onMedUpdated = (payload: unknown) => { if (isRelevantMedPayload(payload)) loadMedicationsFromVault(); };
+    const onProposalStatus = (payload: unknown) => { if (isRelevantMedPayload(payload)) loadMedicationsFromVault(); };
 
-    const u1 = eventBus.on('medication_added', onMedAdded);
-    const u2 = eventBus.on('medication_updated', onMedUpdated);
-    const u3 = eventBus.on('proposal_status_changed', onProposalStatus);
+    const u1 = eventBus.on('medication_added', onMedAdded as (p: unknown) => void);
+    const u2 = eventBus.on('medication_updated', onMedUpdated as (p: unknown) => void);
+    const u3 = eventBus.on('proposal_status_changed', onProposalStatus as (p: unknown) => void);
 
     return () => {
       u1();
@@ -272,9 +241,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     return 'capsule';
   }
 
-  // Drag and drop placement
-  const handleDropPill = (dragData: any, targetDay: DayOfWeek, targetSlot: TimeSlot) => {
-    // If OTC or new medication — uses effectivePatientId for isolation, never '' leak
+  const handleDropPill = (dragData: { name?: string; dosage?: string; dose?: string }, targetDay: DayOfWeek, targetSlot: TimeSlot) => {
     if (dragData.name) {
       const generic = ClinicalInteractionEngine.resolveGenericName(dragData.name);
       localVault.addMedication(
@@ -289,7 +256,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           withFood: false,
           status: 'active'
         },
-        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as any }
+        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
       );
 
       eventBus.dispatchToast({
@@ -302,22 +269,18 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   };
 
   const handleRemovePill = (pillId: string) => {
-    // Correctly extract base med id: pillId is `${med.id}_${day}_${slot}` where med.id may contain underscores.
-    // Strip known day/slot suffix; fallback to prefix search against vault meds for robustness.
     let baseId = pillId;
     const daySlotSuffix = new RegExp(`_(${DAYS_OF_WEEK.join('|')})_(${TIME_SLOTS.join('|')})$`);
     if (daySlotSuffix.test(pillId)) {
       baseId = pillId.replace(daySlotSuffix, '');
     } else {
-      // Fallback: find vault med whose id is prefix of pillId (handles edge cases)
       const vaultMeds = localVault.getMedications(effectivePatientId);
       const matched = vaultMeds.find((m) => pillId === m.id || pillId.startsWith(m.id + '_'));
       if (matched) baseId = matched.id;
-      // Also attempt to resolve via medId lookup in current grid in case vault search misses (edge)
       if (baseId === pillId) {
         for (const day of DAYS_OF_WEEK) {
           for (const slot of TIME_SLOTS) {
-            const items: PillSlotItem[] = (grid as any)[day]?.[slot] || [];
+            const items: PillSlotItem[] = (grid as unknown as Record<string, Record<string, PillSlotItem[]>>)[day]?.[slot] || [];
             const found = items.find((p) => p.id === pillId && p.medId);
             if (found?.medId) {
               baseId = found.medId;
@@ -330,11 +293,11 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     localVault.updateMedicationStatus(baseId, 'discontinued', {
       userId: activeProfile.userId,
       userName: activeProfile.name,
-      role: activeProfile.role as any
+      role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
     });
     // Vault canonical removal — grid ids with suffix are not in vault.meds, only baseId is
     localVault.meds.delete(baseId);
-    
+
     eventBus.dispatchToast({
       type: 'info',
       title: 'Medicine removed',
@@ -343,7 +306,6 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     loadMedicationsFromVault();
   };
 
-  // Schedule optimizer — AI-enhanced via knowledge engine when enabled (chronotype timing)
   const handleOptimizeSchedule = async () => {
     const activeMeds = localVault.getMedications(effectivePatientId, 'active');
     const medList = activeMeds.map((m) => ({
@@ -353,11 +315,12 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     }));
 
     const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
-    const shouldShowChecking = useAI && typeof (ClinicalInteractionEngine as any).suggestScheduleAI === 'function';
+    const engineAI2 = ClinicalInteractionEngine as unknown as { suggestScheduleAI?: (list: typeof medList, c: Chronotype) => Promise<ScheduleSuggestionResult> };
+    const shouldShowChecking = useAI && typeof engineAI2.suggestScheduleAI === 'function';
     if (shouldShowChecking) setIsChecking(true);
     try {
-      const suggestion = useAI && typeof (ClinicalInteractionEngine as any).suggestScheduleAI === 'function'
-        ? await (ClinicalInteractionEngine as any).suggestScheduleAI(medList, chronotype)
+      const suggestion = useAI && typeof engineAI2.suggestScheduleAI === 'function'
+        ? await engineAI2.suggestScheduleAI(medList, chronotype)
         : ClinicalInteractionEngine.suggestSchedule(medList, chronotype);
       setActiveSuggestion(suggestion);
       setGhostShifts(suggestion.proposedShifts);
@@ -373,7 +336,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       localVault.updateMedication(
         shift.medId,
         { timingSlots: [shift.toSlot] },
-        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as any }
+        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
       );
     }
     setGhostShifts([]);
@@ -436,8 +399,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     return 'Prescription Regimen';
   }
 
-  // Quick Add Med — propagates via LocalVault with patient isolation and AI questionBank enrichment
-  const handleAddMedSubmit = (newMed: any) => {
+  const handleAddMedSubmit = (newMed: { name: string; genericName: string; dosage: string; frequency: string; timingSlots: TimeSlot[]; withFood: boolean; emptyStomach: boolean; avoidGrapefruit: boolean; avoidAlcohol: boolean; avoidDairy: boolean }) => {
     localVault.addMedication(
       {
         id: `med_${newMed.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
@@ -454,7 +416,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         avoidDairy: newMed.avoidDairy,
         status: 'active'
       },
-      { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as any }
+      { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
     );
     setIsAddMedOpen(false);
     eventBus.dispatchToast({
@@ -465,7 +427,6 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     loadMedicationsFromVault();
   };
 
-  // Reminders save — patient isolation via effectivePatientId
   const handleSaveReminders = (slotTimes: Record<TimeSlot, string>) => {
     for (const [slot, time] of Object.entries(slotTimes)) {
       localVault.addCalendarEvent(
@@ -480,7 +441,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           isCompleted: false,
           syncedToCalendar: true
         },
-        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as any }
+        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
       );
     }
   };
@@ -504,7 +465,8 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     });
   };
 
-  const activeMedsCount = effectivePatientId ? localVault.getMedications(effectivePatientId, 'active').length : 0;
+  const activeMedsCount = useMemo(() => effectivePatientId ? localVault.getMedications(effectivePatientId, 'active').length : 0, [effectivePatientId, grid]);
+  const activeMedNames = useMemo(() => effectivePatientId ? localVault.getMedications(effectivePatientId, 'active').map((m) => m.brandName || m.genericName) : [], [effectivePatientId, grid]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -549,7 +511,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                   viewMode === 'elder' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
                 }`}
               >
-                Simple View 👵
+                Simple View
               </button>
             </div>
 
@@ -562,9 +524,9 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                 className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer py-1"
                 title="Select sleep/wake chronotype"
               >
-                <option value="standard">Standard (08:00–22:00) ☀️</option>
+                <option value="standard">Standard (08:00–22:00)</option>
                 <option value="early_bird">Early Lark (06:30–21:00) 🌅</option>
-                <option value="night_owl">Night Owl (10:00–00:30) 🌙</option>
+                <option value="night_owl">Night Owl (10:00–00:30)</option>
               </select>
             </div>
           </div>
@@ -576,7 +538,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             {/* Schedule Optimizer */}
             <button
               onClick={handleOptimizeSchedule}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-body-sm font-bold shadow-sm transition-all min-h-[44px]"
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-body-sm font-bold shadow-sm transition-all min-h-[44px]"
             >
               <Sparkles className="w-4 h-4" />
               <span>Find Best Times</span>
@@ -644,7 +606,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                 <ShieldAlert className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-extrabold text-rose-900 text-sm">
+                <h4 className="font-bold text-rose-900 text-sm">
                   {interactionArcs.length} Warning{interactionArcs.length === 1 ? '' : 's'} — medicines that don't mix well
                 </h4>
                 <p className="text-rose-700 text-[11px] mt-0.5">
@@ -674,8 +636,8 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex items-start gap-3 text-xs text-amber-800">
             <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <h4 className="font-extrabold text-amber-900 text-sm">
-                ⚠️ Duplicate ingredient — you have the same medicine twice
+              <h4 className="font-bold text-amber-900 text-sm">
+                Duplicate ingredient — you have the same medicine twice
               </h4>
               {duplicateAlerts.map((dup, idx) => (
                 <p key={idx} className="text-amber-800 text-[11px]">
@@ -760,7 +722,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                   onClick={() => {
                     handleDropPill({ name: otc.name, dosage: otc.dose }, 'monday', 'morning');
                   }}
-                  className="p-3 rounded-xl bg-canvas-muted border border-canvas-border hover:border-primary-border hover:bg-primary-light/30 cursor-grab active:cursor-grabbing transition-all hover:scale-[1.02] select-none shadow-sm group min-h-[72px]"
+                  className="p-3 rounded-xl bg-canvas-muted border border-canvas-border hover:border-primary-border hover:bg-primary-light/30 cursor-grab active:cursor-grabbing transition-all select-none shadow-sm group min-h-[72px]"
                   title={`Drag ${otc.name} (${otc.dose}) onto any pillbox slot, or click to add to Monday Morning`}
                 >
                   <div className="flex items-center gap-1.5">
@@ -802,7 +764,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           initialMedName={simulatorMed}
           initialDay={simulatorSlot.day}
           initialSlot={simulatorSlot.slot}
-          activeMedNames={effectivePatientId ? localVault.getMedications(effectivePatientId, 'active').map((m) => m.brandName || m.genericName) : []}
+          activeMedNames={activeMedNames}
           onClose={() => setIsSimulatorOpen(false)}
           onAddQuestionToBank={handleAddQuestionToBank}
         />

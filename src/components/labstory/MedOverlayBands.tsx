@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, Info, Check, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import { Pill, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import type { MedicationRecord } from '@/types/vault';
 import { localVault } from '@/core/vault/LocalVault';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 
 export interface TimelineMedication {
   id: string;
@@ -29,22 +30,6 @@ interface MedOverlayBandsProps {
   onMedToggle?: (medId: string, visible: boolean) => void;
 }
 
-function deriveOverlayPatientId(): string {
-  try {
-    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-    if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-      }
-    }
-  } catch {}
-  return '';
-}
-
 function vaultMedToTimeline(med: MedicationRecord): TimelineMedication {
   const lower = (med.genericName || med.brandName || '').toLowerCase();
   let category: TimelineMedication['category'] = 'other';
@@ -60,14 +45,14 @@ function vaultMedToTimeline(med: MedicationRecord): TimelineMedication {
     genericName: med.genericName || med.brandName || '',
     dosage: med.dosage || 'Standard',
     category,
-    startDate: (med as any).startDate || new Date().toISOString(),
+    startDate: (med as unknown as { startDate?: string }).startDate || new Date().toISOString(),
     stopDate: med.status === 'active' ? undefined : new Date().toISOString(),
     status: med.status === 'active' ? 'active' : 'stopped',
     colorHex: category === 'nsaid' ? '#EF4444' : category === 'anticoagulant' ? '#F59E0B' : '#10B981',
     bgClass: category === 'nsaid' ? 'bg-rose-50 hover:bg-rose-100' : category === 'anticoagulant' ? 'bg-amber-50 hover:bg-amber-100' : 'bg-emerald-50 hover:bg-emerald-100',
     borderClass: category === 'nsaid' ? 'border-rose-200' : category === 'anticoagulant' ? 'border-amber-200' : 'border-emerald-200',
     textClass: category === 'nsaid' ? 'text-rose-700' : category === 'anticoagulant' ? 'text-amber-700' : 'text-emerald-700',
-    indication: (med as any).indication || 'Vault-derived regimen',
+    indication: (med as unknown as { indication?: string }).indication || 'Vault-derived regimen',
     prescribedBy: 'Care Team',
     notes: `Vault-derived medication ${med.genericName} ${med.dosage} — AI trajectory correlates this course with lab timeline.`
   };
@@ -80,14 +65,13 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
   className = '',
   onMedToggle
 }) => {
-  // Vault-derived timeline when activeMeds provided via props or via LocalVault when empty — replaces hardcoded fallback with AI-derived vault data
   const [vaultDerived, setVaultDerived] = useState<TimelineMedication[] | null>(null);
   useEffect(() => {
     if (activeMeds && activeMeds.length > 0) {
       setVaultDerived(null);
       return;
     }
-    const pid = deriveOverlayPatientId();
+    const pid = resolvePatientId();
     if (!pid) { setVaultDerived(null); return; }
     try {
       const meds = localVault.getMedications(pid, 'active');
@@ -181,7 +165,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       textClass: 'text-rose-700',
       indication: 'Acute knee osteoarthritis pain',
       prescribedBy: 'Self-administered OTC',
-      notes: '⚠️ CAUSAL ANOMALY: Triggered acute renal vasoconstriction & eGFR drop to 28 mL/min.'
+      notes: 'Causal anomaly: Triggered acute renal vasoconstriction & eGFR drop to 28 mL/min.'
     },
     {
       id: 'med_apixaban',
@@ -327,7 +311,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
                     maxWidth: `calc(100% - ${clampedLeft}%)`
                   }}
                   className={`absolute h-7 rounded-lg px-2 flex items-center justify-between text-left text-caption font-semibold transition-all border shadow-sm cursor-pointer z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${med.bgClass} ${med.borderClass} ${med.textClass} ${
-                    isSelected ? 'ring-2 ring-primary/40 scale-[1.01]' : ''
+                    isSelected ? 'ring-2 ring-primary/40' : ''
                   }`}
                   aria-label={`${med.name} ${med.dosage} (${med.status})`}
                 >

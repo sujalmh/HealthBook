@@ -1,80 +1,39 @@
 /**
- * CareCanvas Core: Reactive Event Bus & Telemetry Logger (M2)
- *
- * =============================================================================
- * RELEVANCE MATRIX — Relevant-Only Reactive Sync (ws-02-01)
- * =============================================================================
- * Canonical EventName union below is the single source of truth for cross-feature
- * reactivity. Each view subscribes ONLY to its relevant subset to avoid spurious
- * rerenders. Payloads always include patientId where applicable for filtering.
- *
- * | Event                         | PillMap | LabStory | HomeLab | Safety | Dossier | RxBridge | CareCircle | Notes |
- * |-------------------------------|---------|----------|---------|--------|---------|----------|------------|-------|
- * | medication_added              |   ✅    |    ⬚*    |         |        |    ✅   |    ✅    |            | PillMap arcs/badges; Dossier timeline; RxBridge eGFR flags; LabStory overlay *optional |
- * | medication_updated            |   ✅    |    ✅    |         |        |    ✅   |    ✅    |            | PillMap + LabStory overlay bands; dosage changes |
- * | proposal_created (alias: proposal_submitted) |   ⬚    |          |    ✅   |   ✅   |    ✅   |    ✅    |            | HomeLab + Safety + Dossier + RxBridge |
- * | proposal_status_changed       |   ✅    |          |    ✅   |        |    ✅   |    ✅    |    ⬚     | PillMap Day0, HomeLab due, Dossier, RxBridge, CareCircle audit snippet |
- * | lab_added (alias: lab_extracted) |         |    ✅    |    ✅   |        |    ✅   |    ✅    |            | LabStory chart, HomeLab due, Dossier, RxBridge eGFR flag |
- * | lab_extracted                 |         |    ✅    |    ✅   |        |    ✅   |    ✅    |            | Alias for lab_added |
- * | fact_added                    |         |          |         |        |    ✅   |          |            | Dossier timeline source grounding |
- * | fact_extracted                |         |    ⬚    |         |        |    ✅   |          |            | Dossier + LabStory fallback |
- * | fact_confirmed (alias: fact_status_changed=confirmed) |         |    ✅    |    ✅   |        |    ✅   |          |            | LabStory + HomeLab due + Dossier |
- * | fact_status_changed           |         |    ✅    |         |        |    ✅   |          |            | Includes confirmed |
- * | danger_report_added (alias: danger_reported) |   ⬚    |          |         |    ✅  |    ✅   |          |            | Safety triage, PillMap interaction? calendar; Dossier trail |
- * | danger_reported               |         |          |         |    ✅  |    ✅   |          |            | Alias |
- * | calendar_event_added          |   ⬚    |          |         |    ✅  |    ✅   |          |            | Safety calendar + Dossier + PillMap reminders |
- * | due_card_added                |         |          |    ✅   |        |    ✅   |          |            | HomeLab + Dossier |
- * | due_card_updated              |         |          |    ✅   |        |    ✅   |          |            | HomeLab |
- * | doctor_grant_added            |         |          |         |        |    ✅   |          |    ✅      | Dossier grants, CareCircle |
- * | doctor_grant_revoked          |         |          |         |        |    ✅   |          |    ✅      | Revocation sync |
- * | caregiver_linked              |         |          |         |        |    ✅   |          |    ✅      | CareCircle roster, Dossier audit |
- * | question_added (alias: question_bank) |         |          |         |        |    ✅   |    ⬚    |            | Dossier question bank; RxBridge may read |
- * | question_bank                 |         |          |         |        |    ✅   |          |            | Alias |
- * | audit_logged                  |         |          |         |        |    ✅   |          |    ✅      | Dossier + CareCircle audit trail |
- * | toast                         |  global |  global  |  global | global |  global |  global  |   global   | ToastContainer |
- *   | highlight_document            |  global |  global  |  global | global |  global |  global  |   global   | Document highlight |
- *
- * ✅ = must subscribe, ⬚ = optional/conditional, blank = must NOT subscribe (spurious guard)
- *
- * Views must filter by active patientId in handlers where payload.patientId exists.
- * Irrelevant events MUST NOT trigger reload — verified via telemetry/render counters (M4 tier3 cohesion).
- * =============================================================================
+ * CareCanvas Core: Reactive Event Bus & Telemetry Logger
+ * Relevant-only sync: views subscribe only to relevant events; aliases preserve backward compat.
+ * Why alias groups: legacy emit names map to canonical events without duplicate subscriptions.
  */
 
-/**
- * Derive patientId via globalThis localStorage carecanvas_active_user — never '' nor patient-s-devi leak.
- * Used to ensure typed helpers always include patientId when caller omits.
- */
+import type { BoundingBox } from '../../types/vault.ts';
+
 function deriveBusPatientId(): string {
   try {
-    const g: any = typeof globalThis !== 'undefined' ? globalThis : undefined;
+    const g = typeof globalThis !== 'undefined' ? (globalThis as unknown as { localStorage?: Storage }) : undefined;
     const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? localStorage : undefined);
     if (ls) {
       const raw = ls.getItem('carecanvas_active_user');
       if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
+        const parsed = JSON.parse(raw) as unknown as { userId?: unknown; id?: unknown; patientId?: unknown };
+        const pid = (parsed as { userId?: unknown; id?: unknown; patientId?: unknown })?.userId
+          ?? (parsed as { userId?: unknown; id?: unknown; patientId?: unknown })?.id
+          ?? (parsed as { patientId?: unknown })?.patientId;
         if (typeof pid === 'string' && pid.trim() !== '' && pid.trim() !== 'patient-s-devi') return pid.trim();
       }
     }
-  } catch {}
+  } catch { /* intentionally empty */ }
   return '';
 }
 
-function ensureBusPatientId(payload: any): any {
+function ensureBusPatientId<T>(payload: T): T {
   if (!payload || typeof payload !== 'object') return payload;
-  if (typeof payload.patientId === 'string' && payload.patientId.trim() !== '' && payload.patientId.trim() !== 'patient-s-devi') return payload;
+  const obj = payload as unknown as { patientId?: unknown };
+  if (typeof obj.patientId === 'string' && obj.patientId.trim() !== '' && obj.patientId.trim() !== 'patient-s-devi') return payload;
   const derived = deriveBusPatientId();
-  if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') return { ...payload, patientId: derived };
+  if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') return { ...(payload as object), patientId: derived } as T;
   return payload;
 }
 
-function clampBbox(bbox?: any): any {
-  // bbox removed — no-op for backward compat
-  return bbox;
-}
-
-export type EventHandler<T = any> = (payload: T) => void;
+export type EventHandler<T = unknown> = (payload: T) => void;
 
 export interface ToastMessage {
   id: string;
@@ -87,11 +46,10 @@ export interface ToastMessage {
 
 export interface HighlightDocumentPayload {
   documentId: string;
-  boundingBox?: any;
+  boundingBox?: BoundingBox;
 }
 
 // Canonical typed event names — keep aliases for backward compat.
-// All emit/on calls should use this union (string still accepted for extensibility but typed helpers preferred).
 export type EventName =
   | 'medication_added'
   | 'medication_created'
@@ -113,13 +71,14 @@ export type EventName =
   | 'due_card_updated'
   | 'doctor_grant_added'
   | 'doctor_grant_revoked'
+  | 'doctor_linked'
+  | 'doctor_revoked'
   | 'caregiver_linked'
   | 'question_added'
   | 'question_bank'
   | 'audit_logged'
   | 'toast'
   | 'highlight_document'
-  // legacy / tooling events (kept but not in relevance matrix)
   | 'tool_registered'
   | 'tool_unregistered'
   | 'approval_required'
@@ -128,39 +87,37 @@ export type EventName =
   | 'toast_notification'
   | 'canvas_rerender';
 
-// Optional payload map for typed helpers (payload is intentionally permissive: most payloads contain patientId).
 export interface EventPayloadMap {
-  medication_added: { patientId: string; id?: string; genericName?: string; [k: string]: any };
-  medication_updated: { patientId: string; id?: string; [k: string]: any };
-  proposal_created: { patientId: string; id?: string; [k: string]: any };
-  proposal_submitted: { patientId: string; id?: string; [k: string]: any };
-  proposal_status_changed: { patientId: string; id?: string; status?: string; [k: string]: any };
-  lab_added: { patientId: string; id?: string; marker?: string; [k: string]: any };
-  lab_extracted: { patientId: string; id?: string; marker?: string; [k: string]: any };
-  lab_status_changed: { patientId: string; labId?: string; [k: string]: any };
-  fact_added: { patientId: string; id?: string; [k: string]: any };
-  fact_extracted: { patientId: string; id?: string; [k: string]: any };
-  fact_confirmed: { patientId: string; id?: string; [k: string]: any };
-  fact_status_changed: { patientId: string; id: string; status: string; fact?: any; [k: string]: any };
-  danger_report_added: { patientId: string; reportId?: string; [k: string]: any };
-  danger_reported: { patientId: string; reportId?: string; [k: string]: any };
-  calendar_event_added: { patientId: string; id?: string; [k: string]: any };
-  due_card_added: { patientId: string; id?: string; [k: string]: any };
-  due_card_updated: { patientId: string; id?: string; [k: string]: any };
-  doctor_grant_added: { patientId: string; grantId?: string; [k: string]: any };
-  doctor_grant_revoked: { patientId: string; grantId?: string; [k: string]: any };
-  caregiver_linked: { patientId: string; linkId?: string; [k: string]: any };
-  question_added: { patientId: string; id?: string; [k: string]: any };
-  question_bank: { patientId: string; [k: string]: any };
-  audit_logged: { patientId?: string; id?: string; action?: string; [k: string]: any };
+  medication_added: { patientId: string; id?: string; genericName?: string; [k: string]: unknown };
+  medication_updated: { patientId: string; id?: string; [k: string]: unknown };
+  proposal_created: { patientId: string; id?: string; [k: string]: unknown };
+  proposal_submitted: { patientId: string; id?: string; [k: string]: unknown };
+  proposal_status_changed: { patientId: string; id?: string; status?: string; [k: string]: unknown };
+  lab_added: { patientId: string; id?: string; marker?: string; [k: string]: unknown };
+  lab_extracted: { patientId: string; id?: string; marker?: string; [k: string]: unknown };
+  lab_status_changed: { patientId: string; labId?: string; [k: string]: unknown };
+  fact_added: { patientId: string; id?: string; [k: string]: unknown };
+  fact_extracted: { patientId: string; id?: string; [k: string]: unknown };
+  fact_confirmed: { patientId: string; id?: string; [k: string]: unknown };
+  fact_status_changed: { patientId: string; id: string; status: string; fact?: unknown; [k: string]: unknown };
+  danger_report_added: { patientId: string; reportId?: string; [k: string]: unknown };
+  danger_reported: { patientId: string; reportId?: string; [k: string]: unknown };
+  calendar_event_added: { patientId: string; id?: string; [k: string]: unknown };
+  due_card_added: { patientId: string; id?: string; [k: string]: unknown };
+  due_card_updated: { patientId: string; id?: string; [k: string]: unknown };
+  doctor_grant_added: { patientId: string; grantId?: string; [k: string]: unknown };
+  doctor_grant_revoked: { patientId: string; grantId?: string; [k: string]: unknown };
+  doctor_linked: { patientId: string; linkId?: string; doctorId?: string; [k: string]: unknown };
+  doctor_revoked: { patientId: string; linkId?: string; doctorId?: string; [k: string]: unknown };
+  caregiver_linked: { patientId: string; linkId?: string; [k: string]: unknown };
+  question_added: { patientId: string; id?: string; [k: string]: unknown };
+  question_bank: { patientId: string; [k: string]: unknown };
+  audit_logged: { patientId?: string; id?: string; action?: string; [k: string]: unknown };
   toast: ToastMessage;
   highlight_document: HighlightDocumentPayload;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-// Alias equivalence groups — emitting one notifies listeners of aliases to preserve backward compat.
-// This ensures relevant-only matrix holds even when legacy code emits alias name.
-// Fact family merged into single canonical group so fact_extracted reaches fact_confirmed listeners (transitive).
 const EVENT_ALIAS_GROUPS: string[][] = [
   ['danger_report_added', 'danger_reported'],
   ['proposal_created', 'proposal_submitted'],
@@ -184,20 +141,21 @@ function getAliasEvents(event: string): string[] {
 
 export class WebMCPEventBus {
   private listeners: Map<string, Set<EventHandler>> = new Map();
-  public emittedEvents: { event: string; payload: any; timestamp: string }[] = [];
+  public emittedEvents: Array<{ event: string; payload: ReturnType<typeof JSON.parse>; timestamp: string }> = [];
 
-  public on<T = any>(event: string, handler: EventHandler<T>): () => void {
+  public on<T = unknown>(event: string, handler: EventHandler<T>): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(handler);
+    const set = this.listeners.get(event);
+    if (set) set.add(handler as EventHandler);
 
     return () => {
-      this.listeners.get(event)?.delete(handler);
+      this.listeners.get(event)?.delete(handler as EventHandler);
     };
   }
 
-  public emit<T = any>(event: string, payload: T): void {
+  public emit<T = unknown>(event: string, payload: T): void {
     this.emittedEvents.push({
       event,
       payload,
@@ -209,7 +167,7 @@ export class WebMCPEventBus {
       if (handlers) {
         handlers.forEach(handler => {
           try {
-            handler(payload);
+            handler(payload as unknown);
           } catch (err) {
             console.error(`[EventBus] Error in handler for event "${evt}":`, err);
           }
@@ -218,14 +176,12 @@ export class WebMCPEventBus {
     };
 
     dispatch(event);
-    // Notify alias listeners for backward compat (relevant-only: same data, different subscription string)
     const aliases = getAliasEvents(event);
     for (const alias of aliases) {
       dispatch(alias);
     }
   }
 
-  // Typed helper emitters — wrap emit with canonical name and ensure patientId present where applicable (derived via globalThis if missing).
   public emitMedicationAdded(payload: EventPayloadMap['medication_added']): void {
     this.emit('medication_added', ensureBusPatientId(payload));
   }
@@ -268,6 +224,12 @@ export class WebMCPEventBus {
   public emitDoctorGrantRevoked(payload: EventPayloadMap['doctor_grant_revoked']): void {
     this.emit('doctor_grant_revoked', ensureBusPatientId(payload));
   }
+  public emitDoctorLinked(payload: EventPayloadMap['doctor_linked']): void {
+    this.emit('doctor_linked', ensureBusPatientId(payload));
+  }
+  public emitDoctorRevoked(payload: EventPayloadMap['doctor_revoked']): void {
+    this.emit('doctor_revoked', ensureBusPatientId(payload));
+  }
   public emitCaregiverLinked(payload: EventPayloadMap['caregiver_linked']): void {
     this.emit('caregiver_linked', ensureBusPatientId(payload));
   }
@@ -294,11 +256,12 @@ export class WebMCPEventBus {
     return this.on('toast', handler);
   }
 
-  public highlightSourceDocument(payloadOrDocId: string | { documentId: string; boundingBox?: any }, boundingBox?: any): void {
+  public highlightSourceDocument(payloadOrDocId: string | { documentId: string; boundingBox?: BoundingBox }, boundingBox?: BoundingBox): void {
     if (typeof payloadOrDocId === 'string') {
       this.emit('highlight_document', { documentId: payloadOrDocId, boundingBox });
     } else if (payloadOrDocId && typeof payloadOrDocId === 'object') {
-      this.emit('highlight_document', { documentId: (payloadOrDocId as any).documentId, boundingBox: (payloadOrDocId as any).boundingBox || boundingBox });
+      const obj = payloadOrDocId as unknown as { documentId: string; boundingBox?: BoundingBox };
+      this.emit('highlight_document', { documentId: obj.documentId, boundingBox: obj.boundingBox || boundingBox });
     }
   }
 
@@ -310,14 +273,13 @@ export class WebMCPEventBus {
     this.emittedEvents = [];
   }
 
-  public getEvents(eventName?: string): any[] {
+  public getEvents(eventName?: string): Array<{ event: string; payload: ReturnType<typeof JSON.parse>; timestamp: string }> {
     if (eventName) {
       return this.emittedEvents.filter(e => e.event === eventName);
     }
     return this.emittedEvents;
   }
 
-  // Telemetry helper for M4 cohesion tests: count events per name
   public getEventCounts(): Record<string, number> {
     const counts: Record<string, number> = {};
     for (const e of this.emittedEvents) {

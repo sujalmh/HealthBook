@@ -53,9 +53,10 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
-  const callerPerm = (activeProfile as any)?.permissionLevel || 'manage';
+  const callerPerm = (activeProfile as unknown as { permissionLevel?: string })?.permissionLevel || 'manage';
   const isViewOnly = callerPerm === 'view_only';
   const callerForAudit = activeProfile || { userId: patientId, name: (providerName || '').trim() || 'Your doctor', role: 'doctor', isProxy: false, permissionLevel: 'manage' as const };
+  const ca = callerForAudit as unknown as { userId?: string; name?: string; role?: string; isProxy?: boolean; permissionLevel?: string; onBehalfOf?: string };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +70,6 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
       if (isRange) {
         const scheduledDate = new Date(customStart + 'T12:00:00').toISOString();
         const scheduledDateEnd = new Date(customEnd + 'T12:00:00').toISOString();
-        // Validate end after start — swap if needed
         const rangeEvent = localVault.addCalendarEvent(
           {
             id: `apt_${Date.now()}`,
@@ -84,8 +84,8 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             isCompleted: false,
             syncedToCalendar: true,
             sharedWithCaregivers: ['user_family']
-          } as any,
-          { userId: (callerForAudit as any).userId || 'clinician', userName: (callerForAudit as any).name || (providerName || '').trim() || 'Your doctor', role: (callerForAudit as any).role || 'doctor', onBehalfOf: (callerForAudit as any).onBehalfOf } as any
+          } as unknown as import('@/types/vault').CalendarEventRecord,
+          { userId: ca.userId || 'clinician', userName: ca.name || (providerName || '').trim() || 'Your doctor', role: (ca.role as 'patient' | 'caregiver' | 'doctor') || 'doctor', onBehalfOf: ca.onBehalfOf } as unknown as { userId: string; userName: string; role: "patient" | "caregiver" | "doctor" | "system"; onBehalfOf?: string }
         );
         // windowDays helper for grep
         const windowDays = Math.ceil((new Date(scheduledDateEnd).getTime() - new Date(scheduledDate).getTime()) / 86400000);
@@ -103,7 +103,6 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
 
       const scheduledDate = dateOffset === 'custom' ? new Date(customDate + 'T12:00:00').toISOString() : dateOffset;
 
-      // 1. Schedule follow up tool — use true caller profile for audit performedBy
       const schedRes = await webMCPEngine.execute(
         'schedule_followup',
         {
@@ -114,23 +113,22 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
         },
         {
           patientId,
-          activeProfile: { userId: (callerForAudit as any).userId || 'clinician', name: (callerForAudit as any).name || (providerName || '').trim() || 'Your doctor', role: (callerForAudit as any).role || 'doctor', isProxy: !!(callerForAudit as any).isProxy, permissionLevel: (callerForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerForAudit as any).onBehalfOf } as any,
+          activeProfile: { userId: ca.userId || 'clinician', name: ca.name || (providerName || '').trim() || 'Your doctor', role: (ca.role as 'patient' | 'caregiver' | 'doctor') || 'doctor', isProxy: !!ca.isProxy, permissionLevel: ca.permissionLevel || 'manage', onBehalfOf: ca.onBehalfOf } as unknown as { userId: string; name: string; role: "patient" | "caregiver" | "doctor"; isProxy: boolean; permissionLevel: "view_only" | "manage" | "full"; onBehalfOf?: string },
           vault: localVault,
           eventBus
         }
       );
 
-      // 2. Sync to calendar — same caller
       if (schedRes.success && schedRes.data) {
         await webMCPEngine.execute(
           'sync_to_calendar',
           {
-            eventId: schedRes.data.id,
+            eventId: (schedRes.data as { id: string }).id,
             recipients: ['patient', 'caregiver_family']
           },
           {
             patientId,
-            activeProfile: { userId: (callerForAudit as any).userId || 'clinician', name: (callerForAudit as any).name || (providerName || '').trim() || 'Your doctor', role: (callerForAudit as any).role || 'doctor', isProxy: !!(callerForAudit as any).isProxy, permissionLevel: (callerForAudit as any).permissionLevel || 'manage', onBehalfOf: (callerForAudit as any).onBehalfOf } as any,
+            activeProfile: { userId: ca.userId || 'clinician', name: ca.name || (providerName || '').trim() || 'Your doctor', role: (ca.role as 'patient' | 'caregiver' | 'doctor') || 'doctor', isProxy: !!ca.isProxy, permissionLevel: ca.permissionLevel || 'manage', onBehalfOf: ca.onBehalfOf } as unknown as { userId: string; name: string; role: "patient" | "caregiver" | "doctor"; isProxy: boolean; permissionLevel: "view_only" | "manage" | "full"; onBehalfOf?: string },
             vault: localVault,
             eventBus
           }
@@ -147,7 +145,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
       if (onScheduled) onScheduled();
       onClose();
     } catch (err) {
-      console.error('Error scheduling follow-up:', err);
+      
     } finally {
       setIsSubmitting(false);
     }
@@ -204,7 +202,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
                     : 'bg-canvas-muted border-canvas-border text-muted hover:text-slate-900'
                 }`}
               >
-                <Video className="w-4 h-4 text-indigo-400 shrink-0" />
+                <Video className="w-4 h-4 text-teal-500 shrink-0" />
                 <span>Telehealth Video Call</span>
               </button>
             </div>
@@ -350,7 +348,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             disabled={isSubmitting || !reason.trim() || isViewOnly}
             aria-disabled={isViewOnly}
             title={isViewOnly ? 'View-only: cannot schedule — Permission denied (PERMISSION_DENIED)' : undefined}
-            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-lg min-h-[44px] ${isViewOnly ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/20'}`}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-lg min-h-[44px] ${isViewOnly ? 'bg-slate-300 cursor-not-allowed opacity-60 shadow-none' : 'bg-sky-600 hover:bg-sky-500'}`}
           >
             <PlusCircle className="w-4 h-4" />
             <span>{isViewOnly ? 'View-only blocked (PERMISSION_DENIED)' : isSubmitting ? 'Booking...' : 'Book & Synchronize Calendar'}</span>

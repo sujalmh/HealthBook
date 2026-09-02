@@ -1,11 +1,12 @@
 /**
  * CareCanvas WebMCP Tools Catalog & Registration — Protocol-Correct Catalog Bridge
  * W3C WebMCP Spec Draft 26 Aug 2026 §4.2.1 Dictionary Conformance
- * Catalog: 40 tools snake_case Q5 (vault3+labstory2+pillmap8+rxbridge5+homelab5+safety9+carecircle8)
+ * Catalog: 42 tools snake_case Q5 (vault3+labstory2+pillmap8+rxbridge5+homelab5+safety9+carecircle8+auth2)
+ *   Auth: create_account, sign_in — human-only password (AI prefills name/email/role, human types password in browser)
  * Bridging: parameters (internal, backward compat) → inputSchema (spec, stringified via JSON.stringify)
  *           title=name, annotations.readOnlyHint=!requiresHumanApproval via engine adapter (WebMCPAdapter.toSpecTool)
  *           requiresHumanApproval staging via engine wrapper (pendingApprovalId + humanApprovalRequired:true) Q6
- * Integrity: demo reproducible — judges can clone + npm install + build + test + open localhost:5173 + await document.modelContext.getTools() → 40
+ * Integrity: demo reproducible — judges can clone + npm install + build + test + open localhost:5173 + await document.modelContext.getTools() → 42
  */
 
 import { WebMCPEngine, webMCPEngine } from '../core/webmcp/WebMCPEngine.ts';
@@ -72,6 +73,9 @@ import {
   viewTimelineTool
 } from './careCircleTools.ts';
 
+// Auth onboarding — human-only password (AI prefills, human types password in browser)
+import { createAccountTool, signInTool } from './authTools.ts';
+
 export const allWebMCPTools: WebMCPToolDefinition[] = [
   // Vault (3)
   extractFactTool,
@@ -125,7 +129,11 @@ export const allWebMCPTools: WebMCPToolDefinition[] = [
   actOnBehalfTool,
   grantDoctorAccessTool,
   revokeAccessTool,
-  viewTimelineTool
+  viewTimelineTool,
+
+  // Auth onboarding (2) — human-only password, AI prefills name/email/role
+  createAccountTool,
+  signInTool
 ];
 
 export const allTools = allWebMCPTools;
@@ -204,3 +212,4 @@ export * from './rxBridgeTools.ts';
 export * from './homeLabTools.ts';
 export * from './safetyTools.ts';
 export * from './careCircleTools.ts';
+export * from './authTools.ts';

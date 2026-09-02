@@ -3,6 +3,7 @@ import { UploadCloud, FileText, ArrowRight } from 'lucide-react';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 import { runDocumentOCR } from '@/core/ai/ocr';
 
 interface LabDropzoneProps {
@@ -18,19 +19,7 @@ export const LabDropzone: React.FC<LabDropzoneProps> = ({ patientId, activeProfi
   const [stage, setStage] = useState<'ocr' | 'ai' | 'idle'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const effectivePatientId =
-    patientId ||
-    (() => {
-      try {
-        const raw = localStorage.getItem('carecanvas_active_user');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          return parsed?.userId || parsed?.id || '';
-        }
-      } catch {}
-      return '';
-    })() ||
-    '';
+  const effectivePatientId = resolvePatientId(patientId);
 
   const handleLabExtract = async (file: File, fileDataUrl: string) => {
     setIsExtracting(true);
@@ -48,19 +37,19 @@ export const LabDropzone: React.FC<LabDropzoneProps> = ({ patientId, activeProfi
           ocrText = ocr.markdown;
           pageCount = ocr.pageCount || 1;
         }
-      } catch {}
+      } catch { /* intentionally empty */ }
 
       await localVault.addDocument({
         id: documentId,
         patientId: effectivePatientId,
         fileName: file.name,
         name: file.name,
-        docType: docType as any,
+        docType: docType as unknown as import('@/types/vault').DocumentRecord['docType'],
         pageCount,
         uploadTimestamp: new Date().toISOString(),
         extractedText: ocrText || file.name,
         extractedFactIds: [],
-      });
+      } as unknown as import('@/types/vault').DocumentRecord);
 
       setStage('ai');
 
@@ -84,8 +73,8 @@ export const LabDropzone: React.FC<LabDropzoneProps> = ({ patientId, activeProfi
           rawText: ocrText || file.name,
           imageDataUrl: fileDataUrl,
           imageBlob: fileDataUrl,
-        } as any,
-        context as any
+        } as unknown as Record<string, unknown>,
+        context as unknown as Record<string, unknown>
       );
 
       // Ensure labs appear via eventBus; also reload callback
@@ -112,11 +101,12 @@ export const LabDropzone: React.FC<LabDropzoneProps> = ({ patientId, activeProfi
           message: result.error?.message || 'Please try again with a clear PDF or photo.',
         });
       }
-    } catch (err: any) {
+    } catch (err) {
+      const msg = (err as unknown as { message?: string })?.message || 'Please try again with a clear PDF or photo.';
       eventBus.dispatchToast({
         type: 'error',
         title: 'Could not read paper',
-        message: err?.message || 'Please try again with a clear PDF or photo.',
+        message: msg,
       });
     } finally {
       setIsExtracting(false);

@@ -12,6 +12,9 @@ import { groundHealthQuestion, isHealthGroundingAvailable, type GroundedInsight 
 import { searchExa } from '@/core/search/exaClient';
 import { getExaConfig, isExaEnabled } from '@/core/search/exaConfig';
 
+let cachedAvailability: boolean | null = null;
+let availabilityPromise: Promise<boolean> | null = null;
+
 interface Props {
   patientId: string;
   initialQuery?: string;
@@ -38,7 +41,10 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
   useEffect(() => { setQuery(initialQuery || ''); }, [initialQuery]);
 
   useEffect(() => {
-    isHealthGroundingAvailable().then(setIsAvailable);
+    if (cachedAvailability !== null) { setIsAvailable(cachedAvailability); return; }
+    if (availabilityPromise) { availabilityPromise.then((v) => { cachedAvailability = v; setIsAvailable(v); }); return; }
+    availabilityPromise = isHealthGroundingAvailable().then((v) => { cachedAvailability = v; return v; });
+    availabilityPromise.then(setIsAvailable);
   }, []);
 
   useEffect(() => {
@@ -84,8 +90,8 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
         });
         setInsight(grounded);
       }
-    } catch (e: any) {
-      const msg = e?.message || String(e);
+    } catch (e: unknown) {
+      const msg = (e as { message?: string })?.message || String(e);
       if (msg.includes('401') || msg.includes('not configured') || msg.includes('EXA_API_KEY')) {
         setError('Exa API key missing — set EXA_API_KEY in .env (server) or VITE_EXA_API_KEY in Settings. See .env.example Exa section. Extraction remains local; grounding requires key.');
       } else {
@@ -110,15 +116,15 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
   return (
     <div className={`bg-white border border-canvas-border rounded-2xl shadow-sm overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="px-4 sm:px-5 py-3.5 border-b border-canvas-border bg-gradient-to-br from-indigo-50 to-white flex items-center justify-between gap-3">
+      <div className="px-4 sm:px-5 py-3.5 border-b border-canvas-border bg-canvas-muted flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-teal-700 text-white flex items-center justify-center shadow-sm shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
               Grounded Insights <span className="hidden sm:inline">— web evidence</span>
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-200 text-[10px] font-bold uppercase tracking-wider">
                 <ShieldCheck className="w-3 h-3" /> Exa
               </span>
             </h3>
@@ -144,14 +150,14 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="Ask about a lab, med, or condition… e.g. 'Why is my eGFR 32 and what should I ask?'"
-              className="w-full pl-9 pr-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 min-h-[44px]"
+              className="w-full pl-9 pr-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/15 min-h-[44px]"
               aria-label="Grounded health question"
             />
           </div>
           <button
             onClick={() => handleSearch()}
             disabled={isLoading || !query.trim()}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-sm min-h-[44px] shrink-0"
+            className="px-4 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 disabled:opacity-40 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-sm min-h-[44px] shrink-0"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             {isLoading ? 'Searching…' : 'Ground'}
@@ -166,11 +172,11 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
           <span className="text-[11px] text-muted">cached=fast; fresh=livecrawl (maxAgeHours:0)</span>
           {fresh && <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold">maxAgeHours: 0</span>}
           <span className="ml-2 text-[11px] text-muted hidden sm:inline">• AI search</span>
-          <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">AI accuracy • no hardcoded domains</span>
+          <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-bold">AI accuracy • no hardcoded domains</span>
           <select
             value={searchType}
-            onChange={(e)=> setSearchType(e.target.value as any)}
-            className="ml-auto px-2 py-1.5 bg-white border border-canvas-border rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-400 min-h-[32px]"
+            onChange={(e)=> setSearchType(e.target.value as unknown as 'auto' | 'fast' | 'instant')}
+            className="ml-auto px-2 py-1.5 bg-white border border-canvas-border rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-teal-500 min-h-[32px]"
             aria-label="Search type"
             title="Exa search type: instant (~250ms), fast (~450ms), auto (~1s)"
           >
@@ -181,9 +187,9 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
         </div>
 
         {contextFacts && (
-          <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl px-3 py-2 flex items-start gap-2">
-            <BookOpen className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-indigo-900 leading-relaxed"><span className="font-bold">Vault context grounded:</span> {contextFacts}</p>
+          <div className="bg-teal-50/70 border border-teal-200 rounded-xl px-3 py-2 flex items-start gap-2">
+            <BookOpen className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+            <p className="text-xs text-teal-950 leading-relaxed"><span className="font-bold">Vault context grounded:</span> {contextFacts}</p>
           </div>
         )}
 
@@ -194,7 +200,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
               key={p.label}
               onClick={() => { setQuery(p.q); handleSearch(p.q); }}
               disabled={isLoading}
-              className="text-[11px] px-2.5 py-1.5 rounded-full bg-canvas-muted hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-canvas-border hover:border-indigo-200 font-semibold transition-colors"
+              className="text-[11px] px-2.5 py-1.5 rounded-full bg-canvas-muted hover:bg-teal-50 text-slate-700 hover:text-teal-800 border border-canvas-border hover:border-teal-200 font-semibold transition-colors"
             >
               {p.label}
             </button>
@@ -223,7 +229,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-indigo-600" /> Grounded results • {insight.results.length} sources
+                <BookOpen className="w-3.5 h-3.5 text-teal-700" /> Grounded results • {insight.results.length} sources
                 {insight.costDollars ? <span className="text-muted font-normal">• ${insight.costDollars.toFixed(4)}</span> : null}
               </span>
               <span className="text-[11px] text-muted font-mono hidden sm:inline">{insight.requestId?.slice(0,8)} • {new Date(insight.queriedAt).toLocaleTimeString()}</span>
@@ -242,22 +248,22 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
 
             <div className="space-y-2.5">
               {insight.results.map((r, i) => (
-                <div key={`${r.url}-${i}`} className="bg-white border border-canvas-border rounded-xl p-3 hover:border-indigo-200 transition-colors">
+                <div key={`${r.url}-${i}`} className="bg-white border border-canvas-border rounded-xl p-3 hover:border-teal-200 transition-colors">
                   <div className="flex items-start justify-between gap-2">
-                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-indigo-700 hover:text-indigo-900 hover:underline leading-snug flex-1">
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-teal-800 hover:text-teal-950 hover:underline leading-snug flex-1">
                       {r.title || new URL(r.url).hostname}
                     </a>
-                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg bg-canvas-muted hover:bg-indigo-50 border border-canvas-border hover:border-indigo-200 text-muted hover:text-indigo-700 shrink-0" aria-label="Open source">
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg bg-canvas-muted hover:bg-teal-50 border border-canvas-border hover:border-teal-200 text-muted hover:text-teal-800 shrink-0" aria-label="Open source">
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted font-mono break-all hover:text-indigo-600">{r.url}</a>
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted font-mono break-all hover:text-teal-700">{r.url}</a>
                   {r.publishedDate && <div className="text-[11px] text-muted mt-1">Published: {new Date(r.publishedDate).toLocaleDateString()}</div>}
                   {r.highlights && r.highlights.length > 0 && (
                     <ul className="mt-2 space-y-1">
                       {r.highlights.slice(0, 3).map((h, idx) => (
-                        <li key={idx} className="text-xs text-slate-700 leading-relaxed bg-indigo-50/60 border border-indigo-100 rounded-lg px-2.5 py-1.5">
-                          <span className="font-bold text-indigo-700">▸</span> {h}
+                        <li key={idx} className="text-xs text-slate-700 leading-relaxed bg-teal-50/60 border border-teal-100 rounded-lg px-2.5 py-1.5">
+                          <span className="font-bold text-teal-800">▸</span> {h}
                         </li>
                       ))}
                     </ul>
@@ -286,7 +292,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
             )}
 
             <div className="flex items-center justify-center pt-1">
-              <button onClick={() => handleSearch()} disabled={isLoading} className="text-xs px-3 py-2 rounded-xl bg-white border border-canvas-border hover:border-indigo-200 text-muted hover:text-indigo-700 font-semibold flex items-center gap-1.5">
+              <button onClick={() => handleSearch()} disabled={isLoading} className="text-xs px-3 py-2 rounded-xl bg-white border border-canvas-border hover:border-teal-200 text-muted hover:text-teal-800 font-semibold flex items-center gap-1.5">
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /> Refresh grounding
               </button>
             </div>

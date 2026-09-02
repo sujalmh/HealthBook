@@ -36,47 +36,44 @@ export const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-br from-primary to-accent rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-        <div className="absolute inset-0 bg-white/10 rounded-2xl" aria-hidden />
-        <div className="relative flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/20">
-              <Settings className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black tracking-tight">Settings — AI Provider Configuration</h2>
-              <p className="text-sm text-white/80">Generic configurable LLM — any model, any baseURL, Settings overrides .env</p>
-            </div>
+      {/* AI provider header — standard card, status pills carry the state */}
+      <div className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary-light border border-primary-border flex items-center justify-center shrink-0">
+            <Settings className="w-5 h-5 text-primary-text" />
           </div>
+          <div className="min-w-0">
+            <h2 className="text-heading-lg text-slate-900">Settings — AI Provider Configuration</h2>
+            <p className="text-body-sm text-muted">Generic configurable LLM — any model, any baseURL, Settings overrides .env</p>
+          </div>
+        </div>
 
-          <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1 rounded-full bg-white/20 border border-white/20 text-xs font-bold backdrop-blur flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5" />
-              {config?.provider || '—'} provider
-            </span>
-            <span className="px-3 py-1 rounded-full bg-white/20 border border-white/20 text-xs font-semibold backdrop-blur flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5" />
-              {config?.model || 'no model'} — {config?.visionModel && config.visionModel !== config.model ? `vision ${config.visionModel}` : 'single model'}
-            </span>
-            <span className="px-3 py-1 rounded-full bg-white/20 border border-white/20 text-xs font-semibold backdrop-blur flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5" />
-              {enabled ? 'AI Active' : 'AI Fallback'} • {isSettingsActive ? 'Settings active' : 'env defaults'}
-            </span>
-          </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="px-2.5 py-1 rounded-full bg-canvas-muted border border-canvas-border text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5 text-primary-text" />
+            {config?.provider || '—'} provider
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-canvas-muted border border-canvas-border text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+            <Database className="w-3.5 h-3.5 text-primary-text" />
+            {config?.model || 'no model'} — {config?.visionModel && config.visionModel !== config.model ? `vision ${config.visionModel}` : 'single model'}
+          </span>
+          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 ${enabled ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+            <Shield className="w-3.5 h-3.5" />
+            {enabled ? 'AI Active' : 'AI Fallback'} • {isSettingsActive ? 'Settings active' : 'env defaults'}
+          </span>
+        </div>
 
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20 flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white/90">
-              <Sparkles className="w-4 h-4" /> Current Endpoint (generic)
-            </div>
-            <div className="font-mono text-xs bg-white rounded-lg px-3 py-2 text-slate-800 break-all border">
-              {endpoint || '— not configured (baseURL empty)'}
-            </div>
-            <p className="text-[11px] text-white/80">
-              Composed generically: {'{baseURL}/chat/completions'} for <span className="font-bold">chat</span> vs {'{baseURL}/responses'} for{' '}
-              <span className="font-bold">responses</span> via <span className="font-mono">VITE_AI_PROVIDER</span> — never hardcoded literal.
-            </p>
+        <div className="rounded-lg border border-canvas-border bg-canvas-muted p-3 space-y-2">
+          <div className="flex items-center gap-2 text-caption uppercase tracking-wider text-slate-600">
+            <Sparkles className="w-3.5 h-3.5" /> Current Endpoint (generic)
           </div>
+          <div className="font-mono text-xs bg-white rounded-md px-3 py-2 text-slate-800 break-all border border-canvas-border">
+            {endpoint || '— not configured (baseURL empty)'}
+          </div>
+          <p className="text-[11px] text-muted">
+            Composed generically: {'{baseURL}/chat/completions'} for <span className="font-semibold">chat</span> vs {'{baseURL}/responses'} for{' '}
+            <span className="font-semibold">responses</span> via <span className="font-mono">VITE_AI_PROVIDER</span> — never hardcoded literal.
+          </p>
         </div>
       </div>
 
@@ -150,36 +147,33 @@ export const SettingsView: React.FC = () => {
         </p>
       </div>
 
-      {/* Exa Healthcare Grounding Card */}
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white shadow-lg relative overflow-hidden">
-        <div className="absolute inset-0 bg-white/10 rounded-2xl" aria-hidden />
-        <div className="relative space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/20">
-              <Search className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-sm font-black tracking-tight">Exa Healthcare Grounding — Web Evidence Layer</h3>
-              <p className="text-xs text-white/80">After extraction: grounded insights with citations via Exa search (highlights, not just raw text).</p>
-            </div>
+      {/* Exa Healthcare Grounding — standard card with status pills */}
+      <div className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-primary-light border border-primary-border flex items-center justify-center shrink-0">
+            <Search className="w-5 h-5 text-primary-text" />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur ${exaConfig && isExaEnabled(exaConfig) ? 'bg-emerald-500/20 border-emerald-300/30 text-white' : 'bg-amber-500/20 border-amber-300/30 text-white'}`}>
-              {exaConfig && isExaEnabled(exaConfig) ? 'Grounding ready' : 'Needs EXA_API_KEY'}
-            </span>
-            <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-mono text-white">{exaEndpoint || '/api/exa-proxy/search'} • {exaConfig?.searchType || 'auto'}</span>
-            <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-mono text-white">{exaConfig?.numResults ?? 5} results • {exaConfig?.timeoutMs ?? 15000}ms</span>
+          <div className="min-w-0">
+            <h3 className="text-heading-md text-slate-900">Exa Healthcare Grounding — Web Evidence Layer</h3>
+            <p className="text-body-sm text-muted">After extraction: grounded insights with citations via Exa search (highlights, not just raw text).</p>
           </div>
-          <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20 space-y-1.5">
-            <div className="text-xs font-bold uppercase tracking-wider text-white/90 flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> How it works</div>
-            <p className="text-xs text-white/85 leading-relaxed">
-              Extraction (AI/OCR) finds <span className="font-bold text-white">what is in your document</span>; grounding finds <span className="font-bold text-white">what it means</span> — latest guidelines, interactions, and next steps — via <span className="font-mono">POST https://api.exa.ai/search</span> with <span className="font-mono">contents.highlights: true</span> (token-efficient) + citations. Toggle <span className="font-mono">fresh</span> forces <span className="font-mono">maxAgeHours: 0</span> livecrawl. Proxied via <span className="font-mono">/api/exa-proxy</span> so <span className="font-mono">EXA_API_KEY</span> stays server-only.
-            </p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <span className="px-2 py-0.5 rounded-full bg-white text-indigo-700 text-[11px] font-bold border">highlights</span>
-              <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-white text-[11px] font-mono">text (deep)</span>
-              <span className="px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-white text-[11px] font-mono">summary + outputSchema</span>
-            </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${exaConfig && isExaEnabled(exaConfig) ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+            {exaConfig && isExaEnabled(exaConfig) ? 'Grounding ready' : 'Needs EXA_API_KEY'}
+          </span>
+          <span className="px-2.5 py-1 rounded-full bg-canvas-muted border border-canvas-border text-xs font-mono text-slate-700">{exaEndpoint || '/api/exa-proxy/search'} • {exaConfig?.searchType || 'auto'}</span>
+          <span className="px-2.5 py-1 rounded-full bg-canvas-muted border border-canvas-border text-xs font-mono text-slate-700">{exaConfig?.numResults ?? 5} results • {exaConfig?.timeoutMs ?? 15000}ms</span>
+        </div>
+        <div className="rounded-lg border border-canvas-border bg-canvas-muted p-3 space-y-1.5">
+          <div className="text-caption uppercase tracking-wider text-slate-600 flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> How it works</div>
+          <p className="text-body-sm text-slate-700 leading-relaxed">
+            Extraction (AI/OCR) finds <span className="font-semibold">what is in your document</span>; grounding finds <span className="font-semibold">what it means</span> — latest guidelines, interactions, and next steps — via <span className="font-mono">POST https://api.exa.ai/search</span> with <span className="font-mono">contents.highlights: true</span> (token-efficient) + citations. Toggle <span className="font-mono">fresh</span> forces <span className="font-mono">maxAgeHours: 0</span> livecrawl. Proxied via <span className="font-mono">/api/exa-proxy</span> so <span className="font-mono">EXA_API_KEY</span> stays server-only.
+          </p>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            <span className="px-2 py-0.5 rounded-full bg-white border border-canvas-border text-slate-700 text-[11px] font-semibold">highlights</span>
+            <span className="px-2 py-0.5 rounded-full bg-white border border-canvas-border text-slate-700 text-[11px] font-mono">text (deep)</span>
+            <span className="px-2 py-0.5 rounded-full bg-white border border-canvas-border text-slate-700 text-[11px] font-mono">summary + outputSchema</span>
           </div>
         </div>
       </div>

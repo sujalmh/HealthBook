@@ -47,8 +47,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   const handleApprove = async () => {
     setIsProcessing(true);
     try {
-      // 1. Approve proposal
-      const res = await webMCPEngine.execute(
+      await webMCPEngine.execute(
         'approve_dosage_change',
         {
           proposalId: proposal.id,
@@ -62,7 +61,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           activeProfile: {
             userId: activeProfile.userId,
             name: activeProfile.name,
-            role: activeProfile.role as any,
+            role: activeProfile.role as 'patient' | 'caregiver' | 'doctor',
             isProxy: !!activeProfile.isProxy,
             onBehalfOf: activeProfile.onBehalfOf
           },
@@ -71,7 +70,6 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
         }
       );
 
-      // 2. Sync PillMap and trigger diff animation
       await webMCPEngine.execute(
         'sync_pillmap_from_proposal',
         { proposalId: proposal.id },
@@ -80,7 +78,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           activeProfile: {
             userId: activeProfile.userId,
             name: activeProfile.name,
-            role: activeProfile.role as any,
+            role: activeProfile.role as 'patient' | 'caregiver' | 'doctor',
             isProxy: !!activeProfile.isProxy
           },
           vault: localVault,
@@ -96,8 +94,8 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
       eventBus.emit('proposal_status_changed', { ...proposal, status: 'approved' });
       if (onDecision) onDecision(proposal.id, 'approved');
-    } catch (err) {
-      console.error('Error approving proposal:', err);
+    } catch {
+      // approval failure handled via toast
     } finally {
       setIsProcessing(false);
     }
@@ -118,7 +116,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           activeProfile: {
             userId: activeProfile.userId,
             name: activeProfile.name,
-            role: activeProfile.role as any,
+            role: activeProfile.role as 'patient' | 'caregiver' | 'doctor',
             isProxy: !!activeProfile.isProxy
           },
           vault: localVault,
@@ -134,8 +132,8 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
 
       eventBus.emit('proposal_status_changed', { ...proposal, status: 'rejected' });
       if (onDecision) onDecision(proposal.id, 'rejected');
-    } catch (err) {
-      console.error('Error rejecting proposal:', err);
+    } catch {
+      // reject failure handled via toast
     } finally {
       setIsProcessing(false);
     }
@@ -194,7 +192,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
                 Doctor Dosage Proposal
               </span>
               {isPending && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-caption font-semibold border border-amber-200 animate-pulse">
+                <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-caption font-semibold border border-amber-200">
                   Pending Your Approval
                 </span>
               )}

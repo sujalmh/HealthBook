@@ -161,6 +161,89 @@ export const BIOMARKER_STANDARDS: Record<
       }
       return val;
     }
+  },
+  fev1: {
+    canonicalName: 'FEV1',
+    standardUnit: '% predicted',
+    refRange: { low: 80, high: 120 },
+    optimalRange: { low: 90, high: 110 },
+    criticalLow: 60,
+    convertUnit: (val: number) => val
+  },
+  'fev1/fvc': {
+    canonicalName: 'FEV1/FVC',
+    standardUnit: 'ratio',
+    refRange: { low: 0.70, high: 1.0 },
+    optimalRange: { low: 0.75, high: 0.90 },
+    convertUnit: (val: number) => val
+  },
+  fvc: {
+    canonicalName: 'FVC',
+    standardUnit: '% predicted',
+    refRange: { low: 80, high: 120 },
+    optimalRange: { low: 90, high: 110 },
+    convertUnit: (val: number) => val
+  },
+  pef: {
+    canonicalName: 'PEF',
+    standardUnit: '% predicted',
+    refRange: { low: 80, high: 120 },
+    optimalRange: { low: 90, high: 110 },
+    convertUnit: (val: number) => val
+  },
+  feno: {
+    canonicalName: 'FeNO',
+    standardUnit: 'ppb',
+    refRange: { low: 5, high: 25 },
+    optimalRange: { low: 5, high: 25 },
+    criticalHigh: 50,
+    convertUnit: (val: number) => val
+  },
+  'blood eosinophils': {
+    canonicalName: 'Blood Eosinophils',
+    standardUnit: 'cells/µL',
+    refRange: { low: 0, high: 500 },
+    optimalRange: { low: 0, high: 300 },
+    criticalHigh: 1500,
+    convertUnit: (val: number) => val
+  },
+  'total ige': {
+    canonicalName: 'Total IgE',
+    standardUnit: 'IU/mL',
+    refRange: { low: 0, high: 100 },
+    optimalRange: { low: 0, high: 100 },
+    convertUnit: (val: number) => val
+  },
+  'act score': {
+    canonicalName: 'ACT Score',
+    standardUnit: '/25',
+    refRange: { low: 20, high: 25 },
+    optimalRange: { low: 20, high: 25 },
+    convertUnit: (val: number) => val
+  },
+  tsh: {
+    canonicalName: 'TSH',
+    standardUnit: 'µIU/mL',
+    refRange: { low: 0.4, high: 4.0 },
+    optimalRange: { low: 0.5, high: 3.0 },
+    criticalHigh: 10,
+    criticalLow: 0.1,
+    convertUnit: (val: number) => val
+  },
+  'free t4': {
+    canonicalName: 'Free T4',
+    standardUnit: 'ng/dL',
+    refRange: { low: 0.8, high: 1.8 },
+    optimalRange: { low: 0.9, high: 1.7 },
+    convertUnit: (val: number) => val
+  },
+  alt: {
+    canonicalName: 'ALT',
+    standardUnit: 'U/L',
+    refRange: { low: 7, high: 56 },
+    optimalRange: { low: 10, high: 40 },
+    criticalHigh: 200,
+    convertUnit: (val: number) => val
   }
 };
 
@@ -172,13 +255,26 @@ export function findBiomarkerStandard(markerName: string) {
   if (m.includes('creat')) return BIOMARKER_STANDARDS['creatinine'];
   if (m.includes('egfr') || m.includes('gfr')) return BIOMARKER_STANDARDS['egfr'];
   if (m.includes('hba1c') || m.includes('a1c') || m.includes('glycated')) return BIOMARKER_STANDARDS['hba1c'];
-  if (m.includes('glucose') || m.includes('blood sugar') || m.includes('glu')) return BIOMARKER_STANDARDS['glucose fasting'];
+  if (m.includes('glucose') || m.includes('blood sugar')) return BIOMARKER_STANDARDS['glucose fasting'];
+  // gate glucose vs glutamate false positive — only map 'glu' when not glutamate
+  if (m.includes('glu') && !m.includes('glutamate') && !m.includes('gluten')) return BIOMARKER_STANDARDS['glucose fasting'];
   if (m.includes('potassium') || m === 'k' || m === 'k+') return BIOMARKER_STANDARDS['potassium'];
   if (m.includes('ldl')) return BIOMARKER_STANDARDS['ldl'];
   if (m.includes('hdl')) return BIOMARKER_STANDARDS['hdl'];
   if (m.includes('triglyceride')) return BIOMARKER_STANDARDS['triglycerides'];
   if (m.includes('cholesterol') || m.includes('total cholesterol')) return BIOMARKER_STANDARDS['cholesterol total'];
   if (m.includes('hemoglobin') || m.includes('hgb') || m === 'hb') return BIOMARKER_STANDARDS['hemoglobin'];
+  if (m.includes('tsh')) return BIOMARKER_STANDARDS['tsh'];
+  if (m.includes('free t4') || m.includes('free t-4') || m === 'ft4' || m.includes('thyroxine')) return BIOMARKER_STANDARDS['free t4'];
+  if (m.includes('alt') || m.includes('alanine aminotransferase')) return BIOMARKER_STANDARDS['alt'];
+  if (m.includes('fev1/fvc') || m.includes('fev1 fvc')) return BIOMARKER_STANDARDS['fev1/fvc'];
+  if (m.includes('fev1')) return BIOMARKER_STANDARDS['fev1'];
+  if (m === 'fvc' || (m.includes('fvc') && !m.includes('fev1'))) return BIOMARKER_STANDARDS['fvc'];
+  if (m.includes('pef') || m.includes('peak expiratory')) return BIOMARKER_STANDARDS['pef'];
+  if (m.includes('feno') || m.includes('nitric oxide')) return BIOMARKER_STANDARDS['feno'];
+  if (m.includes('eosinophils')) return BIOMARKER_STANDARDS['blood eosinophils'];
+  if (m.includes('ige') || m.includes('immunoglobulin e')) return BIOMARKER_STANDARDS['total ige'];
+  if (m.includes('act') && m.includes('score')) return BIOMARKER_STANDARDS['act score'];
 
   return Object.values(BIOMARKER_STANDARDS).find(
     (std) => std.canonicalName.toLowerCase() === m || m.includes(std.canonicalName.toLowerCase())
@@ -532,22 +628,15 @@ export const extractLabsTool: WebMCPToolDefinition = {
     // After extraction, use Exa AI search (no hardcoded domains) for accuracy on each marker's levels.
     // This is the "next layer after extraction" — vault holds what IS, grounding explains what it MEANS.
     // Skip during VITEST to keep tests deterministic and fast (no real Exa network in unit tests)
-    const isVitest = typeof process !== 'undefined' && (process as any).env?.VITEST === 'true';
+    const isVitest = typeof process !== 'undefined' && (process as unknown as { env?: Record<string, unknown> }).env?.['VITEST'] === 'true';
     if (!isVitest && await isHealthGroundingAvailable()) {
       const uniqueMarkers = [...new Set(labRecords.map(r => r.marker))].slice(0, 4);
-      // Fire-and-forget enrichment per marker; UI can listen to 'lab_grounded' for AI insights
-      uniqueMarkers.forEach(async (marker) => {
+      await Promise.allSettled(uniqueMarkers.map(async (marker) => {
         try {
           const insight = await groundBiomarkerLevels({ marker, numResults: 2 });
-          // Emit grounded insight for UI pipeline (LabStoryView, etc.)
-          context.eventBus?.emit('lab_grounded' as any, { patientId, marker, insight, source: 'exa_ai_search' });
-          // Also store in vault question bank as grounded context if needed — not required, keep vault pure
-        } catch (e) {
-          // grounding failure is non-fatal; fallback BIOMARKER_STANDARDS remains
-        }
-      });
-      // Also enrich via direct Exa highlights for normal ranges in parallel (legacy pipeline compat)
-      // This ensures low-high and normal data are AI-grounded, not just hardcoded.
+          context.eventBus?.emit('lab_grounded' as unknown as string, { patientId, marker, insight, source: 'exa_ai_search' });
+        } catch {}
+      }));
     }
 
     context.eventBus?.emit('lab_extracted', {

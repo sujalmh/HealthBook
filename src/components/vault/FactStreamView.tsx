@@ -1,13 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { FactEntity } from '@/types/vault';
+import type { BoundingBox } from '@/types/vault';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
-import { Eye, Check, X, Edit3, Sparkles, FileText, CheckCircle, X as XIcon, Copy } from 'lucide-react';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
+import { Eye, Check, X, Edit3, Sparkles, FileText, CheckCircle, X as XIcon, Copy, FlaskConical } from 'lucide-react';
+
+type FactExtra = FactEntity & {
+  approvalStatus?: string;
+  factKey?: string;
+  plainNarration?: string;
+  factValue?: unknown;
+  documentId?: string;
+  boundingBox?: BoundingBox;
+  sourceBoundingBox?: BoundingBox;
+  approvedAt?: string;
+  timestamp?: string;
+  approvedBy?: string;
+};
 
 export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) => {
   const [facts, setFacts] = useState<FactEntity[]>([]);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<Array<{ id: string; fileName?: string; name?: string; extractedText?: string }>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeOcrText, setActiveOcrText] = useState<string | null>(null);
@@ -16,16 +31,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   const [editValue, setEditValue] = useState<string>('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const effectivePatientId = patientId || (() => {
-    try {
-      const raw = localStorage.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return parsed?.userId || parsed?.id || '';
-      }
-    } catch {}
-    return '';
-  })();
+  const effectivePatientId = resolvePatientId(patientId);
 
   const loadFacts = async () => {
     setIsLoading(true);
@@ -52,8 +58,14 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
     };
   }, [effectivePatientId]);
 
-  const pendingFacts = facts.filter((f) => f.status === 'unconfirmed' || (f as any).approvalStatus === 'pending' || (f as any).approvalStatus === 'unconfirmed');
-  const approvedFacts = facts.filter((f) => f.status === 'confirmed' || (f as any).approvalStatus === 'approved' || (f as any).approvalStatus === 'confirmed');
+  const pendingFacts = facts.filter((f) => {
+    const extra = f as unknown as FactExtra;
+    return f.status === 'unconfirmed' || extra.approvalStatus === 'pending' || extra.approvalStatus === 'unconfirmed';
+  });
+  const approvedFacts = facts.filter((f) => {
+    const extra = f as unknown as FactExtra;
+    return f.status === 'confirmed' || extra.approvalStatus === 'approved' || extra.approvalStatus === 'confirmed';
+  });
 
   // R3 deduplication: labs are now consolidated in single IndicatorTable (LabStoryView) via findLocalStandard — delegate to avoid scattered duplicates
   const isLabCategory = (c: string) => (c ?? '').toLowerCase().trim() === 'lab';
@@ -69,10 +81,11 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   const labDelegationActive = isLabCategory(selectedCategory);
 
   const handleHighlight = (fact: FactEntity) => {
-    const bbox: any = (fact as any).boundingBox || (fact as any).sourceBoundingBox || null;
-    const docId = (fact.sourceDocId || (fact as any).documentId || '') as string;
-    if (bbox) eventBus.highlightSourceDocument({ documentId: docId, boundingBox: bbox } as any);
-    else eventBus.highlightSourceDocument(docId, bbox);
+    const extra = fact as unknown as FactExtra;
+    const bbox = (extra.boundingBox || extra.sourceBoundingBox || null) as BoundingBox | null;
+    const docId = (fact.sourceDocId || extra.documentId || '') as string;
+    if (bbox) eventBus.highlightSourceDocument({ documentId: docId, boundingBox: bbox });
+    else eventBus.highlightSourceDocument(docId, bbox as unknown as BoundingBox);
   };
 
   const handleApprove = async (fact: FactEntity) => {
@@ -80,8 +93,9 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
     try {
       await webMCPEngine.execute('confirm_fact', { factId: fact.id, action: 'approve' });
       await loadFacts();
-    } catch (err: any) {
-      eventBus.dispatchToast({ type: 'error', message: err?.message || 'Approval failed' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Approval failed';
+      eventBus.dispatchToast({ type: 'error', message: msg });
     } finally { setActionLoading(null); }
   };
   const handleReject = async (fact: FactEntity) => {
@@ -89,19 +103,21 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
     try {
       await webMCPEngine.execute('confirm_fact', { factId: fact.id, action: 'reject' });
       await loadFacts();
-    } catch (err: any) {
-      eventBus.dispatchToast({ type: 'error', message: err?.message || 'Rejection failed' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Rejection failed';
+      eventBus.dispatchToast({ type: 'error', message: msg });
     } finally { setActionLoading(null); }
   };
   const handleSaveEdit = async (fact: FactEntity) => {
     if (!editValue.trim()) return;
     setActionLoading(fact.id);
     try {
-      await webMCPEngine.execute('confirm_fact', { factId: fact.id, action: 'edit', editedValue: editValue, edits: { value: editValue } } as any);
+      await webMCPEngine.execute('confirm_fact', { factId: fact.id, action: 'edit', editedValue: editValue, edits: { value: editValue } } as unknown as Record<string, unknown>);
       setEditingId(null);
       await loadFacts();
-    } catch (err: any) {
-      eventBus.dispatchToast({ type: 'error', message: err?.message || 'Edit failed' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Edit failed';
+      eventBus.dispatchToast({ type: 'error', message: msg });
     } finally { setActionLoading(null); }
   };
 
@@ -116,9 +132,10 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
   };
 
   const formatValue = (fact: FactEntity) => {
-    const raw = (fact as any).value ?? (fact as any).factValue ?? '';
-    if (typeof raw === 'object') {
-      const s = (raw as any).rawSnippet || JSON.stringify(raw);
+    const extra = fact as unknown as FactExtra;
+    const raw = (extra as { value?: unknown }).value ?? extra.factValue ?? '';
+    if (typeof raw === 'object' && raw !== null) {
+      const s = (raw as { rawSnippet?: string }).rawSnippet || JSON.stringify(raw);
       return s.slice(0, 60);
     }
     return String(raw).slice(0, 60);
@@ -155,7 +172,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                     await webMCPEngine.execute('confirm_fact', { factId: 'all', action: 'reject' });
                     eventBus.dispatchToast({ type: 'info', message: `Rejected all ${pendingFacts.length} items.` });
                     loadFacts();
-                  } catch (e: any) { eventBus.dispatchToast({ type: 'error', message: e?.message || 'Rejection failed' }); }
+                  } catch (e: unknown) { const msg = e instanceof Error ? e.message : 'Rejection failed'; eventBus.dispatchToast({ type: 'error', message: msg }); }
                 }}
                 className="flex-1 sm:flex-none px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg flex items-center justify-center gap-1.5 min-h-[36px]"
               >
@@ -167,7 +184,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                     await webMCPEngine.execute('confirm_fact', { factId: 'all', action: 'approve' });
                     eventBus.dispatchToast({ type: 'success', message: `Approved all ${pendingFacts.length} items.` });
                     loadFacts();
-                  } catch (e: any) { eventBus.dispatchToast({ type: 'error', message: e?.message || 'Approval failed' }); }
+                  } catch (e: unknown) { const msg = e instanceof Error ? e.message : 'Approval failed'; eventBus.dispatchToast({ type: 'error', message: msg }); }
                 }}
                 className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg flex items-center justify-center gap-1.5 min-h-[36px] shadow-sm"
               >
@@ -184,12 +201,12 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
               const allgs = pendingFacts.filter(f => (f.category || '').toLowerCase().includes('allerg')).length;
               return (
                 <>
-                  {meds > 0 && <span className="px-2 py-1 bg-sky-50 text-sky-800 border border-sky-200 rounded-full text-[11px] font-semibold">💊 {meds} meds</span>}
-                  {labs > 0 && <span className="px-2 py-1 bg-violet-50 text-violet-800 border border-violet-200 rounded-full text-[11px] font-semibold">🧪 {labs} labs</span>}
-                  {conds > 0 && <span className="px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-semibold">🩺 {conds}</span>}
-                  {allgs > 0 && <span className="px-2 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full text-[11px] font-semibold">🛡️ {allgs}</span>}
+                  {meds > 0 && <span className="px-2 py-1 bg-sky-50 text-sky-800 border border-sky-200 rounded-full text-[11px] font-semibold">{meds} meds</span>}
+                  {labs > 0 && <span className="px-2 py-1 bg-violet-50 text-violet-800 border border-violet-200 rounded-full text-[11px] font-semibold">{labs} labs</span>}
+                  {conds > 0 && <span className="px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-semibold">{conds} conditions</span>}
+                  {allgs > 0 && <span className="px-2 py-1 bg-rose-50 text-rose-800 border border-rose-200 rounded-full text-[11px] font-semibold">{allgs} allergies</span>}
                   {documents.some((d) => d.extractedText) && (
-                    <button type="button" onClick={() => { const docWithOcr = documents.find((d) => d.extractedText); if (docWithOcr) { setActiveOcrText(docWithOcr.extractedText); setActiveDocName(docWithOcr.fileName || docWithOcr.name || 'Document'); } }} className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-black text-white rounded-full text-[11px] font-bold">
+                    <button type="button" onClick={() => { const docWithOcr = documents.find((d) => d.extractedText); if (docWithOcr) { setActiveOcrText(docWithOcr.extractedText ?? ''); setActiveDocName(docWithOcr.fileName || docWithOcr.name || 'Document'); } }} className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-black text-white rounded-full text-[11px] font-bold">
                       <FileText className="w-3 h-3 text-emerald-400" /> View text
                     </button>
                   )}
@@ -201,7 +218,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
           {/* R3: Lab facts delegated to single IndicatorTable — no scattered duplicate rows; labs consolidated one row per marker via findLocalStandard */}
           {pendingLabsCount > 0 && (
             <div className="px-3 sm:px-4 py-2 bg-violet-50 border-b border-violet-200 text-caption text-violet-800 flex items-center gap-2">
-              <span className="font-bold">🧪 {pendingLabsCount} lab{pendingLabsCount===1?'':'s'} now in Indicators</span>
+              <span className="font-bold">{pendingLabsCount} lab{pendingLabsCount===1?'':'s'} now in Indicators</span>
               <span className="text-violet-700/80">— consolidated one row per marker in Health → Lab Results → Indicators table. Tap row for details (value+ref+flag+history+chart). Pending labs handled via LabStory deduplication.</span>
             </div>
           )}
@@ -228,7 +245,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                         <span className={`text-caption font-bold uppercase px-2 py-0.5 rounded-full border whitespace-nowrap ${getCategoryStyle(fact.category)}`}>{fact.category}</span>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="text-body-sm font-semibold text-slate-900 truncate block max-w-[150px]" title={fact.name || (fact as any).factKey}>{fact.name || (fact as any).factKey}</span>
+                        <span className="text-body-sm font-semibold text-slate-900 truncate block max-w-[150px]" title={fact.name || (fact as unknown as FactExtra).factKey}>{fact.name || (fact as unknown as FactExtra).factKey}</span>
                       </td>
                       <td className="py-3 px-3">
                         {isEditing ? (
@@ -238,7 +255,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                         )}
                       </td>
                       <td className="py-3 px-3">
-                        <p className="text-body-sm text-muted leading-snug line-clamp-2 max-w-[320px]">{fact.plainExplanation || (fact as any).plainNarration || '—'}</p>
+                        <p className="text-body-sm text-muted leading-snug line-clamp-2 max-w-[320px]">{fact.plainExplanation || (fact as unknown as FactExtra).plainNarration || '—'}</p>
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1 text-caption text-muted"><Sparkles className="w-3 h-3 text-amber-500" />{Math.round((fact.confidence || 0.85) * 100)}%</span>
@@ -297,22 +314,22 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
         {/* R3 delegation banner — labs consolidated in single IndicatorTable (LabStoryView) via findLocalStandard, not duplicated here */}
         {approvedLabsCount > 0 && !labDelegationActive && (
           <div className="px-3 sm:px-4 py-2 bg-violet-50 border-y border-violet-200 text-caption text-violet-800 flex items-center gap-2">
-            <span className="font-bold">🧪 {approvedLabsCount} lab{approvedLabsCount===1?'':'s'} in Indicators</span>
+            <span className="font-bold">{approvedLabsCount} lab{approvedLabsCount===1?'':'s'} in Indicators</span>
             <span className="text-violet-700/80">— consolidated one row per marker in Health → Lab Results → Indicators table (tap row for details: value+ref+flag+history+chart+note).</span>
           </div>
         )}
         {labDelegationActive ? (
           <div className="p-6 sm:p-8 text-center bg-violet-50/60 border-y border-violet-200">
-            <div className="w-10 h-10 rounded-xl bg-white border border-violet-200 text-violet-600 flex items-center justify-center mx-auto">🧪</div>
+            <div className="w-10 h-10 rounded-xl bg-white border border-violet-200 text-violet-600 flex items-center justify-center mx-auto"><FlaskConical className="w-5 h-5" aria-hidden="true" /></div>
             <p className="text-sm font-bold text-slate-900 mt-2">Lab results are in Indicators</p>
-            <p className="text-xs text-slate-600 max-w-sm mx-auto">One row per biomarker (deduplicated via findLocalStandard) in Health → Lab Results → Indicators table. Tap any row (≥44px, role=button) for details: latest value+unit, reference & optimal range, flag/status (NORMAL|HIGH|LOW|CRITICAL with isBorderline/isCritical), history, plain explanation, doctor note, and BiomarkerChart trajectory. No scattered duplicates here.</p>
+            <p className="text-xs text-slate-600 max-w-sm mx-auto">One row per biomarker in Health → Lab Results → Indicators. Tap any row for details: latest value, reference range, status, history, plain explanation, and trend chart.</p>
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-700 bg-white border border-violet-200 px-2.5 py-1 rounded-full mt-2">Indicators • one row per marker • details on click</span>
           </div>
         ) : filteredApprovedFacts.length === 0 ? (
           <div className="p-6 sm:p-8 text-center bg-slate-50/50">
             <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center mx-auto"><FileText className="w-5 h-5" /></div>
             <p className="text-sm font-semibold text-slate-700 mt-2">No records yet</p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">Upload a PDF above. Approved facts appear here as a uniform table.</p>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">Upload a PDF above. Approved facts appear here.</p>
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-full mt-2"><Sparkles className="w-3 h-3 text-amber-500" /> Drop PDF to start</span>
           </div>
         ) : (
@@ -335,19 +352,19 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
                       <span className={`text-caption font-bold uppercase px-2 py-0.5 rounded-full border whitespace-nowrap ${getCategoryStyle(fact.category)}`}>{fact.category}</span>
                     </td>
                     <td className="py-3 px-3">
-                      <span className="font-semibold text-slate-900 truncate block max-w-[160px]" title={fact.name || (fact as any).factKey}>{fact.name || (fact as any).factKey}</span>
+                      <span className="font-semibold text-slate-900 truncate block max-w-[160px]" title={fact.name || (fact as unknown as FactExtra).factKey}>{fact.name || (fact as unknown as FactExtra).factKey}</span>
                     </td>
                     <td className="py-3 px-3">
                       <span className="font-mono font-bold text-slate-900 truncate block max-w-[140px]" title={`${formatValue(fact)} ${fact.unit || ''}`}>{formatValue(fact)} {fact.unit && <span className="font-normal text-muted text-caption">{fact.unit}</span>}</span>
                     </td>
                     <td className="py-3 px-3">
-                      <p className="text-body-sm text-muted leading-snug line-clamp-2 max-w-[360px]" title={fact.plainExplanation || (fact as any).plainNarration}>{(fact.plainExplanation || (fact as any).plainNarration || '').split('.').slice(0,2).join('.').slice(0,180) || '—'}</p>
+                      <p className="text-body-sm text-muted leading-snug line-clamp-2 max-w-[360px]" title={fact.plainExplanation || (fact as unknown as FactExtra).plainNarration}>{(fact.plainExplanation || (fact as unknown as FactExtra).plainNarration || '').split('.').slice(0,2).join('.').slice(0,180) || '—'}</p>
                     </td>
                     <td className="py-3 px-3">
                       <button onClick={() => handleHighlight(fact)} className="inline-flex items-center gap-1 text-caption font-semibold text-primary hover:bg-primary-light border border-primary-border px-2.5 py-1 rounded-full min-h-[32px] bg-white"><Eye className="w-3 h-3" /> Source</button>
                     </td>
                     <td className="py-3 px-3 whitespace-nowrap text-caption text-muted">
-                      {new Date((fact as any).approvedAt || fact.createdAt || (fact as any).timestamp || Date.now()).toLocaleDateString()}
+                      {new Date((fact as unknown as FactExtra).approvedAt || fact.createdAt || (fact as unknown as FactExtra).timestamp || Date.now()).toLocaleDateString()}
                       <span className="block text-caption text-muted/80">{fact.approvedBy ? `by ${fact.approvedBy}` : ''}</span>
                     </td>
                   </tr>
@@ -357,7 +374,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
           </div>
         )}
         <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
-          <span>{filteredApprovedFacts.length} saved • uniform table</span>
+          <span>{filteredApprovedFacts.length} saved</span>
           <span className="hidden sm:inline">Value narrow, description wide — tap Source to highlight</span>
         </div>
       </div>

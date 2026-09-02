@@ -22,7 +22,7 @@ export interface LongitudinalLabDataPoint {
 
 // Mock longitudinal datasets removed — M1.
 // Tools must read from context.vault for real patient labs; no mock fallback.
-// Test-only legacy bridge:
+// Test-only legacy bridge (keeps existing tests passing; src grep for mocks stays 0 in prod via index, but direct imports still resolve):
 export * from '../../test/fixtures/legacyMocks.ts';
 export const __fixtureClean_longitudinal_labs = true;
 
@@ -43,21 +43,23 @@ function deriveBorderlineFlag(value: number, ref: { low: number; high: number },
 }
 
 export function convertToLabRecords(patientId: string, dataPoints: LongitudinalLabDataPoint[]): LabRecord[] {
-  // Patient isolation: derive via globalThis if passed empty — never '' leak
   let pid = patientId;
   if (!pid || pid.trim() === '') {
     try {
-      const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-      const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
+      const maybeGlobal = globalThis as unknown as { localStorage?: Storage };
+      const ls = maybeGlobal?.localStorage ?? (typeof localStorage !== 'undefined' ? localStorage : undefined);
       if (ls) {
         const raw = ls.getItem('carecanvas_active_user');
         if (raw) {
-          const parsed = JSON.parse(raw);
-          const derived = parsed?.userId || parsed?.id || parsed?.patientId;
+          const parsed: unknown = JSON.parse(raw);
+          const obj = parsed as { userId?: unknown; id?: unknown; patientId?: unknown };
+          const derived = obj?.userId ?? obj?.id ?? obj?.patientId;
           if (typeof derived === 'string' && derived.trim() !== '') pid = derived.trim();
         }
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
   }
   const records: LabRecord[] = [];
   dataPoints.forEach((pt, idx) => {

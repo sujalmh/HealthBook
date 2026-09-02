@@ -128,8 +128,8 @@ export const healthGroundingTools: WebMCPToolDefinition[] = [
   groundMedicationInsightTool,
 ];
 
-export function registerGroundingTools(engine: any): void {
+export function registerGroundingTools(engine: { register: (t: WebMCPToolDefinition) => void }): void {
   for (const tool of healthGroundingTools) {
-    try { engine.register(tool); } catch (e) { console.warn('[groundingTools] register failed', (e as any)?.message); }
+    try { engine.register(tool); } catch {}
   }
 }

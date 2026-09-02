@@ -167,7 +167,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
               onClick={() => setActiveTab('manage_existing')}
               className={`flex-1 py-2.5 rounded-xl font-bold transition-all min-h-[44px] flex items-center justify-center ${
                 activeTab === 'manage_existing'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  ? 'bg-teal-700 text-white'
                   : 'text-slate-600 hover:text-slate-800'
               }`}
             >
@@ -177,7 +177,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
               onClick={() => setActiveTab('link_new')}
               className={`flex-1 py-2.5 rounded-xl font-bold transition-all min-h-[44px] flex items-center justify-center ${
                 activeTab === 'link_new'
-                  ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
+                  ? 'bg-sky-600 text-white'
                   : 'text-slate-600 hover:text-slate-800'
               }`}
             >
@@ -247,7 +247,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
                 </span>
                 <div className="space-y-1.5 text-slate-600 text-[11px]">
                   <div>
-                    <strong className="text-slate-800">👁️ View Only:</strong> Can view lab trends, weekly pillbox, and calendar. Cannot approve changes or upload slips.
+                    <strong className="text-slate-800">View only:</strong> Can view lab trends, weekly pillbox, and calendar. Cannot approve changes or upload slips.
                   </div>
                   <div>
                     <strong className="text-slate-800">🛠️ Manage (Recommended):</strong> Can approve doctor dosage proposals, upload lab slips, and schedule follow-ups on behalf.
@@ -290,7 +290,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
                 <label className="text-xs font-semibold text-slate-700">Family Member Relationship</label>
                 <select
                   value={relationship}
-                  onChange={(e) => setRelationship(e.target.value as any)}
+                  onChange={(e) => setRelationship(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 min-h-[44px]"
                 >
                   <option value="mother">Mother</option>
@@ -320,7 +320,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
                       onClick={() => setPermissionTier(tier)}
                       className={`p-3 rounded-xl border text-xs font-bold transition-all uppercase min-h-[44px] flex items-center justify-center ${
                         permissionTier === tier
-                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-600/20'
+                          ? 'bg-teal-700 border-teal-500 text-white'
                           : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
                       }`}
                     >
@@ -344,7 +344,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
               <button
                 type="submit"
                 disabled={isLinking}
-                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-lg shadow-sky-600/20 min-h-[44px]"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all min-h-[44px]"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>{isLinking ? 'Linking...' : 'Grant & Link Caregiver (link_patient)'}</span>

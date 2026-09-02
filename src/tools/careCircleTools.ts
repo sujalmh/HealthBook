@@ -9,6 +9,7 @@ import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  }
 import type {  LinkedCareProfile, CaregiverPermissionLevel, DoctorAccessGrant  } from '../types/carecircle.ts';
 import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 import { callAI } from '../core/ai/client.ts';
+import { gateIfViewOnly } from '../core/rbac/canAccess.ts';
 
 export const linkPatientTool: WebMCPToolDefinition = {
   name: 'link_patient',
@@ -126,18 +127,8 @@ export const grantCaregiverAccessTool: WebMCPToolDefinition = {
   },
   returns: { type: 'object', description: 'Updated caregiver permission record' },
   execute: async (params: { caregiverId: string; permissionLevel: CaregiverPermissionLevel; patientId?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    // R8: view_only cannot grant — PERMISSION_DENIED mirroring act_on_behalf 243
-    if (context.activeProfile.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'grant_caregiver_access',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'grant_caregiver_access');
+    if (denied) return denied;
     // R8: persist via LocalVault.updateCaregiverPermission 837 — defense against stale UI
     try {
       const pid = params.patientId || context.patientId;
@@ -308,18 +299,8 @@ export const actOnBehalfTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { actionName: string; actionPayload: any; patientId?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    // Check permissions
-    if (context.activeProfile.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'act_on_behalf',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied2 = gateIfViewOnly(context.activeProfile, 'act_on_behalf');
+    if (denied2) return denied2;
 
     const auditEntry = context.vault.logAudit(
       params.actionName,
@@ -376,18 +357,8 @@ export const grantDoctorAccessTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { doctorEmail: string; durationDays?: number; scope?: 'full_dossier' | 'snapshot_only' | 'labs_and_meds'; patientId?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    // R8 full admin gate: view_only cannot grant_doctor_access
-    if (context.activeProfile.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'grant_doctor_access',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied3 = gateIfViewOnly(context.activeProfile, 'grant_doctor_access');
+    if (denied3) return denied3;
     // Optional: full admin check — patient owner or full tier. For now view_only deny suffices; full check would be: if (context.activeProfile.role !== 'patient' && context.activeProfile.permissionLevel !== 'full' && context.activeProfile.role !== 'doctor') { // but allow manage patient-owner case
     //   return PERMISSION_DENIED
     // }

@@ -65,7 +65,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Missed Dose Adherence Simulator">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
         {/* Header */}
-        <div className="p-4 sm:p-6 bg-gradient-to-r from-amber-50 via-canvas-muted to-rose-50 border-b border-canvas-border flex items-center justify-between">
+        <div className="p-4 sm:p-6 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
               <AlertTriangle className="w-5 h-5" />
@@ -175,7 +175,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
             <div className="p-3 rounded-2xl bg-rose-100 border border-rose-700/80 flex items-start gap-2.5 text-rose-700">
               <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
               <div className="text-xs">
-                <span className="font-black uppercase tracking-wider text-rose-700 block">
+                <span className="font-bold uppercase tracking-wider text-rose-700 block">
                   Critical Safety Rule: Do Not Double Dose
                 </span>
                 <span>

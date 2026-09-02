@@ -148,7 +148,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
 
         {/* Create Grant Form — tokenized */}
         <form onSubmit={handleGenerateGrant} className="bg-canvas-muted rounded-xl p-4 sm:p-5 border border-canvas-border space-y-4">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
             Generate Time-Bound Access Passkey
           </h4>
 
@@ -163,7 +163,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                 value={doctorEmail}
                 onChange={(e) => setDoctorEmail(e.target.value)}
                 placeholder="e.g. dr.chen@nephrology.org or dr.sharma@clinic.com"
-                className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors min-h-[44px]"
+                className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-teal-500 transition-colors min-h-[44px]"
               />
             </div>
           </div>
@@ -198,8 +198,8 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
             <label className="text-xs font-semibold text-slate-700">Access Scope Tier</label>
             <select
               value={scope}
-              onChange={(e) => setScope(e.target.value as any)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 transition-colors min-h-[44px]"
+              onChange={(e) => setScope(e.target.value as unknown as typeof scope)}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-teal-500 transition-colors min-h-[44px]"
             >
               <option value="full_dossier">Full Continuity Dossier (Labs, Meds, Notes, BBoxes)</option>
               <option value="snapshot_only">Emergency Snapshot Only (Vitals, Allergies, Active Meds)</option>
@@ -210,7 +210,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
           <button
             type="submit"
             disabled={isGenerating || !doctorEmail.trim()}
-            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 min-h-[44px]"
+            className="w-full py-3 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 min-h-[44px]"
           >
             <Sparkles className="w-4 h-4" />
             <span>{isGenerating ? 'Generating...' : `Generate ${durationDays}-Day Access Token`}</span>
@@ -220,7 +220,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
         {/* Active Grants List */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
               Active Clinician Grants ({grants.length})
             </h4>
             <span className="text-[10px] text-slate-600">Subject to Immediate Patient Revocation</span>
@@ -283,7 +283,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                     {/* Token Display & Expiration Details */}
                     <div className="bg-white rounded-xl p-2.5 border border-slate-200 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 truncate">
-                        <Lock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <Lock className="w-3.5 h-3.5 text-teal-500 shrink-0" />
                         <span className="text-[11px] text-slate-600 font-mono truncate">
                           Passkey: <strong className="text-slate-800">{grant.token || `cc_tok_${grant.grantId.slice(0, 8)}`}</strong>
                         </span>
@@ -299,7 +299,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                     </div>
 
                     <div className="flex items-center justify-between text-[10px] text-slate-600 font-mono pt-1">
-                      <span>Scope: <strong className="text-indigo-700 uppercase">{grant.scope}</strong></span>
+                      <span>Scope: <strong className="text-teal-800 uppercase">{grant.scope}</strong></span>
                       <span>Expires: {new Date(grant.expiresAt).toLocaleDateString()} ({grant.durationDays} days)</span>
                     </div>
                   </div>

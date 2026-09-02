@@ -86,7 +86,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         if (onCommentPinned) onCommentPinned();
       }
     } catch (err) {
-      console.error('Error pinning doctor comment:', err);
+      
     } finally {
       setIsPinning(false);
     }
@@ -126,7 +126,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         if (onProposalCreated) onProposalCreated();
       }
     } catch (err) {
-      console.error('Error submitting proposal:', err);
+      
     } finally {
       setIsSubmittingProposal(false);
     }
@@ -160,7 +160,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         eventBus.emit('due_card_added', res.data);
       }
     } catch (err) {
-      console.error('Error scheduling lab cadence:', err);
+      
     } finally {
       setIsSchedulingCadence(false);
     }
@@ -169,14 +169,14 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
   return (
     <div className="space-y-6">
       {/* Clinician Header */}
-      <div className="bg-gradient-to-r from-indigo-50 via-canvas-muted to-white border border-indigo-200 rounded-2xl p-5 sm:p-6 shadow-sm flex items-center justify-between">
+      <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
+          <div className="w-11 h-11 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-200">
             <Inbox className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-caption font-mono text-indigo-600 uppercase tracking-wider font-bold">
+              <span className="text-caption font-mono text-teal-700 uppercase tracking-wider font-bold">
                 Doctor Triage & Review Inbox
               </span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-caption font-semibold border border-emerald-200">

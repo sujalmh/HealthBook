@@ -9,6 +9,7 @@ import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  }
 import type {  DangerSignReport, DangerSymptomTag  } from '../types/safety.ts';
 import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 import { callAI } from '../core/ai/client.ts';
+import { gateIfViewOnly } from '../core/rbac/canAccess.ts';
 
 export const reportDangerSignTool: WebMCPToolDefinition = {
   name: 'report_danger_sign',
@@ -37,17 +38,8 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { symptomTags: string[]; freeText?: string; severityRating?: 'mild' | 'moderate' | 'severe' | 'critical'; vitalSigns?: any; photoBlob?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'report_danger_sign',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'report_danger_sign');
+    if (denied) return denied;
     // AI triage via AI vision+text assessment (send freeText + photoBlob data URL single multimodal request to AI when enabled, return severity assessment)
     let triagePriority: 'URGENT' | 'ROUTINE' | 'EMERGENCY' = 'ROUTINE';
     let assessedSeverity: 'mild' | 'moderate' | 'severe' | 'critical' = params.severityRating || 'severe';
@@ -208,17 +200,8 @@ export const doctorAddMedicationTool: WebMCPToolDefinition = {
   },
   returns: { type: 'object', description: 'Doctor action card staged for patient approval' },
   execute: async (params: { medName: string; dose: string; slot?: string; reason: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'doctor_add_medication',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'doctor_add_medication');
+    if (denied) return denied;
     const proposal = context.vault.addProposal(
       {
         id: `prop_add_${Date.now()}`,
@@ -271,17 +254,8 @@ export const doctorRemoveMedicationTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { medName: string; reason: string; patientId?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'doctor_remove_medication',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'doctor_remove_medication');
+    if (denied) return denied;
     if (!params.reason || params.reason.trim().length < 5) {
       return {
         success: false,
@@ -339,17 +313,8 @@ export const doctorChangeDoseTool: WebMCPToolDefinition = {
   },
   returns: { type: 'object', description: 'Doctor dose change action card' },
   execute: async (params: { medName: string; newDose: string; reason: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'doctor_change_dose',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'doctor_change_dose');
+    if (denied) return denied;
     const proposal = context.vault.addProposal(
       {
         id: `prop_change_${Date.now()}`,
@@ -403,17 +368,8 @@ export const approvePillmapChangeTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { actionId: string; action?: 'approve' | 'reject'; approvedBy?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'approve_pillmap_change',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'approve_pillmap_change');
+    if (denied) return denied;
     const isApprove = params.action !== 'reject';
     const approverName = params.approvedBy || context.activeProfile.name;
 
@@ -496,17 +452,8 @@ export const scheduleFollowupTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { date: string; appointmentType?: 'in_person_clinic' | 'telehealth_video'; reason: string; providerName?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'schedule_followup',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'schedule_followup');
+    if (denied) return denied;
     const scheduledDate = (() => {
       const d = params.date;
       if (d.startsWith('+')) return new Date(Date.now() + 3 * 86400000).toISOString();
@@ -566,17 +513,8 @@ export const scheduleLabTool: WebMCPToolDefinition = {
     }
   },
   execute: async (params: { cadence?: string; testPanel: string; targetDate?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    if (context.activeProfile?.permissionLevel === 'view_only') {
-      return {
-        success: false,
-        tool: 'schedule_lab',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: 'Permission denied: View-only caregivers cannot approve changes or upload documents on behalf of patient.',
-        humanApprovalRequired: false,
-        error: { code: 'PERMISSION_DENIED', message: '403 Forbidden: Insufficient proxy permissions.' }
-      };
-    }
+    const denied = gateIfViewOnly(context.activeProfile, 'schedule_lab');
+    if (denied) return denied;
     const dueDate = params.targetDate
       ? (/^\d{4}-\d{2}-\d{2}$/.test(params.targetDate) ? new Date(params.targetDate + 'T12:00:00').toISOString() : params.targetDate)
       : new Date(Date.now() + 28 * 86400000).toISOString();

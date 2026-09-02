@@ -77,11 +77,11 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4 gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shrink-0">
               <Bot className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-black text-slate-900 truncate">Teach-Back Verification</h3>
+              <h3 className="text-base font-bold text-slate-900 truncate">Teach-Back Verification</h3>
               <p className="text-xs text-slate-600 line-clamp-1">Validate understanding before discharge finalization</p>
             </div>
           </div>
@@ -139,7 +139,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
             onChange={(e) => setPatientResponse(e.target.value)}
             placeholder="Type or dictate what you understand about your morning medications, food instructions, and stopped medicines..."
             rows={4}
-            className="w-full p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 leading-relaxed"
+            className="w-full p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 leading-relaxed"
           />
         </div>
 
@@ -151,7 +151,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
             className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs shadow-lg transition-all min-h-[44px] ${
               !patientResponse.trim() || isEvaluating
                 ? 'bg-slate-100 text-slate-600 cursor-not-allowed'
-                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-900/40 hover:scale-[1.01]'
+                : 'bg-primary hover:bg-primary-hover text-white'
             }`}
           >
             <Send className="w-3.5 h-3.5" />

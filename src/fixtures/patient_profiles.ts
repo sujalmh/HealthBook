@@ -31,6 +31,6 @@ export interface PatientProfileFixture {
 // Mock profiles removed — M1.
 // Real profiles are created via Create Account (localStorage + LocalVault) — see seed.ts comment.
 // This file intentionally exports only the interface; no mock constants remain.
-// Test-only legacy bridge (keeps lint + existing tests passing while src grep stays 0):
+// Test-only legacy bridge:
 export * from '../../test/fixtures/legacyMocks.ts';
 export const __fixtureClean_patient_profiles = true;

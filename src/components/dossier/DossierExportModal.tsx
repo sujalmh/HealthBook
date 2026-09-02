@@ -169,7 +169,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
               <button
                 key={fmt.id}
                 type="button"
-                onClick={() => setActiveFormat(fmt.id as any)}
+                onClick={() => setActiveFormat(fmt.id as unknown as typeof activeFormat)}
                 className={`p-4 rounded-xl text-left border transition-all space-y-1.5 min-h-[44px] ${
                   isSelected
                     ? 'bg-sky-50 border-sky-200 shadow-sm text-clinical-blue'
@@ -188,7 +188,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
 
         {/* Section Inclusion Checkboxes — tokenized */}
         <div className="bg-canvas-muted rounded-xl p-4 sm:p-5 border border-canvas-border space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
             Include Clinical Sections
           </h4>
 
@@ -203,12 +203,12 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
               { key: 'safety', label: 'Danger Sign Logs' },
               { key: 'auditTrail', label: 'Proxy Audit Trail' }
             ].map((sec) => {
-              const checked = (sections as any)[sec.key];
+              const checked = (sections as unknown as Record<string, boolean>)[sec.key];
               return (
                 <button
                   key={sec.key}
                   type="button"
-                  onClick={() => toggleSection(sec.key as any)}
+                  onClick={() => toggleSection(sec.key as unknown as Parameters<typeof toggleSection>[0])}
                   className="flex items-center gap-2 text-left py-1.5 text-slate-700 hover:text-slate-900 transition-colors min-h-[36px]"
                 >
                   {checked ? (
@@ -241,7 +241,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
                 onClose();
                 setTimeout(() => window.print(), 200);
               }}
-              className="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-all shadow-md shadow-sky-600/20 flex items-center justify-center gap-2 min-h-[44px]"
+              className="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 min-h-[44px]"
             >
               <Printer className="w-4 h-4" />
               <span>Print / Save as PDF</span>
@@ -265,7 +265,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
 
               <button
                 onClick={handleDownloadFHIR}
-                className="w-full sm:flex-1 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-md shadow-sky-600/20 flex items-center justify-center gap-2 min-h-[44px]"
+                className="w-full sm:flex-1 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[44px]"
               >
                 <Download className="w-4 h-4" />
                 <span>Download FHIR R4 Bundle (.json)</span>
@@ -280,7 +280,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
 
             <button
               onClick={handleDownloadCSV}
-              className="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-all shadow-md shadow-sky-600/20 flex items-center justify-center gap-2 min-h-[44px]"
+              className="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 min-h-[44px]"
             >
               <Download className="w-4 h-4" />
               <span>Download Tabular CSV (.csv)</span>

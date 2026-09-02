@@ -7,19 +7,20 @@
  */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
-import type { Fact, FactCategory, AllergyRecord } from '../types/vault.ts';
+import type { Fact, FactCategory, AllergyRecord, MedicationRecord, LabRecord } from '../types/vault.ts';
 import { buildFHIRR4Bundle } from '../core/vault/fhirExporter.ts';
 import { extractWithAI } from '../core/ai/client.ts';
 import { getAIConfig, getAIConfigSource, isAIEnabled } from '../core/ai/config.ts';
 
-function resolveFileDataUrl(params: any, rawText?: string): string | undefined {
+function resolveFileDataUrl(params: unknown, rawText?: string): string | undefined {
+  const p = params as { imageDataUrl?: unknown; fileDataUrl?: unknown; imageBlob?: unknown; image_blob?: unknown; imageUrl?: unknown; dataUrl?: unknown };
   const candidate =
-    params.imageDataUrl ||
-    params.fileDataUrl ||
-    params.imageBlob ||
-    params.image_blob ||
-    params.imageUrl ||
-    params.dataUrl;
+    p.imageDataUrl ||
+    p.fileDataUrl ||
+    p.imageBlob ||
+    p.image_blob ||
+    p.imageUrl ||
+    p.dataUrl;
   if (typeof candidate === 'string' && candidate.startsWith('data:')) return candidate;
   if (typeof rawText === 'string' && rawText.startsWith('data:')) return rawText;
   return undefined;
@@ -56,8 +57,9 @@ export const extractFactTool: WebMCPToolDefinition = {
     context: WebMCPExecutionContext
   ): Promise<WebMCPToolResult> => {
     const { documentId } = params;
-    const rawTextParam: string = params.rawText || (params as any).raw_text || '';
-    const docTypeParam: string | undefined = params.docType || (params as any).documentType || (params as any).doc_type || undefined;
+    const p = params as unknown as { raw_text?: string; documentType?: string; doc_type?: string; extractionPath?: string };
+    const rawTextParam: string = params.rawText || p.raw_text || '';
+    const docTypeParam: string | undefined = params.docType || p.documentType || p.doc_type || undefined;
     const fileDataUrl = resolveFileDataUrl(params, rawTextParam);
     const hasFileData = !!fileDataUrl;
     const effectiveRawText = hasFileData && rawTextParam === fileDataUrl ? '' : rawTextParam;
@@ -66,22 +68,11 @@ export const extractFactTool: WebMCPToolDefinition = {
     const aiEnabled = isAIEnabled(config);
     let extractedFacts: Fact[] = [];
 
-    const extractionPathParam: 'ocr_then_ai' | 'direct_vision' | undefined = (params as any).extractionPath || undefined;
+    const extractionPathParam: 'ocr_then_ai' | 'direct_vision' | undefined = p.extractionPath as 'ocr_then_ai' | 'direct_vision' | undefined;
 
-    console.log('[vaultTools] extract_fact invoked', {
-      documentId,
-      docTypeParam,
-      hasFileData,
-      effectiveRawTextPreview: effectiveRawText.slice(0, 500),
-      effectiveRawTextLength: effectiveRawText.length,
-      extractionPathParam,
-      aiEnabled,
-      model: (getAIConfigSource().overrides as any)?.VITE_AI_MODEL || 'env-model',
-    });
 
     if (aiEnabled) {
       try {
-        console.log('[vaultTools] Delegating to extractWithAI (AI enabled)');
         extractedFacts = await extractWithAI(
           effectiveRawText,
           hasFileData ? fileDataUrl : undefined,
@@ -92,16 +83,15 @@ export const extractFactTool: WebMCPToolDefinition = {
             extractionPath: extractionPathParam,
           }
         );
-        console.log('[vaultTools] extractWithAI returned', extractedFacts.length, 'facts:', JSON.stringify(extractedFacts, null, 2));
-      } catch (err: any) {
-        console.error('[vaultTools] AI extraction error:', err?.message || err);
-        console.log('[vaultTools] Full AI extraction exception:', err);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[vaultTools] AI extraction error:', msg);
         return {
           success: false,
           tool: 'extract_fact',
           timestamp: new Date().toISOString(),
           data: [],
-          plainLanguageSummary: `AI extraction failed for document "${documentId}": ${err?.message || 'Unknown AI error'}`,
+          plainLanguageSummary: `AI extraction failed for document "${documentId}": ${msg || 'Unknown AI error'}`,
           humanApprovalRequired: false,
         };
       }
@@ -161,7 +151,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
       messageTemplate: 'Facts updated and propagated across CareCanvas.'
     }
   },
-  execute: async (params: { factId: string; action: 'approve' | 'reject' | 'edit'; edits?: any }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
+  execute: async (params: { factId: string; action: 'approve' | 'reject' | 'edit'; edits?: unknown }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     if (context.activeProfile?.permissionLevel === 'view_only') {
       return {
         success: false,
@@ -176,7 +166,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
     const { factId, action, edits } = params;
 
     // Helper to propagate confirmed categorical facts to respective module stores
-    const propagateFact = (fact: any) => {
+    const propagateFact = (fact: Fact) => {
       const cat = (fact.category || '').toLowerCase().trim();
       const name = fact.name || 'Clinical Item';
       const val = fact.value;
@@ -218,12 +208,12 @@ export const confirmFactTool: WebMCPToolDefinition = {
           {
             id: `med_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
-            brandName: valObj.brand || undefined,
+            brandName: (valObj as { brand?: string }).brand || undefined,
             genericName: name,
             dosage: dosage,
             unit: unit || 'mg',
             frequency: frequency,
-            timingSlots: timingSlots as any,
+            timingSlots: timingSlots as unknown as MedicationRecord['timingSlots'],
             withFood: withFood,
             status: isStopped ? 'discontinued' : 'active',
             source: fact.sourceDocId
@@ -236,7 +226,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
       else if (cat.includes('lab') || cat === 'laboratory_tests') {
         let labVal = 0;
         if (typeof val === 'number' && Number.isFinite(val)) labVal = val;
-        else if (val && typeof (val as any).numericValue === 'number') labVal = (val as any).numericValue;
+        else if (val && typeof (val as unknown as { numericValue?: unknown }).numericValue === 'number') labVal = (val as unknown as { numericValue: number }).numericValue;
         else {
           const s = typeof val === 'string' ? val : JSON.stringify(val ?? '');
           const m = s.match(/([0-9]+\.?[0-9]*)/);
@@ -261,8 +251,8 @@ export const confirmFactTool: WebMCPToolDefinition = {
             normalizedValue: labVal,
             normalizedUnit: unit || '',
             drawDate: fact.timestamp || new Date().toISOString(),
-            referenceRange: undefined as any,
-            optimalRange: undefined as any,
+            referenceRange: undefined as unknown as LabRecord['referenceRange'],
+            optimalRange: undefined as unknown as LabRecord['optimalRange'],
             isBorderline: false,
             isCritical: flag.startsWith('CRITICAL'),
             flag: flag,
@@ -361,7 +351,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
               }
             }
           }
-        } catch {}
+        } catch { /* intentionally empty */ }
       }
     };
 
@@ -480,25 +470,54 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
   },
   execute: async (params: { patientId: string; sections?: string[]; format?: string; includeAuditTrail?: boolean }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const { patientId: requestedPatientId, sections = ['all'], format = 'json_dossier' } = params;
-    // AuthZ: only allow reading own patientId via carecanvas_active_user unless caregiver grant or doctor role
+    // AuthZ: only allow reading own patientId via carecanvas_active_user unless caregiver/doctor grant (RBAC doctor ↔ patient)
     let patientId = requestedPatientId;
     if (requestedPatientId !== context.patientId) {
       let hasCaregiverGrant = false;
+      let hasDoctorLink = false;
       try {
-        const links = (context.vault as any).getCaregiverLinks?.(context.patientId) || [];
-        hasCaregiverGrant = Array.isArray(links) && links.some((l: any) => l.patientId === requestedPatientId || l.id === requestedPatientId);
-      } catch {}
-      const isDoctor = context.activeProfile?.role === 'doctor';
-      if (!hasCaregiverGrant && !isDoctor) {
-        // Check if requested victim has data — if yes, deny/fallback to context to avoid leak
+        const vault = context.vault as unknown as {
+          getCaregiverLinks?: (p: string) => { caregiverId?: string; caregiverUserId?: string; patientId: string; status: string }[];
+          getDoctorLinksForPatient?: (p: string) => { doctorId?: string; doctorUserId?: string; doctorEmail?: string; patientId: string; status: string }[];
+          doctorPatientLinks?: Map<string, { patientId: string; doctorId?: string; doctorUserId?: string; doctorEmail?: string; status: string }>;
+          getDoctorGrants?: (p: string) => { doctorEmail?: string; status: string; expiresAt: string }[];
+        };
+        const activeEmail = (context.activeProfile as unknown as { email?: string }).email;
+        const byPatient = vault.getCaregiverLinks?.(requestedPatientId) || [];
+        const byContext = vault.getCaregiverLinks?.(context.patientId) || [];
+        const allCare = [...(Array.isArray(byPatient) ? byPatient : []), ...(Array.isArray(byContext) ? byContext : [])];
+        hasCaregiverGrant = allCare.some((l) => (l.caregiverId === context.activeProfile.userId || l.caregiverUserId === context.activeProfile.userId) && l.patientId === requestedPatientId && l.status === 'active');
+        const dByPatient = vault.getDoctorLinksForPatient?.(requestedPatientId) || [];
+        hasDoctorLink = Array.isArray(dByPatient) && (dByPatient as { doctorId?: string; doctorUserId?: string; doctorEmail?: string; status: string }[]).some((l) => (l.doctorId === context.activeProfile.userId || l.doctorUserId === context.activeProfile.userId || l.doctorEmail === context.activeProfile.userId || l.doctorEmail === activeEmail) && l.status === 'active');
+        if (!hasDoctorLink && vault.doctorPatientLinks) {
+          const allDoc = Array.from(vault.doctorPatientLinks.values()).filter((l) => l.patientId === requestedPatientId && l.status === 'active');
+          hasDoctorLink = allDoc.some((l) => l.doctorId === context.activeProfile.userId || l.doctorUserId === context.activeProfile.userId || l.doctorEmail === context.activeProfile.userId || l.doctorEmail === activeEmail);
+        }
+        if (!hasDoctorLink && context.activeProfile?.role === 'doctor') {
+          const grants = vault.getDoctorGrants?.(requestedPatientId) || [];
+          hasDoctorLink = (grants as { doctorEmail?: string; status: string; expiresAt: string }[]).some((g) => g.status === 'active' && new Date(g.expiresAt).getTime() > Date.now() && (g.doctorEmail === activeEmail || g.doctorEmail === context.activeProfile.userId));
+        }
+      } catch {
+        // ignore
+      }
+      const isDoctorWithLink = context.activeProfile?.role === 'doctor' && hasDoctorLink;
+      if (!hasCaregiverGrant && !isDoctorWithLink) {
         let victimHasData = false;
         try {
-          const vFacts = (context.vault as any).getFactsByPatient?.(requestedPatientId)?.length || 0;
-          const vMeds = (context.vault as any).getMedications?.(requestedPatientId)?.length || 0;
-          const vLabs = (context.vault as any).getLabs?.(requestedPatientId)?.length || 0;
-          const vAllergies = (context.vault as any).getAllergies?.(requestedPatientId)?.length || 0;
+          const v = context.vault as unknown as {
+            getFactsByPatient?: (p: string) => unknown[];
+            getMedications?: (p: string) => unknown[];
+            getLabs?: (p: string) => unknown[];
+            getAllergies?: (p: string) => unknown[];
+          };
+          const vFacts = v.getFactsByPatient?.(requestedPatientId)?.length || 0;
+          const vMeds = v.getMedications?.(requestedPatientId)?.length || 0;
+          const vLabs = v.getLabs?.(requestedPatientId)?.length || 0;
+          const vAllergies = v.getAllergies?.(requestedPatientId)?.length || 0;
           victimHasData = vFacts > 0 || vMeds > 0 || vLabs > 0 || vAllergies > 0;
-        } catch {}
+        } catch {
+          // ignore
+        }
         if (victimHasData) {
           // Fallback to context.patientId — attacker reading victim with data gets own empty facts (isolated)
           patientId = context.patientId;
@@ -607,7 +626,7 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
         }
         return null;
       })
-      .filter(Boolean) as any[];
+      .filter(Boolean) as unknown as { marker: string; value: number; unit: string; drawDate: string; flag: string; referenceRange?: { low: number; high: number }; isCritical: boolean }[];
 
     // Emergency Contacts — vault-derived (no hardcoded Shanti/Jenkins)
     const emergencyContacts = [
@@ -689,12 +708,13 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
     // Add meds
     for (const m of allMeds) {
       if (!timelineItems.some((t) => t.id === `tl_fact_${m.id}` || t.title.includes(m.genericName))) {
+        const mSlots = (m as unknown as { timingSlots?: string[] }).timingSlots;
         timelineItems.push({
           id: `tl_med_${m.id}`,
           date: m.startDate || new Date().toISOString(),
           category: 'meds',
           title: `Medication Regimen: ${m.genericName} ${m.dosage}`,
-          description: `Prescribed ${m.frequency || 'Daily'}${m.withFood ? ' with food' : ''}${(m as any).timingSlots ? ` (${(m as any).timingSlots.join(', ')})` : ''}. Status: ${m.status.toUpperCase()}.`,
+          description: `Prescribed ${m.frequency || 'Daily'}${m.withFood ? ' with food' : ''}${mSlots ? ` (${mSlots.join(', ')})` : ''}. Status: ${m.status.toUpperCase()}.`,
           statusBadge: m.status.toUpperCase(),
           badgeColor: m.status === 'active' ? '#3B82F6' : '#EF4444',
           sourceDocId: m.source
@@ -704,6 +724,7 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
 
     // Add labs — bbox removed
     for (const l of labs) {
+      const lDoc = l as unknown as { doctorComment?: { comment?: string; doctorName?: string } };
       timelineItems.push({
         id: `tl_lab_${l.id}`,
         date: l.drawDate,
@@ -712,29 +733,30 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
         description: `Reference range: ${l.referenceRange?.low} - ${l.referenceRange?.high} ${l.unit}. Status: ${l.flag || 'NORMAL'}.`,
         statusBadge: l.flag || 'RECORDED',
         badgeColor: l.flag?.includes('HIGH') || l.flag?.includes('LOW') ? '#EF4444' : '#10B981',
-        doctorComment: (l as any).doctorComment?.comment,
-        doctorName: (l as any).doctorComment?.doctorName,
+        doctorComment: lDoc.doctorComment?.comment,
+        doctorName: lDoc.doctorComment?.doctorName,
         sourceDocId: l.sourceDocId
       });
     }
 
     // Add proposals
     for (const p of proposals) {
+      const pRec = p as unknown as { reason?: string; plainNarration?: string; previousDose?: string; proposedDose?: string };
       timelineItems.push({
         id: `tl_prop_${p.id}`,
         date: p.timestamp,
         category: 'proposals',
         title: `Doctor Proposal: ${p.medName} (${p.type.replace(/_/g, ' ')})`,
-        description: (p as any).reason || (p as any).plainNarration || `Proposed change by ${p.doctorName}: ${p.previousDose || ''} -> ${p.proposedDose || ''}`,
+        description: pRec.reason || pRec.plainNarration || `Proposed change by ${p.doctorName}: ${pRec.previousDose || ''} -> ${pRec.proposedDose || ''}`,
         statusBadge: p.status.toUpperCase(),
         badgeColor: p.status === 'approved' ? '#10B981' : p.status === 'rejected' ? '#EF4444' : '#F59E0B',
         doctorName: p.doctorName,
-        dosageTransition: (p as any).proposedDose
+        dosageTransition: pRec.proposedDose
           ? {
               medName: p.medName,
-              previousDose: (p as any).previousDose || 'Current',
-              newDose: (p as any).proposedDose,
-              reason: (p as any).reason
+              previousDose: pRec.previousDose || 'Current',
+              newDose: pRec.proposedDose,
+              reason: pRec.reason
             }
           : undefined
       });

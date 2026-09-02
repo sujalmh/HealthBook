@@ -31,7 +31,7 @@ export interface HydrationResult {
   hydrated: number;
   skipped: boolean;
   error?: string;
-  counts?: Record<string, number>;
+  counts?: { [key: string]: number };
 }
 
 export interface SyncResult {
@@ -52,20 +52,21 @@ export interface SyncResult {
  * - Never emits EventBus events (no duplication); caller handles toast fallback via .catch
  * - Never throws; returns {ok, skipped, error}
  */
-export async function syncToSupabase(table: string, record: any): Promise<SyncResult> {
+export async function syncToSupabase(table: string, record: unknown): Promise<SyncResult> {
   try {
     if (!isSupabaseEnabled()) return { ok: true, skipped: true };
-    // Patient isolation: require patientId exact string (care_circle/doctor_grants/danger_reports also have patientId)
-    const pid = (record as any)?.patientId;
+    const pid = (record as unknown as { patientId?: unknown })?.patientId;
     if (!pid || typeof pid !== 'string' || pid.trim() === '') {
       return { ok: false, error: `${table}: patientId required for sync` };
     }
-    const res = await upsertSupabaseRecord(table as any, record as any);
-    if ((res as any)?.skipped) return { ok: true, skipped: true };
-    if (!(res as any)?.ok) return { ok: false, error: (res as any)?.error || `sync ${table} failed` };
+    const res = await upsertSupabaseRecord(table as unknown as string, record as unknown as { patientId?: string });
+    const r = res as unknown as { skipped?: boolean; ok?: boolean; error?: string };
+    if (r?.skipped) return { ok: true, skipped: true };
+    if (!r?.ok) return { ok: false, error: r?.error || `sync ${table} failed` };
     return { ok: true };
-  } catch (e: any) {
-    return { ok: false, error: e?.message || String(e) };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: msg };
   }
 }
 
@@ -74,7 +75,7 @@ export async function syncToSupabase(table: string, record: any): Promise<SyncRe
 // ------------------------------------------------------------------
 
 // Snake -> camel mapping for reconstruction when payload not present
-const SNAKE_TO_CAMEL: Record<string, string> = {
+const SNAKE_TO_CAMEL: { [key: string]: string } = {
   patient_id: 'patientId',
   link_id: 'linkId',
   grant_id: 'grantId',
@@ -173,38 +174,34 @@ const SNAKE_TO_CAMEL: Record<string, string> = {
   approval_status: 'approvalStatus',
 };
 
-function normalizeRow(table: string, raw: any): any {
-  // Prefer payload column if it contains a coherent record (has patientId)
-  const base: any = raw?.payload && typeof raw.payload === 'object' && (raw.payload as any).patientId ? { ...(raw.payload as any) } : { ...(raw as any) };
-  // Also merge snake columns where camel missing (payload may lack server-generated snake fields)
+function normalizeRow(table: string, raw: unknown): { [key: string]: unknown } {
+  const rawObj = raw as { [key: string]: unknown; payload?: unknown; patient_id?: unknown; id?: unknown; link_id?: unknown; grant_id?: unknown; report_id?: unknown };
+  const payload = rawObj?.payload as { [key: string]: unknown; patientId?: unknown } | undefined;
+  const base: { [key: string]: unknown } = payload && typeof payload === 'object' && payload.patientId ? { ...(payload as object) } as { [key: string]: unknown } : { ...(rawObj as object) } as { [key: string]: unknown };
   for (const [snake, camel] of Object.entries(SNAKE_TO_CAMEL)) {
-    if (raw[snake] !== undefined && base[camel] === undefined) {
-      base[camel] = raw[snake];
+    if (rawObj[snake] !== undefined && base[camel] === undefined) {
+      base[camel] = rawObj[snake];
     }
   }
-  // Ensure id fields fallback from raw
   if (!base.id) {
-    if (raw.id) base.id = raw.id;
-    else if (raw.link_id) base.id = raw.link_id;
-    else if (raw.grant_id) base.id = raw.grant_id;
-    else if (raw.report_id) base.id = raw.report_id;
+    if (rawObj.id) base.id = rawObj.id;
+    else if (rawObj.link_id) base.id = rawObj.link_id;
+    else if (rawObj.grant_id) base.id = rawObj.grant_id;
+    else if (rawObj.report_id) base.id = rawObj.report_id;
   }
-  // Table-specific id aliases
   if (table === 'care_circle' && !base.linkId) {
-    base.linkId = raw.link_id || raw.id || base.id;
+    base.linkId = rawObj.link_id || rawObj.id || base.id;
     if (!base.id) base.id = base.linkId;
   }
   if (table === 'doctor_grants' && !base.grantId) {
-    base.grantId = raw.grant_id || raw.id || base.id;
+    base.grantId = rawObj.grant_id || rawObj.id || base.id;
     if (!base.id) base.id = base.grantId;
   }
   if (table === 'danger_reports' && !base.reportId) {
-    base.reportId = raw.report_id || raw.id || base.id;
+    base.reportId = rawObj.report_id || rawObj.id || base.id;
     if (!base.id) base.id = base.reportId;
   }
-  // If raw outer has patient_id but base missing, fill
-  if (!base.patientId && raw.patient_id) base.patientId = raw.patient_id;
-  // Ensure patientId is string exact
+  if (!base.patientId && rawObj.patient_id) base.patientId = rawObj.patient_id;
   if (base.patientId != null) base.patientId = String(base.patientId);
   return base;
 }
@@ -213,20 +210,19 @@ function normalizeRow(table: string, raw: any): any {
 type TableMapping = { table: string; vaultKey: keyof LocalVaultManager; idField: string };
 
 const HYDRATION_MAPPINGS: TableMapping[] = [
-  { table: 'facts', vaultKey: 'facts' as any, idField: 'id' },
-  { table: 'documents', vaultKey: 'documents' as any, idField: 'id' },
-  { table: 'medications', vaultKey: 'meds' as any, idField: 'id' },
-  { table: 'meds', vaultKey: 'meds' as any, idField: 'id' },
-  { table: 'labs', vaultKey: 'labs' as any, idField: 'id' },
-  { table: 'conditions', vaultKey: 'conditions' as any, idField: 'id' },
-  { table: 'allergies', vaultKey: 'allergies' as any, idField: 'id' },
-  { table: 'proposals', vaultKey: 'proposals' as any, idField: 'id' },
-  { table: 'calendar_events', vaultKey: 'calendarEvents' as any, idField: 'id' },
-  { table: 'care_circle', vaultKey: 'careCircle' as any, idField: 'linkId' },
-  { table: 'doctor_grants', vaultKey: 'doctorGrants' as any, idField: 'grantId' },
-  { table: 'due_cards', vaultKey: 'dueCards' as any, idField: 'id' },
-  { table: 'danger_reports', vaultKey: 'dangerReports' as any, idField: 'reportId' },
-  { table: 'question_bank', vaultKey: 'questionBank' as any, idField: 'id' },
+  { table: 'facts', vaultKey: 'facts' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'documents', vaultKey: 'documents' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'medications', vaultKey: 'meds' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'labs', vaultKey: 'labs' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'conditions', vaultKey: 'conditions' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'allergies', vaultKey: 'allergies' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'proposals', vaultKey: 'proposals' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'calendar_events', vaultKey: 'calendarEvents' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'care_circle', vaultKey: 'careCircle' as unknown as keyof LocalVaultManager, idField: 'linkId' },
+  { table: 'doctor_grants', vaultKey: 'doctorGrants' as unknown as keyof LocalVaultManager, idField: 'grantId' },
+  { table: 'due_cards', vaultKey: 'dueCards' as unknown as keyof LocalVaultManager, idField: 'id' },
+  { table: 'danger_reports', vaultKey: 'dangerReports' as unknown as keyof LocalVaultManager, idField: 'reportId' },
+  { table: 'question_bank', vaultKey: 'questionBank' as unknown as keyof LocalVaultManager, idField: 'id' },
 ];
 
 /**
@@ -252,49 +248,47 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
 
   try {
     let total = 0;
-    const counts: Record<string, number> = {};
+    const counts: { [key: string]: number } = {};
     let skippedTables = 0;
     for (const mapping of HYDRATION_MAPPINGS) {
       const { table, vaultKey, idField } = mapping;
       try {
-        const res = await fetchSupabaseTable<any>(table, trimmedPatientId);
-        if ((res as any)?.skipped) {
+        const res = await fetchSupabaseTable<unknown>(table, trimmedPatientId);
+        const resObj = res as unknown as { skipped?: boolean; error?: string; data?: unknown[] };
+        if (resObj?.skipped) {
           counts[table] = 0;
           skippedTables++;
           continue;
         }
-        if ((res as any)?.error) {
+        if (resObj?.error) {
           counts[table] = 0;
           continue;
         }
-        const rows: any[] = (res as any)?.data ?? [];
+        const rows: unknown[] = resObj?.data ?? [];
         let hydratedForTable = 0;
-        const map = (vault as any)[vaultKey] as Map<string, any> | undefined;
+        const vaultObj = vault as unknown as { [key: string]: Map<string, unknown> };
+        const map = vaultObj[vaultKey as string] as Map<string, unknown> | undefined;
         if (!map || typeof map.has !== 'function' || typeof map.set !== 'function') {
           counts[table] = 0;
           continue;
         }
         for (const raw of rows) {
           const rec = normalizeRow(table, raw);
-          // Patient isolation: validate BOTH sources exact === trimmedPatientId (PHI hard invariant)
-          // Must reject if payload patientId mismatches or raw.patient_id mismatches (server misfilter defense)
-          if (typeof rec.patientId !== 'string' || rec.patientId.trim() !== trimmedPatientId) continue;
-          if (raw.patient_id != null && String(raw.patient_id).trim() !== trimmedPatientId) continue;
-          // Resolve key via idField, fallback to id
-          let key: string | undefined = rec[idField] ?? rec.id ?? rec.linkId ?? rec.grantId ?? rec.reportId;
+          const rawObj = raw as { patient_id?: unknown };
+          if (typeof rec.patientId !== 'string' || (rec.patientId as string).trim() !== trimmedPatientId) continue;
+          if (rawObj.patient_id != null && String(rawObj.patient_id).trim() !== trimmedPatientId) continue;
+          let key: string | undefined = (rec[idField] as string | undefined) ?? (rec.id as string | undefined) ?? (rec.linkId as string | undefined) ?? (rec.grantId as string | undefined) ?? (rec.reportId as string | undefined);
           if (!key) {
-            key = (raw as any).id ?? (raw as any).link_id ?? (raw as any).grant_id ?? (raw as any).report_id;
+            const r = raw as { id?: unknown; link_id?: unknown; grant_id?: unknown; report_id?: unknown };
+            key = (r.id as string | undefined) ?? (r.link_id as string | undefined) ?? (r.grant_id as string | undefined) ?? (r.report_id as string | undefined);
           }
           if (!key || typeof key !== 'string') continue;
-          // Silent Map.set without EventBus emit (no duplication)
-          // Distinguish has vs not-has but in both cases just set without emit
           if (map.has(key)) {
             const existing = map.get(key);
-            // Merge shallow — incoming rec wins, but preserve existing fields not in rec
-            const merged = { ...(existing as any), ...(rec as any) };
-            map.set(key, merged);
+            const merged = { ...(existing as object), ...(rec as object) };
+            map.set(key, merged as unknown);
           } else {
-            map.set(key, rec);
+            map.set(key, rec as unknown);
           }
           hydratedForTable++;
           total++;
@@ -302,17 +296,15 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
         counts[table] = hydratedForTable;
       } catch {
         counts[table] = 0;
-        // per-table error does not abort whole hydration — graceful fallback
       }
     }
-    // Skipped semantics: if all tables reported skipped (e.g., postgresql:// without REST base), hydrate is skipped for bootstrap fallback
     if (total === 0 && skippedTables === HYDRATION_MAPPINGS.length) {
       return { hydrated: 0, skipped: true, counts };
     }
     return { hydrated: total, skipped: false, counts };
-  } catch (e: any) {
-    // Top-level failure (network, etc.) => graceful fallback, no throw
-    return { hydrated: 0, skipped: true, error: e?.message || String(e) };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { hydrated: 0, skipped: true, error: msg };
   }
 }
 
@@ -325,19 +317,15 @@ export async function hydrateFromSupabaseToVault(
   vaultOrPatientId: LocalVaultManager | string,
   patientIdOrVault?: string | LocalVaultManager
 ): Promise<HydrationResult> {
-  // Detect overload: (vault, patientId?) vs (patientId, vault)
-  // Preferred: (vault, patientId?)
-  if (vaultOrPatientId && typeof (vaultOrPatientId as any).facts !== 'undefined' && typeof (vaultOrPatientId as any).meds !== 'undefined') {
+  if (vaultOrPatientId && typeof (vaultOrPatientId as unknown as { facts?: unknown }).facts !== 'undefined' && typeof (vaultOrPatientId as unknown as { meds?: unknown }).meds !== 'undefined') {
     const vault = vaultOrPatientId as LocalVaultManager;
     const pid = typeof patientIdOrVault === 'string' ? patientIdOrVault : CANONICAL_FROM_CLIENT;
     return hydrateFromSupabase(pid, vault);
   }
-  // Legacy: (patientId, vault)
-  if (typeof vaultOrPatientId === 'string' && patientIdOrVault && typeof (patientIdOrVault as any).facts !== 'undefined') {
+  if (typeof vaultOrPatientId === 'string' && patientIdOrVault && typeof (patientIdOrVault as unknown as { facts?: unknown }).facts !== 'undefined') {
     return hydrateFromSupabase(vaultOrPatientId, patientIdOrVault as LocalVaultManager);
   }
-  // Fallback: treat first arg as vault with default pid
-  if (vaultOrPatientId && typeof (vaultOrPatientId as any).facts !== 'undefined') {
+  if (vaultOrPatientId && typeof (vaultOrPatientId as unknown as { facts?: unknown }).facts !== 'undefined') {
     return hydrateFromSupabase(CANONICAL_FROM_CLIENT, vaultOrPatientId as LocalVaultManager);
   }
   return { hydrated: 0, skipped: true, error: 'invalid arguments to hydrateFromSupabaseToVault' };

@@ -30,6 +30,7 @@ import { DossierExportModal } from './DossierExportModal';
 import { localVault } from '@/core/vault/LocalVault';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { eventBus } from '@/core/events/eventBus';
+import { resolvePatientId } from '@/components/common/resolvePatientId';
 import type { CompiledHealthRecord, DossierTimelineItem } from '@/types/dossier';
 import type { BoundingBox } from '@/types/vault';
 
@@ -46,26 +47,8 @@ interface DossierViewProps {
   };
 }
 
-function deriveDossierPatientId(passed: string, fallback?: string): string {
-  if (passed && passed.trim() !== '' && passed !== 'patient-s-devi') return passed.trim();
-  if (fallback && fallback.trim() !== '' && fallback !== 'patient-s-devi') return fallback.trim();
-  try {
-    const g: any = typeof globalThis !== 'undefined' ? (globalThis as any) : undefined;
-    const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? (localStorage as any) : undefined);
-    if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const pid = parsed?.userId || parsed?.id || parsed?.patientId;
-        if (typeof pid === 'string' && pid.trim() !== '') return pid.trim();
-      }
-    }
-  } catch {}
-  return passed || fallback || '';
-}
-
 export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfile }) => {
-  const effectivePatientId = deriveDossierPatientId(patientId, activeProfile.userId);
+  const effectivePatientId = resolvePatientId(patientId, activeProfile.userId);
   const [dossier, setDossier] = useState<CompiledHealthRecord | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDoctorAccessModalOpen, setIsDoctorAccessModalOpen] = useState(false);
@@ -87,8 +70,8 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         sections: ['all'],
       });
       if (res.success && res.data) setDossier(res.data as CompiledHealthRecord);
-    } catch (err) {
-      console.error('Failed to compile health record in DossierView:', err);
+    } catch {
+      // compile failure silent; retry on next event
     } finally {
       setIsLoading(false);
     }
@@ -96,33 +79,35 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
 
   useEffect(() => {
     loadCompiledDossier();
-    const guard = (p: any) => {
-      const pid = p?.patientId ?? p?.patient_id ?? p?.details?.patientId ?? p?.fact?.patientId;
+    const guard = (p: unknown) => {
+      const rec = p as { patientId?: string; patient_id?: string; details?: { patientId?: string }; fact?: { patientId?: string } };
+      const pid = rec?.patientId ?? rec?.patient_id ?? rec?.details?.patientId ?? rec?.fact?.patientId;
       if (pid) return pid === effectivePatientId;
       return false;
     };
-    const auditGuard = (p: any) => {
-      const pid = p?.patientId ?? p?.patient_id ?? p?.details?.patientId ?? p?.fact?.patientId;
+    const auditGuard = (p: unknown) => {
+      const rec = p as { patientId?: string; patient_id?: string; details?: { patientId?: string }; fact?: { patientId?: string } };
+      const pid = rec?.patientId ?? rec?.patient_id ?? rec?.details?.patientId ?? rec?.fact?.patientId;
       if (pid) return pid === effectivePatientId;
       return true;
     };
-    const mk = (h: () => void) => (payload: any) => { if (guard(payload)) h(); };
-    const mkAudit = (h: () => void) => (payload: any) => { if (auditGuard(payload)) h(); };
-    const u1 = eventBus.on('fact_confirmed', mk(loadCompiledDossier));
-    const u2 = eventBus.on('medication_updated', mk(loadCompiledDossier));
-    const u3 = eventBus.on('medication_added', mk(loadCompiledDossier));
-    const u4 = eventBus.on('lab_added', mk(loadCompiledDossier));
-    const u5 = eventBus.on('proposal_status_changed', mk(loadCompiledDossier));
-    const u6 = eventBus.on('proposal_created', mk(loadCompiledDossier));
-    const u7 = eventBus.on('doctor_grant_added', mk(loadCompiledDossier));
-    const u8 = eventBus.on('doctor_grant_revoked', mk(loadCompiledDossier));
-    const u9 = eventBus.on('audit_logged', mkAudit(loadCompiledDossier));
-    const u10 = eventBus.on('danger_report_added', mk(loadCompiledDossier));
-    const u11 = eventBus.on('calendar_event_added', mk(loadCompiledDossier));
-    const u12 = eventBus.on('caregiver_linked', mk(loadCompiledDossier));
-    const u13 = eventBus.on('due_card_added', mk(loadCompiledDossier));
-    const u14 = eventBus.on('due_card_updated', mk(loadCompiledDossier));
-    const u15 = eventBus.on('question_added', mk(loadCompiledDossier));
+    const mk = (h: () => void) => (payload: unknown) => { if (guard(payload)) h(); };
+    const mkAudit = (h: () => void) => (payload: unknown) => { if (auditGuard(payload)) h(); };
+    const u1 = eventBus.on('fact_confirmed', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u2 = eventBus.on('medication_updated', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u3 = eventBus.on('medication_added', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u4 = eventBus.on('lab_added', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u5 = eventBus.on('proposal_status_changed', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u6 = eventBus.on('proposal_created', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u7 = eventBus.on('doctor_grant_added', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u8 = eventBus.on('doctor_grant_revoked', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u9 = eventBus.on('audit_logged', mkAudit(loadCompiledDossier) as (p: unknown) => void);
+    const u10 = eventBus.on('danger_report_added', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u11 = eventBus.on('calendar_event_added', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u12 = eventBus.on('caregiver_linked', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u13 = eventBus.on('due_card_added', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u14 = eventBus.on('due_card_updated', mk(loadCompiledDossier) as (p: unknown) => void);
+    const u15 = eventBus.on('question_added', mk(loadCompiledDossier) as (p: unknown) => void);
     return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9(); u10(); u11(); u12(); u13(); u14(); u15(); };
   }, [effectivePatientId]);
 
@@ -359,7 +344,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     {byCategory.meds.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 font-bold">{byCategory.meds.length} meds</span>}
                     {byCategory.labs.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">{byCategory.labs.length} labs</span>}
                     {byCategory.proposals.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold">{byCategory.proposals.length} notes</span>}
-                    {byCategory.visits.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">{byCategory.visits.length} visits</span>}
+                    {byCategory.visits.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 font-bold">{byCategory.visits.length} visits</span>}
                     {byCategory.danger.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold">{byCategory.danger.length} alerts</span>}
                   </div>
                 </div>
@@ -503,17 +488,17 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                   {/* Visits */}
                   {byCategory.visits.length > 0 && (
                     <div className="space-y-2.5">
-                      <div className="flex items-center gap-2 border-b border-indigo-100 pb-2">
-                        <Calendar className="w-4 h-4 text-indigo-600" />
-                        <h5 className="text-caption font-bold uppercase tracking-wider text-indigo-800">Visits & Follow-ups</h5>
+                      <div className="flex items-center gap-2 border-b border-teal-100 pb-2">
+                        <Calendar className="w-4 h-4 text-teal-700" />
+                        <h5 className="text-caption font-bold uppercase tracking-wider text-teal-900">Visits & Follow-ups</h5>
                         <span className="text-caption text-muted">• {byCategory.visits.length}</span>
                       </div>
                       <div className="space-y-2">
                         {byCategory.visits.map((it) => (
-                          <div key={it.id} className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-3 space-y-1">
+                          <div key={it.id} className="rounded-xl border border-teal-100 bg-teal-50/30 p-3 space-y-1">
                             <p className="text-body-sm font-bold text-slate-900">{it.title}</p>
                             <p className="text-caption text-slate-600">{it.description}</p>
-                            <span className="inline-flex text-caption px-2 py-0.5 rounded-full bg-white border border-indigo-200 font-bold uppercase">{it.statusBadge}</span>
+                            <span className="inline-flex text-caption px-2 py-0.5 rounded-full bg-white border border-teal-200 font-bold uppercase">{it.statusBadge}</span>
                           </div>
                         ))}
                       </div>

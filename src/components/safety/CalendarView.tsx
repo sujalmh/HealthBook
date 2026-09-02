@@ -46,7 +46,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const dt = parseCalendarDate(evt.scheduledDate);
       const dtstamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
       const dtstart = dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      const dtendRaw = (evt as any).scheduledDateEnd as string | undefined;
+      const dtendRaw = (evt as unknown as { scheduledDateEnd?: string }).scheduledDateEnd as string | undefined;
       const dtend = dtendRaw ? parseCalendarDate(dtendRaw).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z' : null;
 
       const veventLines = [
@@ -116,7 +116,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="flex items-center gap-2.5">
           <button
             onClick={generateAndDownloadICS}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all shadow-md shadow-sky-600/20"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all"
           >
             <Download className="w-4 h-4" />
             <span>Export iCal (.ics)</span>
@@ -138,13 +138,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {[
           { id: 'all', label: 'All Scheduled Events' },
-          { id: 'doctor_followup', label: '🏥 Doctor Follow-Ups' },
-          { id: 'lab_due', label: '🧪 Prescribed Labs' },
-          { id: 'med_reminder', label: '💊 Daily Reminders' }
+          { id: 'doctor_followup', label: 'Doctor Follow-Ups' },
+          { id: 'lab_due', label: 'Prescribed Labs' },
+          { id: 'med_reminder', label: 'Daily Reminders' }
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setFilterType(tab.id as any)}
+            onClick={() => setFilterType(tab.id as unknown as typeof filterType)}
               className={`px-3.5 py-1.5 rounded-xl text-body-sm font-semibold transition-colors whitespace-nowrap border ${
               filterType === tab.id
                 ? 'bg-sky-50 border-sky-200 text-clinical-blue'
@@ -167,8 +167,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="space-y-3">
           {filteredEvents.map((evt) => {
             const dt = parseCalendarDate(evt.scheduledDate);
-            const isRangeEvent = !!(evt as any).scheduledDateEnd;
-            const dtEnd = isRangeEvent ? parseCalendarDate((evt as any).scheduledDateEnd) : null;
+            const isRangeEvent = !!(evt as unknown as { scheduledDateEnd?: string }).scheduledDateEnd;
+            const dtEnd = isRangeEvent ? parseCalendarDate((evt as unknown as { scheduledDateEnd?: string }).scheduledDateEnd as string) : null;
             const isPast = dt.getTime() < Date.now();
             const daysAway = Math.ceil((dt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
             const rangeLabel = isRangeEvent && dtEnd
@@ -207,7 +207,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           Past Milestone
                         </span>
                       ) : daysAway <= 3 ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 text-[10px] font-bold border border-amber-200 animate-pulse">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 text-[10px] font-bold border border-amber-200">
                           In {daysAway === 0 ? 'Today' : `${daysAway} days`}
                         </span>
                       ) : (
