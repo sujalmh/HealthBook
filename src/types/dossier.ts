@@ -1,6 +1,3 @@
-/**
- * Healthbook Types: Continuity Dossier & Lifetime Health Record (M6)
- */
 
 import type {
   BoundingBox,
@@ -124,7 +121,7 @@ export interface SourceDocumentCitation {
 export interface FHIRResource {
   resourceType: string;
   id: string;
-  /** Open FHIR extension — unknown at boundary, validated via schema before use */
+
   [key: string]: unknown;
 }
 
@@ -195,3 +192,4 @@ export interface CompiledHealthRecord {
   format?: 'json_dossier' | 'fhir_r4' | 'emergency_snapshot' | string;
   fhirBundle?: FHIRR4Bundle;
 }
+

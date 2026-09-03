@@ -32,7 +32,6 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'manage_existing' | 'link_new'>('manage_existing');
 
-  // Link New Form
   const [newPatientId, setNewPatientId] = useState('');
   const [caregiverName, setCaregiverName] = useState('');
   const [relationship, setRelationship] = useState<string>('mother');
@@ -40,7 +39,6 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
   const [permissionTier, setPermissionTier] = useState<CaregiverPermissionLevel>('manage');
   const [isLinking, setIsLinking] = useState(false);
 
-  // Existing Caregivers
   const [caregiverLinks, setCaregiverLinks] = useState<LinkedCareProfile[]>(() =>
     localVault.getCaregiverLinks(patientId)
   );
@@ -55,7 +53,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
     }
     setIsLinking(true);
     try {
-      // 1. Link Patient — caregiverName passed to link_patient and vault 783
+
       const linkRes = await webMCPEngine.execute(
         'link_patient',
         {
@@ -72,7 +70,6 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
         }
       );
 
-      // 2. Grant scoped permissions
       if (linkRes.success && linkRes.data) {
         await webMCPEngine.execute(
           'grant_caregiver_access',
@@ -140,7 +137,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-xl w-full shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-canvas-border bg-canvas-card gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-primary-light text-primary flex items-center justify-center border border-primary-border shadow-sm shrink-0">
@@ -160,7 +157,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Toggle */}
+        {}
         <div className="px-4 sm:px-6 pt-4">
           <div className="flex items-center bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm">
             <button
@@ -186,7 +183,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
           </div>
         </div>
 
-        {/* Body */}
+        {}
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
           {activeTab === 'manage_existing' ? (
             <div className="space-y-4">
@@ -239,7 +236,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
                 </div>
               )}
 
-              {/* Permission Tiers Explanation Card */}
+              {}
               <div className="bg-canvas-muted rounded-xl p-4 border border-canvas-border space-y-2 text-body-sm">
                 <span className="font-bold text-slate-700 flex items-center gap-1.5">
                   <Info className="w-4 h-4 text-sky-400" />
@@ -259,7 +256,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
               </div>
             </div>
           ) : (
-            /* Link New Caregiver Form */
+
             <form onSubmit={handleLinkNew} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700">Patient ID to Link</label>
@@ -353,7 +350,7 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
           )}
         </div>
 
-        {/* Footer */}
+        {}
         <div className="px-4 sm:px-6 py-4 border-t border-canvas-border bg-canvas-muted flex items-center justify-end">
           <button
             onClick={onClose}
@@ -366,3 +363,4 @@ export const ScopedPermissionsModal: React.FC<ScopedPermissionsModalProps> = ({
     </div>
   );
 };
+

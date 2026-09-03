@@ -1,7 +1,3 @@
-/**
- * Healthbook Component: AddMedicationModal
- * Modal allowing patients and caregivers to add a custom prescription drug or OTC supplement to PillMap.
- */
 
 import React, { useState } from 'react';
 import { Pill, X, Plus } from 'lucide-react';
@@ -77,8 +73,6 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
     e.preventDefault();
     if (!name.trim() || !dosage.trim() || isResolving) return;
 
-    // Generic resolution via the AI pipeline. Food-rule checkboxes stay fully
-    // manual — no hardcoded drug rules in the form.
     setIsResolving(true);
     setResolveError(false);
     try {
@@ -106,7 +100,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
   return (
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Add Medication to Pillbox">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
-        {/* Header */}
+        {}
         <div className="p-4 sm:p-5 bg-primary border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white">
@@ -125,9 +119,9 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
           </button>
         </div>
 
-        {/* Form */}
+        {}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-body-sm text-slate-800">
-          {/* Name & Dosage */}
+          {}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-caption uppercase tracking-wider text-muted mb-1">
@@ -158,7 +152,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
             </div>
           </div>
 
-          {/* Frequency */}
+          {}
           <div>
             <label className="block text-caption uppercase tracking-wider text-muted mb-1">
               Prescribed Frequency
@@ -172,7 +166,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
             />
           </div>
 
-          {/* Timing Slots Checkboxes */}
+          {}
           <div>
             <label className="block text-caption uppercase tracking-wider text-muted mb-1.5">
               Daily Time Slots
@@ -198,7 +192,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
             </div>
           </div>
 
-          {/* Food & Dietary Instructions */}
+          {}
           <div className="space-y-2 pt-2 border-t border-canvas-border">
             <label className="block text-caption uppercase tracking-wider text-muted">
               Food & Dietary Instructions
@@ -252,7 +246,7 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
             </div>
           </div>
 
-          {/* Actions */}
+          {}
           <div className="pt-4 border-t border-canvas-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 w-full">
             <button
               type="button"
@@ -280,3 +274,4 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
     </ModalPortal>
   );
 };
+

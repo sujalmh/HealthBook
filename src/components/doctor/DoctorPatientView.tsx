@@ -21,11 +21,11 @@ export const DoctorPatientView: React.FC<DoctorPatientViewProps> = ({ patientId,
     setLoading(true);
     setError(null);
     try {
-      // doctor's local vault doesn't hold the patient's records — hydrate from Supabase first
+
       try {
         const { hydrateFromSupabase } = await import('@/core/vault/supabaseSync');
         await hydrateFromSupabase(patientId, localVault);
-      } catch { /* hydration is best-effort; tool still returns whatever the vault holds */ }
+      } catch {  }
       const res = await webMCPEngine.execute('view_patient_as_doctor', { patientId, doctorId });
       if (!res.success) {
         setError(res.error?.message || 'Access denied. No active link for this patient.');
@@ -63,8 +63,6 @@ export const DoctorPatientView: React.FC<DoctorPatientViewProps> = ({ patientId,
     } catch { return 'view_only'; }
   }, [patientId, doctorId, doctorProfile.email]);
 
-  // All hooks must run unconditionally — useMemo before early returns (React rules-of-hooks;
-  // conditional memos here crash the tree with "rendered more hooks" when loading flips)
   const meds = useMemo(() => (data?.medications as unknown[] || []) as { id: string; genericName?: string; brandName?: string; name?: string; dosage?: string; frequency?: string; timingSlots?: string[]; withFood?: boolean; status?: string; indication?: string }[], [data]);
   const labs = useMemo(() => (data?.labs as unknown[] || []) as { id: string; marker: string; value?: number; normalizedValue?: number; unit?: string; normalizedUnit?: string; drawDate: string; referenceRange?: { low: number; high: number }; flag?: string }[], [data]);
   const conditions = useMemo(() => (data?.conditions as unknown[] || []) as { id: string; conditionName?: string; name?: string; status?: string }[], [data]);

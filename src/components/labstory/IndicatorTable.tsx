@@ -4,7 +4,6 @@ import { BiomarkerChart, ZoomWindow } from './BiomarkerChart';
 import { ModalPortal } from '../common/ModalPortal';
 import type { LabRecord } from '@/types/vault';
 
-// Mirrors LocalVault.ts:62-86 LOCAL_BIOMARKER_STANDARDS + findLocalStandard for vault-normalized dedup
 const LOCAL_BIOMARKER_STANDARDS: Record<string, { canonicalName: string; standardUnit: string; refRange: { low: number; high: number }; optimalRange: { low: number; high: number }; criticalLow?: number; criticalHigh?: number }> = {
   creatinine: { canonicalName: 'Creatinine', standardUnit: 'mg/dL', refRange: { low: 0.6, high: 1.2 }, optimalRange: { low: 0.7, high: 1.0 }, criticalHigh: 3.0 },
   egfr: { canonicalName: 'eGFR', standardUnit: 'mL/min/1.73m2', refRange: { low: 60, high: 120 }, optimalRange: { low: 90, high: 120 }, criticalLow: 15 },
@@ -31,7 +30,6 @@ function findLocalStandard(markerName: string) {
   return null;
 }
 
-// Clinical groupings — related markers read together (e.g. Kidney = Creatinine + eGFR)
 const CATEGORY_ORDER = ['Kidney', 'Blood Sugar', 'Cholesterol', 'Electrolytes', 'Other'] as const;
 function categoryFor(canonical: string): (typeof CATEGORY_ORDER)[number] {
   const m = canonical.toLowerCase();
@@ -42,7 +40,6 @@ function categoryFor(canonical: string): (typeof CATEGORY_ORDER)[number] {
   return 'Other';
 }
 
-// How each test is best performed — practical prep guidance, one line per marker
 const BEST_DONE_AS: Record<string, string> = {  Creatinine: 'Blood draw — no fasting',
   eGFR: 'Blood draw — no fasting',
   HbA1c: 'Blood draw — no fasting',
@@ -109,7 +106,6 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
   const [detailShowRef, setDetailShowRef] = useState(true);
   const [detailShowOpt, setDetailShowOpt] = useState(true);
 
-  // Deduplicated groups — vault-normalized lowercased via findLocalStandard
   const groups = useMemo(() => {
     const map = new Map<string, LabRecord[]>();
     labs.forEach((lab) => {
@@ -124,7 +120,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
       const latest = sorted[sorted.length - 1];
       const std = findLocalStandard(latest.marker ?? '');
       const canonical = std ? std.canonicalName : latest.marker;
-      // Derive flag/status via vault logic: use latest's flag/isBorderline/isCritical already normalized by LocalVault 120-125
+
       const flag = (latest.flag as unknown as string) || (latest.isBorderline ? 'BORDERLINE' : 'NORMAL');
       return {
         key,
@@ -143,7 +139,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
         value: latest.normalizedValue ?? latest.value,
       };
     });
-    // group by category (clinical reading order), alphabetical within each group
+
     const catIndex = (c: string) => CATEGORY_ORDER.indexOf(c as (typeof CATEGORY_ORDER)[number]);
     result.sort((a, b) => catIndex(a.category) - catIndex(b.category) || a.canonical.localeCompare(b.canonical));
     return result;
@@ -155,7 +151,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
   }, [groups, activeDetailKey]);
 
   const handleRowClick = (group: typeof groups[number]) => {
-    // sync selectedMarker for chart linking
+
     if (onMarkerSelect) onMarkerSelect(group.canonical);
     setActiveDetailKey(group.key);
   };
@@ -167,7 +163,6 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
     }
   };
 
-  // Plain explanation helper — uses flag/isBorderline/isCritical per LocalVault 120-125
   const plainExplanationFor = (g: typeof groups[number]) => {
     const v = g.value;
     const u = g.unit;
@@ -285,7 +280,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
         </table>
       </div>
 
-      {/* Mobile compact rows (< sm) — same data, no horizontal scrolling */}
+      {}
       <div className="sm:hidden divide-y divide-canvas-border">
         {CATEGORY_ORDER.map((category) => {
           const catGroups = groups.filter((g) => g.category === category);
@@ -328,7 +323,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
         })}
       </div>
 
-      {/* Details drill-down: modal/sheet with value+ref+flag+history+chart+doctorComment+explanation */}
+      {}
       {activeGroup && (
         <ModalPortal isOpen={!!activeGroup} onClose={() => setActiveDetailKey(null)} ariaLabel={`${activeGroup.canonical} details`}>
           <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto flex flex-col">
@@ -353,7 +348,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
             </div>
 
             <div className="p-4 sm:p-6 space-y-5">
-              {/* Latest value + unit + flag */}
+              {}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-canvas-muted border border-canvas-border rounded-xl p-4 space-y-2">
                   <div className="text-caption font-bold uppercase tracking-wider text-muted">Latest Value</div>
@@ -386,13 +381,13 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                 </div>
               </div>
 
-              {/* Plain explanation */}
+              {}
               <div className="bg-white border border-canvas-border rounded-xl p-4">
                 <div className="text-caption font-bold uppercase tracking-wider text-muted mb-1">What this means</div>
                 <p className="text-body-sm text-slate-700 leading-relaxed">{plainExplanationFor(activeGroup)}</p>
               </div>
 
-              {/* Doctor comment */}
+              {}
               {(() => {
                 const rec = activeGroup.latest as unknown as { doctorComment?: { doctorName: string; comment: string; timestamp?: string }; doctorComments?: { doctorName: string; comment: string; timestamp?: string }[] };
                 const dc = rec.doctorComment || rec.doctorComments?.[0];
@@ -408,7 +403,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                 );
               })()}
 
-              {/* BiomarkerChart trajectory embedded */}
+              {}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-muted"><Eye className="w-3 h-3" /> Trajectory</div>
                 <BiomarkerChart
@@ -425,7 +420,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                 />
               </div>
 
-              {/* Recent history — consolidated overview history lives here, not in main table */}
+              {}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="text-caption font-bold uppercase tracking-wider text-muted flex items-center gap-1"><Calendar className="w-3 h-3" /> Recent history ({activeGroup.labs.length})</div>
@@ -479,3 +474,4 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
     </div>
   );
 };
+

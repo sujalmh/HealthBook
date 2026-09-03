@@ -1,12 +1,3 @@
-/**
- * Healthbook Settings Store — Generic configurable LLM config via Settings page OR .env without hardcoding (R3).
- * Persists VITE_AI_* generically via localStorage with Settings>env precedence.
- * Never hardcode provider/model/baseURL literals — all via generic keys.
- * Keys: healthbook_settings JSON blob + individual VITE_AI_* keys + healthbook_VITE_AI_*.
- * 13 VITE_AI_* example keys documented in .env.example:14-51 — all configurable.
- * Validates baseURL/model not empty when enabled, never commits .env (.gitignore .env PASS).
- * Uses generic keys, no hardcoded provider literals.
- */
 
 export type SettingsProvider = 'chat' | 'responses';
 
@@ -29,7 +20,7 @@ export interface SettingsState {
   OCR_API_KEY?: string;
   VITE_OCR_MODEL?: string;
   VITE_EXTRACTION_PATH?: string;
-  // Exa Healthcare Grounding
+
   VITE_EXA_ENABLED?: string;
   VITE_EXA_API_KEY?: string;
   EXA_API_KEY?: string;
@@ -40,7 +31,6 @@ export interface SettingsState {
   VITE_EXA_MAX_AGE_HOURS?: string;
 }
 
-// All configurable keys — generic configurable, no hardcoded literals
 export const SETTINGS_VITE_KEYS: (keyof SettingsState)[] = [
   'VITE_AI_ENABLED',
   'VITE_AI_PROVIDER',
@@ -60,7 +50,7 @@ export const SETTINGS_VITE_KEYS: (keyof SettingsState)[] = [
   'OCR_API_KEY',
   'VITE_OCR_MODEL',
   'VITE_EXTRACTION_PATH',
-  // Exa Healthcare Grounding (extends to 21 keys)
+
   'VITE_EXA_ENABLED',
   'VITE_EXA_API_KEY',
   'EXA_API_KEY',
@@ -71,7 +61,6 @@ export const SETTINGS_VITE_KEYS: (keyof SettingsState)[] = [
   'VITE_EXA_MAX_AGE_HOURS',
 ];
 
-// Storage blob keys — SettingsStore writes via same keys read by src/core/ai/config.ts:68-139
 export const SETTINGS_BLOB_KEYS = [
   'healthbook_settings',
   'healthbook_ai_settings',
@@ -130,7 +119,7 @@ export function validateSettings(state: Partial<SettingsState>): { valid: boolea
 export function loadSettings(): Partial<SettingsState> {
   const merged: Partial<SettingsState> = {};
   if (!isBrowser()) return merged;
-  // 1) Read JSON blob stores — healthbook_settings primary, others fallback
+
   for (const blobKey of SETTINGS_BLOB_KEYS) {
     try {
       const raw = localStorage.getItem(blobKey);
@@ -142,7 +131,7 @@ export function loadSettings(): Partial<SettingsState> {
             if (merged[k] === undefined) (merged as any)[k] = String(parsed[k]);
           }
         }
-        // Also support nested shapes for generic wiring
+
         if (parsed.ai && typeof parsed.ai === 'object') {
           const directMap: Record<string, keyof SettingsState> = {
             enabled: 'VITE_AI_ENABLED',
@@ -168,10 +157,10 @@ export function loadSettings(): Partial<SettingsState> {
         }
       }
     } catch {
-      // ignore parse errors
+
     }
   }
-  // 2) Individual VITE_AI_* keys override blob if present (most direct Settings>env signal)
+
   try {
     for (const k of SETTINGS_VITE_KEYS) {
       const v = localStorage.getItem(k);
@@ -184,9 +173,9 @@ export function loadSettings(): Partial<SettingsState> {
       }
     }
   } catch {
-    // ignore
+
   }
-  // Cleanup empty strings treated as unset
+
   for (const k of SETTINGS_VITE_KEYS) {
     if ((merged as any)[k] === '') delete (merged as any)[k];
   }
@@ -195,25 +184,22 @@ export function loadSettings(): Partial<SettingsState> {
 
 export function saveSettings(state: Partial<SettingsState>): void {
   if (!isBrowser()) return;
-  // Normalize: trim strings, keep as strings for localStorage VITE_AI generically
+
   const normalized: Partial<SettingsState> = {};
   for (const k of SETTINGS_VITE_KEYS) {
     const v = (state as any)[k];
     if (v !== undefined && v !== null) {
       const s = String(v).trim();
-      // Keep empty string as deletion signal? We store only non-empty to mimic Settings>env "" unset
+
       if (s !== '') (normalized as any)[k] = s;
     }
   }
 
-  // Validate baseURL/model not empty if enabled — still save but caller can check valid
-  // Persist to primary blob healthbook_settings JSON blob + individual VITE_AI_* keys + healthbook_VITE_AI_*
   const toPersist: Record<string, string> = {};
   for (const k of SETTINGS_VITE_KEYS) {
     if ((normalized as any)[k] !== undefined) toPersist[k] = String((normalized as any)[k]);
   }
 
-  // Read existing blob to merge
   let existing: Record<string, any> = {};
   try {
     const raw = localStorage.getItem(SETTINGS_PRIMARY_BLOB);
@@ -225,15 +211,14 @@ export function saveSettings(state: Partial<SettingsState>): void {
     existing = {};
   }
 
-  // Merge normalized into existing, delete keys that are now undefined (cleared)
   const nextBlob: Record<string, any> = { ...existing };
   for (const k of SETTINGS_VITE_KEYS) {
     if ((normalized as any)[k] !== undefined) {
       nextBlob[k] = String((normalized as any)[k]);
     } else {
-      // If caller explicitly wants to clear, they can pass empty string — we delete
+
       if ((state as any)[k] === '' || (state as any)[k] === undefined) {
-        // Only delete if state had key as empty string explicitly; otherwise keep existing
+
         if ((state as any)[k] === '') delete nextBlob[k];
       }
     }
@@ -242,10 +227,9 @@ export function saveSettings(state: Partial<SettingsState>): void {
   try {
     localStorage.setItem(SETTINGS_PRIMARY_BLOB, JSON.stringify(nextBlob));
   } catch {
-    // ignore quota errors
+
   }
 
-  // Also write individual VITE_AI_* keys and healthbook_VITE_AI_* for Settings>env precedence robust
   try {
     for (const k of SETTINGS_VITE_KEYS) {
       const v = (normalized as any)[k];
@@ -253,14 +237,14 @@ export function saveSettings(state: Partial<SettingsState>): void {
         localStorage.setItem(k, v);
         localStorage.setItem(`healthbook_${k}`, v);
       } else if ((state as any)[k] === '') {
-        // Explicit clear
+
         localStorage.removeItem(k);
         localStorage.removeItem(`healthbook_${k}`);
-        // Also remove from blob handled above
+
       }
     }
   } catch {
-    // ignore
+
   }
 }
 
@@ -275,7 +259,7 @@ export function clearSettings(): void {
       localStorage.removeItem(`healthbook_${k}`);
     }
   } catch {
-    // ignore
+
   }
 }
 
@@ -284,15 +268,14 @@ export function getSettingsValue<K extends keyof SettingsState>(key: K): string 
   return all[key] as string | undefined;
 }
 
-// Debug helper matching src/core/ai/config.ts getAIConfigSource but for SettingsStore direct
 export function getSettingsSource(): { hasSettings: boolean; keys: string[]; count: number } {
   const s = loadSettings();
   const keys = Object.keys(s);
   return { hasSettings: keys.length > 0, keys, count: keys.length };
 }
 
-// Check if Settings overrides env — replicates Settings>env precedence logic generically
 export function isSettingsOverridingEnv(): boolean {
   const s = loadSettings();
   return Object.keys(s).length > 0;
 }
+

@@ -1,8 +1,3 @@
-/**
- * Healthbook Types: Approved Fact Vault & Entity Models
- * Fact boundingBox optional but AI provides normalized bbox with grounded coordinates plus confidence and plainExplanation via structured outputs.
- * Vision+text multimodal single request provides grounded bbox not fixed, confidence above zero, categories typed.
- */
 
 export interface BoundingBox {
   pageIndex: number;
@@ -45,11 +40,11 @@ export type FactValue =
     };
 
 export interface FactVerification {
-  /** verified: web evidence supports the claim; needs_review: evidence contradicts or looks implausible; unverifiable: no relevant evidence */
+
   status: 'verified' | 'needs_review' | 'unverifiable';
-  /** One-sentence plain-language verdict */
+
   note: string;
-  /** Authoritative sources the verdict was checked against */
+
   sources: Array<{ url: string; title: string }>;
   checkedAt: string;
 }
@@ -59,7 +54,7 @@ export interface Fact {
   patientId: string;
   category: FactCategory;
   name: string;
-  /** Fact value — boundary validated: string dose or { dose, rawSnippet } or number */
+
   value: FactValue;
   factKey?: string;
   factValue?: FactValue;
@@ -73,11 +68,11 @@ export interface Fact {
   sourceBoundingBox?: BoundingBox;
   plainExplanation: string;
   plainNarration?: string;
-  /** Resolved concrete calendar date (YYYY-MM-DD) for dated facts — lab draw date, due-card due date, follow-up visit date */
+
   date?: string;
-  /** Web-evidence verification attached by the AI pipeline after extraction (may be absent if grounding unavailable) */
+
   verification?: FactVerification;
-  /** Author — string identifier at boundary, validated via typeof string before use */
+
   author: string | { userId: string; name: string; role: string } | unknown;
   actorName?: string;
   approvedBy?: string;
@@ -101,7 +96,7 @@ export interface DocumentRecord {
   uploadTimestamp: string;
   uploadedAt?: string;
   extractedText?: string;
-  rawBuffer?: string; // base64 or mock uri
+  rawBuffer?: string;
   extractedFactIds: string[];
 }
 
@@ -239,9 +234,9 @@ export interface AuditLogEntry {
     role: 'patient' | 'caregiver' | 'doctor' | 'system';
     onBehalfOf?: string;
   };
-  /** Boundary: validated via typeof string + schema before use */
+
   details: Record<string, unknown>;
-  /** Patient isolation key — populated when audit originates from a patient-scoped entity */
+
   patientId?: string;
   hash?: string;
 }
@@ -276,13 +271,6 @@ export interface DueCardRecord {
   completedLabId?: string;
 }
 
-/**
- * Pending inbox item — anything awaiting a human accept/reject decision.
- * Lives in the `pending_items` table with a 1-day TTL (expiresAt); the
- * hourly pg_cron purge plus read-path filtering enforce expiry.
- * On decision the effect is applied to the real table, the decision is audit
- * logged (permanent trail), and the inbox row is deleted.
- */
 export interface PendingItem {
   id: string;
   patientId: string;
@@ -297,3 +285,4 @@ export interface PendingItem {
 }
 
 export type { LinkedCareProfile, DoctorAccessGrant } from './carecircle.ts';
+

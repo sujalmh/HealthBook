@@ -1,8 +1,3 @@
-/**
- * Healthbook Component: SimpleElderView
- * Accessible, oversized, distraction-free elder mode showing the immediate next dose,
- * large high-contrast typography, and voice narration via Web Speech API.
- */
 
 import React, { useState } from 'react';
 import { Volume2, CheckCircle, Clock, Sun, CloudSun, Sunset, Moon, Sparkles, Check, Pill } from 'lucide-react';
@@ -66,7 +61,6 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
 
   const meta = slotLabels[activeSlot];
 
-  // Web Speech API Voice Playback
   const speakInstructions = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -78,7 +72,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
       const speechText = `It is time for your ${meta.label} at ${meta.time}. ${meta.mealNote}. You have ${pillsInSlot.length} medication${pillsInSlot.length === 1 ? '' : 's'}: ${medListText}.`;
 
       const utterance = new SpeechSynthesisUtterance(speechText);
-      utterance.rate = 0.85; // slightly slower for elderly clarity
+      utterance.rate = 0.85;
       utterance.pitch = 1.0;
 
       utterance.onstart = () => setIsPlayingAudio(true);
@@ -98,7 +92,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto space-y-5 sm:space-y-6 animate-fade-in">
-      {/* Top Selector Bar for Slots */}
+      {}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white p-1.5 rounded-2xl border border-canvas-border shadow-sm">
         {(['morning', 'noon', 'evening', 'bedtime'] as TimeSlot[]).map((slot) => {
           const isActive = activeSlot === slot;
@@ -122,11 +116,11 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
         })}
       </div>
 
-      {/* Main Focus Card */}
+      {}
       <div
         className={`rounded-2xl border border-canvas-border ${meta.bg} p-4 sm:p-8 shadow-sm space-y-5 sm:space-y-6 text-slate-900`}
       >
-        {/* Header with Slot, Time & Voice Read-Aloud */}
+        {}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 border-b border-slate-200 pb-5 sm:pb-6">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50 border border-slate-200 shadow-inner shrink-0">
@@ -143,7 +137,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
             </div>
           </div>
 
-          {/* Voice Read Aloud Button */}
+          {}
           <button
             type="button"
             onClick={speakInstructions}
@@ -160,7 +154,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
           </button>
         </div>
 
-        {/* Big Medication List */}
+        {}
         <div className="space-y-4">
           <h3 className="text-caption uppercase tracking-wider text-muted font-bold">
             Medications for this time ({pillsInSlot.length})
@@ -210,7 +204,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
           )}
         </div>
 
-        {/* Bottom Take Action Button */}
+        {}
         {pillsInSlot.length > 0 && (
           <div className="pt-2">
             <button
@@ -238,7 +232,7 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
         )}
       </div>
 
-      {/* Switch to Full 7x4 Grid Mode */}
+      {}
       <div className="text-center">
         <button
           onClick={onSwitchToFullView}
@@ -250,3 +244,4 @@ export const SimpleElderView: React.FC<SimpleElderViewProps> = ({
     </div>
   );
 };
+

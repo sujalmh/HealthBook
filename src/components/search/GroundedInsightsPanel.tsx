@@ -1,10 +1,3 @@
-/**
- * GroundedInsightsPanel — Healthcare Grounding UI (intelligence AFTER extraction)
- * Shows web-grounded medical insights with citations, powered by Exa search.
- * - Highlights mode for token-efficient agent workflows
- * - Citations from official sources (CDC, NIH, PubMed, Mayo)
- * - Plain-language, not extraction — interpretation layer
- */
 
 import React, { useState, useEffect } from 'react';
 import { Search, ExternalLink, Sparkles, ShieldCheck, Loader2, AlertTriangle, BookOpen, RefreshCw } from 'lucide-react';
@@ -18,7 +11,7 @@ let availabilityPromise: Promise<boolean> | null = null;
 interface Props {
   patientId: string;
   initialQuery?: string;
-  contextFacts?: string; // e.g. "Creatinine 1.8 mg/dL, eGFR 32, on Lisinopril"
+  contextFacts?: string;
   mode?: 'lab' | 'med' | 'condition' | 'general';
   className?: string;
   autoSearch?: boolean;
@@ -31,7 +24,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
   autoSearch = false,
 }) => {
   const [query, setQuery] = useState(initialQuery);
-  const [fresh, setFresh] = useState(false); // maxAgeHours 0 toggle
+  const [fresh, setFresh] = useState(false);
   const [searchType, setSearchType] = useState<'auto' | 'fast' | 'instant'>('auto');
   const [isLoading, setIsLoading] = useState(false);
   const [insight, setInsight] = useState<GroundedInsight | null>(null);
@@ -64,7 +57,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
     setError(null);
     setInsight(null);
     try {
-      // AI search for accuracy — no hardcoded domains; systemPrompt guides to authoritative sources
+
       if (fresh) {
         const res = await searchExa({
           query: q + (contextFacts ? ` Context: ${contextFacts}` : ''),
@@ -115,7 +108,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
 
   return (
     <div className={`bg-white border border-canvas-border rounded-2xl shadow-sm overflow-hidden ${className}`}>
-      {/* Header */}
+      {}
       <div className="px-4 sm:px-5 py-3.5 border-b border-canvas-border bg-canvas-muted flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-teal-700 text-white flex items-center justify-center shadow-sm shrink-0">
@@ -139,7 +132,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Search bar */}
+      {}
       <div className="p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
@@ -195,7 +188,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Presets */}
+        {}
         <div className="flex flex-wrap gap-1.5">
           {presetQueries.map((p) => (
             <button
@@ -226,7 +219,7 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Results */}
+        {}
         {insight && (
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between">
@@ -310,3 +303,4 @@ export const GroundedInsightsPanel: React.FC<Props> = ({
     </div>
   );
 };
+

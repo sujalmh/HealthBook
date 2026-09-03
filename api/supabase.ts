@@ -1,16 +1,6 @@
-/**
- * Healthbook Supabase Proxy — Vercel Serverless Handler
- * Enables Supabase persistence using DATABASE_URL (postgres) directly,
- * bypassing the need for VITE_SUPABASE_ANON_KEY.
- * Mirrors Supabase REST API for the 13 vault tables: supports
- * GET /rest/v1/<table>?patient_id=eq.<pid> and POST upsert.
- * Uses `pg` Pool with DATABASE_URL. Falls back to in-memory if DB unreachable.
- * Never logs password. Handles CORS and both Node/Web runtimes.
- */
 
 export const maxDuration = 30;
 
-// Table -> primary key column
 const PRIMARY_KEYS: { [key: string]: string } = {
   facts: 'id',
   documents: 'id',
@@ -29,7 +19,6 @@ const PRIMARY_KEYS: { [key: string]: string } = {
   interaction_cache: 'id',
 };
 
-// Lazy pg pool
 let pool: unknown = null;
 async function getPool() {
   if (pool) return pool;
@@ -44,8 +33,7 @@ async function getPool() {
       idleTimeoutMillis: 10000,
       connectionTimeoutMillis: 8000,
     });
-    // Test connection with timeout
-    // Do not throw if fails — return null and fallback to no-op
+
     try {
       const p = pool as { connect: () => Promise<{ release: () => void }> };
       const client = await p.connect();
@@ -84,12 +72,12 @@ function jsonResponse(data: unknown, status = 200) {
 function parseTableFromUrl(url: string): string | null {
   try {
     const u = new URL(url, 'http://localhost');
-    // Handle /api/supabase/rest/v1/<table> or /rest/v1/<table> or ?table=<name>
+
     const match = u.pathname.match(/\/rest\/v1\/([^\/\?]+)/);
     if (match && match[1]) return match[1];
     const qTable = u.searchParams.get('table');
     if (qTable) return qTable;
-    // Also check path like /api/supabase?table=facts
+
     return null;
   } catch {
     return null;
@@ -99,16 +87,16 @@ function parseTableFromUrl(url: string): string | null {
 function parsePatientIdFromUrl(url: string): string | null {
   try {
     const u = new URL(url, 'http://localhost');
-    // Supabase REST uses patient_id=eq.<value> or patientId
+
     const pidEq = u.searchParams.get('patient_id');
     if (pidEq) {
-      // Format: eq.<id>
+
       if (pidEq.startsWith('eq.')) return decodeURIComponent(pidEq.slice(3));
       return pidEq;
     }
     const pid = u.searchParams.get('patientId') || u.searchParams.get('patient_id');
     if (pid) return pid;
-    // Also check plain patient_id query without eq
+
     for (const [k, v] of u.searchParams.entries()) {
       if (k === 'patient_id' || k === 'patientId') {
         if (v.startsWith('eq.')) return decodeURIComponent(v.slice(3));
@@ -129,7 +117,7 @@ async function handleGet(req: Request, url: string) {
     return jsonResponse({ error: 'table required', hint: 'use /rest/v1/<table>?patient_id=eq.<id>' }, 400);
   }
   if (!PRIMARY_KEYS[table]) {
-    // Allow any table but warn
+
     console.warn('[supabase-proxy] Unknown table', table);
   }
   if (!patientId) {
@@ -138,12 +126,12 @@ async function handleGet(req: Request, url: string) {
 
   const pgPool = await getPool();
   if (!pgPool) {
-    // No DB — return empty (local-only fallback, but consider enabled)
+
     return jsonResponse([]);
   }
 
   try {
-    // Use parameterized query to prevent injection; table name validated via allowlist
+
     const allowedTables = new Set(Object.keys(PRIMARY_KEYS));
     if (!allowedTables.has(table)) {
       return jsonResponse({ error: `table ${table} not allowed` }, 400);
@@ -155,7 +143,7 @@ async function handleGet(req: Request, url: string) {
         try {
           (r as { payload: unknown }).payload = JSON.parse(r.payload);
         } catch {
-          // ignore
+
         }
       }
       return r;
@@ -164,7 +152,7 @@ async function handleGet(req: Request, url: string) {
   } catch (e: unknown) {
     const msg = String((e as { message?: string })?.message || '');
     console.warn('[supabase-proxy] SELECT failed', table, msg || String(e));
-    // Gracefully handle known infrastructural failures: missing table, DNS, IPv6-only, connection errors → empty (local fallback)
+
     if (
       msg.includes('does not exist') ||
       msg.includes('ENOTFOUND') ||
@@ -190,7 +178,6 @@ async function handlePost(req: Request, url: string) {
     return jsonResponse({ error: 'invalid JSON body', details: msg }, 400);
   }
 
-  // Determine table: from path or body.table or body may be record with table inference
   let table = tableFromPath;
   if (!table && body && typeof body === 'object') {
     const bodyObj = body as { table?: string; record?: unknown; payload?: unknown };
@@ -199,7 +186,7 @@ async function handlePost(req: Request, url: string) {
       body = bodyObj.record || bodyObj.payload || body;
     }
   }
-  // Also handle case where body is the record and table is in query
+
   if (!table) {
     const urlTable = new URL(url, 'http://localhost').searchParams.get('table');
     if (urlTable) table = urlTable;
@@ -238,11 +225,8 @@ async function handlePost(req: Request, url: string) {
     (record.reportId as string | undefined) ||
     `id_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
-  // Ensure primaryVal is string
   const pk = String(primaryVal);
 
-  // For other tables, we need to handle id vs link_id etc.
-  // Build upsert that stores payload and patient_id, plus primary key
   const patientIdTrim = String(patientId).trim();
 
   try {
@@ -285,7 +269,7 @@ async function handlePost(req: Request, url: string) {
       try {
         (row as { payload: unknown }).payload = JSON.parse((row as { payload: string }).payload);
       } catch {
-        // ignore
+
       }
     }
     return jsonResponse(row || record);
@@ -300,7 +284,7 @@ async function handlePost(req: Request, url: string) {
       msg.includes('connect ECONNREFUSED') ||
       msg.includes('timeout')
     ) {
-      // DB unreachable (IPv6-only host on IPv4 egress, DNS) → simulate success (local-only)
+
       return jsonResponse(record);
     }
     return jsonResponse({ error: e instanceof Error ? e.message : String(e) }, 500);
@@ -348,7 +332,6 @@ async function handler(req: Request): Promise<Response> {
   }
 }
 
-// Support both Vercel Node (req, res) and Web (Request)
 export default async function supabaseHandler(req: unknown, res?: unknown) {
   const r = req as { method?: string; url?: string; headers?: { host?: string; 'x-forwarded-proto'?: string }; body?: unknown; on?: (e: string, cb: (chunk: unknown) => void) => void };
   const s = res as { setHeader?: (k: string, v: string) => void; status?: (c: number) => { end: () => void; send: (t: string) => void; json: (o: unknown) => void } & unknown; end?: () => void; send?: (t: string) => void; json?: (o: unknown) => void };
@@ -395,7 +378,7 @@ export default async function supabaseHandler(req: unknown, res?: unknown) {
         try {
           if (s.setHeader) s.setHeader(k, v);
         } catch {
-          // ignore
+
         }
       }
       return (s as { send: (t: string) => unknown }).send(text);
@@ -431,3 +414,4 @@ export async function DELETE(req: Request) {
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: corsHeaders() as unknown as HeadersInit });
 }
+

@@ -1,9 +1,3 @@
-/**
- * Healthbook Component: PillMapView
- * Main module container for Milestone 3 (PillMap & Polypharmacy Negotiator 7x4 Canvas).
- * Features: Chronotype selector, OTC drag palette, SVG conflict arcs, meal badges,
- * schedule optimizer ghost preview, missed dose adherence simulator, and pharmacist export.
- */
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
@@ -65,7 +59,6 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const [viewMode, setViewMode] = useState<'canvas' | 'elder'>('canvas');
   const [grid, setGrid] = useState<IPillboxGrid>(() => createEmptyGrid());
 
-  // Interactive Clinical Evaluations
   const [interactionArcs, setInteractionArcs] = useState<InteractionArc[]>([]);
   const [dietBadges, setDietBadges] = useState<DietBadge[]>([]);
   const [duplicateAlerts, setDuplicateAlerts] = useState<DuplicateIngredientAlert[]>([]);
@@ -73,7 +66,6 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const [isChecking, setIsChecking] = useState(false);
   const [evalError, setEvalError] = useState(false);
 
-  // Modals state
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState<ScheduleSuggestionResult | null>(null);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
@@ -93,14 +85,12 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     return empty;
   }
 
-  // Load and refresh grid from LocalVault — read-only, no per-view seeding (centralized seed.ts via main.tsx owns baseline).
-  // Uses effectivePatientId derived via globalThis localStorage healthbook_active_user for isolation never '' leak
   const loadMedicationsFromVault = () => {
     const pid = effectivePatientId;
     const vaultMeds = pid ? localVault.getMedications(pid, 'active') : [];
 
     if (vaultMeds.length === 0) {
-      // Graceful empty state: centralized seed populates vault; view shows empty grid without divergent auto-seed
+
       setGrid(createEmptyGrid());
       recalculateEvaluations([]);
       return;
@@ -109,8 +99,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     const newGrid = createEmptyGrid();
 
     for (const med of vaultMeds) {
-      // Display names come straight from the record — generic resolution is an
-      // AI concern handled at evaluation time, not grid-build time.
+
       const generic = med.genericName || med.brandName || med.name || '';
       const pillItem: PillSlotItem = {
         id: med.id,
@@ -152,17 +141,13 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       dairyBreakfast: true,
       usesPotassiumSaltSubstitute: true
     };
-    // AI-native, cache-first: serve the stored AI evaluation instantly when
-    // fresh; otherwise run the AI pipeline once and store the result. No
-    // fabricated content — an AI failure clears the panels and shows a retry
-    // affordance instead of invented warnings.
+
     type EvalMeds = Parameters<typeof healthRepository.evaluateInteractions>[1];
     try {
       const fullMeds = effectivePatientId ? healthRepository.getActiveMedications(effectivePatientId) : [];
-      // Correlate the grid snapshot to canonical vault records so the
-      // fingerprint reflects stored doses (not stale grid copies).
+
       const evalMeds = (fullMeds.length > 0 ? fullMeds : vaultMeds) as unknown as EvalMeds;
-      // Spinner only when no fresh stored evaluation exists for this regimen.
+
       let needsFetch = true;
       try {
         needsFetch = !healthRepository.hasFreshEvaluation(effectivePatientId, evalMeds, dietFlags);
@@ -180,7 +165,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         if (needsFetch) setIsChecking(false);
       }
     } catch {
-      // AI pipeline unavailable — show nothing fabricated + retry affordance
+
       setInteractionArcs([]);
       setDietBadges([]);
       setDuplicateAlerts([]);
@@ -213,7 +198,6 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     };
   }, [effectivePatientId]);
 
-  // Pill visual helpers
   function getCategoryColor(genericName: string): string {
     const lower = (genericName ?? '').toLowerCase();
     if (lower.includes('apixaban') || lower.includes('warfarin') || lower.includes('clopidogrel') || lower.includes('aspirin')) return '#3B82F6';
@@ -300,9 +284,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         }
       }
     }
-    // Canonical removal via repository: single audited mutation that writes to
-    // the server first, emits medication_updated, and invalidates stored
-    // interaction evaluations.
+
     try {
       const removed = await healthRepository.removeMedication(baseId, {
         userId: activeProfile.userId,
@@ -375,14 +357,12 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     loadMedicationsFromVault();
   };
 
-  // Open simulator
   const handleOpenSimulator = (pill?: PillSlotItem, day: DayOfWeek = 'tuesday', slot: TimeSlot = 'morning') => {
     setSimulatorMed(pill?.name || 'Metformin');
     setSimulatorSlot({ day, slot });
     setIsSimulatorOpen(true);
   };
 
-  // Export for Pharmacist — reflects AI-derived interactions/diet badges
   const handleOpenExport = () => {
     const activeMeds = localVault.getMedications(effectivePatientId, 'active');
     const bundle: PharmacistExportBundle = {
@@ -511,7 +491,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
 
   return (
     <div className="space-y-3 animate-fade-in">
-      {/* Top Controls Bar */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-sm space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight text-slate-900 truncate">
@@ -529,7 +509,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View Mode Toggle (Full Grid vs Elder Mode) */}
+          {}
           <div className="flex items-center gap-0.5 bg-canvas-muted p-0.5 rounded-xl border border-canvas-border text-xs shadow-xs shrink-0">
             <button
               onClick={() => setViewMode('canvas')}
@@ -549,7 +529,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             </button>
           </div>
 
-          {/* Chronotype Selector */}
+          {}
           <div className="flex items-center bg-canvas-muted px-2.5 py-1 rounded-xl border border-canvas-border text-xs gap-1.5 min-h-[40px] shadow-xs flex-1 min-w-0">
             <Clock className="w-4 h-4 text-amber-500 shrink-0" />
             <select
@@ -565,7 +545,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           </div>
         </div>
 
-        {/* Action Button Strip — icon-only on phone, labeled on desktop; the empty state owns the Add CTA */}
+        {}
         {activeMedsCount > 0 && (
         <div className="flex items-center gap-1.5 pt-2.5 border-t border-canvas-border">
           <button
@@ -608,7 +588,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         )}
       </div>
 
-      {/* AI Checking Banner — R1 loading indicator visible within 200ms when AI path in-flight */}
+      {}
       {isChecking && (
         <div
           role="status"
@@ -621,7 +601,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         </div>
       )}
 
-      {/* AI evaluation error — honest empty state with retry, never fabricated warnings */}
+      {}
       {evalError && interactionArcs.length === 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm">
           <span className="font-semibold text-sm text-amber-900">
@@ -637,9 +617,9 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         </div>
       )}
 
-      {/* Alert Banners (Drug-Drug Arcs, Duplicates, Diet Rules) */}
+      {}
       <div className="space-y-3">
-        {/* Contraindicated / Major Interactions Banner — light, high contrast */}
+        {}
         {interactionArcs.length > 0 && (
           <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2.5">
@@ -667,7 +647,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           </div>
         )}
 
-        {/* Duplicate Active Ingredient Warning Banner — light */}
+        {}
         {duplicateAlerts.length > 0 && (
           <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex items-start gap-2.5 text-xs text-amber-800">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -685,7 +665,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         )}
       </div>
 
-      {/* Friendly empty when no medicines */}
+      {}
       {activeMedsCount === 0 && viewMode !== 'elder' ? (
         <div className="bg-canvas-card border border-dashed border-canvas-border rounded-2xl p-10 text-center space-y-4 shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
@@ -698,7 +678,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           </button>
         </div>
       ) : null}
-      {/* Main View Mode Render */}
+      {}
       {viewMode === 'elder' ? (
         <SimpleElderView
           currentSlot="morning"
@@ -724,7 +704,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
             }}
           />
 
-          {/* Interactive OTC & Supplement Drag Palette */}
+          {}
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-sm space-y-3">
             <h3 className="text-sm font-bold text-slate-800">
               Store medicines — tap to add
@@ -772,7 +752,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         </div>
       )}
 
-      {/* Global Modals */}
+      {}
       {isShiftModalOpen && activeSuggestion && (
         <ShiftPreviewModal
           suggestion={activeSuggestion}
@@ -821,3 +801,4 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     </div>
   );
 };
+

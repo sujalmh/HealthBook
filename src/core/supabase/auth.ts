@@ -43,7 +43,7 @@ function baseUrl(): string | null {
     const env = import.meta.env;
     const v = env && env.VITE_SUPABASE_URL;
     if (typeof v === 'string' && v) return v.replace(/\/$/, '');
-  } catch { /* ignore */ }
+  } catch {  }
   return null;
 }
 
@@ -52,7 +52,7 @@ function anonKey(): string | null {
     const env = import.meta.env;
     const v = env && env.VITE_SUPABASE_ANON_KEY;
     if (typeof v === 'string' && v) return v;
-  } catch { /* ignore */ }
+  } catch {  }
   return null;
 }
 
@@ -121,7 +121,7 @@ export async function supabaseSignIn(email: string, password: string) {
 export async function supabaseSignOut(accessToken: string): Promise<void> {
   try {
     await call('/logout', { method: 'POST', token: accessToken });
-  } catch { /* ignore */ }
+  } catch {  }
   clearSession();
 }
 
@@ -134,7 +134,7 @@ async function refreshSession(refreshToken: string): Promise<AuthSession | null>
 export function storeSession(session: AuthSession): void {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch { /* ignore */ }
+  } catch {  }
 }
 
 export function loadSession(): AuthSession | null {
@@ -151,7 +151,7 @@ export function clearSession(): void {
   try {
     localStorage.removeItem(SESSION_KEY);
     localStorage.removeItem(ACTIVE_KEY);
-  } catch { /* ignore */ }
+  } catch {  }
 }
 
 async function validSession(): Promise<AuthSession | null> {
@@ -243,7 +243,7 @@ export function persistActiveProfile(profile: UserProfile): CompletedAuth {
   };
   try {
     localStorage.setItem(ACTIVE_KEY, JSON.stringify(completed));
-  } catch { /* ignore */ }
+  } catch {  }
   return completed;
 }
 
@@ -285,12 +285,13 @@ export function purgeLegacyCredentialStores(): string[] {
     const victims: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && (k === 'healthbook_users' || k.startsWith('healthbook_cred_') || k === 'carecanvas_users' || k.startsWith('carecanvas_cred_'))) victims.push(k);
+      if (k && (k === 'healthbook_users' || k.startsWith('healthbook_cred_'))) victims.push(k);
     }
     for (const k of victims) {
       localStorage.removeItem(k);
       removed.push(k);
     }
-  } catch { /* ignore */ }
+  } catch {  }
   return removed;
 }
+

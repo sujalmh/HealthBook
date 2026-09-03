@@ -15,7 +15,6 @@ import {
   Layers,
   Stethoscope,
 } from 'lucide-react';
-import { PrivacyBadge } from '@/components/common/PrivacyBadge';
 import { QuestionBank } from '@/components/common/QuestionBank';
 import { WebMCPInspector } from '@/components/common/WebMCPInspector';
 import { ConnectWebMCPModal } from '@/components/common/ConnectWebMCPModal';
@@ -43,13 +42,6 @@ import { eventBus } from '@/core/events/eventBus';
 import { hydrateFromSupabase } from '@/core/vault/supabaseSync';
 import { isViewOnly as isViewOnlyUtil } from '@/core/rbac/canAccess';
 
-// Merged navigation: Records+Labs → Health (4 sub-tabs), Ask (ex-Questions) centered + highlighted
-// Health   = My Records (vault) + Lab Results (labstory) + Tests to Do (homelab) + For My Doctor (dossier) — 4-in-1
-// Ask      = Doctor Questions (ex-Questions) — centered, amber highlight
-// Medicines= My Medicines (pillmap) + Medicine Review (rxbridge)
-// Help     = Get Help (safety) | Family = Family (carecircle)
-// Settings stays header gear. 5-item bottom bar: Health | Medicines | Ask | Help | Family (Ask centered)
-// Doctor  = My Patients dashboard when role === 'doctor' (RBAC doctor ↔ patient linking)
 export type ActiveModule = 'health' | 'medicines' | 'ask' | 'safety' | 'family' | 'settings' | 'doctor' | 'profile';
 export type HealthSub = 'vault' | 'labstory' | 'homelab' | 'dossier';
 export type MedicinesSub = 'pillmap' | 'rxbridge';
@@ -84,7 +76,6 @@ export const App: React.FC = () => {
   const [askWhyPrefill, setAskWhyPrefill] = useState<{ marker?: string; query?: string } | null>(null);
   const [doctorSelectedPatientId, setDoctorSelectedPatientId] = useState<string | null>(null);
 
-  // Restore session from localStorage on mount
   useEffect(() => {
     try {
       const raw = localStorage.getItem('healthbook_active_user');
@@ -105,18 +96,17 @@ export const App: React.FC = () => {
           setActiveProfile(normalized);
         }
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
     setIsHydrated(true);
   }, []);
 
-  // MCP auth bridge: AI prepared sign-up/sign-in (human-only password) — switch gate view and hydrate profile on completion
   useEffect(() => {
     const onPending = (e: Event) => {
       try {
         const detail = (e as CustomEvent).detail as { mode?: string };
         if (!activeProfile && detail?.mode === 'create') setAuthMode('create');
         else if (!activeProfile && detail?.mode === 'signin') setAuthMode('signin');
-      } catch { /* ignore */ }
+      } catch {  }
     };
     const onCompleted = (e: Event) => {
       try {
@@ -135,14 +125,14 @@ export const App: React.FC = () => {
           };
           setActiveProfile(normalized);
         } else {
-          // Fallback: re-read from localStorage
+
           const raw = localStorage.getItem('healthbook_active_user');
           if (raw) {
             const parsed = JSON.parse(raw);
             if (parsed?.userId) handleCreated(parsed);
           }
         }
-      } catch { /* ignore */ }
+      } catch {  }
     };
     window.addEventListener('healthbook_mcp_auth_pending', onPending as EventListener);
     window.addEventListener('healthbook_mcp_prefill', onPending as EventListener);
@@ -160,7 +150,6 @@ export const App: React.FC = () => {
     };
   }, [activeProfile]);
 
-  // Unified pending/question counts — single source of truth for header badges.
   const refreshCounts = async () => {
     if (!activeProfile?.userId) {
       setPendingCount(0);
@@ -247,7 +236,6 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Close MCP dropdown on outside click / ESC — grouped MCP stuff for phone top bar
   useEffect(() => {
     if (!isMCPMenuOpen) return;
     const onDown = (e: MouseEvent) => {
@@ -312,20 +300,18 @@ export const App: React.FC = () => {
         eventBus.dispatchToast({ type: 'info', title: 'Patient Profile', message: `Active profile: ${restored.name} (Primary Patient).` });
         return;
       }
-    } catch {}
+    } catch { }
     const fallback: ActiveProfile = { ...activeProfile, role: 'patient', isProxy: false, relationship: undefined, onBehalfOf: undefined, permissionLevel: 'manage' };
     setActiveProfile(fallback);
     eventBus.dispatchToast({ type: 'info', title: 'Patient Profile', message: `Active profile: ${fallback.name} (Primary Patient).` });
   };
 
   const isDoctor = activeProfile?.role === 'doctor';
-  // doctors sign in with permissionLevel:'view_only' by design (read-only across patient vaults) —
-  // the caregiver "ask primary holder" degraded banner does not apply to them
+
   const isViewOnly = isViewOnlyUtil(activeProfile as unknown as { permissionLevel?: string }) && !isDoctor;
   const viewOnlyTooltip = 'View-only: cannot approve — ask primary holder';
   const isPatient = activeProfile?.role === 'patient' || !isDoctor;
 
-  // Auto-switch doctor to doctor module on login
   useEffect(() => {
     if (activeProfile?.role === 'doctor' && activeModule !== 'doctor') {
       setActiveModule('doctor');
@@ -335,28 +321,24 @@ export const App: React.FC = () => {
     }
   }, [activeProfile?.role]);
 
-  // Merged nav: 5 items with Ask centered + highlighted. Health merges Records+Labs (4 sub-tabs).
-  // Gated per role/tier: view_only shows disabled tooltip but remains visible for read
-  // Doctor role gets My Patients as primary nav (RBAC doctor ↔ patient)
   const navItems = isDoctor
     ? [
-        { id: 'doctor' as ActiveModule, label: 'My Patients', shortLabel: 'Patients', icon: Stethoscope, badge: null, desc: 'Patients who linked you — doctor access' },
-        { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: 'Family helpers (caregiver links)' },
-        { id: 'settings' as ActiveModule, label: 'Settings', shortLabel: 'Settings', icon: Settings, badge: null, desc: 'Settings' },
-      ]
+      { id: 'doctor' as ActiveModule, label: 'My Patients', shortLabel: 'Patients', icon: Stethoscope, badge: null, desc: 'Patients who linked you — doctor access' },
+      { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: 'Family helpers (caregiver links)' },
+      { id: 'settings' as ActiveModule, label: 'Settings', shortLabel: 'Settings', icon: Settings, badge: null, desc: 'Settings' },
+    ]
     : [
-        { id: 'health' as ActiveModule, label: 'Health', shortLabel: 'Health', icon: Layers, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Records + Labs + For Doctor' },
-        { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Weekly Box + Review' },
-        { id: 'ask' as ActiveModule, label: 'Ask', shortLabel: 'Ask', icon: HelpCircle, badge: questionCount > 0 ? `${questionCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Doctor Questions — ask', highlight: true as const },
-        { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Urgent help + appointments' },
-        { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Family helpers' },
-      ];
+      { id: 'health' as ActiveModule, label: 'Health', shortLabel: 'Health', icon: Layers, badge: pendingCount > 0 ? `${pendingCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Records + Labs + For Doctor' },
+      { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Weekly Box + Review' },
+      { id: 'ask' as ActiveModule, label: 'Ask', shortLabel: 'Ask', icon: HelpCircle, badge: questionCount > 0 ? `${questionCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Doctor Questions — ask', highlight: true as const },
+      { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Urgent help + appointments' },
+      { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Family helpers' },
+    ];
 
   const pastelActive = 'bg-primary-light text-primary-text border-primary-border shadow-sm';
   const pastelIconActive = 'text-primary-text';
   const pastelIconIdle = 'text-muted';
 
-  // Loading / hydration gate
   if (!isHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-canvas-bg">
@@ -365,7 +347,6 @@ export const App: React.FC = () => {
     );
   }
 
-  // Create Account / Sign In Gate — cold start with no user must show centered auth view, not vault grids
   if (!activeProfile) {
     return (
       <div className="min-h-screen flex flex-col bg-canvas-bg">
@@ -387,13 +368,12 @@ export const App: React.FC = () => {
       eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'We are still reading your paper. Please wait until we finish.' });
       return;
     }
-    // R8 global RBAC gate — view_only read-only degraded not blank, manage onBehalfOf, full admin
+
     const perm = activeProfile?.permissionLevel;
     if (perm === 'view_only') {
-      // Show degraded toast but still allow navigation for read-only viewing (not blank)
-      // Sensitive module deep gates inside SafetyView/TriagePanel will block write actions with PERMISSION_DENIED
+
       eventBus.dispatchToast({ type: 'info', title: 'View-only', message: 'View-only: cannot approve — ask primary holder (PERMISSION_DENIED)' });
-      // Fall through to still setActiveModule for read-only degraded view — not blank
+
     }
     setActiveModule(id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -402,7 +382,7 @@ export const App: React.FC = () => {
   const handleSessionEnd = () => {
     try {
       localVault.clearAll();
-    } catch { /* boundary */ }
+    } catch {  }
     setActiveProfile(null);
   };
 
@@ -411,10 +391,10 @@ export const App: React.FC = () => {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-xl focus:shadow-lg focus:border focus:border-canvas-border focus:outline-none focus:ring-2 focus:ring-primary">
         Skip to main content
       </a>
-      {/* Top Application Bar — solid, bordered; no glass or blur */}
+      {}
       <header className="border-b border-canvas-border bg-white sticky top-0 z-40 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 w-full">
         <div className="w-full max-w-none flex items-center justify-between gap-1.5 sm:gap-4">
-          {/* Logo & Subtitle — flat clinical-teal mark, serif wordmark */}
+          {}
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 shrink">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-primary flex items-center justify-center shrink-0" aria-hidden="true">
               <HeartPulse className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
@@ -429,15 +409,11 @@ export const App: React.FC = () => {
               <p className="text-caption font-medium text-muted hidden sm:block leading-none mt-0.5">Your health, all in one place</p>
             </div>
           </div>
-          {/* Center Privacy Badge — hidden on mobile to save space, visible lg */}
-          <div className="hidden lg:flex items-center shrink-0">
-            <PrivacyBadge patientId={activeProfile.userId} />
-          </div>
 
-          {/* Right Action Bar: MCP grouped, Settings, Profile (top right) — proxy moved to Family page, Ask centered in bottom nav */}
+          {}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
 
-            {/* MCP single Connect — desktop only; mobile header stays clinical */}
+            {}
             <button
               onClick={() => setIsConnectOpen(true)}
               className="hidden sm:flex relative items-center justify-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold border border-slate-800 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
@@ -452,14 +428,13 @@ export const App: React.FC = () => {
               )}
             </button>
 
-            {/* Settings — header gear, not in main nav, reduces clutter */}
+            {}
             <button
               onClick={() => handleNav('settings')}
-              className={`flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold border shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary ${
-                activeModule === 'settings'
+              className={`flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold border shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary ${activeModule === 'settings'
                   ? 'bg-primary-light text-primary-text border-primary-border shadow-sm'
                   : 'bg-white hover:bg-canvas-muted text-slate-700 border-canvas-border'
-              }`}
+                }`}
               aria-label="Settings"
               aria-current={activeModule === 'settings' ? 'page' : undefined}
               title="Settings"
@@ -468,13 +443,13 @@ export const App: React.FC = () => {
               <span className="hidden md:inline">Settings</span>
             </button>
 
-            {/* Profile — header avatar opens the full profile page */}
+            {}
             <ProfileIndicator activeProfile={activeProfile} onClick={() => handleNav('profile')} />
           </div>
         </div>
       </header>
 
-      {/* Primary Navigation — full-width, 5 items, Ask highlighted centered */}
+      {}
       <nav className="hidden md:block bg-white border-b border-canvas-border px-3 sm:px-6 lg:px-8 shadow-sm" aria-label="Primary">
         <div className="w-full max-w-none flex items-center justify-center gap-1.5 py-2.5">
           {navItems.map((item) => {
@@ -485,15 +460,14 @@ export const App: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => handleNav(item.id as ActiveModule)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 min-h-[44px] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${
-                  isAsk
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 min-h-[44px] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${isAsk
                     ? isActive
                       ? 'bg-amber-500 text-white border border-amber-600 focus-visible:ring-amber-500'
                       : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 shadow-sm focus-visible:ring-amber-500'
                     : isActive
                       ? `${pastelActive} focus-visible:ring-primary`
                       : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent focus-visible:ring-primary'
-                }`}
+                  }`}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={`${item.label}${item.badge ? `, ${item.badge} pending` : ''}`}
                 title={item.desc}
@@ -511,9 +485,9 @@ export const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Main Content Area — full-width desktop, stacked */}
+      {}
       <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-none px-3 sm:px-6 lg:px-8 py-3 sm:py-6 space-y-6 pb-24 md:pb-6 overflow-x-hidden outline-none">
-        {/* R8 global RBAC direct bypass gate — view_only read-only degraded not blank, not hidden */}
+        {}
         {isViewOnly && (
           <div
             data-testid="viewonly-banner"
@@ -524,9 +498,9 @@ export const App: React.FC = () => {
             <span>View-only: cannot approve — ask primary holder (PERMISSION_DENIED) — read-only degraded</span>
           </div>
         )}
-        {/* GROUP: Health = Records + Labs merged (4-in-1) — My Records + Lab Results + Tests to Do + For Doctor */}
+        {}
         <div className={activeModule === 'health' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'health'}>
-          {/* Sub-navigation — 4 tabs, responsive grid, 44px targets, accessible */}
+          {}
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Health sections">
             <div className="flex sm:grid sm:grid-cols-4 gap-1.5 overflow-x-auto scrollbar-none">
               <button
@@ -535,9 +509,8 @@ export const App: React.FC = () => {
                 aria-controls="health-vault-panel"
                 id="health-vault-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('vault'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  healthSub === 'vault' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
+                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${healthSub === 'vault' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                  }`}
               >
                 <Shield className={`w-4 h-4 ${healthSub === 'vault' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
                 <span className="truncate">My Records</span>
@@ -551,9 +524,8 @@ export const App: React.FC = () => {
                 aria-controls="health-labstory-panel"
                 id="health-labstory-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('labstory'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  healthSub === 'labstory' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
+                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${healthSub === 'labstory' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                  }`}
               >
                 <Activity className={`w-4 h-4 ${healthSub === 'labstory' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
                 <span className="truncate">Lab Results</span>
@@ -564,9 +536,8 @@ export const App: React.FC = () => {
                 aria-controls="health-homelab-panel"
                 id="health-homelab-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('homelab'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  healthSub === 'homelab' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
+                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${healthSub === 'homelab' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                  }`}
               >
                 <HeartPulse className={`w-4 h-4 ${healthSub === 'homelab' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
                 <span className="truncate">Tests to Do</span>
@@ -577,9 +548,8 @@ export const App: React.FC = () => {
                 aria-controls="health-dossier-panel"
                 id="health-dossier-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('dossier'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  healthSub === 'dossier' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
+                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${healthSub === 'dossier' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                  }`}
               >
                 <FolderLock className={`w-4 h-4 ${healthSub === 'dossier' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
                 <span className="truncate">For Doctor</span>
@@ -603,7 +573,7 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* GROUP: Medicines = Weekly Planner (pillmap) + Medicine Review (rxbridge) */}
+        {}
         <div className={activeModule === 'medicines' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'medicines'}>
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Medicines sections">
             <div className="flex gap-1.5">
@@ -613,9 +583,8 @@ export const App: React.FC = () => {
                 aria-controls="meds-pillmap-panel"
                 id="meds-pillmap-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setMedicinesSub('pillmap'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-2 sm:px-4 py-2.5 rounded-xl text-[13px] sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  medicinesSub === 'pillmap' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 px-2 sm:px-4 py-2.5 rounded-xl text-[13px] sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${medicinesSub === 'pillmap' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                  }`}
               >
                 <Pill className={`w-4 h-4 shrink-0 ${medicinesSub === 'pillmap' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
                 <span className="whitespace-nowrap">Weekly Planner</span>
@@ -626,9 +595,8 @@ export const App: React.FC = () => {
                 aria-controls="meds-rxbridge-panel"
                 id="meds-rxbridge-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setMedicinesSub('rxbridge'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex-1 flex items-center justify-center gap-2 px-2 sm:px-4 py-2.5 rounded-xl text-[13px] sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
-                  medicinesSub === 'rxbridge' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 px-2 sm:px-4 py-2.5 rounded-xl text-[13px] sm:text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${medicinesSub === 'rxbridge' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
+                  }`}
               >
                 <FileCheck2 className={`w-4 h-4 shrink-0 ${medicinesSub === 'rxbridge' ? 'text-primary-text' : 'text-muted'}`} aria-hidden="true" />
                 <span className="whitespace-nowrap">Medicine Review</span>
@@ -645,12 +613,12 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* SINGLE: Get Help (safety) — no sub-tabs, keeps original internal tabs */}
+        {}
         <div className={activeModule === 'safety' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'safety'}>
           <SafetyView patientId={activeProfile.userId} activeProfile={activeProfile} />
         </div>
 
-        {/* SINGLE: Family (carecircle) */}
+        {}
         <div className={activeModule === 'family' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'family'}>
           <CareCircleView
             patientId={activeProfile.userId}
@@ -659,7 +627,7 @@ export const App: React.FC = () => {
           />
         </div>
 
-        {/* DOCTOR: My Patients dashboard + patient record access (RBAC doctor ↔ patient) */}
+        {}
         <div className={activeModule === 'doctor' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'doctor'}>
           {isDoctor ? (
             doctorSelectedPatientId ? (
@@ -685,23 +653,23 @@ export const App: React.FC = () => {
           )}
         </div>
 
-        {/* ASK — simple chatbot: ask, get a grounded answer, save for your visit. */}
+        {}
         <div className={activeModule === 'ask' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'ask'}>
           <AskChat patientId={activeProfile.userId} initialQuery={askWhyPrefill?.query} />
         </div>
 
-        {/* SETTINGS — accessed via header gear */}
+        {}
         <div className={activeModule === 'settings' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'settings'}>
           <SettingsView />
         </div>
 
-        {/* PROFILE — opened from the header avatar */}
+        {}
         <div className={activeModule === 'profile' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'profile'}>
           <ProfilePage activeProfile={activeProfile} onSignOut={handleSessionEnd} />
         </div>
       </main>
 
-      {/* Mobile Bottom Nav — grid cols adapt to role (patient 5 vs doctor 3), no scroll, 44px+ targets, safe-area, accessible */}
+      {}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-canvas-border shadow-[0_-4px_12px_rgba(0,0,0,0.06)] z-40"
         style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom, 0px))' }}
@@ -716,15 +684,14 @@ export const App: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => handleNav(item.id as ActiveModule)}
-                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold leading-none transition-all duration-200 focus-visible:ring-2 focus-visible:outline-none relative ${
-                  isAsk
+                className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[10px] font-bold leading-none transition-all duration-200 focus-visible:ring-2 focus-visible:outline-none relative ${isAsk
                     ? isActive
                       ? 'bg-amber-500 text-white border border-amber-600 min-h-[56px] focus-visible:ring-amber-500'
                       : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 min-h-[56px] focus-visible:ring-amber-500'
                     : isActive
                       ? 'bg-primary-light text-primary-text border border-primary-border shadow-xs min-h-[56px] focus-visible:ring-primary'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-canvas-muted border border-transparent min-h-[56px] focus-visible:ring-primary'
-                }`}
+                  }`}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={`${item.label}${item.badge ? `, ${item.badge} pending` : ''}`}
                 title={item.desc}
@@ -744,7 +711,7 @@ export const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Global Modals */}
+      {}
       <ModalPortal isOpen={isQuestionBankOpen} onClose={() => setIsQuestionBankOpen(false)} ariaLabel="Doctor Question Bank">
         <div className="max-w-2xl w-full mx-auto">
           <QuestionBank patientId={activeProfile.userId} onClose={() => setIsQuestionBankOpen(false)} />
@@ -758,3 +725,4 @@ export const App: React.FC = () => {
     </div>
   );
 };
+

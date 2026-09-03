@@ -32,14 +32,13 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
   onProposalCreated,
   onCommentPinned
 }) => {
-  // Pinned Note Form
+
   const [selectedLabId, setSelectedLabId] = useState<string>(labs[0]?.id || 'lab_egfr_current');
   const [pinnedText, setPinnedText] = useState<string>(
     'Stage 4 renal strain detected. eGFR 28 mL/min. Halve Metformin to 500mg QAM to avoid lactic acidosis.'
   );
   const [isPinning, setIsPinning] = useState(false);
 
-  // Proposal Builder Form
   const [propMedName, setPropMedName] = useState('Metformin');
   const [propCurrentDose, setPropCurrentDose] = useState('1000mg BID');
   const [propNewDose, setPropNewDose] = useState('500mg Daily (Morning Only)');
@@ -48,7 +47,6 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
   );
   const [isSubmittingProposal, setIsSubmittingProposal] = useState(false);
 
-  // Cadence Form
   const [nextCadence, setNextCadence] = useState('4_weeks');
   const [cadenceTestPanel, setCadenceTestPanel] = useState('Repeat eGFR & Serum Potassium');
   const [isSchedulingCadence, setIsSchedulingCadence] = useState(false);
@@ -86,7 +84,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         if (onCommentPinned) onCommentPinned();
       }
     } catch (err) {
-      
+
     } finally {
       setIsPinning(false);
     }
@@ -126,7 +124,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         if (onProposalCreated) onProposalCreated();
       }
     } catch (err) {
-      
+
     } finally {
       setIsSubmittingProposal(false);
     }
@@ -160,7 +158,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         eventBus.emit('due_card_added', res.data);
       }
     } catch (err) {
-      
+
     } finally {
       setIsSchedulingCadence(false);
     }
@@ -168,7 +166,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Clinician Header */}
+      {}
       <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-200">
@@ -191,7 +189,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Pinned Annotation Creator (📌) */}
+        {}
         <div className="lg:col-span-6 bg-white border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b border-canvas-border pb-3">
             <div className="flex items-center gap-2">
@@ -239,7 +237,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
           </form>
         </div>
 
-        {/* Right Column: Dosage Proposal Builder */}
+        {}
         <div className="lg:col-span-6 bg-white border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b border-canvas-border pb-3">
             <div className="flex items-center gap-2">
@@ -307,7 +305,7 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
         </div>
       </div>
 
-      {/* Auto-Set Next Lab Cadence (HL7) */}
+      {}
       <div className="bg-white border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-canvas-border pb-3">
           <div className="flex items-center gap-2">
@@ -356,3 +354,4 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
     </div>
   );
 };
+

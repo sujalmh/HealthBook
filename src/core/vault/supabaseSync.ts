@@ -1,19 +1,3 @@
-/**
- * Healthbook Supabase Sync & Hydration Layer (M2)
- *
- * Domain: LocalVault <-> Supabase Postgres persistence
- * - syncToSupabase: fire-and-forget upsert after local Map.set + EventBus emit (non-blocking, no event duplication)
- * - hydrateFromSupabase / hydrateFromSupabaseToVault: pull Postgres rows -> Map.set silently without emitting duplicate `added` inflation
- *
- * Patient isolation: exact `patientId ===` per-account (never includes, never prefix) — real userId from healthbook_active_user.
- * CANONICAL_PATIENT_ID retained only as legacy migration constant re-export (see seed.ts), not as default activeProfile.
- * Offline graceful: missing URL or Supabase down => {hydrated:0, skipped:true} without throw, no throw to bootstrap
- * EventBus relevance matrix: hydration does NOT emit added/updated events; only optional silent meta, no spurious rerender
- * Empty vault guarantee: fresh account starts 0 facts/meds/labs until FileReader upload (M2 gate)
- *
- * Ownership: ws-m2-auth-gate (src/core/vault/supabaseSync.ts)
- * DependsOn: ws-m1-mock-removal
- */
 
 import type { LocalVaultManager } from './LocalVault.ts';
 import {
@@ -26,7 +10,6 @@ import {
 } from '../supabase/client.ts';
 import type { DoctorPatientLink } from '../../types/carecircle.ts';
 
-// Re-export canonical for convenience (single source is src/core/vault/seed.ts but client also exports)
 export const CANONICAL_PATIENT_ID = CANONICAL_FROM_CLIENT;
 
 export interface HydrationResult {
@@ -42,18 +25,6 @@ export interface SyncResult {
   error?: string;
 }
 
-// ------------------------------------------------------------------
-// Sync helper — non-blocking upsert, no EventBus re-emit
-// ------------------------------------------------------------------
-
-/**
- * Non-blocking sync of a single record to Supabase.
- * - Checks isSupabaseEnabled() first (env-gated, local-only fallback)
- * - Validates patientId presence (exact string, not empty)
- * - Calls upsertSupabaseRecord (generic) which does patientId === check and Supabase upsert
- * - Never emits EventBus events (no duplication); caller handles toast fallback via .catch
- * - Never throws; returns {ok, skipped, error}
- */
 export async function syncToSupabase(table: string, record: unknown): Promise<SyncResult> {
   try {
     if (!isSupabaseEnabled()) return { ok: true, skipped: true };
@@ -72,11 +43,6 @@ export async function syncToSupabase(table: string, record: unknown): Promise<Sy
   }
 }
 
-// ------------------------------------------------------------------
-// Hydration helpers — pull Postgres rows -> Map.set silently
-// ------------------------------------------------------------------
-
-// Snake -> camel mapping for reconstruction when payload not present
 const SNAKE_TO_CAMEL: { [key: string]: string } = {
   patient_id: 'patientId',
   link_id: 'linkId',
@@ -208,7 +174,6 @@ function normalizeRow(table: string, raw: unknown): { [key: string]: unknown } {
   return base;
 }
 
-// Table -> vault map definition for hydration
 type TableMapping = { table: string; vaultKey: keyof LocalVaultManager; idField: string };
 
 const HYDRATION_MAPPINGS: TableMapping[] = [
@@ -228,9 +193,6 @@ const HYDRATION_MAPPINGS: TableMapping[] = [
   { table: 'interaction_cache', vaultKey: 'interactionCache' as unknown as keyof LocalVaultManager, idField: 'regimenHash' },
 ];
 
-// Heuristic: care_circle rows seeded for doctor↔patient linking carry doctor fields
-// in JSONB payload (doctorId / doctorName / doctorEmail). Family caregivers have
-// caregiverName / relationship instead. Route doctor rows to doctorPatientLinks.
 function isDoctorCareCircleRow(rec: { [key: string]: unknown }): boolean {
   const dId = rec.doctorId;
   const dName = rec.doctorName;
@@ -241,19 +203,12 @@ function isDoctorCareCircleRow(rec: { [key: string]: unknown }): boolean {
   return hasDoctorId || hasDoctorName || hasDoctorEmail;
 }
 
-/**
- * Core hydration: pulls each table's rows for patientId via fetchSupabaseTable (exact ===)
- * then silently Map.set without emitting duplicate `added` inflation.
- * has-check: if exists -> merged set without emitting added; if not -> set without emitting.
- * Patient isolation exact === on patientId string (skip mismatched rows even if server misfilters).
- * Never throws; Supabase down/offline => {hydrated:0, skipped:true}
- */
 export async function hydrateFromSupabase(patientId: string, vault: LocalVaultManager): Promise<HydrationResult> {
   if (!patientId || typeof patientId !== 'string' || patientId.trim() === '') {
     return { hydrated: 0, skipped: true, error: 'patientId required' };
   }
   const trimmedPatientId = patientId.trim();
-  // Env-gated: if not enabled, local-only fallback without network
+
   if (!isSupabaseEnabled()) {
     return { hydrated: 0, skipped: true };
   }
@@ -293,7 +248,7 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
           const rawObj = raw as { patient_id?: unknown };
           if (typeof rec.patientId !== 'string' || (rec.patientId as string).trim() !== trimmedPatientId) continue;
           if (rawObj.patient_id != null && String(rawObj.patient_id).trim() !== trimmedPatientId) continue;
-          // care_circle doctor vs family split — doctor rows go to doctorPatientLinks, not careCircle
+
           if (table === 'care_circle' && isDoctorCareCircleRow(rec)) {
             const dMap = (vault as unknown as { doctorPatientLinks?: Map<string, DoctorPatientLink> }).doctorPatientLinks;
             if (!dMap || typeof dMap.set !== 'function') continue;
@@ -314,9 +269,7 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
             total++;
             continue;
           }
-          // interaction_cache: vault key is ic_<patient>_<regimenHash> (see
-          // interactionCache.interactionCacheId), not the bare regimenHash.
-          // Rebuild the canonical key so hydrated rows hit getInteractionEvaluation.
+
           if (table === 'interaction_cache') {
             const pid = rec.patientId as string | undefined;
             const rhash = (rec.regimenHash as string | undefined) ?? (rec as { regimen_hash?: unknown }).regimen_hash as string | undefined;
@@ -368,7 +321,7 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
         counts['pending_items'] = await v.hydratePendingItems(trimmedPatientId);
         total += counts['pending_items'];
       }
-    } catch { /* inbox is additive on top of records */ }
+    } catch {  }
     return { hydrated: total, skipped: false, counts };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -376,11 +329,6 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
   }
 }
 
-/**
- * Alias with vault-first signature for bootstrap convenience:
- * hydrateFromSupabaseToVault(vault, patientId?) — patientId defaults to CANONICAL
- * Also supports hydrateFromSupabaseToVault(patientId, vault) legacy check via argument types.
- */
 export async function hydrateFromSupabaseToVault(
   vaultOrPatientId: LocalVaultManager | string,
   patientIdOrVault?: string | LocalVaultManager
@@ -399,25 +347,10 @@ export async function hydrateFromSupabaseToVault(
   return { hydrated: 0, skipped: true, error: 'invalid arguments to hydrateFromSupabaseToVault' };
 }
 
-// Legacy alias for orchestrator docs that mention hydrateFromSupabase(patientId) returning helper bound to singleton
-// Not used in tests but provided for spec completeness
 export async function hydrateSupabaseToVault(vault: LocalVaultManager, patientId: string = CANONICAL_FROM_CLIENT): Promise<HydrationResult> {
   return hydrateFromSupabase(patientId, vault);
 }
 
-// ------------------------------------------------------------------
-// Doctor-side hydration — care_circle payload rows carry doctor→patient
-// links (seeded per doctor), but the doctor dashboard reads the local-only
-// doctorPatientLinks map. Pull rows by payload->>doctorId / doctorEmail and
-// mirror them into the map silently so dashboard + view_patient_as_doctor
-// RBAC resolve on a fresh doctor browser.
-// ------------------------------------------------------------------
-
-/**
- * Hydrates doctor→patient links from Supabase care_circle into vault.doctorPatientLinks.
- * Matches rows by payload doctorId OR doctorEmail. Silent Map.set (no events, no sync-back).
- * Returns the hydrated active links; never throws.
- */
 export async function hydrateDoctorLinksFromSupabase(doctorId: string, doctorEmail: string | undefined, vault: LocalVaultManager): Promise<DoctorPatientLink[]> {
   if (!doctorId || doctorId.trim() === '') return [];
   if (!isSupabaseEnabled()) return [];
@@ -442,7 +375,7 @@ export async function hydrateDoctorLinksFromSupabase(doctorId: string, doctorEma
         } else {
           hydrated.push(linksMap.get(key) as DoctorPatientLink);
         }
-      } catch { /* skip malformed row */ }
+      } catch {  }
     }
     return hydrated;
   } catch {
@@ -450,14 +383,8 @@ export async function hydrateDoctorLinksFromSupabase(doctorId: string, doctorEma
   }
 }
 
-// Tables needed for doctor dashboard card stats (meds/labs/alerts/due/pending counts)
 const DOCTOR_STATS_TABLES = ['labs', 'medications', 'danger_reports', 'due_cards', 'proposals'] as const;
 
-/**
- * Hydrates per-patient stats tables (labs, meds, danger reports, due cards, proposals)
- * for the patients linked to a doctor so dashboard cards show real counts.
- * Parallel per patient; silent Map.set; never throws.
- */
 export async function hydratePatientsForDoctor(patientIds: string[], vault: LocalVaultManager): Promise<number> {
   const ids = patientIds.filter((p) => p && typeof p === 'string' && p.trim() !== '');
   if (ids.length === 0 || !isSupabaseEnabled()) return 0;
@@ -479,11 +406,11 @@ export async function hydratePatientsForDoctor(patientIds: string[], vault: Loca
               const key = (rec.id as string | undefined) ?? (rec.reportId as string | undefined) ?? String((raw as { id?: unknown })?.id ?? '');
               if (!key) continue;
               if (!map.has(key)) { map.set(key, rec); total++; }
-            } catch { /* skip malformed row */ }
+            } catch {  }
           }
-        } catch { /* per-table failure is non-fatal */ }
+        } catch {  }
       }));
-    } catch { /* per-patient failure is non-fatal */ }
+    } catch {  }
   }));
   return total;
 }
@@ -496,3 +423,4 @@ export default {
   hydrateDoctorLinksFromSupabase,
   hydratePatientsForDoctor,
 };
+

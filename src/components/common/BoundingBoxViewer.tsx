@@ -24,7 +24,6 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
 
-  // Keep prop sync
   useEffect(() => {
     if (documentId) {
       setActiveDocId(documentId);
@@ -36,27 +35,25 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
     if (propBox) setActiveBox(propBox);
   }, [propBox]);
 
-  // Listen to highlight events — now includes boundingBox
   useEffect(() => {
     const unsub = eventBus.onHighlightDocument((payload: HighlightDocumentPayload) => {
       if (payload.documentId) {
         setActiveDocId(payload.documentId);
-        // try to resolve fileName from vault
+
         try {
           const vaultUnknown = localVault as unknown as { documents?: Map<string, { fileName?: string; name?: string }> };
           const doc = localVault.getDocument(payload.documentId) || vaultUnknown.documents?.get?.(payload.documentId);
           if (doc?.fileName) setActiveFileName(doc.fileName);
           else if (doc?.name) setActiveFileName(doc.name);
-        } catch { /* intentionally empty */ }
+        } catch {  }
       }
       if (payload.boundingBox) {
         setActiveBox(payload.boundingBox);
       } else {
-        // keep existing box if none, but at least ensure doc highlight visible
-        // don't clear existing box unless explicitly null
+
       }
       setZoom(1.05);
-      // smooth scroll to box
+
       setTimeout(() => {
         if (payload.boundingBox && containerRef.current) {
           const isNormalized = payload.boundingBox.x <= 1 && payload.boundingBox.y <= 1;
@@ -116,7 +113,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
 
   return (
     <div className="bg-white border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-2xl flex flex-col h-full text-slate-800">
-      {/* Header with zoom controls — 44px targets */}
+      {}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-canvas-border pb-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 bg-primary-light border border-primary-border rounded-xl text-primary-text shrink-0">
@@ -169,7 +166,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
         </div>
       </div>
 
-      {/* Document Viewport Canvas */}
+      {}
       <div
         ref={containerRef}
         className="flex-1 overflow-auto bg-canvas-muted rounded-xl border border-canvas-border p-3 sm:p-4 relative flex items-start justify-center min-h-[320px] sm:min-h-[420px]"
@@ -179,7 +176,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
           className="relative bg-white text-slate-900 rounded-xl shadow-xl transition-transform duration-200 origin-top p-5 sm:p-7 select-text border border-canvas-border max-w-[560px] w-full"
           style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
         >
-          {/* Paper header */}
+          {}
           <div className="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-start gap-2">
             <div className="min-w-0 flex-1">
               <h1 className="font-bold text-[13px] tracking-wider uppercase truncate max-w-full">{activeDocId ? displayFileName : 'Medical Document'}</h1>
@@ -227,7 +224,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
             </div>
           ) : (
             <div className="space-y-5">
-              {/* Summary chips */}
+              {}
               <div className="flex flex-wrap gap-1.5">
                 {grouped.meds.length > 0 && <span className="text-caption font-bold px-2.5 py-1 rounded-full bg-primary-light text-primary-text border border-primary-border">{grouped.meds.length} meds</span>}
                 {grouped.labs.length > 0 && <span className="text-caption font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">{grouped.labs.length} labs</span>}
@@ -235,7 +232,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                 {grouped.conditions.length > 0 && <span className="text-caption font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">{grouped.conditions.length} conditions</span>}
               </div>
 
-              {/* Meds section */}
+              {}
               {grouped.meds.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-bold font-sans text-caption text-slate-700 uppercase tracking-wider border-b border-canvas-border pb-1 flex items-center justify-between">
@@ -265,7 +262,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                 </div>
               )}
 
-              {/* Labs section */}
+              {}
               {grouped.labs.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-bold font-sans text-caption text-slate-700 uppercase tracking-wider border-b border-canvas-border pb-1 flex items-center justify-between">
@@ -295,7 +292,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
                 </div>
               )}
 
-              {/* Allergies / Conditions */}
+              {}
               {(grouped.allergies.length > 0 || grouped.conditions.length > 0) && (
                 <div className="grid grid-cols-1 gap-4">
                   {grouped.allergies.length > 0 && (
@@ -344,7 +341,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
             </div>
           )}
 
-          {/* Bounding Box Overlay */}
+          {}
           {activeBox && activeDocId && (
             <div
               className="absolute pointer-events-none rounded-md border-2 border-amber-400 bg-amber-400/15 shadow-lg shadow-amber-400/20 transition-all duration-300"
@@ -364,7 +361,7 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
         </div>
       </div>
 
-      {/* Footer */}
+      {}
       {activeBox && (
         <div className="mt-3 p-3 bg-canvas-muted rounded-xl border border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2 min-w-0">
@@ -380,3 +377,4 @@ export const BoundingBoxViewer: React.FC<BoundingBoxViewerProps> = ({
     </div>
   );
 };
+

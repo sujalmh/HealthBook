@@ -1,8 +1,3 @@
-/**
- * Healthbook Types: WebMCP Protocol & Tool Definitions
- * Spec: W3C WebMCP Draft 26 Aug 2026 §4.1-4.5 — ModelContext IDL
- * Canonical surface: document.modelContext only (SecureContext)
- */
 
 export interface WebMCPToolParameterSchema {
   type: 'object';
@@ -41,25 +36,17 @@ export interface WebMCPToolDefinition<TInput = any, TOutput = any> {
   requiresHumanApproval: boolean;
   approvalGateType: WebMCPApprovalGateType;
   parameters: WebMCPToolParameterSchema;
-  /** Spec alias: when present, used as inputSchema object (stringified via JSON.stringify).
-   *  Internal 42 tools keep `parameters` for backward compat; adapter maps parameters → inputSchema.
-   *  Grep gate expects `inputSchema` in src/types/webmcp.ts or src/core/webmcp/
-   */
+
   inputSchema?: WebMCPToolParameterSchema | string;
   returns: Record<string, unknown>;
   execute: (params: TInput, context: WebMCPExecutionContext) => Promise<WebMCPToolResult<TOutput>>;
   uiSideEffects?: WebMCPSideEffects;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// W3C WebMCP Spec Types — §4.2 ModelContext
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Spec ModelContextTool dict (§4.2.1) — name 1-128 ^[a-zA-Z0-9_.-]+$, description non-empty, inputSchema object stringified */
 export interface ModelContextTool {
   name: string;
   description: string;
-  /** JSON Schema object — will be stringified internally via JSON.stringify for RegisteredTool.inputSchema */
+
   inputSchema: WebMCPToolParameterSchema | Record<string, unknown>;
   title?: string;
   annotations?: {
@@ -73,40 +60,35 @@ export interface ModelContextTool {
   execute: (inputObject: unknown, options?: { signal?: AbortSignal }) => Promise<unknown>;
 }
 
-/** Options for registerTool (§4.2.3) */
 export interface ModelContextRegisterToolOptions {
   signal?: AbortSignal;
   exposedTo?: string[];
 }
 
-/** Options for getTools (§4.2.5) */
 export interface ModelContextGetToolOptions {
   fromOrigins?: string[];
 }
 
-/** Options for executeTool (§4.2.6) */
 export interface ModelContextExecuteToolOptions {
   signal?: AbortSignal;
 }
 
-/** RegisteredTool returned by getTools (§4.2.6) — inputSchema is STRINGIFIED JSON */
 export interface RegisteredTool {
   name: string;
   description: string;
-  /** STRINGIFIED JSON via JSON.stringify(inputSchema) */
+
   inputSchema: string;
   title?: string;
   annotations?: {
     readOnlyHint?: boolean;
     [k: string]: unknown;
   };
-  /** Origin of the registering document — location.origin */
+
   origin: string;
-  /** Window reference of the registering document */
+
   window: Window | null;
 }
 
-/** ModelContext EventTarget (§4.4) — toolchange */
 export interface ModelContext extends EventTarget {
   registerTool(tool: ModelContextTool, options?: ModelContextRegisterToolOptions): Promise<undefined>;
   getTools(options?: ModelContextGetToolOptions): Promise<RegisteredTool[]>;
@@ -127,8 +109,8 @@ export interface WebMCPExecutionContext {
     onBehalfOf?: string;
     permissionLevel?: 'view_only' | 'manage' | 'full';
   };
-  vault: any; // LocalVault instance
-  eventBus: any; // WebMCPEventBus instance
+  vault: any;
+  eventBus: any;
   approvalInterceptor?: any;
 }
 
@@ -153,11 +135,11 @@ export interface WebMCPToolResult<T = any> {
 export interface ToolInvocationRecord {
   id: string;
   toolName: string;
-  params: any; // boundary: arbitrary tool payload, validated via schema before use
+  params: any;
   timestamp: string;
   durationMs: number;
   status: 'executed' | 'pending_approval' | 'approved' | 'rejected' | 'error' | 'success' | 'awaiting_approval' | string;
-  result?: any; // boundary: WebMCPToolResult, validated before display
+  result?: any;
   error?: string;
   caller?: {
     userId: string;
@@ -183,7 +165,7 @@ export interface PendingApprovalItem {
   type?: 'fact' | 'proposal' | 'safety' | 'reconciliation' | string;
   title?: string;
   description?: string;
-  params?: any; // boundary: arbitrary, validated before use
+  params?: any;
   data?: any;
   gateType?: WebMCPApprovalGateType;
   approvalStatus?: 'pending_approval' | 'approved' | 'rejected';
@@ -196,3 +178,4 @@ export interface PendingApprovalItem {
   onApprove?: () => Promise<void>;
   onReject?: () => Promise<void>;
 }
+

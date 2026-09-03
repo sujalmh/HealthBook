@@ -43,9 +43,8 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
     { id: 'visits', label: 'Appointments & Due', icon: Calendar },
   ];
 
-  // Filtering
   const filteredItems = items.filter((item) => {
-    // Category match
+
     const categoryMatches =
       selectedCategory === 'all' ||
       item.category === selectedCategory ||
@@ -54,7 +53,6 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
 
     if (!categoryMatches) return false;
 
-    // Search query match
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -87,9 +85,9 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Filter & Search Bar — tokenized */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Category Pill Filters */}
+        {}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           {categories.map((cat) => {
             const Icon = cat.icon;
@@ -114,7 +112,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
           })}
         </div>
 
-        {/* Search Input */}
+        {}
         <div className="relative w-full md:w-64">
           <Search className="w-4 h-4 text-slate-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -127,7 +125,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
         </div>
       </div>
 
-      {/* Timeline Stream Container */}
+      {}
       <div className="relative border-l-2 border-canvas-border ml-3 sm:ml-6 pl-4 sm:pl-8 space-y-5 sm:space-y-6">
         {filteredItems.length === 0 ? (
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 sm:p-8 text-center text-muted space-y-2 shadow-sm">
@@ -150,14 +148,14 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
               key={item.id || idx}
               className="relative group transition-all"
             >
-              {/* Timeline Bullet Anchor */}
+              {}
               <div className="absolute -left-[26px] sm:-left-[43px] top-4 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-canvas-muted border-2 border-canvas-border group-hover:border-primary flex items-center justify-center transition-colors shadow-sm">
                 {getCategoryIcon(item.category)}
               </div>
 
-              {/* Event Card */}
+              {}
               <div className="bg-canvas-card border border-canvas-border hover:border-primary-border rounded-xl p-3.5 sm:p-5 shadow-sm space-y-3 transition-all">
-                {/* Event Header */}
+                {}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono font-bold text-sky-400">
@@ -182,7 +180,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
                   </span>
                 </div>
 
-                {/* Event Body */}
+                {}
                 <div className="space-y-2">
                   <h4 className="text-sm font-bold text-slate-900 tracking-tight">
                     {item.title}
@@ -191,7 +189,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
                     {item.description}
                   </p>
 
-                  {/* Dosage Transition Widget if present */}
+                  {}
                   {item.dosageTransition && (
                     <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-center gap-3 text-xs">
                       <span className="text-slate-600 font-semibold">{item.dosageTransition.medName}:</span>
@@ -207,7 +205,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
                     </div>
                   )}
 
-                  {/* Doctor Pinned Comment Box */}
+                  {}
                   {item.doctorComment && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1">
                       <div className="flex items-center gap-1.5 text-clinical-amber text-body-sm font-bold">
@@ -221,7 +219,7 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
                   )}
                 </div>
 
-                {/* Document Source Citation Deep Link */}
+                {}
                 {item.sourceDocId && (
                   <div className="pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-[11px] text-slate-600">
@@ -253,3 +251,4 @@ export const DossierTimeline: React.FC<DossierTimelineProps> = ({
     </div>
   );
 };
+

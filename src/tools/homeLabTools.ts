@@ -1,9 +1,3 @@
-/**
- * Healthbook WebMCP Tools: HomeLab Remote Prescribed Loop — AI Intelligence (M1)
- * Tools: upload_lab_image, doctor_review_comment, propose_dosage_change, approve_dosage_change, sync_pillmap_from_proposal
- * AI vision extraction via extractWithAI(imageDataUrl, rawText) single request when enabled, fallback only when disabled for text never image (Q10).
- * Never hardcoded literals — reads via config generically.
- */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import type { ProposalRecord } from '../types/vault.ts';
@@ -53,7 +47,6 @@ export const uploadLabImageTool: WebMCPToolDefinition = {
     const patientId = params.patientId || context.patientId;
     const documentId = `doc_homelab_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-    // Mark due card completed if linked
     if (params.linkedDueCardId) {
       const card = context.vault.dueCards.get(params.linkedDueCardId);
       if (card) {
@@ -126,11 +119,10 @@ export const uploadLabImageTool: WebMCPToolDefinition = {
           });
         }
       } catch (err: unknown) {
-        // AI extraction failure is non-fatal; fallback is empty narration
+
       }
     }
 
-    // Add facts to vault
     for (const fact of facts) {
       await context.vault.addFact(
         fact,
@@ -410,7 +402,6 @@ export const syncPillmapFromProposalTool: WebMCPToolDefinition = {
       };
     }
 
-    // Update medication in vault
     const meds = context.vault.getMedications(proposal.patientId);
     const targetMed = meds.find((m: unknown) => {
       const med = m as { genericName?: string };
@@ -448,3 +439,4 @@ export const syncPillmapFromProposalTool: WebMCPToolDefinition = {
     };
   }
 };
+

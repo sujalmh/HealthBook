@@ -1,7 +1,7 @@
-export const maxDuration = 120; // 120 seconds execution limit on Vercel Serverless
+export const maxDuration = 120;
 
 export default async function handler(req: any, res?: any) {
-  // If invoked with Node.js Serverless runtime (req: IncomingMessage, res: ServerResponse)
+
   if (res && typeof res.setHeader === 'function') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -27,8 +27,7 @@ export default async function handler(req: any, res?: any) {
       const targetBase = (process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://opencode.ai').replace(/\/+$/, '');
       const targetUrl = `${targetBase}${targetPath}`;
       const authHeader = req.headers?.['authorization'] || '';
-      // Client has no VITE_-prefixed key in production — fall back to the
-      // server-only AI_API_KEY (same contract as api/ai/responses.ts).
+
       const serverKey = (
         process.env.AI_API_KEY ||
         process.env.VITE_AI_API_KEY ||
@@ -82,7 +81,6 @@ export default async function handler(req: any, res?: any) {
     }
   }
 
-  // If invoked with Web standard Request
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -115,7 +113,7 @@ export default async function handler(req: any, res?: any) {
     const targetBase = (process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://opencode.ai').replace(/\/+$/, '');
     const targetUrl = `${targetBase}${targetPath}${url.search}`;
     const authHeader = req.headers.get('authorization') || '';
-    // Server-only key fallback (same contract as api/ai/responses.ts).
+
     const serverKey = (
       process.env.AI_API_KEY ||
       process.env.VITE_AI_API_KEY ||
@@ -175,3 +173,4 @@ export default async function handler(req: any, res?: any) {
     );
   }
 }
+

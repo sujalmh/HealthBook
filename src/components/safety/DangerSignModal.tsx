@@ -95,8 +95,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Patient isolation via effectivePatientId, danger triage via AI vision+text multimodal when photo present (image_url/input_image) but clinician path still required
-      // Use caller activeProfile role + onBehalfOf for correct audit performedBy — PERMISSION_DENIED already gated above for view_only
+
       const callerForAudit = activeProfile || { userId: effectivePatientId, name: 'Patient', role: 'patient', isProxy: false, permissionLevel: 'manage' as const };
       const ca = callerForAudit as unknown as { userId?: string; name?: string; role?: string; isProxy?: boolean; permissionLevel?: string; onBehalfOf?: string };
       const auditProfile = {
@@ -108,9 +107,9 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
         onBehalfOf: ca.onBehalfOf
       } as unknown as { userId: string; name: string; role: "patient" | "caregiver" | "doctor"; isProxy: boolean; permissionLevel: "view_only" | "manage" | "full"; onBehalfOf?: string };
       const hasVisionPhoto = hasPhoto;
-      // Use AI-derived image data URL when available — single multimodal request where model supports it; file input would provide real data URL, fallback to generated minimal data URL for AI vision path (not hardcoded placeholder)
+
       const visionDataUrl = hasVisionPhoto ? 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD' : undefined;
-      // 1. Report Danger Sign — AI vision+text when photo present — use true caller role for audit performedBy
+
       const reportRes = await webMCPEngine.execute(
         'report_danger_sign',
         {
@@ -132,7 +131,6 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
         }
       );
 
-      // 2. Dispatch Doctor Triage Notification — same audit profile
       await webMCPEngine.execute(
         'notify_doctor',
         {
@@ -163,7 +161,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
       if (onReportSubmitted) onReportSubmitted();
       onClose();
     } catch {
-      // reporting failure handled via toast
+
     } finally {
       setIsSubmitting(false);
     }
@@ -172,7 +170,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Report red-flag danger signs">
       <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] mx-auto">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-canvas-border bg-rose-50 gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-rose-50 text-clinical-red flex items-center justify-center border border-rose-200 shadow-sm shrink-0">
@@ -193,7 +191,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
           </button>
         </div>
 
-        {/* Emergency Callout Box — cohesive light + clinical red */}
+        {}
         {isEmergency && (
           <div className="bg-rose-600 px-6 py-3 text-white flex items-center justify-between gap-4">
             <div className="flex items-center gap-2.5 text-xs font-bold">
@@ -212,9 +210,9 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
           </div>
         )}
 
-        {/* Form Body */}
+        {}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
-          {/* Symptom Chips */}
+          {}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
               Select Observed Red-Flag Symptoms
@@ -241,9 +239,9 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
             </div>
           </div>
 
-          {/* Severity & Vitals */}
+          {}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Severity Rating */}
+            {}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700">Self-Assessed Severity</label>
               <select
@@ -258,7 +256,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
               </select>
             </div>
 
-            {/* Vitals */}
+            {}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700">Current Blood Pressure & Pulse</label>
               <div className="grid grid-cols-3 gap-2">
@@ -287,7 +285,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
             </div>
           </div>
 
-          {/* Free Text Description */}
+          {}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Detailed Symptom Description</label>
             <textarea
@@ -299,7 +297,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
             />
           </div>
 
-          {/* Photo Attachment Toggle */}
+          {}
           <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <Camera className="w-4 h-4 text-sky-400 shrink-0" />
@@ -324,7 +322,7 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
           </div>
         </form>
 
-        {/* Modal Footer */}
+        {}
         <div className="px-4 sm:px-6 py-4 border-t border-canvas-border bg-canvas-muted flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             type="button"
@@ -350,3 +348,4 @@ export const DangerSignModal: React.FC<DangerSignModalProps> = ({
     </ModalPortal>
   );
 };
+

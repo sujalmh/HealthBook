@@ -33,12 +33,11 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
   const [isCreating, setIsCreating] = useState(false);
   const [mcpPrefill, setMcpPrefill] = useState(false);
 
-  // MCP prefill: AI prepared name/email/role — human still types password in browser (human-only)
   useEffect(() => {
     const applyPrefill = (detail: unknown) => {
       const d = detail as { name?: string; email?: string; role?: string; mode?: string };
       if (!d) return;
-      // Only apply create mode or generic prefill
+
       if (d.mode && d.mode !== 'create') return;
       let did = false;
       if (typeof d.email === 'string' && d.email.trim()) { setEmail(d.email.trim()); did = true; }
@@ -46,14 +45,14 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
       if (d.role === 'patient' || d.role === 'doctor') { setRole(d.role); did = true; }
       if (did) setMcpPrefill(true);
     };
-    // Cold start: check pending storage (AI called before mount)
+
     try {
       const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('healthbook_mcp_auth_pending') : null;
       if (raw) {
         const p = JSON.parse(raw) as { mode?: string; name?: string; email?: string; role?: string };
         if (p && (p.mode === 'create' || !p.mode) && p.email) applyPrefill(p);
       }
-    } catch { /* ignore */ }
+    } catch {  }
     const onWindow = (e: Event) => applyPrefill((e as CustomEvent).detail);
     const onBus = (payload: unknown) => applyPrefill(payload);
     window.addEventListener('healthbook_mcp_auth_pending', onWindow as EventListener);
@@ -68,7 +67,7 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
 
   const handleCreate = async () => {
     if (isCreating) return;
-    // Required validation: email + password must be present
+
     const emailTrim = email.trim();
     const passwordTrim = password.trim();
     if (!emailTrim) {
@@ -89,13 +88,11 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
     }
     setIsCreating(true);
     try {
-      // Validation: name optional -> default Anonymous, truncate long name
+
       let displayName = name.trim();
       if (!displayName) displayName = 'Anonymous';
       displayName = truncateName(displayName, 64);
 
-      // Server truth: Supabase Auth creates the account. No local fallback —
-      // passwords go to the server only and are never stored on this device.
       const { session, user, error } = await supabaseSignUp(emailTrim, passwordTrim, { name: displayName, role });
       if (error) {
         if (error.code === 'ACCOUNT_EXISTS') {
@@ -116,7 +113,7 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
         return;
       }
       if (!session) {
-        // Email confirmation required: account staged server-side; human confirms via email link.
+
         eventBus.dispatchToast({ type: 'info', title: 'Check your email', message: `Account created for ${displayName}. Please confirm via the email link, then sign in.` });
         if (onSwitchToSignIn) onSwitchToSignIn();
         return;
@@ -146,7 +143,7 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
       persistActiveProfile(userProfile);
       try {
         await hydrateFromSupabase(userProfile.patientId, localVault);
-      } catch { /* non-blocking */ }
+      } catch {  }
 
       eventBus.dispatchToast({
         type: 'success',
@@ -154,7 +151,6 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
         message: `Account created for ${displayName}`,
       });
 
-      // Clear MCP pending if this completion was via AI-assisted flow
       try {
         if (typeof localStorage !== 'undefined') {
           const raw = localStorage.getItem('healthbook_mcp_auth_pending');
@@ -162,14 +158,14 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
             const p = JSON.parse(raw) as { mode?: string; email?: string };
             if (p?.email?.toLowerCase() === emailTrim.toLowerCase() && (p.mode === 'create' || !p.mode)) {
               const pid = (p as { pendingId?: string }).pendingId;
-              if (pid) try { localStorage.removeItem(`healthbook_mcp_auth_pending_${pid}`); } catch { /* ignore */ }
+              if (pid) try { localStorage.removeItem(`healthbook_mcp_auth_pending_${pid}`); } catch {  }
               localStorage.removeItem('healthbook_mcp_auth_pending');
-              try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_cleared')); } catch { /* ignore */ }
-              try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
+              try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_cleared')); } catch {  }
+              try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_completed', { detail: profile })); } catch {  }
             }
           }
         }
-      } catch { /* ignore */ }
+      } catch {  }
 
       onCreated(profile);
     } finally {
@@ -183,7 +179,7 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
 
   return (
     <div className="w-full max-w-md mx-auto bg-white border border-canvas-border rounded-2xl p-6 shadow-sm">
-      {/* Brand header */}
+      {}
       <div className="flex flex-col items-center text-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <HeartPulse className="w-5 h-5 text-white" />
@@ -320,3 +316,4 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
 };
 
 export default CreateAccountView;
+

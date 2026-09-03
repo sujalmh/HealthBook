@@ -1,10 +1,4 @@
-/**
- * AskChat — unified Ask experience (replaces AskWhyPanel + GroundedInsightsPanel + QuestionBank stack).
- *
- * One simple chatbot: type a question, get a plain-English answer grounded in
- * your own records + trusted web sources, save it for your doctor visit.
- * No marker dropdowns, no suggestion chips, no jargon pills, no filter toolbars.
- */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Loader2, Check, Printer, BookmarkPlus } from 'lucide-react';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
@@ -34,7 +28,6 @@ interface ChatMessage {
   saved?: boolean;
 }
 
-/** Guess a biomarker from free text so correlate_meds gets a usable target. */
 function inferBiomarker(query: string): string {
   const q = query.toLowerCase();
   if (q.includes('creatinine')) return 'Creatinine';
@@ -83,20 +76,19 @@ export const AskChat: React.FC<AskChatProps> = ({ patientId, initialQuery, class
     loadQuestions();
     const off = eventBus.on('question_bank', loadQuestions as (p: unknown) => void);
     return () => off();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [patientId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, isLoading]);
 
-  // Deep-link from LabStory ("Ask why eGFR changed") auto-sends once.
   useEffect(() => {
     if (initialQuery && initialQuery.trim() && !autoSentRef.current) {
       autoSentRef.current = true;
       void send(initialQuery.trim());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [initialQuery]);
 
   useEffect(() => {
@@ -106,7 +98,7 @@ export const AskChat: React.FC<AskChatProps> = ({ patientId, initialQuery, class
       if (q.trim()) void send(q.trim());
     });
     return () => off();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [patientId]);
 
   const send = async (raw?: string) => {
@@ -220,7 +212,7 @@ export const AskChat: React.FC<AskChatProps> = ({ patientId, initialQuery, class
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Chat */}
+      {}
       <div className="bg-white border border-canvas-border rounded-2xl shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-canvas-border">
           <h3 className="text-sm font-bold text-slate-900">Ask about your health</h3>
@@ -305,7 +297,7 @@ export const AskChat: React.FC<AskChatProps> = ({ patientId, initialQuery, class
         </div>
       </div>
 
-      {/* Your questions */}
+      {}
       <div className="bg-white border border-canvas-border rounded-2xl shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-canvas-border flex items-center justify-between gap-2">
           <h3 className="text-sm font-bold text-slate-900">
@@ -358,3 +350,4 @@ export const AskChat: React.FC<AskChatProps> = ({ patientId, initialQuery, class
     </div>
   );
 };
+

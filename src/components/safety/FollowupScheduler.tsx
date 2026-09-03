@@ -66,7 +66,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
     }
     setIsSubmitting(true);
     try {
-      // Range 7-14 days window: scheduledDateEnd additive compat — local-noon T12:00:00 for date-only — RBAC uses caller role for audit
+
       if (isRange) {
         const scheduledDate = new Date(customStart + 'T12:00:00').toISOString();
         const scheduledDateEnd = new Date(customEnd + 'T12:00:00').toISOString();
@@ -87,7 +87,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
           } as unknown as import('@/types/vault').CalendarEventRecord,
           { userId: ca.userId || 'clinician', userName: ca.name || (providerName || '').trim() || 'Your doctor', role: (ca.role as 'patient' | 'caregiver' | 'doctor') || 'doctor', onBehalfOf: ca.onBehalfOf } as unknown as { userId: string; userName: string; role: "patient" | "caregiver" | "doctor" | "system"; onBehalfOf?: string }
         );
-        // windowDays helper for grep
+
         const windowDays = Math.ceil((new Date(scheduledDateEnd).getTime() - new Date(scheduledDate).getTime()) / 86400000);
         void windowDays;
         eventBus.dispatchToast({
@@ -145,7 +145,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
       if (onScheduled) onScheduled();
       onClose();
     } catch (err) {
-      
+
     } finally {
       setIsSubmitting(false);
     }
@@ -154,7 +154,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Order direct clinical follow-up">
       <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] mx-auto">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-canvas-border bg-canvas-card gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-sky-50 text-clinical-blue flex items-center justify-center border border-sky-200 shadow-sm shrink-0">
@@ -174,9 +174,9 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
           </button>
         </div>
 
-        {/* Body */}
+        {}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
-          {/* Appointment Type */}
+          {}
           <div className="space-y-1.5">
             <label className="text-body-sm font-semibold text-slate-700">Appointment mode</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -208,7 +208,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             </div>
           </div>
 
-          {/* Timing / Offset — When? (pick a date or a date range) */}
+          {}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-slate-700">When? (pick a date or a date range)</label>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
@@ -284,7 +284,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             )}
           </div>
 
-          {/* Provider Name */}
+          {}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Attending Clinician / Specialty</label>
             <input
@@ -295,7 +295,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             />
           </div>
 
-          {/* Clinical Reason */}
+          {}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Clinical Purpose & Evaluation Goal</label>
             <textarea
@@ -306,7 +306,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             />
           </div>
 
-          {/* Location / Link */}
+          {}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">
               {appointmentType === 'in_person_clinic' ? 'Clinic Address' : 'Telehealth Link'}
@@ -323,7 +323,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
             />
           </div>
 
-          {/* Notification Reminders Callout */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-3 border border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-body-sm text-muted">
             <span className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-clinical-amber shrink-0" />
@@ -333,7 +333,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
           </div>
         </form>
 
-        {/* Footer */}
+        {}
         <div className="px-4 sm:px-6 py-4 border-t border-canvas-border bg-canvas-muted flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             type="button"
@@ -359,3 +359,4 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
     </ModalPortal>
   );
 };
+

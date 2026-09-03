@@ -1,6 +1,3 @@
-/**
- * Healthbook Types: Family Care Circle & Continuity Dossier
- */
 
 import { BoundingBox, Fact, MedicationRecord, LabRecord, AllergyRecord, ConditionRecord, AuditLogEntry } from './vault.ts';
 import { DangerSignReport } from './safety.ts';
@@ -46,7 +43,7 @@ export interface DoctorAccessGrant {
   expiresAt: string;
   token: string;
   accessToken?: string;
-  /** Boundary: validated via Array.isArray before use */
+
   accessLog?: unknown[];
   status: 'active' | 'expired' | 'revoked';
   revokedAt?: string;
@@ -105,3 +102,4 @@ export interface ContinuityDossierBundle {
   }[];
   exportTimestamp: string;
 }
+

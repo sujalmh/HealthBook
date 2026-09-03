@@ -1,8 +1,3 @@
-/**
- * Healthbook Serverless Exa Search Proxy
- * POST https://api.exa.ai/search — Auth via Authorization: Bearer <EXA_API_KEY>
- * Server injects key from EXA_API_KEY / VITE_EXA_API_KEY so browser never exposes it.
- */
 
 export const maxDuration = 30;
 
@@ -23,8 +18,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  // Health check for production UI: GET /api/exa-proxy/health or /api/exa-proxy?health=1
-  // Note: Vercel rewrite strips :match*, so check x-forwarded headers and query
+
   try {
     const url = new URL(req.url);
     const forwarded = req.headers.get('x-forwarded-uri') || req.headers.get('x-matched-path') || '';
@@ -60,7 +54,7 @@ export default async function handler(req: unknown, res?: unknown) {
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     response.setHeader('Access-Control-Max-Age', '86400');
     if (r.method === 'OPTIONS') return (response.status as (n:number)=>{end:()=>void})(204).end();
-    // Health check for production UI (server truth) — handle Vercel rewrite stripping
+
     try {
       const rawUrl: string = (r as any).url || '';
       const forwarded: string = ((r.headers?.['x-forwarded-uri'] as string) || (r.headers?.['x-matched-path'] as string) || '') as string;
@@ -95,7 +89,7 @@ export default async function handler(req: unknown, res?: unknown) {
         if (typeof r.body === 'string') body = r.body;
         else if (r.body && typeof r.body === 'object') body = JSON.stringify(r.body);
         else if (typeof r.text === 'function') {
-          try { body = await r.text(); } catch { /* intentionally empty */ }
+          try { body = await r.text(); } catch {  }
         } else {
           body = await new Promise<string>((resolve) => {
             let data = '';
@@ -115,7 +109,7 @@ export default async function handler(req: unknown, res?: unknown) {
             return (response.status as (n:number)=>{json:(o:unknown)=>unknown})(400).json({ error: 'query is required (string)', type: 'bad_request' });
           }
         } catch {
-          // forward anyway, let Exa validate
+
         }
       }
 
@@ -179,7 +173,7 @@ async function handleWebProxy(req: Request) {
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           });
         }
-      } catch { /* intentionally empty */ }
+      } catch {  }
     }
 
     const betaHeader = req.headers.get('exa-beta') || req.headers.get('Exa-Beta');
@@ -213,3 +207,4 @@ async function handleWebProxy(req: Request) {
     });
   }
 }
+

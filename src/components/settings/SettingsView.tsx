@@ -17,7 +17,7 @@ export const SettingsView: React.FC = () => {
       const exa = getExaConfig();
       setExaConfig(exa);
     } catch {
-      // ignore
+
     }
   }, [refreshTick]);
 
@@ -29,7 +29,7 @@ export const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      {/* AI provider header — standard card, status pills carry the state */}
+      {}
       <div className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary-light border border-primary-border flex items-center justify-center shrink-0">
@@ -49,7 +49,7 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Exa Healthcare Grounding — standard card with status pills */}
+      {}
       <div className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary-light border border-primary-border flex items-center justify-center shrink-0">
@@ -67,7 +67,7 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Form */}
+      {}
       <button
         type="button"
         onClick={() => setShowAdvanced((v) => !v)}
@@ -80,3 +80,4 @@ export const SettingsView: React.FC = () => {
     </div>
   );
 };
+

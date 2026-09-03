@@ -1,4 +1,4 @@
--- CareCanvas migration: pending_items inbox for accept/reject flows.
+-- HealthBook migration: pending_items inbox for accept/reject flows.
 -- Anything awaiting a human decision (dosage proposals, pill changes, fact
 -- approvals) lives HERE with a 1-day TTL — never in the permanent tables.
 -- On decision: effect applied to the real table, audit logged, inbox row deleted.
@@ -26,14 +26,14 @@ ALTER TABLE pending_items ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS pending_select_visible ON pending_items;
 CREATE POLICY pending_select_visible ON pending_items FOR SELECT
-  USING (patient_id IN (SELECT public.carecanvas_visible_patient_ids()));
+  USING (patient_id IN (SELECT public.healthbook_visible_patient_ids()));
 DROP POLICY IF EXISTS pending_insert_writable ON pending_items;
 CREATE POLICY pending_insert_writable ON pending_items FOR INSERT
-  WITH CHECK (patient_id IN (SELECT public.carecanvas_writable_patient_ids()));
+  WITH CHECK (patient_id IN (SELECT public.healthbook_writable_patient_ids()));
 DROP POLICY IF EXISTS pending_update_writable ON pending_items;
 CREATE POLICY pending_update_writable ON pending_items FOR UPDATE
-  USING (patient_id IN (SELECT public.carecanvas_writable_patient_ids()))
-  WITH CHECK (patient_id IN (SELECT public.carecanvas_writable_patient_ids()));
+  USING (patient_id IN (SELECT public.healthbook_writable_patient_ids()))
+  WITH CHECK (patient_id IN (SELECT public.healthbook_writable_patient_ids()));
 DROP POLICY IF EXISTS pending_delete_writable ON pending_items;
 CREATE POLICY pending_delete_writable ON pending_items FOR DELETE
-  USING (patient_id IN (SELECT public.carecanvas_writable_patient_ids()));
+  USING (patient_id IN (SELECT public.healthbook_writable_patient_ids()));

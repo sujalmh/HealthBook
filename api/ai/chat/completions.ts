@@ -21,7 +21,7 @@ export default async function handler(req: any, res: any) {
       ''
     ).trim();
     const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).trim() : '';
-    // Only use client header if it contains a real token after "Bearer " (avoid "Bearer " empty spam)
+
     if (authHeader && authHeader.length > 7 && authHeader.toLowerCase() !== 'bearer' && authHeader !== 'Bearer ') headers['Authorization'] = authHeader;
     else if (serverKey) headers['Authorization'] = `Bearer ${serverKey}`;
     const xApi = req.headers['x-api-key'] ? String(req.headers['x-api-key']).trim() : '';
@@ -49,3 +49,4 @@ export default async function handler(req: any, res: any) {
     res.send(buf);
   } catch (e:any){ console.error('[proxy chat]',e); res.status(502).json({error:'proxy_error',message:String(e?.message||e)});}
 }
+

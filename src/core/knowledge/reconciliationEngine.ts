@@ -1,9 +1,3 @@
-/**
- * Healthbook Core: Reconciliation Engine — AI-native.
- * Deterministic 3-list matching and change classification run locally;
- * all clinical narratives, questions, and interaction screening come from the
- * AI pipeline (no bundled drug tables). Failures throw — never templates.
- */
 
 import { ClinicalInteractionEngine, normalizeMedName } from './interactionEngine.ts';
 import type {
@@ -21,7 +15,6 @@ import type {
 import type { TimeSlot } from '../../types/pillmap.ts';
 import { callAI } from '../ai/client.ts';
 
-// Unified AI caller for medication reconciliation reasoning
 async function callReconciliationAI(
   systemPrompt: string,
   userText: string,
@@ -39,12 +32,6 @@ async function callReconciliationAI(
   }
 }
 
-/**
- * Resolve a display generic for list matching.
- * Prefers the AI-resolved alias map (brand -> generic); otherwise falls back
- * to pure string normalization of the raw name. The sync path never invents
- * clinical mappings — unmatched names simply compare literally.
- */
 function genericForMatch(rawName: string, aliasMap?: Record<string, string>): string {
   const trimmed = (rawName || '').trim();
   if (!trimmed) return trimmed;
@@ -59,30 +46,20 @@ function genericForMatch(rawName: string, aliasMap?: Record<string, string>): st
 }
 
 export class ClinicalReconciliationEngine {
-  /**
-   * Performs full 3-list reconciliation matching and returns structured change items.
-   * Deterministic diffing only (status badges, dose comparison, list matching).
-   * Clinical narratives, questions, and interaction screening are attached by
-   * reconcileThreeListsAI — this sync pass leaves those fields empty rather
-   * than fabricating content. aliasMap optionally maps raw names to AI-resolved
-   * generics for cross-list brand/generic matching.
-   */
+
   public static reconcileThreeLists(dataset: Patient3ListDischargeDataset, aliasMap?: Record<string, string>): ReconciledMedChangeItem[] {
     const { preAdmissionMeds, inHospitalMeds, dischargeMeds } = dataset;
     const reconciledItems: ReconciledMedChangeItem[] = [];
     const processedGenericNames = new Set<string>();
-    // Deterministic ids (position-scoped): the sync render and the later AI
-    // upgrade produce identical medIds, so the merge addresses the same items.
+
     let seq = 0;
     const nextMedId = (generic: string): string =>
       `recon_${generic.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${seq++}`;
 
-    // 1. Process all items from Discharge List
     for (const dMed of dischargeMeds) {
       const generic = genericForMatch(dMed.medName, aliasMap);
       processedGenericNames.add(generic.toLowerCase());
 
-      // Match in Pre-admission list
       const preMatch = preAdmissionMeds.find(
         (p) =>
           genericForMatch(p.medName, aliasMap).toLowerCase() === generic.toLowerCase() ||
@@ -90,7 +67,6 @@ export class ClinicalReconciliationEngine {
           dMed.medName.toLowerCase().includes(p.medName.toLowerCase())
       );
 
-      // Match in In-hospital list
       const hospMatch = inHospitalMeds.find(
         (h) =>
           genericForMatch(h.medName, aliasMap).toLowerCase() === generic.toLowerCase() ||
@@ -126,7 +102,6 @@ export class ClinicalReconciliationEngine {
       });
     }
 
-    // 2. Identify Pre-admission medications that are omitted on discharge (STOPPED)
     for (const pMed of preAdmissionMeds) {
       const generic = genericForMatch(pMed.medName, aliasMap);
       if (!processedGenericNames.has(generic.toLowerCase())) {
@@ -163,12 +138,11 @@ export class ClinicalReconciliationEngine {
     return reconciledItems;
   }
 
-  /** AI-native 3-list reconciliation: alias resolution, deterministic diffing, AI narratives, AI interaction screening. Throws when the AI pipeline fails. */
   public static async reconcileThreeListsAI(
     dataset: Patient3ListDischargeDataset,
     opts?: { imageDataUrl?: string; documentContext?: string }
   ): Promise<ReconciledMedChangeItem[]> {
-    // 1. Resolve brand/generic aliases in ONE AI call for cross-list matching
+
     let aliasMap: Record<string, string> = {};
     try {
       const allNames = [
@@ -180,9 +154,9 @@ export class ClinicalReconciliationEngine {
     } catch (e) {
       console.warn('[reconciliationEngine] alias resolution failed, matching literally:', (e as any)?.message || e);
     }
-    // 2. Deterministic classification (never fabricated narratives)
+
     const items = this.reconcileThreeLists(dataset, aliasMap);
-    // 3. AI explanations + questions in ONE batch call — failure propagates honestly
+
     const schema = {
       type: 'object',
       properties: {
@@ -232,7 +206,7 @@ export class ClinicalReconciliationEngine {
         item.suggestedQuestions = ai.questions;
       }
     }
-    // 4. AI interaction screening — tolerant: explanations already attached stay on failure
+
     try {
       await this.enrichInteractionsAI(items, dataset);
     } catch (e) {
@@ -241,7 +215,6 @@ export class ClinicalReconciliationEngine {
     return items;
   }
 
-  /** AI-generated discharge narrative via the AI pipeline. Throws when unavailable — no templates. */
   public static async generatePlainLanguageExplanationAI(
     medName: string,
     generic: string,
@@ -274,7 +247,6 @@ export class ClinicalReconciliationEngine {
     throw new Error('Discharge explanation unavailable from the AI pipeline');
   }
 
-  /** AI-generated doctor questions via the AI pipeline. Throws when unavailable — no templates. */
   public static async generateDoctorQuestionsAI(
     medName: string,
     generic: string,
@@ -303,9 +275,7 @@ export class ClinicalReconciliationEngine {
     throw new Error('Doctor-question generation unavailable from the AI pipeline');
   }
 
-  /**
-   * Classifies medication difference into 5 distinct reconciliation states.
-   */  public static determineStatusBadge(
+    public static determineStatusBadge(
     preDose?: string,
     hospAction?: string,
     postDose?: string,
@@ -338,7 +308,6 @@ export class ClinicalReconciliationEngine {
     return 'CONTINUED';
   }
 
-  /** AI interaction screening — reads the med array via the AI pipeline. Throws on failure. */
   public static async enrichInteractionsAI(
     items: ReconciledMedChangeItem[],
     dataset: Patient3ListDischargeDataset
@@ -392,17 +361,12 @@ export class ClinicalReconciliationEngine {
       }
   }
 
-  /**
-   * Evaluates patient teach-back response for accuracy and safety.
-   */
   public static evaluateTeachBack(
     patientResponse: string,
     dataset: Patient3ListDischargeDataset
   ): TeachBackCheck {
     const text = patientResponse.trim().toLowerCase();
 
-    // Check for dangerous misunderstandings (e.g. taking stopped medications)
-    // Pure name matching — no clinical mapping needed for keyword detection.
     const stoppedMeds = dataset.dischargeMeds
       .filter((d) => d.status === 'STOPPED')
       .map((d) => normalizeMedName(d.medName));
@@ -432,7 +396,6 @@ export class ClinicalReconciliationEngine {
       };
     }
 
-    // Check for key morning meds and timing rules
     const mentionsMorning = text.includes('morning') || text.includes('breakfast') || text.includes('wake up') || text.includes('am');
     const mentionsFoodOrEmpty = text.includes('food') || text.includes('empty stomach') || text.includes('meal') || text.includes('water') || text.includes('breakfast');
     const mentionsKeyMed =
@@ -455,7 +418,6 @@ export class ClinicalReconciliationEngine {
       };
     }
 
-    // Minor confusion / incomplete
     return {
       patientId: dataset.patientId,
       promptQuestion: 'Can you tell me in your own words what you will take tomorrow morning and with food or without?',
@@ -466,9 +428,6 @@ export class ClinicalReconciliationEngine {
     };
   }
 
-  /**
-   * Compiles the 1-Page Patient Discharge Home Summary package.
-   */
   public static compilePatientSummary(
     dataset: Patient3ListDischargeDataset,
     questions: string[] = [],
@@ -490,7 +449,6 @@ export class ClinicalReconciliationEngine {
       };
     });
 
-    // Schedule grouping
     const morningMeds: { name: string; dose: string; instructions: string }[] = [];
     const noonMeds: { name: string; dose: string; instructions: string }[] = [];
     const eveningMeds: { name: string; dose: string; instructions: string }[] = [];
@@ -565,3 +523,4 @@ export class ClinicalReconciliationEngine {
     };
   }
 }
+

@@ -1,6 +1,3 @@
-/**
- * Healthbook Health Grounding Layer — web-grounded medical intelligence via Exa.
- */
 
 import { searchExa, type ExaSearchResponse, type ExaCategory, type ExaSearchType } from './exaClient.ts';
 import { isExaEnabled, getExaConfig } from './exaConfig.ts';
@@ -87,7 +84,6 @@ function toInsight(resp: ExaSearchResponse, query: string): GroundedInsight {
   };
 }
 
-// No hardcoded domains — systemPrompt guides Exa reranking; caller may pass includeDomains explicitly.
 function trustedHealthDomains(): string[] {
   return [];
 }
@@ -104,7 +100,7 @@ function disabledInsight(query: string, reason: string): GroundedInsight {
 
 export async function isHealthGroundingAvailable(): Promise<boolean> {
   try {
-    // Production truth: ask server if EXA_API_KEY is present (proxy can inject), not just client config
+
     if (typeof window !== 'undefined' && typeof fetch !== 'undefined') {
       try {
         const controller = new AbortController();
@@ -291,3 +287,4 @@ export const HealthGrounding = {
   isAvailable: isHealthGroundingAvailable,
   trustedDomains: trustedHealthDomains,
 };
+

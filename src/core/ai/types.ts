@@ -1,6 +1,3 @@
-/**
- * Healthbook AI Core — Types
- */
 
 import type { Fact } from '../../types/vault.ts';
 
@@ -53,7 +50,7 @@ export interface AIExtractedFact {
   unit?: string;
   confidence: number;
   plainExplanation: string;
-  /** Resolved concrete calendar date (YYYY-MM-DD) for dated facts, empty string when not applicable */
+
   date?: string;
 }
 
@@ -82,3 +79,4 @@ export interface AIResponsesInputText {
 }
 
 export type { Fact };
+

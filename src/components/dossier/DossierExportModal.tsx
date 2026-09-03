@@ -51,12 +51,10 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
     if (!dossier) return '';
     const rows: string[] = [];
 
-    // Header
     rows.push('Healthbook Lifetime Clinical Export');
     rows.push(`Patient,${dossier.patientProfile?.name || 'Patient'},MRN,${dossier.patientProfile?.mrn || 'N/A'},ExportDate,${new Date().toISOString()}`);
     rows.push('');
 
-    // Active Meds
     if (sections.meds) {
       rows.push('SECTION: ACTIVE MEDICATIONS');
       rows.push('Generic Name,Brand Name,Dosage,Frequency,Timing Slots,With Food,Status');
@@ -66,7 +64,6 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
       rows.push('');
     }
 
-    // Labs
     if (sections.labs) {
       rows.push('SECTION: LONGITUDINAL LAB BIOMARKERS');
       rows.push('Draw Date,Biomarker,Result Value,Unit,Reference Low,Reference High,Flag,Doctor Note');
@@ -76,7 +73,6 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
       rows.push('');
     }
 
-    // Allergies & Conditions
     if (sections.allergies) {
       rows.push('SECTION: VERIFIED ALLERGIES');
       rows.push('Allergen,Reaction,Severity,Recorded Date');
@@ -128,7 +124,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Export clinical dossier package">
       <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-3xl w-full p-4 sm:p-8 shadow-2xl space-y-5 sm:space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto mx-auto">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4 gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 rounded-xl bg-sky-50 text-clinical-blue border border-sky-200 flex items-center justify-center shadow-sm shrink-0">
@@ -156,7 +152,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
           </button>
         </div>
 
-        {/* Format Selector Tabs — tokenized */}
+        {}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { id: 'pdf', label: 'Doctor Consultation PDF', icon: Printer, desc: 'Print-ready 1-page clinical summary' },
@@ -186,7 +182,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
           })}
         </div>
 
-        {/* Section Inclusion Checkboxes — tokenized */}
+        {}
         <div className="bg-canvas-muted rounded-xl p-4 sm:p-5 border border-canvas-border space-y-3">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
             Include Clinical Sections
@@ -223,7 +219,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
           </div>
         </div>
 
-        {/* Preview & Download Panel Based on Selected Format */}
+        {}
         {activeFormat === 'pdf' ? (
           <div className="space-y-4">
             <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200 space-y-3 text-xs">
@@ -249,7 +245,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
           </div>
         ) : activeFormat === 'fhir' ? (
           <div className="space-y-4">
-            {/* JSON Code Viewer */}
+            {}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 max-h-60 overflow-x-auto overflow-y-auto font-mono text-[11px] text-emerald-700/90 leading-normal">
               <pre className="overflow-x-auto">{JSON.stringify(dossier?.fhirBundle || {}, null, 2)}</pre>
             </div>
@@ -291,3 +287,4 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
     </ModalPortal>
   );
 };
+

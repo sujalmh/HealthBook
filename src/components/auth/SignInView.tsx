@@ -17,7 +17,6 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [mcpPrefill, setMcpPrefill] = useState(false);
 
-  // MCP prefill: AI prepared email — human still types password in browser (human-only)
   useEffect(() => {
     const applyPrefill = (detail: unknown) => {
       const d = detail as { email?: string; mode?: string };
@@ -32,7 +31,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
         const p = JSON.parse(raw) as { mode?: string; email?: string };
         if (p && p.mode === 'signin' && p.email) applyPrefill(p);
       }
-    } catch { /* ignore */ }
+    } catch {  }
     const onWindow = (e: Event) => applyPrefill((e as CustomEvent).detail);
     const onBus = (payload: unknown) => applyPrefill(payload);
     window.addEventListener('healthbook_mcp_auth_pending', onWindow as EventListener);
@@ -59,8 +58,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
     }
     setIsSigningIn(true);
     try {
-      // Server truth: Supabase Auth is the only identity provider. No local fallback —
-      // passwords are verified server-side and never stored on this device.
+
       const { session, error } = await supabaseSignIn(emailTrim, passwordTrim);
       if (error || !session) {
         const msg = error?.code === 'INVALID_CREDENTIALS'
@@ -108,24 +106,23 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
         } else {
           await hydrateFromSupabase(userProfile.patientId, localVault);
         }
-      } catch { /* non-blocking */ }
+      } catch {  }
       try {
         const raw2 = localStorage.getItem('healthbook_mcp_auth_pending');
         if (raw2) {
           const p2 = JSON.parse(raw2) as { mode?: string; email?: string; pendingId?: string };
           if (p2?.email?.toLowerCase() === emailTrim.toLowerCase() && p2.mode === 'signin') {
-            if (p2.pendingId) try { localStorage.removeItem(`healthbook_mcp_auth_pending_${p2.pendingId}`); } catch { /* ignore */ }
+            if (p2.pendingId) try { localStorage.removeItem(`healthbook_mcp_auth_pending_${p2.pendingId}`); } catch {  }
             localStorage.removeItem('healthbook_mcp_auth_pending');
-            try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_cleared')); } catch { /* ignore */ }
-            try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
+            try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_cleared')); } catch {  }
+            try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_completed', { detail: profile })); } catch {  }
           }
         }
-      } catch { /* ignore */ }
+      } catch {  }
       eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${profile.name}` });
       onSignedIn(profile);
       return;
 
-      // No local fallback: Supabase Auth is the only identity provider (server truth).
     } finally {
       setIsSigningIn(false);
     }
@@ -222,3 +219,4 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
 };
 
 export default SignInView;
+

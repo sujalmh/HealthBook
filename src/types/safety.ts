@@ -1,6 +1,3 @@
-/**
- * Healthbook Types: Safety Alerts, Doctor Remote Pillbox & Calendar
- */
 
 export type DangerSymptomTag =
   | 'edema_feet'
@@ -74,3 +71,4 @@ export interface FollowupAppointmentRecord {
   attachedQuestionBankCount: number;
   reminderScheduleHours: number[];
 }
+

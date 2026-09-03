@@ -77,7 +77,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
         }
       }
     } catch {
-      // correlate_meds failure silent
+
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +123,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
 
   return (
     <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${className}`}>
-      {/* Header */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-canvas-border pb-4">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 shrink-0">
@@ -140,7 +140,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
         </div>
       </div>
 
-      {/* Free-form Input with >=44px Action Button */}
+      {}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <div className="relative flex-1">
           <input
@@ -167,10 +167,10 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
         </button>
       </div>
 
-      {/* Causal Insight Result Card */}
+      {}
       {causalResult && (
         <div className="bg-canvas-muted border border-amber-200 rounded-xl p-4 space-y-3 animate-fade-in text-body-sm shadow-sm">
-          {/* Header & Trajectory Badge */}
+          {}
           <div className="flex items-center justify-between gap-2 border-b border-canvas-border pb-2 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700">
@@ -185,12 +185,12 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
             </span>
           </div>
 
-          {/* Plain Language Narrative */}
+          {}
           <p className="text-slate-900 leading-relaxed font-medium">
             {causalResult.causalStorySentence}
           </p>
 
-          {/* Linked medicines */}
+          {}
           {causalResult.correlatedMedications && causalResult.correlatedMedications.length > 0 && (
             <div className="bg-canvas-card border border-canvas-border rounded-xl p-2.5 flex items-center gap-2 flex-wrap shadow-sm">
               <span className="text-caption font-bold text-muted flex items-center gap-1">
@@ -208,7 +208,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
             </div>
           )}
 
-          {/* Doctor Question Generator (LS7) with >=44px Touch Target */}
+          {}
           {causalResult.recommendedDoctorQuestion && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1 flex-1">
@@ -250,3 +250,4 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
     </div>
   );
 };
+

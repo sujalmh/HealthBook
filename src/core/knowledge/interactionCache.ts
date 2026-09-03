@@ -1,27 +1,3 @@
-/**
- * Healthbook Core: Interaction Cache — persistent derived-data store.
- *
- * Problem it fixes:
- * - Pill interactions / diet badges / duplicate alerts were pure functions
- *   re-executed on every PillMap load (PillMapView.recalculateEvaluations),
- *   on every check_interactions tool call, and on every RxBridge flag check.
- * - Result IDs used Date.now()+Math.random(), so results were un-storable,
- *   un-diffable, and caused render churn.
- *
- * Design:
- * - Supabase Postgres (`interaction_cache` table) is the system-of-record for
- *   derived evaluations. LocalVault `interactionCache` Map is a write-through
- *   cache (same pattern as meds/labs). An in-process memo avoids duplicate
- *   compute within a single session.
- * - Cache key = stable content hash of the regimen (sorted generic names +
- *   doses + diet flags + ENGINE_VERSION). Any med add/update/remove bumps the
- *   fingerprint, so stale entries are never served.
- * - IDs are deterministic (`arc_<a>_<b>_<hash>`, `dup_<ingredient>_<hash>`),
- *   so stored rows compare equal across loads and can be diffed for animated
- *   PillMap updates.
- *
- * Ownership: core/knowledge (interactionEngine v2). Depends on nothing.
- */
 
 import type {
   DietBadge,
@@ -29,10 +5,8 @@ import type {
   InteractionArc,
 } from '../../types/pillmap.ts';
 
-/** Bump when fixture rules or engine logic change — invalidates all stored rows. */
 export const INTERACTION_ENGINE_VERSION = '2.0.0';
 
-/** Canonical diet flags subset that affects evaluation. */
 export interface DietFlags {
   drinksGrapefruitDaily?: boolean;
   frequentHighVitKGreens?: boolean;
@@ -48,24 +22,20 @@ export interface RegimenMedInput {
 }
 
 export interface StoredInteractionEvaluation {
-  /** Stable fingerprint — also the Supabase PK suffix (`ic_<patient>_<hash>`). */
+
   regimenHash: string;
   patientId: string;
   engineVersion: string;
   computedAt: string;
-  /** Sorted generic names that produced this evaluation. */
+
   medFingerprint: string[];
   dietFlags: DietFlags;
   arcs: InteractionArc[];
   dietBadges: DietBadge[];
   duplicateAlerts: DuplicateIngredientAlert[];
-  /** Number of meds evaluated — guards against empty-regimen cache poisoning. */
+
   medCount: number;
 }
-
-// ------------------------------------------------------------------
-// Stable hashing (cyrb53, no dependencies)
-// ------------------------------------------------------------------
 
 export function stableHash(input: string): string {
   let h1 = 0xdeadbeef;
@@ -89,21 +59,18 @@ export function sanitizeForId(value: string): string {
     .slice(0, 48) || 'unknown';
 }
 
-/** Deterministic arc id — stable for the same drug pair + severity + mechanism. */
 export function deterministicArcId(drugA: string, drugB: string, severity: string, mechanism: string): string {
   const pair = [sanitizeForId(drugA), sanitizeForId(drugB)].sort().join('__');
   const h = stableHash(`${pair}|${severity}|${mechanism}`.toLowerCase()).slice(0, 8);
   return `arc_${pair}_${h}`;
 }
 
-/** Deterministic duplicate-alert id — stable for the same ingredient + drugs. */
 export function deterministicDuplicateId(ingredient: string, drugNames: string[]): string {
   const drugs = [...drugNames].map(sanitizeForId).sort().join('__');
   const h = stableHash(`${ingredient.toLowerCase()}|${drugs}`).slice(0, 8);
   return `dup_${sanitizeForId(ingredient)}_${h}`;
 }
 
-/** Normalize a med list into a sorted, lower-cased fingerprint. */
 export function fingerprintMeds(meds: RegimenMedInput[]): string[] {
   return meds
     .map((m) => {
@@ -126,24 +93,15 @@ function fingerprintDiet(flags: DietFlags): string {
   return JSON.stringify(ordered);
 }
 
-/**
- * Build the stable regimen hash for a patient evaluation.
- * Includes engine version so rule updates invalidate old rows automatically.
- */
 export function buildRegimenHash(meds: RegimenMedInput[], dietFlags: DietFlags): string {
   const medFp = fingerprintMeds(meds).join('|');
   const dietFp = fingerprintDiet(dietFlags);
   return stableHash(`${INTERACTION_ENGINE_VERSION}|${medFp}|${dietFp}`);
 }
 
-/** Canonical Supabase / vault PK for a stored evaluation. */
 export function interactionCacheId(patientId: string, regimenHash: string): string {
   return `ic_${sanitizeForId(patientId).slice(0, 32)}_${regimenHash}`;
 }
-
-// ------------------------------------------------------------------
-// In-process memo (single-session fast path; vault/Supabase is durable)
-// ------------------------------------------------------------------
 
 const memo = new Map<string, StoredInteractionEvaluation>();
 const MEMO_MAX = 50;
@@ -174,7 +132,6 @@ export function clearMemoEvaluation(patientId?: string): void {
   }
 }
 
-/** Build a storable evaluation from freshly computed engine outputs. */
 export function buildStoredEvaluation(args: {
   patientId: string;
   meds: RegimenMedInput[];
@@ -201,7 +158,6 @@ export function buildStoredEvaluation(args: {
   return entry;
 }
 
-/** Guard: stored entry is usable only if version + med set match. */
 export function isEvaluationFresh(
   entry: StoredInteractionEvaluation,
   meds: RegimenMedInput[],
@@ -215,3 +171,4 @@ export function isEvaluationFresh(
   if (!Number.isFinite(age) || age < 0 || age > maxAgeMs) return false;
   return true;
 }
+

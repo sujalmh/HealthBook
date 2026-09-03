@@ -1,17 +1,3 @@
-/**
- * Healthbook Fact Verification — web-evidence verification inside the AI pipeline.
- *
- * Runs as the step AFTER text extraction (extract_fact): for each clinically
- * verifiable fact (lab, medication, condition, allergy) it fetches authoritative
- * web evidence via Exa and asks the AI to verify the extracted claim against
- * that evidence. The verdict is attached to the fact as `fact.verification`
- * so the review UI (FactStreamView) can show it before the patient approves.
- *
- * Guarantees:
- * - Never throws and never blocks extraction: any failure marks facts
- *   unverifiable and the pipeline continues.
- * - Bounded: max 6 unique evidence queries, 3 results each, one AI verdict call.
- */
 
 import type { Fact, FactVerification } from '../../types/vault.ts';
 import { isHealthGroundingAvailable } from './healthGrounding.ts';
@@ -107,12 +93,6 @@ async function fetchEvidenceBundle(fact: Fact): Promise<EvidenceBundle | null> {
   }
 }
 
-/**
- * Verify extracted facts against web evidence and attach `fact.verification`
- * to each fact object in place. Safe to call with any fact list — facts that
- * are not web-verifiable (demographics, vitals, care instructions) are left
- * untouched.
- */
 export async function verifyFactsWithWebEvidence(facts: Fact[]): Promise<void> {
   const verifiable = facts.filter(isVerifiable).slice(0, MAX_VERIFIABLE_FACTS);
   if (verifiable.length === 0) return;
@@ -123,7 +103,6 @@ export async function verifyFactsWithWebEvidence(facts: Fact[]): Promise<void> {
   } catch { groundingAvailable = false; }
   if (!groundingAvailable) return;
 
-  // One evidence fetch per unique category+name — extracted docs repeat markers.
   const byKey = new Map<string, Fact>();
   for (const f of verifiable) {
     const key = `${String(f.category).toLowerCase()}|${f.name.toLowerCase()}`;
@@ -202,3 +181,4 @@ export async function verifyFactsWithWebEvidence(facts: Fact[]): Promise<void> {
     };
   }
 }
+

@@ -40,7 +40,7 @@ export const ToastContainer: React.FC = () => {
   const getBorderColor = (type: ToastMessage['type']) => {
     switch (type) {
       case 'success':
-        // Dark for contrast floating notification — clinical emerald preserved (light theme exception justified)
+
         return 'border-emerald-200 bg-emerald-950/90 text-emerald-50 shadow-lg';
       case 'error':
         return 'border-rose-200 bg-rose-950/90 text-rose-50 shadow-lg';
@@ -82,3 +82,4 @@ export const ToastContainer: React.FC = () => {
     </div>
   );
 };
+

@@ -1,7 +1,3 @@
-/**
- * Healthbook Component: ReminderConfigModal
- * Configures persistent time-slot notifications for daily medications and saves them to LocalVault.
- */
 
 import React, { useState } from 'react';
 import { Bell, Clock, Check, X, ShieldCheck, Sun, CloudSun, Sunset, Moon } from 'lucide-react';
@@ -44,7 +40,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
   return (
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Daily Medication Reminders">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
-        {/* Header */}
+        {}
         <div className="p-4 sm:p-5 bg-primary border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white/20 border border-white/30 flex items-center justify-center text-white">
@@ -66,14 +62,14 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
           </button>
         </div>
 
-        {/* Form */}
+        {}
         <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-4 text-body-sm text-slate-800">
           <p className="text-muted text-body-sm">
             Batch reminders send a single consolidated alert for all medications in each time window, avoiding alert fatigue.
           </p>
 
           <div className="space-y-3">
-            {/* Morning */}
+            {}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
                 <Sun className="w-4 h-4 text-amber-500" />
@@ -87,7 +83,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
               />
             </div>
 
-            {/* Noon */}
+            {}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
                 <CloudSun className="w-4 h-4 text-primary" />
@@ -101,7 +97,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
               />
             </div>
 
-            {/* Evening */}
+            {}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
                 <Sunset className="w-4 h-4 text-orange-500" />
@@ -115,7 +111,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
               />
             </div>
 
-            {/* Bedtime */}
+            {}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 rounded-2xl bg-canvas-muted border border-canvas-border">
               <div className="flex items-center gap-2.5">
                 <Moon className="w-4 h-4 text-teal-500" />
@@ -130,7 +126,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
             </div>
           </div>
 
-          {/* Success Banner */}
+          {}
           {isSaved && (
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center gap-2 text-body-sm font-semibold animate-fade-in">
               <Check className="w-4 h-4 text-emerald-500" />
@@ -138,7 +134,7 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
             </div>
           )}
 
-          {/* Actions */}
+          {}
           <div className="pt-3 border-t border-canvas-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 w-full">
             <button
               type="button"
@@ -160,3 +156,4 @@ export const ReminderConfigModal: React.FC<ReminderConfigModalProps> = ({
     </ModalPortal>
   );
 };
+

@@ -1,7 +1,3 @@
-/**
- * Healthbook Component: AdherenceSimulatorModal
- * Interactive missed-dose clinical risk calculator evaluating biomarker deltas and recovery protocols.
- */
 
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Clock, ShieldAlert, Check, X, PlusCircle, Activity, Sparkles, Loader2 } from 'lucide-react';
@@ -35,7 +31,6 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<boolean>(false);
 
-  // AI-native simulation — loading shimmer, honest error + retry, never canned text
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
@@ -85,7 +80,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
   return (
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Missed Dose Adherence Simulator">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
-        {/* Header */}
+        {}
         <div className="p-4 sm:p-6 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
@@ -109,9 +104,9 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-body text-slate-800">
-          {/* Medication & Slot Selector */}
+          {}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-caption uppercase tracking-wider text-muted mb-1">
@@ -165,7 +160,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
             </div>
           </div>
 
-          {/* Clinical Risk Summary */}
+          {}
           {isLoading ? (
             <div className="bg-canvas-muted p-3.5 sm:p-4 rounded-2xl border border-canvas-border flex items-center gap-2.5 text-body-sm text-muted" role="status">
               <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden="true" />
@@ -214,7 +209,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
             )}
           </div>
 
-          {/* Recovery Protocol */}
+          {}
           <div className="bg-emerald-50 p-3.5 sm:p-4 rounded-2xl border border-emerald-200 space-y-2">
             <div className="flex items-center gap-2 text-caption font-bold text-emerald-700 uppercase tracking-wider">
               <Sparkles className="w-4 h-4" /> Recommended Recovery Protocol
@@ -224,7 +219,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
             </p>
           </div>
 
-          {/* Mandatory Do Not Double Dose Safety Banner */}
+          {}
           {simulation.doNotDoubleDoseWarning && (
             <div className="p-3 rounded-2xl bg-rose-100 border border-rose-700/80 flex items-start gap-2.5 text-rose-700">
               <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
@@ -242,7 +237,7 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
           )}
         </div>
 
-        {/* Footer with Question Bank Action */}
+        {}
         <div className="p-4 sm:p-6 bg-canvas-muted border-t border-canvas-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
           <button
             type="button"
@@ -275,3 +270,4 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
     </ModalPortal>
   );
 };
+

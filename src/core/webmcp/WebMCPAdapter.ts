@@ -1,9 +1,3 @@
-/**
- * Healthbook WebMCP Adapter — Spec Mapping & Validation
- * Protocol-correct bridging: parameters → inputSchema, name/description validation,
- * patientId vault bridging, DOMString serialization, annotations.
- * Spec: W3C WebMCP Draft 26 Aug 2026 §4.1-4.5
- */
 
 import type { WebMCPToolDefinition, WebMCPToolParameterSchema } from '../../types/webmcp.ts';
 import { localVault } from '../vault/LocalVault.ts';
@@ -11,7 +5,6 @@ import { localVault } from '../vault/LocalVault.ts';
 export const TOOL_NAME_REGEX = /^[a-zA-Z0-9_.-]+$/;
 export const TOOL_NAME_MAX = 128;
 
-/** Throw DOMException InvalidStateError with correct name */
 export function throwInvalidStateError(message: string): never {
   if (typeof DOMException !== 'undefined') {
     throw new DOMException(message, 'InvalidStateError');
@@ -30,21 +23,18 @@ export function throwAbortError(message = 'Aborted'): never {
   throw err;
 }
 
-/** Validate name 1-128 regex ^[a-zA-Z0-9_.-]+$ else InvalidStateError */
 export function validateToolName(name: unknown): void {
   if (typeof name !== 'string' || name.length < 1 || name.length > TOOL_NAME_MAX || !TOOL_NAME_REGEX.test(name)) {
     throwInvalidStateError(`Invalid tool name "${String(name)}": must match ^[a-zA-Z0-9_.-]+$ and be 1-128 chars`);
   }
 }
 
-/** Validate description non-empty else InvalidStateError */
 export function validateToolDescription(description: unknown, name: string): void {
   if (typeof description !== 'string' || description.trim().length === 0) {
     throwInvalidStateError(`Tool description must be non-empty string for "${name}"`);
   }
 }
 
-/** Serialize inputSchema via JSON.stringify — TypeError on circular */
 export function serializeInputSchema(schema: unknown): string {
   try {
     if (schema === undefined) return JSON.stringify({});
@@ -63,7 +53,6 @@ export function serializeInputSchema(schema: unknown): string {
   }
 }
 
-/** Derive patientId/activeProfile from localStorage healthbook_active_user same as WebMCPEngine.ts:187-200 */
 export function derivePatientContext(): { patientId: string; activeProfile: unknown; storedProfile: unknown } {
   const storedProfile = (() => {
     try {
@@ -82,13 +71,6 @@ export function derivePatientContext(): { patientId: string; activeProfile: unkn
   return { patientId: resolvedPatientId, activeProfile: resolvedProfile, storedProfile };
 }
 
-/**
- * Map internal WebMCPToolDefinition → spec ModelContextTool
- * parameters → inputSchema (object, will be stringified internally by polyfill/native)
- * title = name, annotations.readOnlyHint = !requiresHumanApproval
- * execute wrapper bridges vault/context via derivePatientContext at call time, injects localVault + eventBus + activeProfile
- * Keeps Q5 snake_case names unchanged, Q6 staged pendingApprovalId workflow via engine.execute
- */
 export function toSpecTool(def: WebMCPToolDefinition, engine: unknown) {
   const inputSchema = (def as unknown as { inputSchema?: unknown }).inputSchema ?? def.parameters;
   const eng = engine as { eventBus: unknown; execute: (name: string, params: unknown, ctx: unknown) => Promise<unknown> };
@@ -130,3 +112,4 @@ export function toSpecTool(def: WebMCPToolDefinition, engine: unknown) {
     },
   };
 }
+

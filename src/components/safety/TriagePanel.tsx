@@ -55,7 +55,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     try {
       const vaultReports = localVault.getDangerReports(effectiveTriagePatientId);
       if (vaultReports.length > 0) return vaultReports[0];
-    } catch { /* intentionally empty */ }
+    } catch {  }
     return {
       reportId: `danger_empty_${effectiveTriagePatientId || 'none'}`,
       patientId: effectiveTriagePatientId,
@@ -110,7 +110,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         if (onActionDispatched) onActionDispatched();
       }
     } catch {
-      // dispatch failure handled via toast
+
     } finally {
       setIsExecuting(null);
     }
@@ -152,7 +152,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         if (onActionDispatched) onActionDispatched();
       }
     } catch {
-      // dispatch failure handled via toast
+
     } finally {
       setIsExecuting(null);
     }
@@ -195,7 +195,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         if (onActionDispatched) onActionDispatched();
       }
     } catch {
-      // dispatch failure handled via toast
+
     } finally {
       setIsExecuting(null);
     }
@@ -203,7 +203,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Triage Banner — light clinical */}
+      {}
       <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -230,7 +230,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
           </div>
         </div>
 
-        {/* Symptoms & Vitals Snapshot */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
           <div className="bg-canvas-card rounded-xl p-3.5 border border-canvas-border shadow-sm space-y-1">
             <span className="text-caption text-muted font-semibold">Reported symptoms</span>
@@ -270,7 +270,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         </div>
       </div>
 
-      {/* Doctor Intervention Controls */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-canvas-border pb-3">
           <div className="flex items-center gap-2">
@@ -281,7 +281,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Action 1: Remove Ibuprofen */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-4 border border-rose-200 space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
@@ -310,7 +310,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
             {isDispatchDisabled && <p className="text-caption text-amber-700 font-semibold">Doctor actions — requires clinician login {isViewOnly ? '(view_only PERMISSION_DENIED)' : ''}</p>}
           </div>
 
-          {/* Action 2: Titrate Amlodipine */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-4 border border-sky-200 space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
@@ -339,7 +339,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
             {isDispatchDisabled && <p className="text-caption text-amber-700 font-semibold">Doctor actions — requires clinician login {isViewOnly ? '(view_only PERMISSION_DENIED)' : ''}</p>}
           </div>
 
-          {/* Action 3: Add Diuretic */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-4 border border-emerald-200 space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
@@ -368,7 +368,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
             {isDispatchDisabled && <p className="text-caption text-amber-700 font-semibold">Doctor actions — requires clinician login {isViewOnly ? '(view_only PERMISSION_DENIED)' : ''}</p>}
           </div>
 
-          {/* Action 4: Urgent Follow-Up */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-4 border border-primary-border space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
@@ -409,7 +409,7 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
         </div>
       </div>
 
-      {/* Followup Scheduler Modal — pass activeProfile for RBAC */}
+      {}
       <FollowupScheduler
         isOpen={isFollowupOpen}
         onClose={() => setIsFollowupOpen(false)}
@@ -420,3 +420,4 @@ export const TriagePanel: React.FC<TriagePanelProps> = ({
     </div>
   );
 };
+

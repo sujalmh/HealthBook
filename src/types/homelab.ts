@@ -1,6 +1,3 @@
-/**
- * Healthbook Types: HomeLab Remote Prescribed Loop
- */
 
 import { LabRecord, ProposalRecord } from './vault.ts';
 
@@ -67,3 +64,4 @@ export interface PillMapDiffEvent {
   newScheduleSlot: string;
   recalculatedConflictsCount: number;
 }
+

@@ -1,8 +1,3 @@
-/**
- * Healthbook Core: Reactive Event Bus & Telemetry Logger
- * Relevant-only sync: views subscribe only to relevant events; aliases preserve backward compat.
- * Why alias groups: legacy emit names map to canonical events without duplicate subscriptions.
- */
 
 import type { BoundingBox } from '../../types/vault.ts';
 
@@ -20,7 +15,7 @@ function deriveBusPatientId(): string {
         if (typeof pid === 'string' && pid.trim() !== '' && pid.trim() !== 'patient-s-devi') return pid.trim();
       }
     }
-  } catch { /* intentionally empty */ }
+  } catch {  }
   return '';
 }
 
@@ -49,7 +44,6 @@ export interface HighlightDocumentPayload {
   boundingBox?: BoundingBox;
 }
 
-// Canonical typed event names — keep aliases for backward compat.
 export type EventName =
   | 'medication_added'
   | 'medication_created'
@@ -290,3 +284,4 @@ export class WebMCPEventBus {
 }
 
 export const eventBus = new WebMCPEventBus();
+

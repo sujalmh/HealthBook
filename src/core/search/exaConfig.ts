@@ -1,6 +1,3 @@
-/**
- * Healthbook Search Core — Exa Config
- */
 
 export interface ExaConfig {
   enabled: boolean;
@@ -26,14 +23,14 @@ function readSettingsOverrides(): Record<string, unknown> {
           if (v !== undefined && v !== null && v !== '' && o[k] === undefined) o[k] = v;
         }
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
   }
   const exaKeys = ['VITE_EXA_API_KEY', 'VITE_EXA_ENABLED', 'VITE_EXA_BASE_URL', 'EXA_API_KEY', 'VITE_EXA_NUM_RESULTS', 'VITE_EXA_SEARCH_TYPE', 'VITE_EXA_TIMEOUT_MS', 'VITE_EXA_MAX_AGE_HOURS'];
   for (const k of exaKeys) {
     try {
       const v = localStorage.getItem(k) ?? localStorage.getItem(`healthbook_${k}`);
       if (v !== null && v !== '' && o[k] === undefined) o[k] = v;
-    } catch { /* intentionally empty */ }
+    } catch {  }
   }
   return o;
 }
@@ -60,8 +57,7 @@ function parseNumber(val: unknown, fallback: number): number {
 }
 
 export function getExaConfig(): ExaConfig {
-  // Static token `import.meta.env` — Vite bakes VITE_* vars at build time.
-  // Cast/optional-chain forms are NOT replaced, so keep this literal.
+
   const env: Record<string, unknown> = (() => {
     try {
       const metaEnv = import.meta.env ?? {};
@@ -124,3 +120,4 @@ export function getExaConfigSource(): { source: 'settings' | 'env'; overrides: R
   const o = readSettingsOverrides();
   return { source: Object.keys(o).filter(k => k.includes('EXA')).length > 0 ? 'settings' : 'env', overrides: o };
 }
+

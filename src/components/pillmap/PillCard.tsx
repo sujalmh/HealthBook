@@ -1,7 +1,3 @@
-/**
- * Healthbook Component: PillCard
- * Accessible, high-contrast draggable pill card displaying dosage, shape icon, meal badges, and conflict indicators.
- */
 
 import React from 'react';
 import { Trash2, HelpCircle, GripVertical, AlertTriangle, ArrowRight, Utensils } from 'lucide-react';
@@ -31,7 +27,7 @@ export const PillCard: React.FC<PillCardProps> = ({
   isGhostPreview = false,
   isDragging = false
 }) => {
-  // Shape rendering
+
   const renderShapeIcon = () => {
     switch (pill.shape) {
       case 'capsule':
@@ -81,13 +77,12 @@ export const PillCard: React.FC<PillCardProps> = ({
 
   const isGhost = isGhostPreview || pill.status === 'ghost_preview';
 
-  // Meal timing is the main thing on a pill: before or with a meal.
   const mealTiming = pill.emptyStomach
     ? { label: 'Take before meal', hint: 'Empty stomach', className: 'bg-amber-50 border-amber-200 text-amber-800' }
     : pill.withFood
       ? { label: 'Take with meal', hint: 'With food', className: 'bg-emerald-50 border-emerald-200 text-emerald-700' }
       : null;
-  // Engine badges repeating the prominent meal line are dropped to avoid duplication.
+
   const mealCovered = mealTiming ? (mealTiming.hint === 'Empty stomach' ? /empty\s*stomach/i : /with\s*(food|meal)|take\s*with/i) : null;
   const filteredDietBadges = mealCovered ? dietBadges.filter((d) => !mealCovered.test(d.badgeText || '')) : dietBadges;
 
@@ -107,21 +102,21 @@ export const PillCard: React.FC<PillCardProps> = ({
       role="article"
       aria-label={`${pill.name} ${pill.dosage}`}
     >
-      {/* Ghost Preview Header Badge */}
+      {}
       {isGhost && (
         <div className="flex items-center gap-1 mb-1.5 px-1.5 py-0.5 rounded-lg bg-emerald-500 text-white font-bold text-[9px] uppercase tracking-wider">
           <ArrowRight className="w-2.5 h-2.5" /> Proposed Timing Shift
         </div>
       )}
 
-      {/* Duplicate Ingredient Warning Tag */}
+      {}
       {isDuplicate && !isGhost && (
         <div className="flex items-center gap-1 mb-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 border border-amber-200 font-bold text-[9px]">
           <AlertTriangle className="w-2.5 h-2.5" /> Duplicate Ingredient
         </div>
       )}
 
-      {/* Top Row: Shape Icon, Brand/Generic Name, Drag Handle, Actions */}
+      {}
       <div className="flex items-start justify-between gap-1.5">
         <div className="flex items-center gap-2 min-w-0">
           <span className="shrink-0">{renderShapeIcon()}</span>
@@ -132,7 +127,7 @@ export const PillCard: React.FC<PillCardProps> = ({
           </div>
         </div>
 
-        {/* Action icons - touch target >=44px, compact visual with focus rings */}
+        {}
         {!isGhost && (
           <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
             {onSimulate && (
@@ -174,7 +169,7 @@ export const PillCard: React.FC<PillCardProps> = ({
         )}
       </div>
 
-      {/* Meal timing — prominent: before or with meal */}
+      {}
       {mealTiming && !isGhost && (
         <div className={`mt-1.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[13px] font-bold leading-tight ${mealTiming.className}`}>
           <Utensils className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
@@ -182,7 +177,7 @@ export const PillCard: React.FC<PillCardProps> = ({
         </div>
       )}
 
-      {/* Bottom Row: Other food & interaction badges (meal timing shown above) */}
+      {}
       <MealBadges
         avoidGrapefruit={pill.avoidGrapefruit}
         avoidAlcohol={pill.avoidAlcohol}
@@ -192,3 +187,4 @@ export const PillCard: React.FC<PillCardProps> = ({
     </div>
   );
 };
+

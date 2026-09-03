@@ -35,7 +35,6 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
     );
   }
 
-  // Sort ascending by drawDate
   const sorted = [...labs].sort((a, b) => new Date(a.drawDate).getTime() - new Date(b.drawDate).getTime());
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
@@ -46,7 +45,6 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
 
   const delta = Math.round((last.normalizedValue - first.normalizedValue) * 100) / 100;
 
-  // Generate automated clinical story sentence
   let storySentence = '';
   let trendIcon = <Minus className="w-4 h-4 text-muted" />;
   let badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
@@ -143,3 +141,4 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
     </div>
   );
 };
+

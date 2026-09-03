@@ -1,9 +1,3 @@
-/**
- * Healthbook WebMCP Tools: Doctor ↔ Patient RBAC Linking
- * Tools: link_doctor, revoke_doctor_link, list_doctor_patients, list_patient_doctors,
- *        view_patient_as_doctor
- * Provides persistent doctor-patient linkage + scoped access + doctor dashboard queries
- */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import type { DoctorPatientLink, DoctorPermissionLevel } from '../types/carecircle.ts';
@@ -43,16 +37,16 @@ export const linkDoctorTool: WebMCPToolDefinition = {
         error: { code: 'AUTH_FAILED', message: 'Authorization token rejected.' }
       };
     }
-    // Only patient owner or full admin can link doctor
+
     const role = context.activeProfile.role as string;
     const perm = context.activeProfile.permissionLevel as string;
     const isPatientOwner = role === 'patient' && !context.activeProfile.isProxy;
     const isFull = perm === 'full';
-    // allow if patient owner linking own profile OR link target matches active patient
+
     const targetPatientId = params.patientId || context.patientId;
     const isSelfLink = targetPatientId === context.activeProfile.userId;
     if (!isPatientOwner && !isFull && !isSelfLink) {
-      // For tests where activeProfile may be patient with manage but not full — still allow patient to link their own doctor
+
       if (role !== 'patient') {
         return permissionDeniedResult('link_doctor', 'Permission denied: Only patient or full admin can link a doctor.');
       }
@@ -117,20 +111,20 @@ export const revokeDoctorLinkTool: WebMCPToolDefinition = {
   },
   returns: { type: 'object', description: 'Revocation confirmation' },
   execute: async (params: { linkId: string; patientId?: string; doctorId?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    // Allow patient owner or doctor self-revoke or full admin
+
     const linkId = params.linkId;
-    // If linkId is actually a doctorId fallback (when caller passes doctorId as linkId for convenience)
+
     let link: any = null;
     try {
       link = context.vault.getDoctorLink ? context.vault.getDoctorLink(linkId) : null;
       if (!link && params.doctorId) {
-        // try find by doctorId + patientId
+
         const links = context.vault.getDoctorLinksForPatient ? context.vault.getDoctorLinksForPatient(params.patientId || context.patientId) : [];
         link = links.find((l: any) => l.doctorId === params.doctorId || l.doctorUserId === params.doctorId) || null;
       }
     } catch {}
     if (!link) {
-      // fallback scan all
+
       try {
         if (context.vault.doctorPatientLinks) {
           for (const v of context.vault.doctorPatientLinks.values()) {
@@ -193,7 +187,7 @@ export const listDoctorPatientsTool: WebMCPToolDefinition = {
       } else if (context.vault.doctorPatientLinks) {
         links = Array.from(context.vault.doctorPatientLinks.values()).filter((l: any) => (l.doctorId === doctorId || l.doctorUserId === doctorId) && l.status === 'active');
       }
-      // Also try email fallback — doctor may be identified by email stored as doctorId
+
       if (links.length === 0 && context.activeProfile.role === 'doctor') {
         const email = (context.activeProfile as any).email;
         if (email) {
@@ -269,13 +263,12 @@ export const viewPatientAsDoctorTool: WebMCPToolDefinition = {
   execute: async (params: { patientId: string; doctorId?: string; sections?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const doctorId = params.doctorId || context.activeProfile.userId;
     const patientId = params.patientId;
-    // Check role is doctor (or full admin acting as doctor)
+
     const role = context.activeProfile.role as string;
     if (role !== 'doctor' && context.activeProfile.permissionLevel !== 'full' && role !== 'patient') {
-      // allow patient to view own record via doctor tool? no, restrict to doctor role primarily, but allow patient-owner bypass for testing
-      // For now allow any active link holder — the critical check is vault link
+
     }
-    // Verify doctor has active link for patient
+
     let hasAccess = false;
     try {
       if (context.vault.hasDoctorAccess) {
@@ -284,13 +277,13 @@ export const viewPatientAsDoctorTool: WebMCPToolDefinition = {
         const links = context.vault.getDoctorLinksForPatient(patientId) || [];
         hasAccess = links.some((l: any) => (l.doctorId === doctorId || l.doctorUserId === doctorId || l.doctorEmail === doctorId) && l.status === 'active');
       }
-      // also check via email fallback
+
       if (!hasAccess && context.vault.doctorPatientLinks) {
         const email = (context.activeProfile as any).email || doctorId;
         const links = Array.from(context.vault.doctorPatientLinks.values()).filter((l: any) => l.patientId === patientId && l.status === 'active');
         hasAccess = links.some((l: any) => l.doctorEmail === email || l.doctorId === doctorId);
       }
-      // Also check time-bound grant as fallback (for legacy token-based access)
+
       if (!hasAccess && context.vault.getDoctorGrants) {
         const grants: any[] = context.vault.getDoctorGrants(patientId) || [];
         const email = (context.activeProfile as any).email || doctorId;
@@ -317,11 +310,10 @@ export const viewPatientAsDoctorTool: WebMCPToolDefinition = {
       if (wantAll || secs.includes('conditions')) data.conditions = context.vault.getConditions ? context.vault.getConditions(patientId) : [];
       if (wantAll || secs.includes('allergies')) data.allergies = context.vault.getAllergies ? context.vault.getAllergies(patientId) : [];
       if (wantAll || secs.includes('facts')) data.facts = context.vault.getFacts ? context.vault.getFacts(patientId) : [];
-      // add dossier-like source citations count
-      // audit log snippet
+
       if (context.vault.getAuditLogs) data.recentAudit = context.vault.getAuditLogs(patientId).slice(0,5);
     } catch {}
-    // log audit
+
     try {
       context.vault.logAudit('doctor_view_patient', 'access_grant' as any, patientId, { userId: doctorId, userName: context.activeProfile.name || doctorId, role: 'doctor' as any }, { patientId, sections: secs }, patientId);
     } catch {}
@@ -335,3 +327,4 @@ export const viewPatientAsDoctorTool: WebMCPToolDefinition = {
     };
   }
 };
+

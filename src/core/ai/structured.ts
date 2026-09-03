@@ -1,6 +1,3 @@
-/**
- * Healthbook AI Core — Structured Outputs & Response Parsing
- */
 
 import type { AIConfig, AIExtractedFact } from './types.ts';
 
@@ -110,7 +107,7 @@ export function parseJsonContent<T = unknown>(content: string): T | null {
 
   try {
     return JSON.parse(cleaned) as T;
-  } catch { /* intentionally empty */ }
+  } catch {  }
 
   const fenceRegex = /```(?:json)?\s*([\s\S]*?)\s*```/gi;
   let match;
@@ -119,7 +116,7 @@ export function parseJsonContent<T = unknown>(content: string): T | null {
       const blockClean = cleanJsonString(match[1]);
       try {
         return JSON.parse(blockClean) as T;
-      } catch { /* intentionally empty */ }
+      } catch {  }
     }
   }
 
@@ -129,7 +126,7 @@ export function parseJsonContent<T = unknown>(content: string): T | null {
     const candidate = cleaned.slice(startObj, endObj + 1).replace(/,\s*([}\]])/g, '$1');
     try {
       return JSON.parse(candidate) as T;
-    } catch { /* intentionally empty */ }
+    } catch {  }
   }
 
   const startArr = cleaned.indexOf('[');
@@ -138,7 +135,7 @@ export function parseJsonContent<T = unknown>(content: string): T | null {
     const candidate = cleaned.slice(startArr, endArr + 1).replace(/,\s*([}\]])/g, '$1');
     try {
       return JSON.parse(candidate) as T;
-    } catch { /* intentionally empty */ }
+    } catch {  }
   }
 
   try {
@@ -152,7 +149,7 @@ export function parseJsonContent<T = unknown>(content: string): T | null {
         reasoning: reasonMatch ? reasonMatch[1] : 'Extracted by AI',
       } as unknown as T;
     }
-  } catch { /* intentionally empty */ }
+  } catch {  }
 
   return null;
 }
@@ -278,3 +275,4 @@ export const validateStructuredOutput = (data: unknown) => {
   const res = validateStructuredFacts(data);
   return { valid: res.valid, errors: res.errors, parsed: { facts: res.facts } };
 };
+

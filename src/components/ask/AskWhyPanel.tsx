@@ -28,14 +28,13 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
     if (initialQuery) setQueryText(initialQuery);
   }, [initialQuery]);
 
-  // Listen for navigate_ask from LabStory
   useEffect(() => {
     const off = eventBus.on('navigate_ask', (payload: any) => {
       if (payload?.marker) setMarker(payload.marker);
       if (payload?.query) setQueryText(payload.query);
-      // auto-run if marker present
+
       if (payload?.query || payload?.marker) {
-        // optional auto-execute after state set - handled via next effect
+
       }
     });
     return () => off();
@@ -49,7 +48,6 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
     { label: 'Cholesterol — better?', marker: 'LDL', query: 'Why did my cholesterol get better?' },
   ];
 
-  // Derive vault context string for grounding — what IS in vault after extraction
   useEffect(() => {
     try {
       const meds = localVault.getMedications(patientId) || [];
@@ -241,3 +239,4 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
     </div>
   );
 };
+

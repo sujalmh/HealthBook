@@ -1,9 +1,3 @@
-/**
- * Healthbook WebMCP Tools: Safety Alerts, Doctor Remote Pillbox & Calendar (M5) — AI Triage Enhanced
- * Tools: report_danger_sign, notify_doctor, doctor_add_medication, doctor_remove_medication, doctor_change_dose,
- *        approve_pillmap_change, schedule_followup, schedule_lab, sync_to_calendar
- * AI triage via AI vision+text assessment (send freeText + photoBlob data URL single multimodal request to AI when enabled, return severity assessment).
- */
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
 import type {  DangerSignReport, DangerSymptomTag  } from '../types/safety.ts';
@@ -40,7 +34,7 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
   execute: async (params: { symptomTags: string[]; freeText?: string; severityRating?: 'mild' | 'moderate' | 'severe' | 'critical'; vitalSigns?: any; photoBlob?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const denied = gateIfViewOnly(context.activeProfile, 'report_danger_sign');
     if (denied) return denied;
-    // AI triage via AI vision+text assessment (send freeText + photoBlob data URL single multimodal request to AI when enabled, return severity assessment)
+
     let triagePriority: 'URGENT' | 'ROUTINE' | 'EMERGENCY' = 'ROUTINE';
     let assessedSeverity: 'mild' | 'moderate' | 'severe' | 'critical' = params.severityRating || 'severe';
     let firstAidAdvice: string | undefined;
@@ -77,7 +71,7 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
           firstAidAdvice = parsed.firstAidAdvice;
           aiConfidence = parsed.confidence;
         } else {
-          // AI did not return valid, fall through to heuristic
+
           throw new Error('AI triage returned invalid shape');
         }
       } catch (e) {
@@ -86,9 +80,7 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
     }
 
     if (!firstAidAdvice) {
-      // Fallback heuristic only when AI disabled or AI failed — text fallback allowed, but image OCR must be via AI (Q10)
-      // For photoBlob, if AI enabled we already attempted AI and failed, we still fallback but log warning (AI primary)
-      // Generic fallback preserving behavior
+
       const severeRatings: string[] = ['severe', 'critical'];
       const urgentTags: string[] = ['chest_pain', 'dyspnea'];
       const hasSevereRating = params.severityRating ? severeRatings.includes(params.severityRating) : false;
@@ -115,7 +107,7 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
       firstAidAdvice: firstAidAdvice || (triagePriority === 'URGENT'
         ? "Report sent to your care team's urgent triage queue. If you experience severe chest pain or sudden inability to breathe, call 911 immediately."
         : 'Report logged for clinician review.'),
-      // Include AI confidence if available for audit
+
       ...(aiConfidence !== undefined ? { aiConfidence, aiTriageSource: 'ai_vision_text_multimodal' } : {}),
     } as any;
 
@@ -563,7 +555,7 @@ export const syncToCalendarTool: WebMCPToolDefinition = {
   },
   returns: { type: 'object', description: 'Calendar ICS payload and web intents' },
   execute: async (params: { eventId: string; recipients?: string[] }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    // Use vault event dates if available, with local-noon safe parsing for date-only
+
     let dtstartISO = new Date(Date.now() + 3 * 86400000).toISOString();
     let dtendISO: string | null = null;
     try {
@@ -619,3 +611,4 @@ END:VCALENDAR
     };
   }
 };
+

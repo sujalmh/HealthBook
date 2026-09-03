@@ -1,17 +1,9 @@
-/**
- * Healthbook Component: SVGArcOverlay
- * Real-time dynamic SVG bezier curves between conflicting medications on the 7x4 PillMap grid.
- * Severity color hierarchy: Red (#EF4444: Contraindicated), Orange (#F97316: Major), Yellow (#EAB308: Moderate).
- */
 
 import React, { useState } from 'react';
 import { AlertCircle, AlertTriangle, Info, X, ShieldAlert, Sparkles } from 'lucide-react';
 import type { InteractionArc, ArcCoordinate, DayOfWeek, TimeSlot } from '../../types/pillmap.ts';
 import { ModalPortal } from '../common/ModalPortal';
 
-/**
- * Pure helper to compute an SVG cubic bezier path string between two 2D points.
- */
 export function calculateArcPath(
   startX: number,
   startY: number,
@@ -27,14 +19,11 @@ export function calculateArcPath(
     return `M ${startX} ${startY} L ${endX} ${endY}`;
   }
 
-  // Calculate perpendicular normal vector
   const nx = -dy / dist;
   const ny = dx / dist;
 
-  // Arch height proportional to distance, with minimum height
   const arcHeight = Math.max(30, Math.min(120, dist * curvature));
 
-  // Control points arching upwards / outwards
   const cp1x = startX + dx * 0.25 + nx * arcHeight;
   const cp1y = startY + dy * 0.25 + ny * arcHeight - (Math.abs(dx) > Math.abs(dy) ? arcHeight * 0.5 : 0);
 
@@ -44,9 +33,6 @@ export function calculateArcPath(
   return `M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`;
 }
 
-/**
- * Calculates slot coordinates based on grid column (day) and row (slot) indexes.
- */
 export function calculateSlotArcCoordinates(
   dayIndexA: number,
   slotIndexA: number,
@@ -99,14 +85,14 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
         preserveAspectRatio="none"
       >
         <defs>
-          {/* Animated gradient for Contraindicated Arcs */}
+          {}
           <linearGradient id="contraindicated-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#EF4444" stopOpacity="0.9" />
             <stop offset="50%" stopColor="#F87171" stopOpacity="1" />
             <stop offset="100%" stopColor="#DC2626" stopOpacity="0.9" />
           </linearGradient>
 
-          {/* Glowing filter */}
+          {}
           <filter id="arc-glow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -117,7 +103,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
 
-          {/* Marker arrows */}
+          {}
           <marker
             id="arrow-red"
             viewBox="0 0 10 10"
@@ -153,13 +139,12 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
           </marker>
         </defs>
 
-        {/* Render Each Conflict Arc */}
+        {}
         {gridCoordinates.map((coord, idx) => {
           const isHovered = hoveredArcId === coord.id;
           const isContraindicated = coord.severity === 'CONTRAINDICATED';
           const isMajor = coord.severity === 'MAJOR';
 
-          // Match corresponding full arc definition
           const fullArc = arcs.find(a => a.id === coord.id) || {
             id: coord.id,
             drugA: coord.fromMed,
@@ -181,7 +166,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
               onMouseEnter={() => setHoveredArcId(coord.id)}
               onMouseLeave={() => setHoveredArcId(null)}
             >
-              {/* Invisible wide hit target for easy clicking */}
+              {}
               <path
                 d={coord.path}
                 fill="none"
@@ -190,7 +175,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
                 className="cursor-pointer"
               />
 
-              {/* Background glow path */}
+              {}
               <path
                 d={coord.path}
                 fill="none"
@@ -201,7 +186,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
                 className={isContraindicated ? 'animate-pulse' : ''}
               />
 
-              {/* Main Crisp Arc Path */}
+              {}
               <path
                 d={coord.path}
                 fill="none"
@@ -212,7 +197,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
                 className="transition-all duration-200"
               />
 
-              {/* Interactive Center Badge Icon */}
+              {}
               {coord.startX && coord.endX && (
                 <g
                   transform={`translate(${(coord.startX + coord.endX) / 2 - 12}, ${(coord.startY + coord.endY) / 2 - 20})`}
@@ -244,11 +229,11 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
         })}
       </svg>
 
-      {/* Slide-over / Modal Clinical Mechanism Sheet */}
+      {}
       <ModalPortal isOpen={!!selectedArc} onClose={() => setSelectedArc(null)} ariaLabel="Drug Interaction Details">
         {selectedArc && (
           <div className="bg-white border border-canvas-border rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
-            {/* Header */}
+            {}
             <div
               className={`p-4 border-b flex items-center justify-between ${
                 selectedArc.severity === 'CONTRAINDICATED'
@@ -286,7 +271,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
               </button>
             </div>
 
-            {/* Content */}
+            {}
             <div className="p-4 sm:p-6 space-y-4 text-body text-slate-800">
               <div className="bg-canvas-muted p-3.5 sm:p-4 rounded-xl border border-canvas-border">
                 <span className="text-caption uppercase tracking-wider text-muted font-bold block mb-1">
@@ -314,7 +299,7 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
               </div>
             </div>
 
-            {/* Footer */}
+            {}
             <div className="p-3.5 sm:p-4 bg-canvas-muted border-t border-canvas-border flex justify-end">
               <button
                 onClick={() => setSelectedArc(null)}
@@ -329,3 +314,4 @@ export const SVGArcOverlay: React.FC<SVGArcOverlayProps> = ({
     </>
   );
 };
+

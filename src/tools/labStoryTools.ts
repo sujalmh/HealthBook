@@ -1,10 +1,3 @@
-/**
- * Healthbook WebMCP Tools: LabStory Longitudinal Biomarker Causal Engine — AI Intelligence (M1)
- * Tools: extract_labs, correlate_meds
- * AI panel extraction via generic AI when enabled, preserving BIOMARKER_STANDARDS normalization.
- * Fallback regex only when disabled (Q10).
- * Never hardcoded provider literals — reads via config.
- */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import type { LabRecord } from '../types/vault.ts';
@@ -15,7 +8,6 @@ import { getAIConfig, isAIEnabled } from '../core/ai/config.ts';
 import { groundBiomarkerLevels, isHealthGroundingAvailable } from '../core/search/healthGrounding.ts';
 import { searchExa } from '../core/search/exaClient.ts';
 
-// Standard reference and optimal ranges for biomarker normalizer
 export const BIOMARKER_STANDARDS: Record<
   string,
   {
@@ -247,16 +239,13 @@ export const BIOMARKER_STANDARDS: Record<
   }
 };
 
-/**
- * Finds the matching biomarker standard definition using name aliases and tokens.
- */
 export function findBiomarkerStandard(markerName: string) {
   const m = markerName.toLowerCase().trim();
   if (m.includes('creat')) return BIOMARKER_STANDARDS['creatinine'];
   if (m.includes('egfr') || m.includes('gfr')) return BIOMARKER_STANDARDS['egfr'];
   if (m.includes('hba1c') || m.includes('a1c') || m.includes('glycated')) return BIOMARKER_STANDARDS['hba1c'];
   if (m.includes('glucose') || m.includes('blood sugar')) return BIOMARKER_STANDARDS['glucose fasting'];
-  // gate glucose vs glutamate false positive — only map 'glu' when not glutamate
+
   if (m.includes('glu') && !m.includes('glutamate') && !m.includes('gluten')) return BIOMARKER_STANDARDS['glucose fasting'];
   if (m.includes('potassium') || m === 'k' || m === 'k+') return BIOMARKER_STANDARDS['potassium'];
   if (m.includes('ldl')) return BIOMARKER_STANDARDS['ldl'];
@@ -281,10 +270,6 @@ export function findBiomarkerStandard(markerName: string) {
   ) || null;
 }
 
-/**
- * Normalizes raw lab biomarker entry, evaluates ±10% borderline buffer zone,
- * and sets clinical status flags.
- */
 export function normalizeLabBiomarker(
   markerName: string,
   rawValue: number,
@@ -293,25 +278,23 @@ export function normalizeLabBiomarker(
   patientId: string,
   sourceDocId?: string
 ): LabRecord {
-  // M3 NaN guard: malformed rawLabData (e.g., Number("abc") => NaN) must not store NaN normalizedValue
+
   const safeRawValue = Number.isFinite(rawValue) ? rawValue : 0;
   const std = findBiomarkerStandard(markerName);
   const canonicalMarker = std ? std.canonicalName : markerName;
   const normalizedUnit = std ? std.standardUnit : rawUnit;
   let normalizedValue = std ? std.convertUnit(safeRawValue, rawUnit) : safeRawValue;
-  // Guard after conversion as well (convertUnit may return NaN for malformed unit)
+
   if (!Number.isFinite(normalizedValue)) normalizedValue = 0;
   const referenceRange = std ? std.refRange : { low: 0, high: 100 };
   const optimalRange = std ? std.optimalRange : { low: referenceRange.low, high: referenceRange.high * 0.85 };
 
-  // Calculate 10% borderline buffer around reference bounds
   const span = referenceRange.high - referenceRange.low;
   const buffer10 = span * 0.10;
   const isNearHigh = normalizedValue >= (referenceRange.high - buffer10) && normalizedValue <= (referenceRange.high + buffer10);
   const isNearLow = normalizedValue >= (referenceRange.low - buffer10) && normalizedValue <= (referenceRange.low + buffer10);
   const isBorderline = isNearHigh || isNearLow;
 
-  // Determine critical flags
   let isCritical = false;
   let flag: LabRecord['flag'] = 'NORMAL';
 
@@ -353,7 +336,6 @@ function isVisionImage(value?: string): boolean {
   return value.startsWith('data:image');
 }
 
-// Helper: fallback regex extraction (preserved for when AI disabled)
 function fallbackRegexExtract(text: string, patientId: string, documentId: string): LabRecord[] {
   const patterns: { regex: RegExp; marker: string; unit: string }[] = [
     { regex: /creatinine[^0-9]*([0-9]+\.?[0-9]*)/i, marker: 'Creatinine', unit: 'mg/dL' },
@@ -379,17 +361,17 @@ async function aiExtractLabsViaClient(rawText: string, imageDataUrl: string | un
   const docType = 'lab_report';
   try {
     const aiFacts = await extractWithAI(rawText || '', imageDataUrl, docType, { patientId, documentId });
-    // Filter for lab-relevant facts and convert via BIOMARKER_STANDARDS normalization (preserving standards)
+
     const labFacts = aiFacts.filter((f) => {
       const cat = (f.category || '').toLowerCase();
       const nameLower = (f.name || '').toLowerCase();
       if (cat === 'lab') return true;
-      // also include known biomarker names even if mis-categorized
+
       return ['creatinine','egfr','gfr','potassium','hba1c','a1c','glucose','hemoglobin','cholesterol','ldl','hdl','triglyceride'].some(k => nameLower.includes(k));
     });
     if (labFacts.length === 0) return [];
     const labRecords: LabRecord[] = labFacts.map((f) => {
-      // Derive numeric value robustly
+
       let rawVal: number = 0;
       if (typeof f.value === 'number' && Number.isFinite(f.value)) rawVal = f.value;
       else if (f.value && typeof f.value === 'object' && typeof (f.value as any).numericValue === 'number' && Number.isFinite((f.value as any).numericValue)) rawVal = (f.value as any).numericValue;
@@ -403,9 +385,9 @@ async function aiExtractLabsViaClient(rawText: string, imageDataUrl: string | un
       const unit = f.unit || '';
       const drawDate = (f as any).drawDate || f.timestamp || new Date().toISOString();
       const rec = normalizeLabBiomarker(f.name, rawVal, unit, drawDate, patientId, documentId);
-      // Preserve grounded bbox if provided by AI (normalized 0-1000)
+
       if (f.boundingBox) rec.boundingBox = f.boundingBox as any;
-      // Preserve confidence if present
+
       if ((f as any).confidence) (rec as any).confidence = (f as any).confidence;
       return rec;
     });
@@ -416,7 +398,6 @@ async function aiExtractLabsViaClient(rawText: string, imageDataUrl: string | un
   }
 }
 
-// AI causal narrative — AI search grounded for accuracy (no hardcoded ranges)
 async function aiCorrelateNarrative(
   biomarker: string,
   filteredLabs: LabRecord[],
@@ -430,7 +411,7 @@ async function aiCorrelateNarrative(
   if (!isAIEnabled(config)) return null;
 
   try {
-    // Pipeline: AI search first for biomarker understanding (normal/low/high interpretation) — skip in VITEST
+
     let exaContext = '';
     const isVitest = typeof process !== 'undefined' && (process as any).env?.VITEST === 'true';
     if (!isVitest && await isHealthGroundingAvailable()) {
@@ -521,15 +502,13 @@ export const extractLabsTool: WebMCPToolDefinition = {
     const patientId = params.patientId || context.patientId;
     let labRecords: LabRecord[] = [];
 
-    // Detect imageDataUrl for vision+text single request if provided (e.g., lab slip photo)
     const candidateImage = (params as any).imageDataUrl || (params as any).imageBlob || (params as any).image_blob;
     const imageDataUrl = typeof candidateImage === 'string' && isVisionImage(candidateImage) ? candidateImage : undefined;
     const hasImage = !!imageDataUrl;
 
-    // Case 1: Custom raw lab data provided — normalize and store for real patient (M3 NaN guard)
     if (params.rawLabData && Array.isArray(params.rawLabData) && params.rawLabData.length > 0) {
       const filtered = params.rawLabData.filter((item) => {
-        return item.marker || item.name; // keep structural check; numeric guard below
+        return item.marker || item.name;
       });
       labRecords = filtered
         .map((item) => {
@@ -546,18 +525,18 @@ export const extractLabsTool: WebMCPToolDefinition = {
         })
         .filter((rec) => Number.isFinite(rec.normalizedValue));
     } else if ((params.rawText && params.rawText.trim().length > 0) || hasImage) {
-      // Case 2: AI panel extraction when enabled, preserving BIOMARKER_STANDARDS normalization; fallback regex only when disabled
+
       const text = (params.rawText || '').trim();
       const config = getAIConfig();
       const aiEnabled = isAIEnabled(config);
       if (aiEnabled) {
         try {
-          // Single multimodal request where applicable: rawText + imageDataUrl together
+
           const aiLabs = await aiExtractLabsViaClient(text, imageDataUrl, patientId, params.documentId);
           if (aiLabs.length > 0) {
             labRecords = aiLabs;
           } else {
-            // AI returned empty — for image per Q10 return empty not heuristic placeholder, for text fallback to regex
+
             if (hasImage) {
               labRecords = [];
             } else {
@@ -565,7 +544,7 @@ export const extractLabsTool: WebMCPToolDefinition = {
             }
           }
         } catch {
-          // AI failed — fallback regex only for text never for images per Q10
+
           if (hasImage) {
             labRecords = [];
           } else {
@@ -573,9 +552,9 @@ export const extractLabsTool: WebMCPToolDefinition = {
           }
         }
       } else {
-        // AI disabled — fallback regex only for text never for images
+
         if (hasImage) {
-          // image OCR must be via AI, return empty when disabled
+
           labRecords = [];
         } else {
           labRecords = fallbackRegexExtract(text, patientId, params.documentId);
@@ -585,13 +564,12 @@ export const extractLabsTool: WebMCPToolDefinition = {
         labRecords = [];
       }
     } else {
-      // No rawLabData and no rawText — return empty (no mock seeding). Vault remains source.
+
       labRecords = [];
     }
 
-    // If no records parsed and no raw data, return informative result without mock insertion
     if (labRecords.length === 0) {
-      // Distinguish image case for Q10 messaging
+
       if (hasImage && isAIEnabled(getAIConfig()) === false) {
         return {
           success: true,
@@ -612,10 +590,8 @@ export const extractLabsTool: WebMCPToolDefinition = {
       };
     }
 
-    // Sort chronologically ascending
     labRecords.sort((a, b) => new Date(a.drawDate).getTime() - new Date(b.drawDate).getTime());
 
-    // Save into LocalVault for real patientId
     for (const record of labRecords) {
       await context.vault.addLab(record, {
         userId: context.activeProfile.userId,
@@ -624,10 +600,6 @@ export const extractLabsTool: WebMCPToolDefinition = {
       });
     }
 
-    // ── Pipeline: AI search grounding for biomarker understanding (low/high/normal, reference ranges) ──
-    // After extraction, use Exa AI search (no hardcoded domains) for accuracy on each marker's levels.
-    // This is the "next layer after extraction" — vault holds what IS, grounding explains what it MEANS.
-    // Skip during VITEST to keep tests deterministic and fast (no real Exa network in unit tests)
     const isVitest = typeof process !== 'undefined' && (process as unknown as { env?: Record<string, unknown> }).env?.['VITEST'] === 'true';
     if (!isVitest && await isHealthGroundingAvailable()) {
       const uniqueMarkers = [...new Set(labRecords.map(r => r.marker))].slice(0, 4);
@@ -710,10 +682,9 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     }
 
     const patientId = params.patientId || context.patientId;
-    // Query vault for longitudinal series for this marker — vault-derived only, no mock seeding
+
     let existingLabs = context.vault.getLabs(patientId, biomarker);
 
-    // Time window slice
     let filteredLabs = existingLabs;
     if (params.startDate) {
       filteredLabs = filteredLabs.filter((l: any) => new Date(l.drawDate) >= new Date(params.startDate!));
@@ -723,7 +694,7 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     }
 
     if (filteredLabs.length === 0) {
-      // No data for this biomarker in vault — return empty-state narrative (no mock)
+
       if (existingLabs.length === 0) {
         return {
           success: true,
@@ -753,7 +724,6 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     const delta = Math.round((endVal - startVal) * 100) / 100;
     const percentChange = startVal !== 0 ? Math.round(((endVal - startVal) / startVal) * 100) : 0;
 
-    // Derive correlatedMeds from vault medications for this patient (real data)
     let correlatedMeds: string[] = [];
     try {
       const meds = context.vault.getMedications(patientId) || [];
@@ -762,7 +732,6 @@ export const correlateMedsTool: WebMCPToolDefinition = {
       correlatedMeds = [];
     }
 
-    // Try AI causal narrative when enabled, preserving BIOMARKER_STANDARDS metrics but using AI for story
     let aiNarrative: { trajectory: string; narrative: string; doctorQuestion: string; correlated: string[] } | null = null;
     if (isAIEnabled(getAIConfig())) {
       aiNarrative = await aiCorrelateNarrative(biomarker, filteredLabs, correlatedMeds, startVal, endVal, delta, percentChange);
@@ -798,7 +767,6 @@ export const correlateMedsTool: WebMCPToolDefinition = {
       };
     }
 
-    // Fallback heuristic template (preserved for when AI disabled per Q10)
     const bLower = (biomarker ?? '').toLowerCase();
     let narrative = '';
     let trajectory = 'stable';
@@ -871,3 +839,4 @@ export const correlateMedsTool: WebMCPToolDefinition = {
     };
   }
 };
+

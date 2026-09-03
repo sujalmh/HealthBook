@@ -1,8 +1,3 @@
-/**
- * Healthbook Component: TeachBackModal
- * Interactive teach-back prompt ("Can you tell me in your words what you'll take tomorrow morning and with food or without?")
- * validating patient comprehension before finalizing post-discharge handoff.
- */
 
 import React, { useState } from 'react';
 import {
@@ -74,7 +69,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
   return (
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="Teach-Back Verification">
       <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-5 sm:space-y-6 max-h-[90vh] overflow-y-auto mx-auto">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4 gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shrink-0">
@@ -95,7 +90,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
           </button>
         </div>
 
-        {/* Prompt Card — tokenized light */}
+        {}
         <div className="p-4 sm:p-5 rounded-xl bg-primary-light border border-primary-border space-y-2.5">
           <div className="flex items-center gap-2 text-primary font-bold text-caption">
             <Sparkles className="w-4 h-4 text-primary" />
@@ -106,7 +101,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
           </p>
         </div>
 
-        {/* Interactive Speech & Sample Chips */}
+        {}
         <div className="space-y-2">
           <label className="text-[11px] font-mono text-slate-600 uppercase tracking-wider font-bold">
             Quick-Select Simulated Response (or type below):
@@ -124,7 +119,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
           </div>
         </div>
 
-        {/* Response Input Area */}
+        {}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-800">
@@ -143,7 +138,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
           />
         </div>
 
-        {/* Evaluate Button */}
+        {}
         <div className="flex justify-end">
           <button
             onClick={handleEvaluate}
@@ -159,7 +154,7 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
           </button>
         </div>
 
-        {/* Evaluation Results Card */}
+        {}
         {checkResult && (
           <div
             className={`p-4 sm:p-5 rounded-2xl border space-y-3 transition-all animate-fade-in ${
@@ -226,3 +221,4 @@ export const TeachBackModal: React.FC<TeachBackModalProps> = ({
     </ModalPortal>
   );
 };
+

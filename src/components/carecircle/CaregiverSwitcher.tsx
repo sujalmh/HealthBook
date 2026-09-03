@@ -35,7 +35,6 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
   const isProxy = !!activeProfile.isProxy;
   const permission = activeProfile.permissionLevel || 'manage';
 
-  // Derive linked family members from vault — vault-derived, no hardcoded Mother/Child mocks.
   const linkedFamily = (() => {
     try {
       const all = localVault.getCaregiverLinks(activeProfile.userId);
@@ -44,7 +43,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
   })();
 
   const handleSwitch = async (target: 'self' | string) => {
-    // target 'self' or linkId for dynamic family member
+
     if (target === 'self') {
       try {
         await webMCPEngine.execute(
@@ -64,15 +63,15 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
           }
         );
       } catch {
-        /* boundary */
+
       }
       onProfileChange('self');
       return;
     }
-    // dynamic family target — find the linked profile by linkId
+
     const link = linkedFamily.find((l) => l.linkId === target);
     if (!link) {
-      // No linked family yet — show guidance instead of mock.
+
       eventBus.dispatchToast({
         type: 'info',
         title: 'No family member',
@@ -99,16 +98,16 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
         }
       );
     } catch {
-      /* boundary */
+
     }
-    // Map to legacy mother/child callbacks for compatibility — use first link as 'mother' if needed
+
     const legacyTarget = (link.relationship === 'child' ? 'child' : 'mother') as 'mother' | 'child';
     onProfileChange(legacyTarget);
   };
 
   return (
     <div className="space-y-3">
-      {/* Profile Switcher Tabs — vault-derived, tokenized */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-xl p-2 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary-light text-primary flex items-center justify-center border border-primary-border">
@@ -156,7 +155,7 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
         </div>
       </div>
 
-      {/* Active Proxy Mode Banner — light, tokenized */}
+      {}
       {isProxy && (
         <div className="bg-primary-light border border-primary-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-fade-in">
           <div className="flex items-center gap-3">
@@ -190,3 +189,4 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
     </div>
   );
 };
+

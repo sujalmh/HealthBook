@@ -20,12 +20,6 @@ interface ProfileIndicatorProps {
   onClick?: () => void;
 }
 
-/**
- * ProfileIndicator — vault-derived completeness indicator
- * Uses real vault/profile data (not mock patient_profiles.ts).
- * Shows profile completeness % derived from vault data + profile fields.
- * Visible in header near logo or Family page.
- */
 export const ProfileIndicator: React.FC<ProfileIndicatorProps> = ({
   activeProfile,
   pendingCount: _propPendingCount,
@@ -61,7 +55,7 @@ export const ProfileIndicator: React.FC<ProfileIndicatorProps> = ({
         pending: pendingFacts + pendingProps,
         caregiverLinks,
       });
-    } catch { /* boundary */ }
+    } catch {  }
   };
 
   useEffect(() => {
@@ -160,3 +154,4 @@ export const ProfileIndicator: React.FC<ProfileIndicatorProps> = ({
     </div>
   );
 };
+

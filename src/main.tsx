@@ -100,7 +100,7 @@ async function bootstrap(): Promise<void> {
 
   try {
     if ((await sessionState()) === 'invalid') clearSession();
-  } catch { /* ignore — auth gate handles signed-out state */ }
+  } catch {  }
 
   const storedUserId = getStoredUserId();
   if (storedUserId && isSupabaseEnabled()) {
@@ -135,3 +135,4 @@ bootstrap().catch(async (e: unknown) => {
   const rootElement = document.getElementById('root');
   if (rootElement) ReactDOM.createRoot(rootElement).render(<React.StrictMode><App /></React.StrictMode>);
 });
+

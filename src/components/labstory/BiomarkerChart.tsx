@@ -58,7 +58,6 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(800);
 
-  // Measure container width dynamically for crisp responsive SVG rendering
   useEffect(() => {
     if (!containerRef.current) return;
     const updateWidth = () => {
@@ -84,7 +83,6 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     }
   }, []);
 
-  // Filter labs according to active zoom
   const filteredLabs = useMemo(() => {
     if (!labs || labs.length === 0) return [];
     const sorted = [...labs].sort((a, b) => new Date(a.drawDate).getTime() - new Date(b.drawDate).getTime());
@@ -100,11 +98,10 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
 
     const windowStart = latestEpoch - cutoffMs;
     const windowFiltered = sorted.filter((l) => new Date(l.drawDate).getTime() >= windowStart);
-    // If window filters out everything except 1, provide at least 2 points if available
+
     return windowFiltered.length >= 2 ? windowFiltered : sorted.slice(-3);
   }, [labs, activeZoom]);
 
-  // Dimension & Scaling Calculations adapted to container
   const isMobile = containerWidth < 600;
   const chartWidth = Math.max(containerWidth, 280);
   const chartHeight = isMobile ? 260 : 340;
@@ -130,7 +127,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     const times = filteredLabs.map((l) => new Date(l.drawDate).getTime());
     const minT = Math.min(...times);
     const maxT = Math.max(...times);
-    // Add small 5% buffer on X
+
     const spanT = Math.max(maxT - minT, 24 * 3600 * 1000);
     const minXVal = minT - spanT * 0.04;
     const maxXVal = maxT + spanT * 0.04;
@@ -162,7 +159,6 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
   const scaleX = (epoch: number) => padding.left + ((epoch - minX) / (maxX - minX)) * innerWidth;
   const scaleY = (val: number) => padding.top + innerHeight - ((val - minY) / (maxY - minY)) * innerHeight;
 
-  // Build SVG Path Line with smooth cubic or straight segments
   const pathD = useMemo(() => {
     if (filteredLabs.length === 0) return '';
     const points = filteredLabs.map((l) => ({
@@ -179,7 +175,6 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
       const p2 = points[i + 1];
       const p3 = points[i + 2] || p2;
 
-      // Catmull-Rom to Cubic Bezier conversion
       const cp1x = p1.x + (p2.x - p0.x) / 6;
       const cp1y = p1.y + (p2.y - p0.y) / 6;
       const cp2x = p2.x - (p3.x - p1.x) / 6;
@@ -190,7 +185,6 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     return d;
   }, [filteredLabs, minX, maxX, minY, maxY, padding.left, innerWidth, padding.top, innerHeight]);
 
-  // Y-Axis Ticks
   const yTicks = useMemo(() => {
     const ticksCount = isMobile ? 4 : 5;
     const step = (maxY - minY) / ticksCount;
@@ -202,7 +196,6 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     return ticks;
   }, [minY, maxY, isMobile]);
 
-  // X-Axis Ticks with decimation on narrow screens to prevent overlap
   const xTicks = useMemo(() => {
     if (filteredLabs.length === 0) return [];
     const all = filteredLabs.map((l) => ({
@@ -226,7 +219,6 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     setSelectedPoint(pt);
     if (onPointSelect) onPointSelect(pt);
 
-    // If point has doctor comments, highlight the primary pin
     if (pt.doctorComment || (pt.doctorComments && pt.doctorComments.length > 0)) {
       const comment = pt.doctorComment || pt.doctorComments![0];
       setActiveDoctorPin({ lab: pt, comment });
@@ -250,7 +242,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
 
   return (
     <div className={outerClass}>
-      {/* Top Chart Header & Controls */}
+      {}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-canvas-border pb-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary-light border border-primary-border text-primary shrink-0">
@@ -269,9 +261,9 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
           </div>
         </div>
 
-        {/* Right Controls: Range Toggles & Zoom Selectors */}
+        {}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap">
-          {/* Dual Range Toggles (LS5) with >=44px Touch Targets */}
+          {}
           <div className="flex items-center gap-1.5 bg-canvas-muted border border-canvas-border rounded-xl p-1 text-body-sm w-full sm:w-auto">
             <button
               type="button"
@@ -296,7 +288,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             </button>
           </div>
 
-          {/* Zoom Window Filter (LS2) with >=44px Touch Targets */}
+          {}
           <div className="flex items-center gap-1 bg-canvas-muted border border-canvas-border rounded-xl p-1 text-body-sm overflow-x-auto scrollbar-none w-full sm:w-auto max-w-full">
             {zoomOptions.map((z) => (
               <button
@@ -314,7 +306,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
         </div>
       </div>
 
-      {/* SVG Canvas Area Container */}
+      {}
       <div
         ref={containerRef}
         className="relative w-full overflow-hidden rounded-xl bg-canvas-muted border border-canvas-border"
@@ -325,7 +317,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
           className="w-full h-auto select-none block overflow-visible"
         >
           <defs>
-            {/* Gradients */}
+            {}
             <linearGradient id="refRangeGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#64748b" stopOpacity="0.12" />
               <stop offset="100%" stopColor="#64748b" stopOpacity="0.04" />
@@ -353,7 +345,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             </filter>
           </defs>
 
-          {/* 1. Background Grid Lines */}
+          {}
           {yTicks.map((tickVal) => {
             const y = scaleY(tickVal);
             return (
@@ -382,7 +374,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             );
           })}
 
-          {/* 2. Causal Highlight Window Overlay (LS3) */}
+          {}
           {causalHighlightWindow && (
             <g className="animate-pulse">
               <rect
@@ -412,7 +404,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             </g>
           )}
 
-          {/* 3. Reference Range Shaded Polygon (LS5) */}
+          {}
           {showReferenceRange && (
             <g>
               <rect
@@ -455,7 +447,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             </g>
           )}
 
-          {/* 4. Optimal Longevity Range Shaded Polygon (LS5) */}
+          {}
           {showOptimalRange && (
             <g>
               <rect
@@ -488,7 +480,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             </g>
           )}
 
-          {/* 5. Biomarker Trajectory Curve */}
+          {}
           <path
             d={pathD}
             fill="none"
@@ -499,7 +491,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             filter="url(#glow)"
           />
 
-          {/* 6. X-Axis Dates */}
+          {}
           {xTicks.map((xt, i) => {
             const x = scaleX(xt.epoch);
             return (
@@ -520,7 +512,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             );
           })}
 
-          {/* 7. Data Points (Interactive hover, tap, doctor pins) with >=44px Touch Targets */}
+          {}
           {filteredLabs.map((lab) => {
             const cx = scaleX(new Date(lab.drawDate).getTime());
             const cy = scaleY(lab.normalizedValue);
@@ -528,17 +520,16 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
             const isSelected = selectedPoint?.id === lab.id;
             const hasDoctorComment = Boolean(lab.doctorComment || (lab.doctorComments && lab.doctorComments.length > 0));
 
-            // Status color hierarchy
-            let pointColor = '#38bdf8'; // Sky
+            let pointColor = '#38bdf8';
             let strokeColor = '#0284c7';
             if (lab.isCritical || lab.flag === 'CRITICAL_HIGH' || lab.flag === 'CRITICAL_LOW') {
-              pointColor = '#f43f5e'; // Rose
+              pointColor = '#f43f5e';
               strokeColor = '#e11d48';
             } else if (lab.isBorderline) {
-              pointColor = '#f59e0b'; // Amber
+              pointColor = '#f59e0b';
               strokeColor = '#d97706';
             } else if (lab.flag === 'HIGH' || lab.flag === 'LOW') {
-              pointColor = '#fb923c'; // Orange
+              pointColor = '#fb923c';
               strokeColor = '#ea580c';
             }
 
@@ -553,15 +544,15 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                 tabIndex={0}
                 aria-label={`${markerName}: ${lab.normalizedValue} ${lab.normalizedUnit} on ${new Date(lab.drawDate).toLocaleDateString()}`}
               >
-                {/* Generous touch hit target (44px diameter = r=22) so mobile taps never fail */}
+                {}
                 <circle cx={cx} cy={cy} r="22" fill="transparent" />
 
-                {/* Outer hover/select halo */}
+                {}
                 {(isHovered || isSelected) && (
                   <circle cx={cx} cy={cy} r="15" fill={pointColor} fillOpacity="0.28" className="animate-pulse" />
                 )}
 
-                {/* Main point circle */}
+                {}
                 <circle
                   cx={cx}
                   cy={cy}
@@ -571,7 +562,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
                   strokeWidth="2.5"
                 />
 
-                {/* Doctor Pinned Comment Marker (📌) (LS8) */}
+                {}
                 {hasDoctorComment && (
                   <g transform={`translate(${cx - 8}, ${cy - 24})`}>
                     <circle cx="8" cy="8" r="8" fill="#fbbf24" stroke="#78350f" strokeWidth="1.5" className="shadow-md" />
@@ -585,7 +576,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
           })}
         </svg>
 
-        {/* Floating Tooltip Card (Hover or Selected Point) - Desktop: absolute top-right; Mobile: Docked bottom to avoid obscuring data points */}
+        {}
         {(hoveredPoint || selectedPoint) && (
           <div className="relative sm:absolute sm:top-3 sm:right-3 z-20 bg-canvas-card/95 backdrop-blur-md border-t sm:border border-canvas-border sm:rounded-xl p-3.5 shadow-md w-full sm:max-w-xs space-y-1.5 animate-fade-in text-body-sm">
             {(() => {
@@ -674,7 +665,7 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
         )}
       </div>
 
-      {/* Doctor Comment Pinning Modal / Inline Form */}
+      {}
       {isAddingComment && selectedPoint && (
         <div className="bg-canvas-muted border border-primary-border rounded-xl p-4 space-y-3 animate-fade-in text-body-sm shadow-sm">
           <div className="flex items-center justify-between">
@@ -727,3 +718,4 @@ export const BiomarkerChart: React.FC<BiomarkerChartProps> = ({
     </div>
   );
 };
+

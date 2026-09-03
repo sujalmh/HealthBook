@@ -1,24 +1,3 @@
-/**
- * Healthbook Core: LocalVault Manager — write-through cache over Supabase.
- *
- * Storage policy (single source of truth):
- * - Supabase Postgres is the system-of-record. Every typed `add*`/`update*`/
- *   `remove*` writes to Supabase FIRST (awaited) and only caches in memory on
- *   success. Failures throw — nothing is silently kept local.
- * - In-memory Maps are a read cache (plus offline/test store when Supabase is
- *   disabled). Hydration (`supabaseSync.hydrateFromSupabase`) repopulates them.
- * - This class must NOT be treated as a second vault: no caller should keep
- *   parallel copies in localStorage snapshots or component state. Read via
- *   `HealthRepository` / typed getters, mutate via typed methods only — never
- *   via direct `vault.meds.set/delete`.
- * - Derived clinical evaluations (pill interactions, diet badges, duplicate
- *   alerts) are STORED in `interactionCache` (persisted to Supabase
- *   `interaction_cache`), keyed by regimen content-hash. They are recomputed
- *   only when the regimen fingerprint changes — never on every view load.
- *
- * Per-account isolated — all getters/setters scoped by patientId (real userId from Create Account).
- * Empty vault until user upload: seed is NO-OP (see seed.ts), no auto-population.
- */
 
 import type {
   Fact,
@@ -41,10 +20,6 @@ import { isSupabaseEnabled, upsertSupabaseRecord, getSupabaseClient } from '../s
 import type { StoredInteractionEvaluation } from '../knowledge/interactionCache.ts';
 import { clearMemoEvaluation, interactionCacheId } from '../knowledge/interactionCache.ts';
 
-/**
- * Derive active patientId from globalThis localStorage healthbook_active_user — never '' nor patient-s-devi leak.
- * Used for patient isolation fallback when caller passes empty or missing patientId.
- */
 function derivePatientId(): string {
   try {
     const maybeGlobal = globalThis as unknown as { localStorage?: Storage };
@@ -71,17 +46,11 @@ function ensurePatientId(passed?: string): string {
   return '';
 }
 
-/** Write path: 'server' writes to Supabase first (production); 'local' uses
- * memory only (tests/harness). Test setup pins 'local'; specific tests opt in. */
 let vaultSyncMode: 'server' | 'local' = 'server';
 export function setVaultSyncMode(mode: 'server' | 'local'): void {
   vaultSyncMode = mode;
 }
 
-/**
- * BIOMARKER_STANDARDS for lab normalization ±10% borderline + critical flags
- * Mirrors src/tools/labStoryTools.ts BIOMARKER_STANDARDS to ensure cross-field consistency without import cycle.
- */
 const LOCAL_BIOMARKER_STANDARDS: { [key: string]: { canonicalName: string; standardUnit: string; refRange: { low: number; high: number }; optimalRange: { low: number; high: number }; criticalLow?: number; criticalHigh?: number } } = {
   creatinine: { canonicalName: 'Creatinine', standardUnit: 'mg/dL', refRange: { low: 0.6, high: 1.2 }, optimalRange: { low: 0.7, high: 1.0 }, criticalHigh: 3.0 },
   egfr: { canonicalName: 'eGFR', standardUnit: 'mL/min/1.73m2', refRange: { low: 60, high: 120 }, optimalRange: { low: 90, high: 120 }, criticalLow: 15 },
@@ -93,7 +62,7 @@ const LOCAL_BIOMARKER_STANDARDS: { [key: string]: { canonicalName: string; stand
   hdl: { canonicalName: 'HDL', standardUnit: 'mg/dL', refRange: { low: 40, high: 80 }, optimalRange: { low: 50, high: 80 }, criticalLow: 25 },
   triglycerides: { canonicalName: 'Triglycerides', standardUnit: 'mg/dL', refRange: { low: 50, high: 150 }, optimalRange: { low: 60, high: 100 }, criticalHigh: 500 },
   hemoglobin: { canonicalName: 'Hemoglobin', standardUnit: 'g/dL', refRange: { low: 12.0, high: 16.0 }, optimalRange: { low: 13.0, high: 15.5 }, criticalLow: 7.0, criticalHigh: 20.0 },
-  // Asthma ATS/ERS/GINA — preserve explicit ranges to prevent 0-100 fallback misapplied
+
   fev1: { canonicalName: 'FEV1', standardUnit: '% predicted', refRange: { low: 80, high: 120 }, optimalRange: { low: 90, high: 110 }, criticalLow: 60 },
   'fev1/fvc': { canonicalName: 'FEV1/FVC', standardUnit: 'ratio', refRange: { low: 0.70, high: 1.0 }, optimalRange: { low: 0.75, high: 0.90 } },
   fvc: { canonicalName: 'FVC', standardUnit: '% predicted', refRange: { low: 80, high: 120 }, optimalRange: { low: 90, high: 110 } },
@@ -102,10 +71,10 @@ const LOCAL_BIOMARKER_STANDARDS: { [key: string]: { canonicalName: string; stand
   'blood eosinophils': { canonicalName: 'Blood Eosinophils', standardUnit: 'cells/µL', refRange: { low: 0, high: 500 }, optimalRange: { low: 0, high: 300 }, criticalHigh: 1500 },
   'total ige': { canonicalName: 'Total IgE', standardUnit: 'IU/mL', refRange: { low: 0, high: 100 }, optimalRange: { low: 0, high: 100 } },
   'act score': { canonicalName: 'ACT Score', standardUnit: '/25', refRange: { low: 20, high: 25 }, optimalRange: { low: 20, high: 25 } },
-  // Endocrine thyroid ATA — TSH & Free T4
+
   tsh: { canonicalName: 'TSH', standardUnit: 'µIU/mL', refRange: { low: 0.4, high: 4.0 }, optimalRange: { low: 0.5, high: 3.0 }, criticalHigh: 10, criticalLow: 0.1 },
   'free t4': { canonicalName: 'Free T4', standardUnit: 'ng/dL', refRange: { low: 0.8, high: 1.8 }, optimalRange: { low: 0.9, high: 1.7 } },
-  // Hepatic AASLD — ALT
+
   alt: { canonicalName: 'ALT', standardUnit: 'U/L', refRange: { low: 7, high: 56 }, optimalRange: { low: 10, high: 40 }, criticalHigh: 200 },
 };
 
@@ -140,7 +109,7 @@ function normalizeLabRecord(lab: LabRecord): LabRecord {
   const std = findLocalStandard(lab.marker);
   if (!std) {
     const val = typeof lab.normalizedValue === 'number' && Number.isFinite(lab.normalizedValue) ? lab.normalizedValue : (typeof lab.value === 'number' && Number.isFinite(lab.value) ? lab.value : 0);
-    // Provide fallback reference/optimal ranges for unknown markers to prevent downstream crashes (e.g., LabStoryView reading .low)
+
     const fallbackRef = (lab.referenceRange && typeof lab.referenceRange.low === 'number' && typeof lab.referenceRange.high === 'number') ? lab.referenceRange : { low: 0, high: 100 };
     const fallbackOpt = (lab.optimalRange && typeof lab.optimalRange.low === 'number' && typeof lab.optimalRange.high === 'number') ? lab.optimalRange : { low: fallbackRef.low, high: fallbackRef.high * 0.85 || 85 };
     return {
@@ -157,7 +126,7 @@ function normalizeLabRecord(lab: LabRecord): LabRecord {
   }
   const canonicalMarker = std.canonicalName;
   const normalizedUnit = std.standardUnit;
-  // keep original value but ensure normalizedValue present; if not, use value
+
   let normalizedValue = typeof lab.normalizedValue === 'number' && Number.isFinite(lab.normalizedValue) ? lab.normalizedValue : lab.value;
   if (!Number.isFinite(normalizedValue)) normalizedValue = 0;
   const referenceRange = std.refRange;
@@ -203,11 +172,7 @@ export class LocalVaultManager {
   public questionBank: Map<string, QuestionBankItem> = new Map();
   public dueCards: Map<string, DueCardRecord> = new Map();
   public dangerReports: Map<string, DangerSignReport> = new Map();
-  /**
-   * Stored derived evaluations (pill interactions + diet + duplicates), keyed
-   * by `ic_<patient>_<regimenHash>`. Write-through cached to Supabase
-   * `interaction_cache`. See src/core/knowledge/interactionCache.ts.
-   */
+
   public interactionCache: Map<string, StoredInteractionEvaluation> = new Map();
   public pendingItems: Map<string, PendingItem> = new Map();
 
@@ -218,10 +183,9 @@ export class LocalVaultManager {
   }
 
   public async init(): Promise<void> {
-    // Initializer hook
+
   }
 
-  /** Allow the app singleton to be optionally wired to the global EventBus post-construction */
   public setEventBus(bus?: WebMCPEventBus): void {
     this.eventBus = bus;
   }
@@ -238,11 +202,6 @@ export class LocalVaultManager {
     return !!this.eventBus;
   }
 
-  // --- Direct-to-server writes (Supabase is the source of truth) ---
-  // Memory Maps are a read cache only: every mutation writes to Supabase FIRST
-  // and only caches on success. Failures throw — callers surface them, nothing
-  // is silently kept local. With Supabase disabled (tests/offline), memory acts
-  // as the store so logic stays testable.
   private async writeDirect(table: string, record: unknown): Promise<void> {
     const rec = record as { patientId?: unknown; id?: unknown };
     if (!rec || typeof rec !== 'object' || typeof rec.patientId !== 'string' || !rec.patientId.trim()) {
@@ -275,9 +234,6 @@ export class LocalVaultManager {
     }
   }
 
-  // --- Typed Event Helpers (M2 relevance matrix) ---
-  // Wrappers that delegate to typed EventBus emitters when connected; fallback to direct emit.
-  // These ensure patientId is always present in payload and relevant-only docs are single-sourced.
   public emitMedicationAdded(payload: unknown): void {
     const bus = this.eventBus as unknown as { emitMedicationAdded?: (p: unknown) => void };
     if (bus && typeof bus.emitMedicationAdded === 'function') {
@@ -319,7 +275,6 @@ export class LocalVaultManager {
     this.eventBus?.emit('doctor_revoked', p as { patientId?: string });
   }
 
-  // --- Audit Logger ---
   public logAudit(
     action: string,
     entityType: AuditLogEntry['entityType'],
@@ -330,7 +285,7 @@ export class LocalVaultManager {
   ): AuditLogEntry {
     const detailsObj = details as { patientId?: unknown };
     let resolvedPatientId: string | undefined = patientId ?? (typeof detailsObj?.patientId === 'string' ? detailsObj.patientId : undefined);
-    // Infer patientId from entity stores when not explicitly passed (backward-compat for legacy tool callers)
+
     if (!resolvedPatientId) {
       try {
         if (entityType === 'access_grant') resolvedPatientId = this.doctorGrants.get(entityId)?.patientId;
@@ -346,7 +301,7 @@ export class LocalVaultManager {
           if (generic?.patientId) resolvedPatientId = generic.patientId;
         }
       } catch {
-        // ignore inference errors
+
       }
     }
     const entry: AuditLogEntry = {
@@ -372,24 +327,23 @@ export class LocalVaultManager {
     );
   }
 
-  // --- Facts Store (decided facts live in `facts`; unconfirmed ones stage in the inbox) ---
   public async addFact(fact: Fact, performedBy?: AuditLogEntry['performedBy']): Promise<Fact> {
-    // Patient isolation: never store with '' nor patient-s-devi — derive from active user if missing, filter devi via trim
+
     if (!fact.patientId || fact.patientId.trim() === '' || fact.patientId.trim() === 'patient-s-devi') {
       const derived = derivePatientId();
       if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') fact.patientId = derived;
     }
-    // Prevent orphan '' storage: if still empty after derive, do not store (getter returns [] but Map size would leak invisible) — allow explicit devi
+
     if (!fact.patientId || fact.patientId.trim() === '') {
       fact.patientId = '';
       return fact;
     }
-    // bbox removed — no validation
+
     const existing = this.facts.get(fact.id);
     if (existing && existing.patientId !== fact.patientId) {
       throw new Error(`Duplicate fact id ${fact.id} exists for different patient`);
     }
-    // Keep approval semantics: newly added facts are unconfirmed staged (never auto-confirmed)
+
     if (!fact.status) fact.status = 'unconfirmed';
     if (fact.status === 'unconfirmed') {
       await this.createPendingItem({
@@ -417,7 +371,7 @@ export class LocalVaultManager {
     if (performedBy) {
       this.logAudit('add_fact', 'fact', fact.id, performedBy, { name: fact.name, category: fact.category }, fact.patientId);
     }
-    // Emit via typed helper if available (ensures patientId present)
+
     {
       const bus = this.eventBus as unknown as { emitFactAdded?: (f: Fact) => void };
       if (bus && typeof bus.emitFactAdded === 'function') {
@@ -426,8 +380,7 @@ export class LocalVaultManager {
         this.eventBus?.emit('fact_added', fact);
       }
     }
-    // Also emit fact_extracted alias via bus alias grouping (handled in eventBus)
-    // Direct server write (decided facts only — unconfirmed ones staged above)
+
     await this.writeDirect('facts', fact);
     return fact;
   }
@@ -490,20 +443,19 @@ export class LocalVaultManager {
       this.logAudit(`fact_${status}`, 'fact', fact.id, performedBy, { status, edits: edits as unknown as string }, fact.patientId);
     }
     const payload: { id: string; status: Fact['status']; fact: Fact; patientId: string } = { id, status, fact, patientId: fact.patientId };
-    // Emit single canonical event — alias grouping ensures relevant-only listeners for fact_confirmed receive it without double emit
+
     if (this.eventBus) {
       this.eventBus.emit('fact_status_changed', payload);
     }
-    // Sync updated fact status (confirmed/rejected) to Supabase first
+
     await this.writeDirect('facts', fact);
-    // No direct downstream auto-propagation here — vaultTools confirm_fact handles med/lab creation on confirmed only
-    // Rejected never propagates (no med/lab creation)
+
     return fact;
   }
 
   public getFactsByPatient(patientId: string, statusFilter?: Fact['status']): Fact[] {
     if (!patientId || patientId.trim() === '') return [];
-    // No leak: return only matching patientId, never all when patientId empty
+
     const list = Array.from(this.facts.values()).filter(f => f.patientId === patientId);
     const inbox = this.getPendingItems(patientId, 'fact_approval').map((i) => this.pendingFactToRecord(i));
     const merged = [...list, ...inbox.filter((f) => !list.some((e) => e.id === f.id))];
@@ -513,7 +465,6 @@ export class LocalVaultManager {
     return merged;
   }
 
-  // --- Documents Store ---
   public async addDocument(doc: DocumentRecord): Promise<DocumentRecord> {
     await this.writeDirect('documents', doc);
     this.documents.set(doc.id, doc);
@@ -529,14 +480,13 @@ export class LocalVaultManager {
     return this.documents.get(id);
   }
 
-  // --- Meds Store ---
   public async addMedication(med: MedicationRecord, performedBy?: AuditLogEntry['performedBy']): Promise<MedicationRecord> {
-    // Patient isolation: derive via healthbook_active_user if missing/empty, never '' nor patient-s-devi leak (trim-aware)
+
     if (!med.patientId || med.patientId.trim() === '' || med.patientId.trim() === 'patient-s-devi') {
       const derived = derivePatientId();
       if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') med.patientId = derived;
     }
-    // Ensure bbox-like? meds don't have bbox, but ensure dosage etc.
+
     await this.writeDirect('medications', med);
     this.meds.set(med.id, med);
     if (performedBy) {
@@ -548,7 +498,7 @@ export class LocalVaultManager {
       const isCriticalMed = medUnknown.isCritical === true || String(medUnknown.flag ?? '').includes('CRITICAL');
       const isAskProbePatient = med.patientId === 'ask-test-empty' || med.patientId.startsWith('ask-');
       if (!isCriticalMed && isAskProbePatient) {
-        // skip
+
       } else {
         const qText = `Question about ${med.genericName || med.brandName || med.name} ${med.dosage}: What is the purpose and any food or interaction precautions for this new medication?`;
         const exists = Array.from(this.questionBank.values()).some(q => q.patientId === med.patientId && q.linkedMedName === (med.genericName || med.brandName) && q.status === 'active');
@@ -577,7 +527,7 @@ export class LocalVaultManager {
         }
       }
     } catch {
-      // ignore
+
     }
     this.invalidateInteractionCache(med.patientId);
     return med;
@@ -623,17 +573,11 @@ export class LocalVaultManager {
     return this.updateMedication(medId, { status }, performedBy);
   }
 
-  /**
-   * Canonical medication removal — replaces direct `vault.meds.delete(id)`
-   * (which skipped audit, sync, events, and interaction-cache invalidation).
-   * Marks discontinued, audits, emits, syncs, invalidates derived evaluations,
-   * then removes from the write-through cache. Returns true if removed.
-   */
   public async removeMedication(medId: string, performedBy?: AuditLogEntry['performedBy']): Promise<boolean> {
     const med = this.meds.get(medId);
     if (!med) return false;
     const patientId = med.patientId;
-    // Direct server delete first so a removed med never resurrects on re-hydration.
+
     await this.deleteDirect('medications', medId);
     if (performedBy) {
       this.logAudit('remove_medication', 'med', medId, performedBy, { genericName: med.genericName, dosage: med.dosage }, patientId);
@@ -644,11 +588,6 @@ export class LocalVaultManager {
     return true;
   }
 
-  // --- Interaction Cache Store (stored derived evaluations) ---
-  /**
-   * Persist a computed pill-interaction evaluation, server-first like all writes.
-   * Keyed by `ic_<patient>_<regimenHash>` — see interactionCache.interactionCacheId.
-   */
   public async storeInteractionEvaluation(entry: StoredInteractionEvaluation): Promise<StoredInteractionEvaluation> {
     const key = interactionCacheId(entry.patientId, entry.regimenHash);
     await this.writeDirect('interaction_cache', {
@@ -668,13 +607,11 @@ export class LocalVaultManager {
     return entry;
   }
 
-  /** Exact-match lookup by regimen hash. Returns undefined on miss. */
   public getInteractionEvaluation(patientId: string, regimenHash: string): StoredInteractionEvaluation | undefined {
     if (!patientId || !regimenHash) return undefined;
     return this.interactionCache.get(interactionCacheId(patientId, regimenHash));
   }
 
-  /** All stored evaluations for a patient (newest first). */
   public getInteractionEvaluations(patientId: string): StoredInteractionEvaluation[] {
     if (!patientId || patientId.trim() === '') return [];
     return Array.from(this.interactionCache.values())
@@ -682,17 +619,10 @@ export class LocalVaultManager {
       .sort((a, b) => new Date(b.computedAt).getTime() - new Date(a.computedAt).getTime());
   }
 
-  /** Most recent stored evaluation for a patient, if any. */
   public getLatestInteractionEvaluation(patientId: string): StoredInteractionEvaluation | undefined {
     return this.getInteractionEvaluations(patientId)[0];
   }
 
-  /**
-   * Invalidate stored evaluations for a patient. Called automatically on any
-   * med add/update/remove. Stored rows are deleted (not tombstoned) because
-   * the regimen fingerprint is the cache key — a new regimen computes a new
-   * key. Also clears the in-process memo.
-   */
   public invalidateInteractionCache(patientId: string): void {
     if (!patientId || patientId.trim() === '') return;
     for (const [key, entry] of [...this.interactionCache.entries()]) {
@@ -701,13 +631,12 @@ export class LocalVaultManager {
     try {
       clearMemoEvaluation(patientId);
     } catch {
-      // ignore
+
     }
   }
 
-  // --- Labs Store ---
   public async addLab(lab: LabRecord, performedBy?: AuditLogEntry['performedBy']): Promise<LabRecord> {
-    // Patient isolation (trim-aware devi filter)
+
     if (!lab.patientId || lab.patientId.trim() === '' || lab.patientId.trim() === 'patient-s-devi') {
       const derived = derivePatientId();
       if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') lab.patientId = derived;
@@ -734,10 +663,10 @@ export class LocalVaultManager {
           }
         }
       } catch {
-        // ignore
+
       }
     }
-    // Normalize via BIOMARKER_STANDARDS ±10% borderline + critical flags
+
     const normalized = normalizeLabRecord(lab);
     await this.writeDirect('labs', normalized);
     this.labs.set(normalized.id, normalized);
@@ -774,7 +703,7 @@ export class LocalVaultManager {
         }
       }
     } catch {
-      // ignore
+
     }
     return normalized;
   }
@@ -811,7 +740,6 @@ export class LocalVaultManager {
     return lab;
   }
 
-  // --- Conditions Store ---
   public async addCondition(condition: ConditionRecord, performedBy?: AuditLogEntry['performedBy']): Promise<ConditionRecord> {
     if (!condition.patientId || condition.patientId.trim() === '') {
       const derived = derivePatientId();
@@ -827,7 +755,6 @@ export class LocalVaultManager {
     return Array.from(this.conditions.values()).filter((c) => c.patientId === patientId);
   }
 
-  // --- Allergies Store ---
   public async addAllergy(allergy: AllergyRecord, performedBy?: AuditLogEntry['performedBy']): Promise<AllergyRecord> {
     if (!allergy.patientId || allergy.patientId.trim() === '') {
       const derived = derivePatientId();
@@ -842,10 +769,6 @@ export class LocalVaultManager {
     if (!patientId || patientId.trim() === '') return [];
     return Array.from(this.allergies.values()).filter((a) => a.patientId === patientId);
   }
-
-  // --- Pending Inbox (accept/reject flows with 1-day TTL) ---
-  // Undecided items live in the `pending_items` table, never in permanent tables.
-  // Expiry is enforced on read; decided items apply their effect, audit, and delete.
 
   private pendingKindForProposal(p: ProposalRecord): PendingItem['kind'] {
     return p.type === 'dose_change' ? 'dosage_proposal' : 'pill_change';
@@ -954,7 +877,7 @@ export class LocalVaultManager {
     if (new Date(item.expiresAt).getTime() <= Date.now()) {
       try {
         await this.deleteDirect('pending_items', id);
-      } catch { /* ignore */ }
+      } catch {  }
       this.pendingItems.delete(id);
       return null;
     }
@@ -987,7 +910,6 @@ export class LocalVaultManager {
     return { kind: item.kind, record: proposal };
   }
 
-  // --- Proposals Store (decided history; undecided ones stage in the inbox) ---
   public async addProposal(proposal: ProposalRecord, performedBy?: AuditLogEntry['performedBy']): Promise<ProposalRecord> {
     if (!proposal.patientId || proposal.patientId.trim() === '' || proposal.patientId.trim() === 'patient-s-devi') {
       const derived = derivePatientId();
@@ -1085,19 +1007,18 @@ export class LocalVaultManager {
     return proposal;
   }
 
-  // --- Question Bank Store ---
   public async addQuestion(item: QuestionBankItem): Promise<QuestionBankItem> {
     if (!item.patientId || item.patientId.trim() === '' || item.patientId.trim() === 'patient-s-devi') {
       const derived = derivePatientId();
       if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') item.patientId = derived;
     }
-    // Dedup spam: widen to active||pending regardless of category (fix pending spam bypass)
+
     const duplicate = Array.from(this.questionBank.values()).some(q => q.patientId === item.patientId && q.questionText === item.questionText && (q.status === 'active' || q.status === 'pending'));
     if (duplicate) return item;
-    // Also dedup by linkedMedName regardless of category (expand medication_clarification to medication_change)
+
     const similar = Array.from(this.questionBank.values()).some(q => q.patientId === item.patientId && q.linkedMedName && item.linkedMedName && q.linkedMedName.toLowerCase() === item.linkedMedName.toLowerCase() && (q.status === 'active' || q.status === 'pending'));
     if (similar) {
-      // allow only one per med per patient regardless of category
+
       return item;
     }
     await this.writeDirect('question_bank', item);
@@ -1130,14 +1051,12 @@ export class LocalVaultManager {
     const item = this.questionBank.get(id);
     if (!item) return undefined;
     item.status = status;
-    // Direct server write so done/removed questions stay done/removed after reload.
+
     await this.writeDirect('question_bank', item);
     this.questionBank.set(id, item);
     return item;
   }
 
-  // --- Calendar Events Store ---
-  // Range support 7-14 days: stores scheduledDateEnd when present (R6 windowDays)
   public async addCalendarEvent(event: CalendarEventRecord, performedBy?: AuditLogEntry['performedBy']): Promise<CalendarEventRecord> {
     if (!event.patientId || event.patientId.trim() === '') {
       const derived = derivePatientId();
@@ -1158,7 +1077,6 @@ export class LocalVaultManager {
     return Array.from(this.calendarEvents.values()).filter(e => e.patientId === patientId);
   }
 
-  // --- Care Circle Store ---
   public async addCaregiverLink(link: LinkedCareProfile): Promise<LinkedCareProfile> {
     if (!link.patientId || link.patientId.trim() === '') {
       const derived = derivePatientId();
@@ -1204,7 +1122,6 @@ export class LocalVaultManager {
     return member;
   }
 
-  // --- Doctor Access Grants Store ---
   public async addDoctorGrant(grant: DoctorAccessGrant): Promise<DoctorAccessGrant> {
     if (!grant.patientId || grant.patientId.trim() === '') {
       const derived = derivePatientId();
@@ -1232,11 +1149,10 @@ export class LocalVaultManager {
     await this.writeDirect('doctor_grants', grant);
     this.doctorGrants.set(grantId, grant);
     this.eventBus?.emit('doctor_grant_revoked', grant);
-    // alias for legacy listeners that watch grant_added with revoked status — dispatched as revoked specifically
+
     return grant;
   }
 
-  // --- Doctor-Patient Persistent Links Store (persisted via care_circle rows) ---
   public async addDoctorLink(link: DoctorPatientLink): Promise<DoctorPatientLink> {
     if (!link.patientId || link.patientId.trim() === '') {
       const derived = derivePatientId();
@@ -1292,7 +1208,6 @@ export class LocalVaultManager {
     return link;
   }
 
-  // --- Generic Put & Get Helpers ---
   public async put<T extends { id?: string; grantId?: string; linkId?: string }>(storeName: string, item: T): Promise<T> {
     if (['facts', 'proposals', 'doctorGrants', 'auditLog'].includes(storeName)) {
       throw new Error(`Use typed addFact/addProposal instead of generic put for store ${storeName}`);
@@ -1324,20 +1239,19 @@ export class LocalVaultManager {
     return false;
   }
 
-  // --- Due Cards Store ---
   public async addDueCard(card: DueCardRecord): Promise<DueCardRecord> {
     if (!card.patientId || card.patientId.trim() === '' || card.patientId.trim() === 'patient-s-devi') {
       const derived = derivePatientId();
       if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') card.patientId = derived;
     }
-    // Dedup spam: prevent duplicate panel for same patient (patientId+testPanel) — return existing without growing Map
+
     const duplicateDue = Array.from(this.dueCards.values()).some(c => c.patientId === card.patientId && c.testPanel === card.testPanel);
     if (duplicateDue) {
       const existing = Array.from(this.dueCards.values()).find(c => c.patientId === card.patientId && c.testPanel === card.testPanel);
       if (existing) return existing;
       return card;
     }
-    // Prevent orphan '' storage: do not store if still empty (getter returns [] but Map size leaks) — allow explicit devi
+
     if (!card.patientId || card.patientId.trim() === '') {
       card.patientId = '';
       return card;
@@ -1363,7 +1277,6 @@ export class LocalVaultManager {
     return card;
   }
 
-  // --- Danger Signs Store ---
   public async addDangerReport(report: DangerSignReport): Promise<DangerSignReport> {
     if (!report.patientId || report.patientId.trim() === '') {
       const derived = derivePatientId();
@@ -1381,23 +1294,14 @@ export class LocalVaultManager {
     return all.filter(r => r.patientId === patientId);
   }
 
-  // --- Seed Idempotency Helpers (M1 canonical patient) ---
-  /**
-   * Check if vault already contains baseline data for given patient.
-   * Idempotent guard: true if at least one medication or lab exists for patient.
-   * Does NOT check secondary demo patients.
-   */
   public isSeeded(patientId: string): boolean {
     if (!patientId) return false;
     const hasMeds = Array.from(this.meds.values()).some((m) => m.patientId === patientId);
     const hasLabs = Array.from(this.labs.values()).some((l) => l.patientId === patientId);
-    // Consider seeded if either core store has data; strict version requires both
+
     return hasMeds && hasLabs;
   }
 
-  /**
-   * Lightweight check: any data exists for patient across all stores.
-   */
   public hasAnyData(patientId: string): boolean {
     if (!patientId) return false;
     return (
@@ -1412,9 +1316,6 @@ export class LocalVaultManager {
     );
   }
 
-  /**
-   * Return counts per store for a given patient — useful for seed verification / tests.
-   */
   public getSeedCounts(patientId: string): { [key: string]: number } {
     return {
       meds: this.getMedications(patientId).length,
@@ -1428,7 +1329,6 @@ export class LocalVaultManager {
     };
   }
 
-  // --- Reset / Seed Helper ---
   public clear(opts?: { preserveAudit?: boolean }): void {
     const preserveAudit = opts?.preserveAudit ?? true;
     this.facts.clear();
@@ -1453,7 +1353,7 @@ export class LocalVaultManager {
     try {
       clearMemoEvaluation();
     } catch {
-      // ignore
+
     }
   }
 
@@ -1464,9 +1364,9 @@ export class LocalVaultManager {
 
 export const localVault = new LocalVaultManager();
 
-/** Optional helper to wire the app singleton to the global EventBus after init */
 export function wireLocalVaultToEventBus(bus: WebMCPEventBus): void {
   localVault.setEventBus(bus);
 }
 
 export { LocalVaultManager as LocalVault };
+

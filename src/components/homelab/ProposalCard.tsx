@@ -95,7 +95,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
       eventBus.emit('proposal_status_changed', { ...proposal, status: 'approved' });
       if (onDecision) onDecision(proposal.id, 'approved');
     } catch {
-      // approval failure handled via toast
+
     } finally {
       setIsProcessing(false);
     }
@@ -133,7 +133,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
       eventBus.emit('proposal_status_changed', { ...proposal, status: 'rejected' });
       if (onDecision) onDecision(proposal.id, 'rejected');
     } catch {
-      // reject failure handled via toast
+
     } finally {
       setIsProcessing(false);
     }
@@ -177,7 +177,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
           : 'bg-canvas-muted border-canvas-border opacity-80'
       }`}
     >
-      {/* Card Header */}
+      {}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div
@@ -229,7 +229,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
         </div>
       </div>
 
-      {/* Before / After Comparison Banner */}
+      {}
       <div className="bg-canvas-muted rounded-2xl p-4 border border-canvas-border space-y-3">
         <div className="flex items-center justify-between text-body-sm text-muted">
           <span className="font-semibold uppercase tracking-wider">Medication Regimen Adjustment</span>
@@ -237,7 +237,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-          {/* Current Dose */}
+          {}
           <div className="bg-white rounded-xl p-3.5 border border-canvas-border space-y-1">
             <span className="text-caption uppercase font-bold text-muted tracking-wider">
               Current Active Regimen
@@ -248,7 +248,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
             <span className="text-caption text-muted">2 tablets daily</span>
           </div>
 
-          {/* Proposed Dose */}
+          {}
           <div className="bg-emerald-50 rounded-xl p-3.5 border border-emerald-200 space-y-1 relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-caption uppercase font-bold text-emerald-700 tracking-wider">
@@ -266,7 +266,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
         </div>
       </div>
 
-      {/* Linked Biomarker & Clinical Rationale */}
+      {}
       <div className="space-y-3">
         {proposal.linkedLabId && (
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-body-sm font-semibold text-rose-700">
@@ -286,7 +286,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
         </div>
       </div>
 
-      {/* Action Buttons / Human In The Loop Gate */}
+      {}
       {isPending ? (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-canvas-border">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
@@ -338,3 +338,4 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
     </div>
   );
 };
+

@@ -1,7 +1,3 @@
-/**
- * Healthbook AI Core — Client
- * Unified HTTP client for OpenAI-compatible endpoints (/chat/completions & /responses).
- */
 
 import type { Fact } from '../../types/vault.ts';
 import type { AICallOptions } from './types.ts';
@@ -129,8 +125,7 @@ export async function callAI<T = unknown>(
 
   let response: Response;
   try {
-    // Omit Authorization entirely when the client has no key — serverless
-    // proxies inject the server-side key only when the header is absent/bare.
+
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (config.apiKey && config.apiKey.trim()) headers.Authorization = `Bearer ${config.apiKey.trim()}`;
     response = await fetch(endpoint, {
@@ -344,6 +339,7 @@ function derivePatientId(): string {
         if (typeof val === 'string') return val;
       }
     }
-  } catch { /* intentionally empty */ }
+  } catch {  }
   return 'patient-unknown';
 }
+

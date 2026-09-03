@@ -26,10 +26,6 @@ interface UploadLabModalProps {
   onSuccess?: () => void;
 }
 
-/**
- * LOCAL_BIOMARKER_STANDARDS mirrors LocalVault.ts:62-72 for pre-commit flag correctness (all 9 markers)
- * Used to derive correct HIGH/LOW/CRITICAL flag in modal badges before vault commit, not fallback NORMAL.
- */
 const LOCAL_BIOMARKER_STANDARDS: Record<string, { canonicalName: string; standardUnit: string; refRange: { low: number; high: number }; criticalLow?: number; criticalHigh?: number }> = {
   creatinine: { canonicalName: 'Creatinine', standardUnit: 'mg/dL', refRange: { low: 0.6, high: 1.2 }, criticalHigh: 3.0 },
   egfr: { canonicalName: 'eGFR', standardUnit: 'mL/min/1.73m2', refRange: { low: 60, high: 120 }, criticalLow: 15 },
@@ -83,8 +79,6 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
   const [lastDocumentId, setLastDocumentId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset modal state on every open to prevent prefilled stale data (selectedFile, extractedValues, plainNarration, etc.)
-  // useEffect isOpen reset: isExtracted false extractedValues cleared via useEffect isOpen
   useEffect(() => {
     if (isOpen) {
       setSelectedFile(null);
@@ -241,7 +235,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Upload Remote Lab Slip">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] mx-auto">
-        {/* Modal Header */}
+        {}
         <div className="flex items-center justify-between px-6 py-4 border-b border-canvas-border bg-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-primary-light text-primary flex items-center justify-center border border-primary-border">
@@ -260,11 +254,11 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Body */}
+        {}
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {!isExtracted ? (
             <div className="space-y-4">
-              {/* Dropzone Area */}
+              {}
               <div className="border-2 border-dashed border-canvas-border hover:border-primary-border rounded-2xl p-8 text-center bg-canvas-muted transition-all space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-white text-primary flex items-center justify-center mx-auto shadow-sm border border-canvas-border">
                   <UploadCloud className="w-8 h-8" />
@@ -298,11 +292,10 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                     <span>{isProcessing ? 'Extracting...' : 'Upload Real File'}</span>
                   </button>
 
-
                 </div>
                 {selectedFile && <p className="text-caption text-muted">Selected: {selectedFile}</p>}
 
-                {/* Multi-stage Progress Status */}
+                {}
                 {isProcessing && (
                   <div className="p-4 bg-canvas-muted border border-primary-border rounded-xl space-y-2 text-left animate-fade-in shadow-xs mt-2">
                     <div className="flex items-center justify-between text-body-sm font-bold text-slate-800">
@@ -329,7 +322,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                 )}
               </div>
 
-              {/* Privacy Notice */}
+              {}
               <div className="flex items-start gap-2.5 bg-white rounded-2xl p-4 border border-canvas-border text-body-sm text-muted">
                 <Shield className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                 <span>
@@ -341,7 +334,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Slip Source Document Bounding Box Snippet */}
+              {}
               <div className="bg-canvas-muted rounded-2xl p-4 border border-canvas-border space-y-3">
                 <div className="flex items-center justify-between text-body-sm">
                   <span className="font-semibold text-slate-700 flex items-center gap-1.5">
@@ -365,7 +358,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                 </div>
               </div>
 
-              {/* Plain Language Narration Triad (F0.1) */}
+              {}
               <div className="bg-primary-light border border-primary-border rounded-2xl p-4 space-y-2">
                 <div className="flex items-center gap-2 text-body-sm font-bold text-primary-text">
                   <Sparkles className="w-4 h-4 text-primary" />
@@ -376,7 +369,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
                 </p>
               </div>
 
-              {/* Extracted Markers Breakdown */}
+              {}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-caption font-bold text-slate-800 uppercase tracking-wider">
@@ -440,7 +433,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           )}
         </div>
 
-        {/* Modal Footer / Action Gate */}
+        {}
         <div className="px-6 py-4 border-t border-canvas-border bg-white flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             onClick={onClose}
@@ -463,3 +456,4 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
     </ModalPortal>
   );
 };
+

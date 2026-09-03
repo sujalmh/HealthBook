@@ -1,6 +1,3 @@
-/**
- * Healthbook Types: PillMap Visual Polypharmacy Negotiator (M3)
- */
 
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 export type TimeSlot = 'morning' | 'noon' | 'evening' | 'bedtime';
@@ -41,7 +38,7 @@ export interface InteractionArc {
   drugA: string;
   drugB: string;
   severity: 'CONTRAINDICATED' | 'MAJOR' | 'MODERATE' | 'MINOR';
-  arcColor: string; // Red #EF4444, Orange #F97316, Yellow #EAB308
+  arcColor: string;
   mechanism: string;
   clinicalGuidance: string;
   affectedSlots: { day: DayOfWeek; slot: TimeSlot }[];
@@ -151,3 +148,4 @@ export const CHRONOTYPE_TIMES: Record<Chronotype, Record<TimeSlot, string>> = {
 
 export const DAYS_OF_WEEK: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 export const TIME_SLOTS: TimeSlot[] = ['morning', 'noon', 'evening', 'bedtime'];
+

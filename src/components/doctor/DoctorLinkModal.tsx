@@ -29,7 +29,6 @@ export const DoctorLinkModal: React.FC<DoctorLinkModalProps> = ({ isOpen, onClos
     }
   }, [isOpen, patientId]);
 
-  // refresh on doctor_linked/revoked
   useEffect(() => {
     if (!isOpen) return;
     const refresh = () => setLinks(localVault.getDoctorLinksForPatient(patientId));

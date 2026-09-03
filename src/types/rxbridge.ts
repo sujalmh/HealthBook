@@ -1,6 +1,3 @@
-/**
- * Healthbook Types: RxBridge Post-Discharge 3-List Reconciliation Engine
- */
 
 export type ChangeStatusBadge = 'CONTINUED' | 'DOSE_CHANGED' | 'STOPPED' | 'NEW' | 'HELD_AND_RESUMED';
 
@@ -123,3 +120,4 @@ export interface Patient3ListDischargeDataset {
   inHospitalMeds: InHospitalMedItem[];
   dischargeMeds: DischargeMedItem[];
 }
+

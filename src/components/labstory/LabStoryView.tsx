@@ -37,7 +37,6 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
   const [isManualAddOpen, setIsManualAddOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Manual Lab Entry Form State
   const [manualMarker, setManualMarker] = useState('Creatinine');
   const [manualValue, setManualValue] = useState('1.85');
   const [manualUnit, setManualUnit] = useState('mg/dL');
@@ -95,7 +94,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       loadLabs();
       setIsDropzoneOpen(false);
     } catch {
-      // extract_labs failure handled via toast in engine
+
     } finally {
       setIsLoading(false);
     }
@@ -144,7 +143,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
 
   return (
     <div className={`space-y-4 max-w-7xl mx-auto animate-fade-in ${className}`}>
-      {/* Top Header & Quick Actions */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shrink-0">
@@ -163,7 +162,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
           </div>
         </div>
 
-        {/* Header Action Buttons with >=44px Touch Targets */}
+        {}
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             type="button"
@@ -185,10 +184,10 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         </div>
       </div>
 
-      {/* Indicators table — the page. Grouped by what the markers check; each row opens details. */}
+      {}
       {labs.length > 0 && <IndicatorTable labs={labs} />}
 
-      {/* Friendly empty hint pointing at the actions above */}
+      {}
       {labs.length === 0 ? (
         <div className="bg-canvas-card border border-dashed border-canvas-border rounded-2xl p-6 sm:p-10 text-center space-y-4">
           <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center mx-auto">
@@ -203,7 +202,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         </div>
       ) : null}
 
-      {/* Modal: Multi-Doc Timeline Ingestion */}
+      {}
       <ModalPortal isOpen={isDropzoneOpen} onClose={() => setIsDropzoneOpen(false)} ariaLabel="Add Past Results">
         <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto mx-auto">
           <div className="flex items-center justify-between border-b border-canvas-border pb-3">
@@ -278,7 +277,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
         </div>
       </ModalPortal>
 
-      {/* Modal: Manual Lab Data Entry */}
+      {}
       <ModalPortal isOpen={isManualAddOpen} onClose={() => setIsManualAddOpen(false)} ariaLabel="Add Lab Result Manually">
         <form
           onSubmit={handleManualAddSubmit}
@@ -379,3 +378,4 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     </div>
   );
 };
+

@@ -20,7 +20,6 @@ type FactExtra = FactEntity & {
   approvedBy?: string;
 };
 
-/** Web-evidence verification verdict attached by the AI pipeline after extraction. */
 const VerificationBadge: React.FC<{ verification?: FactEntity['verification'] }> = ({ verification }) => {
   if (!verification) return null;
   const style = verification.status === 'verified'
@@ -89,7 +88,6 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
     return f.status === 'confirmed' || extra.approvalStatus === 'approved' || extra.approvalStatus === 'confirmed';
   });
 
-  // R3 deduplication: labs are now consolidated in single IndicatorTable (LabStoryView) via findLocalStandard — delegate to avoid scattered duplicates
   const isLabCategory = (c: string) => (c ?? '').toLowerCase().trim() === 'lab';
   const pendingLabsCount = pendingFacts.filter((f) => isLabCategory(f.category)).length;
   const approvedLabsCount = approvedFacts.filter((f) => isLabCategory(f.category)).length;
@@ -98,7 +96,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
     if (selectedCategory !== 'all' && f.category !== selectedCategory) return false;
     return true;
   });
-  // When browsing saved records, lab rows are delegated to IndicatorTable — show delegation instead of duplicates
+
   const filteredApprovedFacts = filteredApprovedFactsBase.filter((f) => !isLabCategory(f.category));
   const labDelegationActive = isLabCategory(selectedCategory);
 
@@ -176,7 +174,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
         </div>
       )}
 
-      {/* Pending — uniform table, no large logo, batch actions */}
+      {}
       {!isLoading && pendingFacts.length > 0 && (
         <div className="w-full bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden">
           <div className="px-3 sm:px-4 py-3 border-b border-amber-100 bg-amber-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -424,3 +422,4 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
     </div>
   );
 };
+

@@ -25,11 +25,6 @@ const ROLE_LABELS: Record<string, string> = {
   child: 'Family caregiver',
 };
 
-/**
- * ProfilePage — full-page profile opened from the header profile chip.
- * Account identity, access/permissions, vault data summary, and sign out.
- * Replaces the old ProfileDetails modal.
- */
 export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignOut }) => {
   const [vaultStats, setVaultStats] = useState({
     docs: 0,
@@ -49,7 +44,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
         labs: localVault.getLabs(pid).length,
         caregiverLinks: localVault.getCaregiverLinks(pid).length,
       });
-    } catch { /* boundary */ }
+    } catch {  }
   }, [activeProfile.userId]);
 
   const initials = (activeProfile.name || 'P').trim().charAt(0).toUpperCase() || 'P';
@@ -64,26 +59,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
       return;
     }
     try {
-      // All vault writes already hit the server before caching — nothing to flush.
+
       try {
         const s = loadSession();
         if (s) await supabaseSignOut(s.access_token);
         else clearSession();
-      } catch { /* boundary */ }
+      } catch {  }
       try {
         localStorage.removeItem('healthbook_active_user');
-      } catch { /* boundary */ }
+      } catch {  }
       try {
         localVault.clearAll();
-      } catch { /* boundary */ }
-    } catch { /* boundary */ }
+      } catch {  }
+    } catch {  }
     eventBus.dispatchToast({ type: 'info', title: 'Signed out', message: 'Server session ended. Your records stay safe on the server.' });
     onSignOut();
   };
 
   return (
     <div className="space-y-3 max-w-2xl">
-      {/* Identity */}
+      {}
       <section className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5" aria-label="Account identity">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary-light border border-primary-border flex items-center justify-center text-primary-text font-bold text-lg shrink-0">
@@ -115,7 +110,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
         </p>
       </section>
 
-      {/* Session */}
+      {}
       <section className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5" aria-label="Session">
           <p className="text-body-sm text-muted">Signed in — your records live on the secure server and sync here.</p>
         <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -145,3 +140,4 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
     </div>
   );
 };
+

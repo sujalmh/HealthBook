@@ -45,7 +45,7 @@ export const DocumentDropzone: React.FC<{
           ocrOutputText = ocr.markdown;
         }
       } catch {
-        // fallback to rawText
+
       }
 
       await localVault.addDocument({
@@ -247,3 +247,4 @@ export const DocumentDropzone: React.FC<{
     </div>
   );
 };
+

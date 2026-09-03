@@ -24,7 +24,6 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
   const [liveConfig, setLiveConfig] = useState<ReturnType<typeof getAIConfig> | null>(null);
   const [exaLive, setExaLive] = useState<ReturnType<typeof getExaConfig> | null>(null);
 
-  // Load from SettingsStore + reflect current effective config via getAIConfig
   useEffect(() => {
     const loaded = loadSettings();
     setForm(loaded);
@@ -37,7 +36,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
       setLiveConfig(getAIConfig());
       setExaLive(getExaConfig());
     } catch {
-      // ignore
+
     }
   };
 
@@ -55,12 +54,12 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
       setStatus({ type: 'error', msg: validation.errors.join('; ') });
       return;
     }
-    // Persist via SettingsStore — writes to healthbook_settings JSON blob + individual VITE_AI_* keys + healthbook_VITE_AI_*
+
     saveSettings(form);
     refreshSource();
     setStatus({ type: 'success', msg: `Saved ${Object.keys(form).filter((k) => (form as unknown as Record<string, unknown>)[k]).length} keys to SettingsStore — Settings>env precedence active.` });
     if (onSaved) onSaved();
-    // Brief success reset
+
     setTimeout(() => setStatus({ type: 'idle', msg: '' }), 3500);
   };
 
@@ -72,14 +71,13 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
     setTimeout(() => setStatus({ type: 'idle', msg: '' }), 3500);
   };
 
-  // Derive current source label generically
   const sourceLabel = source.source === 'settings' ? 'Settings (localStorage)' : source.source === 'env' ? 'Environment (.env via import.meta.env)' : 'Defaults';
   const hasSettings = source.source === 'settings';
   const aiEnabled = liveConfig ? isAIEnabled(liveConfig) : false;
 
   return (
     <div className="space-y-6">
-      {/* Header with source badge */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-canvas-border rounded-xl p-4 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-primary-light border border-primary-border text-primary flex items-center justify-center">
@@ -104,7 +102,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
         </div>
       </div>
 
-      {/* Current effective config debug helper */}
+      {}
       <div className="bg-canvas-muted border border-canvas-border rounded-xl p-4 space-y-2">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
           <Info className="w-3.5 h-3.5" />
@@ -138,9 +136,9 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
         </div>
       </div>
 
-      {/* Form fields */}
+      {}
       <div className="bg-white border border-canvas-border rounded-xl p-5 shadow-sm space-y-5">
-        {/* Enabled + Provider row */}
+        {}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Enabled</label>
@@ -187,7 +185,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           </div>
         </div>
 
-        {/* BaseURL + APIKey */}
+        {}
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
@@ -229,7 +227,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           </div>
         </div>
 
-        {/* Model + VisionModel */}
+        {}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
@@ -261,7 +259,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           </div>
         </div>
 
-        {/* Temperature, MaxTokens, Timeout */}
+        {}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Temperature</label>
@@ -300,7 +298,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           </div>
         </div>
 
-        {/* Org, Project, ExtraHeaders */}
+        {}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Organization ID</label>
@@ -336,7 +334,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           <p className="text-[11px] text-muted">Optional — any extra headers generically.</p>
         </div>
 
-        {/* Mistral OCR Configuration (Path A & Path B) */}
+        {}
         <div className="bg-emerald-50/50 border border-emerald-200/80 rounded-2xl p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -382,7 +380,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           </div>
         </div>
 
-        {/* Exa Healthcare Grounding — post-extraction intelligence */}
+        {}
         <div className="bg-teal-50/70 border border-teal-200 rounded-2xl p-4 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -508,7 +506,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           </p>
         </div>
 
-        {/* Legend 21 keys */}
+        {}
         <div className="bg-canvas-muted border border-canvas-border rounded-xl p-3">
           <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
             <Info className="w-3.5 h-3.5" /> {SETTINGS_VITE_KEYS.length} configurable keys — .env.example documents 21 (AI 14 + OCR 4 + Exa 8)
@@ -528,7 +526,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           <p className="text-[11px] text-muted mt-2">Generic keys — any baseURL/model/provider allowed, never hardcoded literals for provider/model/baseURL in src/. Exa section adds grounding keys.</p>
         </div>
 
-        {/* Status */}
+        {}
         {status.type !== 'idle' && (
           <div className={`flex items-center gap-2 p-3 rounded-xl border text-sm ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
             {status.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
@@ -536,7 +534,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
           </div>
         )}
 
-        {/* Actions */}
+        {}
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             onClick={handleSave}
@@ -563,3 +561,4 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
     </div>
   );
 };
+

@@ -110,7 +110,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Top Banner & Mode Toggle — consistent card style */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
@@ -128,7 +128,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
           </div>
         </div>
 
-        {/* View Mode Tabs: Patient Remote Loop vs Doctor Review */}
+        {}
         <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border self-start md:self-auto shadow-xs">
           <button
             onClick={() => setActiveTab('patient_loop')}
@@ -166,10 +166,10 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
         </div>
       </div>
 
-      {/* Main Tab Content */}
+      {}
       {activeTab === 'patient_loop' ? (
         <div className="space-y-4">
-          {/* Section 1: Prescribed Due Cards */}
+          {}
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
             <DueCardList
               dueCards={dueCards}
@@ -178,7 +178,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
             />
           </div>
 
-          {/* Section 2: Active Doctor Dosage Proposals */}
+          {}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-heading-md text-slate-900">Dose changes {pendingProposals.length > 0 && <span className="text-body-sm text-muted font-semibold">({pendingProposals.length} waiting)</span>}</h3>
@@ -219,3 +219,4 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
     </div>
   );
 };
+

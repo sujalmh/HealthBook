@@ -45,7 +45,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
 
   const loadData = () => {
-    // Read-only vault loads — effectivePatientId for isolation, reflects AI-derived timeline citations
+
     const links = effectivePatientId ? localVault.getCaregiverLinks(effectivePatientId) : [];
     setCaregiverLinks(links);
     const dLinks = effectivePatientId ? localVault.getDoctorLinksForPatient(effectivePatientId) : [];
@@ -55,8 +55,6 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
     setAuditLogs(logs);
   };
 
-  // M2 Relevant-only: CareCircle listens to caregiver_linked, doctor_grant_added/revoked, doctor_linked/revoked, audit_logged
-  // proposal_status_changed / lab_* are irrelevant — spurious guard; reflects new facts via dossier audit
   useEffect(() => {
     loadData();
 
@@ -91,7 +89,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Header */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold tracking-tight text-slate-900">Family</h2>
         <button
@@ -103,13 +101,13 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         </button>
       </div>
 
-      {/* Profile Switcher Component (G1) */}
+      {}
       <CaregiverSwitcher
         activeProfile={activeProfile}
         onProfileChange={onProfileChange}
       />
 
-      {/* Sub-Navigation Tabs — pill, tokenized */}
+      {}
       <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm max-w-full overflow-x-auto scrollbar-none shadow-xs">
         <button
           onClick={() => setActiveTab('overview')}
@@ -146,10 +144,10 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         </button>
       </div>
 
-      {/* Tab Content */}
+      {}
       {activeTab === 'overview' ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Left Column: Active Linked Caregivers */}
+          {}
           <div className="lg:col-span-7 space-y-4">
             <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
@@ -193,9 +191,9 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Proxy Audit Trail + My Doctors */}
+          {}
           <div className="lg:col-span-5 space-y-4">
-            {/* My Doctors — patient links doctors (RBAC doctor ↔ patient) */}
+            {}
             {activeProfile.role !== 'doctor' && (
               <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-canvas-border pb-3">
@@ -293,7 +291,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         </div>
       )}
 
-      {/* Permissions Modal */}
+      {}
       <ScopedPermissionsModal
         isOpen={isPermissionsModalOpen}
         onClose={() => setIsPermissionsModalOpen(false)}
@@ -309,3 +307,4 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
     </div>
   );
 };
+

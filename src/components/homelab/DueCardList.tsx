@@ -69,7 +69,7 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                   : 'bg-white border-canvas-border hover:border-primary-border hover:shadow-md'
               }`}
             >
-              {/* Status Header Badge */}
+              {}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -112,7 +112,7 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                 </div>
               </div>
 
-              {/* Biomarkers / Instructions */}
+              {}
               <div className="space-y-2 mb-4">
                 {card.biomarkers && card.biomarkers.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
@@ -143,7 +143,7 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {}
               <div className="flex items-center gap-2 pt-3 border-t border-canvas-border">
                 {!isCompleted ? (
                   <>
@@ -181,3 +181,4 @@ export const DueCardList: React.FC<DueCardListProps> = ({
     </div>
   );
 };
+

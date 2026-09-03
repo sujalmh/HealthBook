@@ -1,51 +1,20 @@
-/**
- * Healthbook Supabase Client — Env-only persistence layer (M1)
- *
- * Domain: Supabase Postgres persistence for Healthbook single-patient vault.
- * Host (comment-only, never with password): db.vcgnjsxmigcaboayemmj.supabase.co
- * Connection is via DATABASE_URL env only — never hard-coded password literal.
- *
- * Env resolution (priority order, env-only, local fallback):
- *   1. import.meta.env.VITE_SUPABASE_DB_URL
- *   2. process.env.DATABASE_URL
- *   3. process.env.SUPABASE_DB_URL
- *   4. import.meta.env.VITE_SUPABASE_URL (Supabase REST URL pattern)
- *   5. process.env.SUPABASE_URL / VITE_SUPABASE_URL
- *
- * When no URL is present, all helpers gracefully degrade to local-only
- * (isSupabaseEnabled() === false, clients return null, sync helpers no-op).
- *
- * This module uses a lightweight fetch-based stub — it does NOT require
- * @supabase/supabase-js. The stub can be mocked in tests and downstream
- * sync/hydration (ws-02-01) will call these helpers non-blockingly.
- *
- * Ownership: ws-01-01 (src/core/supabase/*)
- * Follows single-patient cohesion: patientId === CANONICAL_PATIENT_ID scoping
- * where applicable; helpers validate patientId presence and isolate by exact ===.
- */
 
 import type { Fact, DocumentRecord, MedicationRecord, LabRecord, AllergyRecord, ConditionRecord, ProposalRecord, CalendarEventRecord, QuestionBankItem, DueCardRecord } from '../../types/vault.ts';
 import type { LinkedCareProfile, DoctorAccessGrant } from '../../types/carecircle.ts';
 import type { DangerSignReport } from '../../types/safety.ts';
 import { getAccessToken } from './auth.ts';
 
-// Re-export canonical id for convenience (single source is src/core/vault/seed.ts)
 export const CANONICAL_PATIENT_ID = 'patient-s-devi';
-
-// ------------------------------------------------------------------
-// Env resolution — never throws, never logs password
-// ------------------------------------------------------------------
 
 function readViteEnv(key: string): string | null {
   try {
-    // Static token `import.meta.env` — Vite bakes VITE_* vars at build time.
-    // Cast/optional-chain forms are NOT replaced, so keep this literal.
+
     const env = import.meta.env;
     if (env && typeof env[key] === 'string' && (env[key] as string).trim() !== '') {
       return (env[key] as string).trim();
     }
   } catch {
-    // ignore
+
   }
   return null;
 }
@@ -59,23 +28,13 @@ function readProcessEnv(key: string): string | null {
       if (typeof v === 'string' && v.trim() !== '') return v.trim();
     }
   } catch {
-    // ignore
+
   }
   return null;
 }
 
-/**
- * Resolve primary DATABASE_URL per requirement:
- * Prioritize Supabase REST URL (VITE_SUPABASE_URL) when available because it uses
- * direct PostgREST via anon key (IPv4, no pg DNS issue). Falls back to postgres
- * direct connection via pg pool proxy (/api/supabase) otherwise.
- * Chain:
- *   1. VITE_SUPABASE_URL (https://*.supabase.co) — REST direct, most reliable
- *   2. VITE_SUPABASE_DB_URL (alternative REST or pooler)
- *   3. DATABASE_URL / SUPABASE_DB_URL (postgres://) — requires /api/supabase pg proxy
- */
 function resolveDatabaseUrl(): string | null {
-  // 1. Prefer REST URL (https) — avoids IPv6-only db.* host via pg pool and uses anon key
+
   const viteSupabaseUrlDirect = readViteEnv('VITE_SUPABASE_URL') || readProcessEnv('VITE_SUPABASE_URL') || readProcessEnv('SUPABASE_URL');
   if (viteSupabaseUrlDirect && (viteSupabaseUrlDirect.startsWith('http://') || viteSupabaseUrlDirect.startsWith('https://'))) {
     return viteSupabaseUrlDirect;
@@ -85,19 +44,16 @@ function resolveDatabaseUrl(): string | null {
     return supaUrlVite;
   }
 
-  // 2. VITE_SUPABASE_DB_URL alternative
   const viteDbUrl = readViteEnv('VITE_SUPABASE_DB_URL');
   if (viteDbUrl) return viteDbUrl;
   const viteDbUrlProc = readProcessEnv('VITE_SUPABASE_DB_URL');
   if (viteDbUrlProc) return viteDbUrlProc;
 
-  // 3. Postgres direct (requires /api/supabase proxy with pg)
   const procDbUrl = readProcessEnv('DATABASE_URL');
   if (procDbUrl) return procDbUrl;
   const supaDbUrl = readProcessEnv('SUPABASE_DB_URL');
   if (supaDbUrl) return supaDbUrl;
 
-  // Fallback: any remaining VITE_SUPABASE_URL
   const viteSupabaseUrlFallback = readViteEnv('VITE_SUPABASE_URL') || readProcessEnv('VITE_SUPABASE_URL');
   if (viteSupabaseUrlFallback) return viteSupabaseUrlFallback;
 
@@ -120,9 +76,6 @@ export interface SupabaseConfig {
   enabled: boolean;
 }
 
-/**
- * Returns env-derived config without throwing. Safe to call at module load.
- */
 export function getSupabaseConfig(): SupabaseConfig {
   const url = resolveDatabaseUrl();
   const anonKey = resolveAnonKey();
@@ -133,10 +86,6 @@ export function getSupabaseConfig(): SupabaseConfig {
   };
 }
 
-/**
- * True iff a DATABASE_URL / SUPABASE_URL is present in env.
- * Never throws; missing URL => false (local-only fallback).
- */
 export function isSupabaseEnabled(): boolean {
   try {
     return getSupabaseConfig().enabled;
@@ -145,18 +94,10 @@ export function isSupabaseEnabled(): boolean {
   }
 }
 
-// ------------------------------------------------------------------
-// Lightweight fetch/pg stub client
-// ------------------------------------------------------------------
-
-/**
- * All tables mirroring LocalVault's 13 persistent stores.
- * Names align with src/core/supabase/schema.sql (snake_case).
- */
 export const SUPABASE_TABLES = [
   'facts',
   'documents',
-  'meds', // Back-compat alias for medications
+  'meds',
   'medications',
   'labs',
   'conditions',
@@ -181,31 +122,29 @@ export interface SupabaseResult<T = unknown> {
 }
 
 export interface SupabaseTableClient {
-  /** Fetch rows scoped to a patientId (exact ===) */
+
   selectByPatient<T = unknown>(patientId: string): Promise<SupabaseResult<T[]>>;
-  /** Raw PostgREST query string (JSONB-payload filters that eq filters cannot express) */
+
   selectRaw<T = unknown>(query: string): Promise<SupabaseResult<T[]>>;
-  /** Generic select with patientId filter via eq */
+
   select<T = unknown>(filters?: { [key: string]: unknown }): Promise<SupabaseResult<T[]>>;
-  /** Insert a single record (patientId required if record is patient-scoped) */
+
   insert<T = unknown>(record: T): Promise<SupabaseResult<T>>;
-  /** Upsert (insert or update on id conflict) */
+
   upsert<T = unknown>(record: T): Promise<SupabaseResult<T>>;
-  /** Delete by id (and patientId for safety where applicable) */
+
   delete(id: string): Promise<SupabaseResult<null>>;
 }
 
 export interface SupabaseClient {
   readonly config: SupabaseConfig;
-  /** Table-scoped query builder */
+
   from(table: SupabaseTableName): SupabaseTableClient;
-  /** Raw health check — returns enabled flag without network */
+
   isEnabled(): boolean;
-  /** Exposed url for diagnostics (never includes password in logs — url itself may contain password from env, caller must not log raw) */
+
   getUrl(): string | null;
 }
-
-// Internal helpers for the stub fetch layer
 
 function isPostgresConnectionString(url: string): boolean {
   return url.startsWith('postgresql://') || url.startsWith('postgres://');
@@ -216,29 +155,24 @@ function isBrowser(): boolean {
 }
 
 function toRestBaseUrl(url: string): string | null {
-  // If url is already https://...supabase.co, use as REST base
+
   if (url.startsWith('http://') || url.startsWith('https://')) {
-    // Strip trailing slash
+
     return url.replace(/\/+$/, '');
   }
   if (isPostgresConnectionString(url)) {
-    // Postgres URL → use same-origin proxy that talks directly to DB via pg.
-    // This enables Supabase persistence without requiring VITE_SUPABASE_ANON_KEY.
-    // In browser, proxy via /api/supabase to avoid CORS and avoid needing anon key.
-    // In Node/test, keep null to preserve skipped:true local-only fallback (tests mock fetch).
+
     if (isBrowser()) {
       return '/api/supabase';
     }
-    // For Node production (Vercel serverless), the proxy is also available as /api/supabase,
-    // but during SSR we still return proxy path — fetch will be relative and handled by Vercel.
-    // Check if we are in a real browser-like env with location
+
     try {
       const procEnv = typeof process !== 'undefined' ? (globalThis as unknown as { process?: { env?: { VITEST?: string } } }).process?.env : undefined;
       if (procEnv?.VITEST !== 'true') {
         return '/api/supabase';
       }
     } catch {
-      // ignore
+
     }
     return null;
   }
@@ -271,17 +205,13 @@ class LightweightTableClient implements SupabaseTableClient {
     return toRestBaseUrl(this.baseUrl);
   }
 
-  /**
-   * Authenticated headers: signed-in user JWT when available (RLS policies
-   * evaluate auth.uid()), else anon key. Dynamic import avoids module cycles.
-   */
   private async buildHeaders(extra?: Record<string, string>): Promise<{ [key: string]: string }> {
     const headers: { [key: string]: string } = { 'Content-Type': 'application/json', ...(extra || {}) };
     if (this.anonKey) headers.apikey = this.anonKey;
     let bearer: string | null = null;
     try {
       bearer = await getAccessToken();
-    } catch { /* ignore — fall back to anon */ }
+    } catch {  }
     if (bearer) headers.Authorization = `Bearer ${bearer}`;
     else if (this.anonKey) headers.Authorization = `Bearer ${this.anonKey}`;
     return headers;
@@ -292,7 +222,6 @@ class LightweightTableClient implements SupabaseTableClient {
     return this.select<T>({ patient_id: patientId });
   }
 
-  /** Map TypeScript patientId -> SQL patient_id for PostgREST */
   private mapFilterKey(k: string): string {
     if (k === 'patientId') return 'patient_id';
     if (k === 'linkId') return 'link_id';
@@ -303,7 +232,7 @@ class LightweightTableClient implements SupabaseTableClient {
 
   private toDbRecord<T>(record: T): T {
     const src = record as unknown as { [key: string]: unknown; payload?: unknown; patientId?: unknown; id?: unknown };
-    // Comprehensive camel->snake map derived from supabaseSync SNAKE_TO_CAMEL reverse
+
     const camelToSnake: { [key: string]: string } = {
       patientId: 'patient_id',
       linkId: 'link_id',
@@ -415,7 +344,7 @@ class LightweightTableClient implements SupabaseTableClient {
       decidedBy: 'decided_by',
     };
     const r: { [key: string]: unknown } = {};
-    // Preserve payload as full original record for JSONB flexibility
+
     const srcPayload = src.payload as { patientId?: unknown; [key: string]: unknown } | undefined;
     if (srcPayload && typeof srcPayload === 'object' && srcPayload.patientId) {
       r.payload = { ...srcPayload };
@@ -425,7 +354,7 @@ class LightweightTableClient implements SupabaseTableClient {
     } else {
       r.payload = { ...(src as object) };
     }
-    // Map known camel->snake to top-level columns
+
     for (const [camel, snake] of Object.entries(camelToSnake)) {
       if (src[camel] !== undefined) {
         r[snake] = src[camel];
@@ -433,29 +362,28 @@ class LightweightTableClient implements SupabaseTableClient {
         r[snake] = src[snake];
       }
     }
-    // Copy direct snake_case columns and id-like fields without transformation
-    // Only copy keys that are already snake_case (no uppercase) to avoid PostgREST unknown column errors
+
     for (const [k, v] of Object.entries(src)) {
       if (k === 'payload') continue;
-      if (k in camelToSnake) continue; // already handled
+      if (k in camelToSnake) continue;
       if (Object.values(camelToSnake).includes(k)) {
         if (r[k] === undefined) r[k] = v;
         continue;
       }
-      // Keep snake_case keys (no uppercase) as potential DB columns
+
       if (!/[A-Z]/.test(k)) {
         if (r[k] === undefined) r[k] = v;
       }
-      // Camel not in map -> skip (only in payload)
+
     }
-    // Table-specific semantic mappings
+
     if (this.table === 'conditions') {
       if (src.name && !r.condition_name) r.condition_name = src.name;
     } else if (this.table === 'calendar_events') {
       if (src.description && !r.reason) r.reason = src.description;
       if (src.type && !r.event_type) r.event_type = src.type;
     }
-    // Filter against known table schema columns so unknown top-level keys never trigger PostgREST PGRST204 errors
+
     const allowed = TABLE_ALLOWED_COLUMNS[this.table];
     if (allowed) {
       for (const k of Object.keys(r)) {
@@ -464,15 +392,14 @@ class LightweightTableClient implements SupabaseTableClient {
         }
       }
     }
-    // Ensure primary id field only if source had id (do not auto-create id from link_id/grant_id for tables where PK is link_id etc)
+
     if (!r.id && src.id !== undefined) {
       r.id = src.id;
     }
-    // For care_circle, doctor_grants, danger_reports the PK is link_id/grant_id/report_id — already mapped via camelToSnake, do not create extra id column
+
     return r as T;
   }
 
-  /** Raw PostgREST query string (e.g. `or=(payload->>doctorId.eq."x",...)`) — for JSONB-payload filters */
   async selectRaw<T = unknown>(query: string): Promise<SupabaseResult<T[]>> {
     const base = this.restBase;
     if (!base) return { data: [], error: null, skipped: true };
@@ -495,8 +422,7 @@ class LightweightTableClient implements SupabaseTableClient {
   async select<T = unknown>(filters?: { [key: string]: unknown }): Promise<SupabaseResult<T[]>> {
     const base = this.restBase;
     if (!base) {
-      // Postgres URL or missing REST base -> stub no-op (local fallback).
-      // Return empty without error so caller treats as "no remote data"
+
       return { data: [], error: null, skipped: true };
     }
     try {
@@ -602,24 +528,19 @@ class LightweightSupabaseClientImpl implements SupabaseClient {
   }
 }
 
-// Singleton holder — lazily created, respects env changes in tests via reset helper
 let singleton: SupabaseClient | null = null;
 let singletonUrl: string | null = null;
 
 function createClientOrNull(): SupabaseClient | null {
   const cfg = getSupabaseConfig();
   if (!cfg.enabled || !cfg.url) return null;
-  // Memoize; if URL changed (test harness), recreate
+
   if (singleton && singletonUrl === cfg.url) return singleton;
   singleton = new LightweightSupabaseClientImpl(cfg);
   singletonUrl = cfg.url;
   return singleton;
 }
 
-/**
- * Returns a lightweight Supabase client when env is configured, otherwise null.
- * Never throws; local-only fallback when missing URL.
- */
 export function getSupabaseClient(): SupabaseClient | null {
   try {
     return createClientOrNull();
@@ -628,20 +549,14 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
 }
 
-/** Alias for getSupabaseClient — used by vault sync layer */
 export function getDbClient(): SupabaseClient | null {
   return getSupabaseClient();
 }
 
-/** Test helper: reset singleton (used in ws-04 integration tests) */
 export function _resetSupabaseClientForTests(): void {
   singleton = null;
   singletonUrl = null;
 }
-
-// ------------------------------------------------------------------
-// Typed helpers for LocalVault stores (patientId === CANONICAL_PATIENT_ID scoping)
-// ------------------------------------------------------------------
 
 export type SyncResult = { ok: boolean; skipped?: boolean; error?: string };
 
@@ -654,7 +569,6 @@ function isDisabledResult(): SyncResult {
   return { ok: true, skipped: true };
 }
 
-/** Generic scoped sync — validates patientId, checks enabled, then upserts */
 async function syncRecord<T extends { id?: string; reportId?: string; grantId?: string; linkId?: string; patientId?: string }>(
   table: SupabaseTableName,
   record: T,
@@ -674,7 +588,6 @@ async function syncRecord<T extends { id?: string; reportId?: string; grantId?: 
   return { ok: true };
 }
 
-/** Generic scoped fetch — exact patientId === isolation */
 async function fetchByPatient<T>(table: SupabaseTableName, patientId: string): Promise<{ data: T[]; error: string | null; skipped?: boolean }> {
   const err = requirePatientId(patientId, `fetch ${table}`);
   if (err) return { data: [], error: err };
@@ -684,10 +597,6 @@ async function fetchByPatient<T>(table: SupabaseTableName, patientId: string): P
   if (res.skipped) return { data: [], error: null, skipped: true };
   return { data: (res.data as T[]) ?? [], error: res.error ?? null };
 }
-
-// ---- Per-store typed sync/fetch helpers ----
-// All helpers enforce patientId presence (== canonical scoping where applicable)
-// and are no-ops when Supabase is not enabled.
 
 export async function syncFactToSupabase(record: Fact): Promise<SyncResult> {
   return syncRecord('facts', record, record.patientId);
@@ -703,7 +612,7 @@ export async function syncMedToSupabase(record: MedicationRecord): Promise<SyncR
   return syncMedicationToSupabase(record);
 }
 export async function fetchMedicationsFromSupabase(patientId: string = CANONICAL_PATIENT_ID) {
-  // Try canonical table name first, fallback to meds alias for hydration compatibility
+
   const primary = await fetchByPatient<MedicationRecord>('medications', patientId);
   if (!primary.skipped && primary.data.length > 0) return primary;
   if (primary.skipped) {
@@ -817,17 +726,10 @@ export async function fetchInteractionCacheFromSupabase(patientId: string = CANO
   return fetchByPatient<InteractionCacheRow>('interaction_cache', patientId);
 }
 
-// Generic helpers for hydration layer (ws-02-01 will use patient-isolated fetch)
 export async function fetchSupabaseTable<T = unknown>(table: SupabaseTableName, patientId: string): Promise<{ data: T[]; error: string | null; skipped?: boolean }> {
   return fetchByPatient<T>(table, patientId);
 }
 
-/**
- * Fetch care_circle doctor→patient link rows scoped by doctor identity.
- * Seed rows store doctor fields inside the JSONB payload (payload->>doctorId / payload->>doctorEmail),
- * so a PostgREST `or=` filter is required — eq column filters cannot reach them.
- * Never throws; local-only fallback returns skipped.
- */
 export async function fetchCareCircleByDoctor<T = unknown>(doctorId: string, doctorEmail?: string): Promise<{ data: T[]; error: string | null; skipped?: boolean }> {
   if (!doctorId || doctorId.trim() === '') return { data: [], error: 'doctorId required' };
   const client = getSupabaseClient();
@@ -842,5 +744,5 @@ export async function upsertSupabaseRecord<T = unknown>(table: SupabaseTableName
   return syncRecord(table, record as unknown as { patientId?: string; id?: string }, (record as unknown as { patientId?: string })?.patientId);
 }
 
-// Canonical re-exports for ergonomic barrel
 export type { Fact, MedicationRecord, LabRecord, ConditionRecord, AllergyRecord, ProposalRecord, CalendarEventRecord, LinkedCareProfile, DoctorAccessGrant, DueCardRecord, DangerSignReport, DocumentRecord, QuestionBankItem };
+

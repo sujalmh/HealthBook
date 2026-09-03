@@ -1,8 +1,3 @@
-/**
- * Healthbook Component: ThreeListTable
- * Side-by-side comparative table of Pre-admission vs In-Hospital vs Discharge medications
- * with color-coded diff highlights, search/filtering, and quick actions.
- */
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -84,14 +79,14 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
 
   return (
     <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-sm space-y-3">
-      {/* Header & Filter Toolbar */}
+      {}
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-slate-900">
           Compare lists <span className="text-muted font-semibold">({filteredItems.length}/{items.length})</span>
         </h3>
       </div>
       <div>
-        {/* Search Input */}
+        {}
         <div className="relative w-full">
           <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -104,7 +99,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {}
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-2 border-b border-canvas-border max-w-full">
         {(
           [
@@ -142,7 +137,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
         })}
       </div>
 
-      {/* Mobile Stacked Card View (< md) */}
+      {}
       <div className="block md:hidden space-y-3.5">
         {filteredItems.length === 0 ? (
           <div className="py-10 text-center text-slate-600 bg-canvas-muted/40 rounded-xl border border-canvas-border p-4">
@@ -156,7 +151,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
               className={`rounded-2xl border p-4 transition-all shadow-sm space-y-3.5 cursor-pointer ${getRowBgClass(item.statusBadge)}`}
               onClick={() => onSelectMed(item)}
             >
-              {/* Header: Status badge & Name */}
+              {}
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -174,7 +169,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                 <ChangeBadge status={item.statusBadge} size="sm" />
               </div>
 
-              {/* Warnings & Conflicts */}
+              {}
               {((item.interactions && item.interactions.length > 0) || (item.dietInteractions && item.dietInteractions.length > 0)) && (
                 <div className="space-y-1 pt-1">
                   {item.interactions && item.interactions.length > 0 && (
@@ -192,9 +187,9 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                 </div>
               )}
 
-              {/* 3-List Comparative Stack */}
+              {}
               <div className="grid grid-cols-1 gap-2 text-xs">
-                {/* 1. Pre-Admission */}
+                {}
                 <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200 space-y-0.5">
                   <div className="text-[10px] font-mono font-bold uppercase text-slate-500">1. Pre-Admission (Home)</div>
                   <div className="font-semibold text-slate-800">
@@ -205,7 +200,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                   )}
                 </div>
 
-                {/* 2. In-Hospital */}
+                {}
                 <div className="bg-white/80 rounded-xl p-2.5 border border-slate-200 space-y-0.5">
                   <div className="text-[10px] font-mono font-bold uppercase text-slate-500">2. In-Hospital Record</div>
                   <div className="font-semibold text-sky-800">{item.inHospAction}</div>
@@ -214,7 +209,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                   )}
                 </div>
 
-                {/* 3. Discharge Orders */}
+                {}
                 <div
                   className={`rounded-xl p-2.5 border space-y-0.5 ${
                     item.statusBadge === 'STOPPED'
@@ -240,7 +235,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons for Mobile */}
+              {}
               <div className="flex items-center gap-2 pt-2 border-t border-slate-200/70" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => onToggleApproval(item.medId)}
@@ -267,7 +262,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
         )}
       </div>
 
-      {/* Desktop / Tablet Table View (hidden on < md) */}
+      {}
       <div className="hidden md:block overflow-x-auto rounded-xl border border-canvas-border bg-canvas-muted/50">
         <table className="w-full text-left border-collapse text-body-sm">
           <thead>
@@ -295,12 +290,12 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                   className={`transition-colors cursor-pointer ${getRowBgClass(item.statusBadge)}`}
                   onClick={() => onSelectMed(item)}
                 >
-                  {/* Status Badge */}
+                  {}
                   <td className="py-3.5 px-4 text-center">
                     <ChangeBadge status={item.statusBadge} size="sm" />
                   </td>
 
-                  {/* Medication Name & Crosswalk */}
+                  {}
                   <td className="py-3.5 px-4">
                     <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
                       <span>{item.medName}</span>
@@ -314,7 +309,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                       {item.genericName !== item.medName ? `Generic: ${item.genericName}` : 'Rx'}
                     </div>
 
-                    {/* Quick Warning Chips */}
+                    {}
                     {item.interactions && item.interactions.length > 0 && (
                       <div className="mt-1 flex items-center gap-1 text-[10px] text-rose-700">
                         <ShieldAlert className="w-3 h-3 text-rose-400 shrink-0" />
@@ -329,7 +324,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                     )}
                   </td>
 
-                  {/* List 1: Pre-Admission Home Regimen */}
+                  {}
                   <td className="py-3.5 px-4 bg-white/20">
                     <div className="font-semibold text-slate-800">
                       {item.preHospDose !== 'None' ? item.preHospDose : <span className="text-slate-600 italic">None (Not taken at home)</span>}
@@ -339,7 +334,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                     )}
                   </td>
 
-                  {/* List 2: In-Hospital Chart Action */}
+                  {}
                   <td className="py-3.5 px-4">
                     <div className="text-slate-800 font-medium">{item.inHospAction}</div>
                     {item.inHospReason && (
@@ -347,7 +342,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                     )}
                   </td>
 
-                  {/* List 3: Discharge Orders */}
+                  {}
                   <td className="py-3.5 px-4 bg-white/20">
                     <div
                       className={`font-bold text-sm ${
@@ -371,7 +366,7 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
                     )}
                   </td>
 
-                  {/* Actions Column */}
+                  {}
                   <td className="py-3.5 px-4 text-right space-x-1.5" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => onToggleApproval(item.medId)}
@@ -403,3 +398,4 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
     </div>
   );
 };
+

@@ -1,9 +1,3 @@
-/**
- * Healthbook WebMCP Tools: RxBridge Post-Discharge Reconciliation Engine — AI-native (M2)
- * Tools: explain_med_change, flag_interaction, flag_diet_interaction, suggest_question_for_doctor, export_patient_summary
- * All clinical content flows through the AI pipeline (no bundled drug tables, no template fallbacks).
- * When the pipeline is unavailable the tools return honest AI_UNAVAILABLE/AI_FAILED errors.
- */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine, AIUnavailableError } from '../core/knowledge/interactionEngine.ts';
@@ -12,7 +6,6 @@ import { ClinicalReconciliationEngine } from '../core/knowledge/reconciliationEn
 import { callAI } from '../core/ai/client.ts';
 import type { Patient3ListDischargeDataset } from '../types/rxbridge.ts';
 
-/** Honest error result when the AI pipeline cannot produce clinical content. */
 function aiErrorResult(tool: string, err: unknown, what: string): WebMCPToolResult {
   const code = err instanceof AIUnavailableError ? err.code : 'AI_FAILED';
   const message = err instanceof Error ? err.message : String(err);
@@ -74,7 +67,6 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
       dischargeDose
     );
 
-    // AI-generated narrative (single request vision+text structured when doc context available)
     let explanation: string;
     let suggestedQuestions: string[];
     try {
@@ -177,8 +169,6 @@ export const flagInteractionTool: WebMCPToolDefinition = {
       };
     });
 
-    // Check lab contextual safety if labs provided or available in vault.
-    // Generics resolved once via the AI pipeline for lab-risk matching.
     const labs = params.patientLabs || (context.vault ? context.vault.getLabs(context.patientId) : []);
     const egfrLab = labs.find((l: any) => l.marker?.toLowerCase().includes('egfr'));
     const kLab = labs.find((l: any) => l.marker?.toLowerCase() === 'k' || l.marker?.toLowerCase().includes('potassium'));
@@ -186,7 +176,7 @@ export const flagInteractionTool: WebMCPToolDefinition = {
     try {
       aliasMap = await ClinicalInteractionEngine.resolveGenerics(params.dischargeMeds);
     } catch {
-      // Without alias resolution, lab-risk matching uses literal names only
+
     }
     const genericOf = (med: string): string => aliasMap[med] || med;
 
@@ -329,7 +319,6 @@ export const suggestQuestionForDoctorTool: WebMCPToolDefinition = {
   ): Promise<WebMCPToolResult> => {
     let qText = '';
 
-    // AI synthesis via AI client from actual discharge list + document context (single request vision+text structured when available)
     try {
       const dischargeMedsFromVault = (() => {
         try {
@@ -423,9 +412,8 @@ export const exportPatientSummaryTool: WebMCPToolDefinition = {
   ): Promise<WebMCPToolResult> => {
     let dataset = params.dataset as Patient3ListDischargeDataset | undefined;
 
-    // No mock fallback — require real dataset or build minimal from vault for context.patientId
     if (!dataset) {
-      // Try to build minimal dataset from vault for real patient
+
       const vaultMeds = (() => {
         try {
           return context.vault ? context.vault.getMedications(params.patientId) : [];
@@ -489,3 +477,4 @@ export const exportPatientSummaryTool: WebMCPToolDefinition = {
     };
   }
 };
+

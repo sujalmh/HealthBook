@@ -1,7 +1,3 @@
-/**
- * Healthbook Serverless Mistral OCR Proxy
- * Dual-runtime: Node.js Serverless + Web Request.
- */
 
 export const maxDuration = 120;
 
@@ -101,7 +97,7 @@ export default async function handler(req: unknown, res?: unknown) {
         } else if (r.body && typeof r.body === 'object') {
           body = JSON.stringify(r.body);
         } else if (typeof r.text === 'function') {
-          try { body = await r.text(); } catch { /* intentionally empty */ }
+          try { body = await r.text(); } catch {  }
         } else {
           body = await new Promise<string>((resolve) => {
             let data = '';
@@ -222,3 +218,4 @@ async function handleWebProxy(req: Request) {
     );
   }
 }
+

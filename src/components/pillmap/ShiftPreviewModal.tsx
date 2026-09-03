@@ -1,8 +1,3 @@
-/**
- * Healthbook Component: ShiftPreviewModal
- * Animated ghost preview modal displaying chronotype-aware timing shifts with side-by-side comparison
- * and patient Approve / Reject gate.
- */
 
 import React from 'react';
 import { Clock, ArrowRight, CheckCircle2, XCircle, Sparkles, ShieldCheck, AlertCircle } from 'lucide-react';
@@ -29,7 +24,7 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
   return (
     <ModalPortal isOpen={true} onClose={onReject} ariaLabel="Intelligent Schedule Optimizer">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
-        {/* Header */}
+        {}
         <div className="p-4 sm:p-6 bg-canvas-muted border-b border-canvas-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-200 flex items-center justify-center text-emerald-500 shrink-0">
@@ -53,9 +48,9 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
           </button>
         </div>
 
-        {/* Body Content */}
+        {}
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 text-body text-slate-800">
-          {/* Plain Language Summary */}
+          {}
           <div className="bg-canvas-muted p-3.5 sm:p-4 rounded-2xl border border-canvas-border space-y-1.5">
             <div className="flex items-center gap-2 text-caption uppercase tracking-wider text-primary-text font-bold">
               <Clock className="w-4 h-4" /> Schedule Rationale
@@ -65,7 +60,7 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
             </p>
           </div>
 
-          {/* Shifts Comparison Table */}
+          {}
           <div className="space-y-2">
             <h3 className="text-caption uppercase tracking-wider text-muted font-semibold">
               Proposed Timing Adjustments ({suggestion.proposedShifts.length})
@@ -108,7 +103,7 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
           </div>
         </div>
 
-        {/* Action Gate Footer */}
+        {}
         <div className="p-4 sm:p-6 bg-canvas-muted border-t border-canvas-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
           <button
             type="button"
@@ -131,3 +126,4 @@ export const ShiftPreviewModal: React.FC<ShiftPreviewModalProps> = ({
     </ModalPortal>
   );
 };
+

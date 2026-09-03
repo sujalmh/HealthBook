@@ -1,7 +1,3 @@
-/**
- * Healthbook Search Core — Exa Client
- * POST https://api.exa.ai/search with Authorization: Bearer <key>
- */
 
 import { getExaConfig, isExaEnabled, getExaEndpoint } from './exaConfig.ts';
 
@@ -106,7 +102,7 @@ function validateParams(params: ExaSearchParams): string[] {
           }
         }
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
   }
   return errors;
 }
@@ -156,12 +152,11 @@ function resolveAuthHeader(config: ReturnType<typeof getExaConfig>, options?: Ex
     if (k && k.trim()) return `Bearer ${k.trim()}`;
   }
   try {
-    // Static token `import.meta.env` — Vite bakes VITE_* vars at build time.
-    // Cast/optional-chain forms are NOT replaced, so keep this literal.
+
     const metaEnv = import.meta.env ?? {};
     const fallback = (metaEnv.VITE_EXA_API_KEY as string) || (metaEnv.EXA_API_KEY as string);
     if (fallback && String(fallback).trim()) return `Bearer ${String(fallback).trim()}`;
-  } catch { /* intentionally empty */ }
+  } catch {  }
   if (config.apiKey && String(config.apiKey).trim()) {
     return `Bearer ${String(config.apiKey).trim()}`;
   }
@@ -169,7 +164,7 @@ function resolveAuthHeader(config: ReturnType<typeof getExaConfig>, options?: Ex
     const proc = (globalThis as unknown as { process?: { env?: Record<string, string> } }).process;
     const procKey = proc?.env?.EXA_API_KEY || proc?.env?.VITE_EXA_API_KEY || '';
     if (procKey && procKey.trim()) return `Bearer ${procKey.trim()}`;
-  } catch { /* intentionally empty */ }
+  } catch {  }
   return '';
 }
 
@@ -229,7 +224,7 @@ export async function searchExa(
     try {
       const j = JSON.parse(txt) as Record<string, unknown>;
       msg = (j.error as string) || (j.message as string) || msg;
-    } catch { /* intentionally empty */ }
+    } catch {  }
     throw new ExaClientError(`Exa API error (${resp.status} ${resp.statusText}): ${msg}`, resp.status, txt);
   }
 
@@ -284,3 +279,4 @@ export async function searchWithHighlightsAndText(
     },
   });
 }
+

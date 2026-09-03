@@ -1,14 +1,3 @@
-/**
- * Healthbook Component: RxBridgeView
- * Main module container for Milestone 4 (RxBridge Post-Discharge 3-List Reconciliation).
- * Features:
- * - 3-list comparative overview
- * - Quick-fill sample discharge cases (Patient / Patient)
- * - Conversational med-by-med walkthrough wizard
- * - Interactive Teach-Back comprehension validation
- * - 1-Page printable/downloadable discharge summary export
- * - Cross-module handoff to PillMap Day 0 schedule & LocalVault meds.
- */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
@@ -24,7 +13,7 @@ import type {
   TeachBackCheck,
   PatientHomeSummaryExport
 } from '../../types/rxbridge.ts';
-// Mock datasets removed — M1: real data from vault for authenticated patient (no Patient/Jenkins fixture)
+
 import { ClinicalReconciliationEngine } from '../../core/knowledge/reconciliationEngine.ts';
 import { localVault } from '../../core/vault/LocalVault.ts';
 import { eventBus } from '../../core/events/eventBus.ts';
@@ -65,20 +54,15 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   };
   const [activeDataset, setActiveDataset] = useState<Patient3ListDischargeDataset>(emptyDataset);
 
-  // Reconciliation state
   const [reconciledItems, setReconciledItems] = useState<ReconciledMedChangeItem[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'walk'>('table');
   const [walkIndex, setWalkIndex] = useState(0);
 
-  // Modals state
   const [isTeachBackOpen, setIsTeachBackOpen] = useState(false);
   const [teachBackRecord, setTeachBackRecord] = useState<TeachBackCheck | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [summaryData, setSummaryData] = useState<PatientHomeSummaryExport | null>(null);
 
-  // AI narratives — per-med explanations from the AI pipeline (explain_med_change
-  // tool). Fetched lazily, one call per med the patient actually opens in the
-  // walkthrough, cached for the session, with inline error + retry.
   const [aiNarratives, setAiNarratives] = useState<Record<string, { explanation: string; questions: string[] }>>({});
   const [aiLoadingMeds, setAiLoadingMeds] = useState<Record<string, boolean>>({});
   const [aiNarrativeErrors, setAiNarrativeErrors] = useState<Record<string, boolean>>({});
@@ -86,23 +70,20 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   const aiInflightMeds = useRef<Set<string>>(new Set());
 
   const loadReconciliation = async (dataset: Patient3ListDischargeDataset) => {
-    // Instant deterministic render first — the list must never show empty/zeros
-    // while the AI batch is still in flight (production AI takes seconds).
+
     try {
       setReconciledItems(ClinicalReconciliationEngine.reconcileThreeLists(dataset));
     } catch {
-      // boundary — AI upgrade below still attempts
+
     }
     setWalkIndex(0);
     setTeachBackRecord(null);
-    // New dataset → drop cached AI narratives so explanations match current meds
+
     setAiNarratives({});
     setAiLoadingMeds({});
     setAiNarrativeErrors({});
     aiInflightMeds.current.clear();
 
-    // Upgrade with AI enrichment; merge by medId (deterministic across both
-    // passes) so approvals and notes the patient already made are never clobbered.
     try {
       const aiItems = await ClinicalReconciliationEngine.reconcileThreeListsAI(dataset);
       const aiMap = new Map(aiItems.map((i) => [i.medId, i]));
@@ -121,7 +102,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         });
       });
     } catch {
-      // Sync render stands — the walkthrough shows per-med loading/error states
+
     }
   };
 
@@ -153,9 +134,6 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     return () => { u1(); u2(); u3(); u4(); u5(); u6(); };
   }, [effectivePatientId, activeDataset]);
 
-  // Attach the walkthrough to the AI pipeline: when the patient opens a med in
-  // Step-by-Step, fetch its AI explanation via explain_med_change. One call
-  // per med, cached; failures surface an inline error with retry.
   useEffect(() => {
     if (viewMode !== 'walk' || reconciledItems.length === 0) return;
     const item = reconciledItems[walkIndex] || reconciledItems[0];
@@ -209,7 +187,6 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     setAiRetryNonce((n) => n + 1);
   };
 
-  // Handle Per-Med Approval
   const handleToggleApproval = (medId: string) => {
     setReconciledItems((prev) =>
       prev.map((item) => {
@@ -259,7 +236,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   };
 
   const handleAskDoctor = async (medName: string, questionText: string) => {
-    // Dedup spam via vault (LocalVault.addQuestion checks duplicate) — AI-enriched without spam
+
     try {
       await localVault.addQuestionBankItem({
         id: `q_recon_${Date.now()}`,
@@ -284,7 +261,6 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     });
   };
 
-  // Open 1-Page Export Summary — uses effectivePatientId, questions reflect AI suggest_question bank
   const handleOpenExportSummary = () => {
     const questions = localVault.getQuestions(effectivePatientId).map((q) => q.questionText);
     const summary = ClinicalReconciliationEngine.compilePatientSummary(activeDataset, questions, 'en');
@@ -292,9 +268,8 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     setIsExportModalOpen(true);
   };
 
-  // Cross-Module Bridge: Finalize & Populate PillMap Day 0 Schedule — RB4 approval gate + RB9 diet-aware Day 0
   const handleFinalizeAndHandoffToPillMap = async () => {
-    // RB4 Approval Gate (trivial fix): block finalize unless 100% of reconciliation items approved
+
     const approvedCount = reconciledItems.filter((i) => i.isApprovedByPatient).length;
     const total = reconciledItems.length;
     if (approvedCount !== total) {
@@ -306,13 +281,11 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
       return;
     }
 
-    // RB9: diet-aware Day 0 handoff — process all discharge medications into LocalVault meds + slot reminders
     const activeDischargeMeds = activeDataset.dischargeMeds.filter((d) => d.status !== 'STOPPED');
     const stoppedMeds = activeDataset.dischargeMeds.filter((d) => d.status === 'STOPPED');
     const slotTimeMap: Record<string, string> = {};
     const defaultTimes: Record<string, string> = { morning: '08:00', noon: '12:00', evening: '18:00', bedtime: '22:00' };
 
-    // Add active discharge meds — uses effectivePatientId, AI-aware (questionBank enriched without duplicate spam)
     try {
       for (const d of activeDischargeMeds) {
         const generic = ClinicalReconciliationEngine.determineStatusBadge(undefined, undefined, d.dose) === 'NEW'
@@ -351,14 +324,13 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
       }
     }
 
-    // RB9: Register diet-aware slot reminders via set_reminder semantics (calendar events grouped by slot time)
     const activeSlots = new Set<string>();
     for (const d of activeDischargeMeds) {
       for (const s of (d.timingSlots || ['morning'])) activeSlots.add(s);
     }
     for (const slot of activeSlots) {
       slotTimeMap[slot] = defaultTimes[slot] || '08:00';
-      // Diet-aware annotation for empty-stomach / grapefruit avoidance is persisted on MedicationRecord; reminder reason carries it
+
       const slotMeds = activeDischargeMeds.filter((d) => (d.timingSlots || ['morning']).includes(slot as unknown as typeof d.timingSlots extends (infer U)[] | undefined ? U : string));
       const dietNotes = slotMeds
         .map((m) => m.dietInstructions)
@@ -384,7 +356,6 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
       return;
     }
 
-    // Emit event so PillMap re-evaluates (INT2) — include patientId for relevant-only filtering, never '' leak
     eventBus.emit('medication_added', { patientId: effectivePatientId, source: 'rxbridge_reconciliation' });
 
     eventBus.dispatchToast({
@@ -404,7 +375,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
       await localVault.addDocument({ id, patientId: effectivePatientId, fileName: f.name, name: f.name, docType: 'discharge_summary', pageCount: 1, uploadTimestamp: new Date().toISOString(), extractedText: '', extractedFactIds: [] } as unknown as import('@/types/vault').DocumentRecord);
       try {
         await webMCPEngine.execute('extract_fact', { documentId: id, rawText: f.name, imageDataUrl: d, docType: 'discharge_summary' } as unknown as Record<string, unknown>);
-      } catch { /* intentionally empty */ }
+      } catch {  }
       const meds = localVault.getMedications(effectivePatientId);
       if (meds.length) {
         const pre = meds.map((m) => ({ medName: m.genericName || m.brandName || 'Medication', dose: m.dosage || 'Standard', frequency: m.frequency || 'Once daily' }));
@@ -455,21 +426,21 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Top Controls & Module Banner — tokenized */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
           <h2 className="text-xl font-bold tracking-tight text-slate-900">
             Medicine Review
           </h2>
 
-          {/* Doctor source + Last updated */}
+          {}
           <div className="flex flex-col gap-2">
             <div className="text-caption text-muted">Shared by {doctorSourceName} • Updated {lastUpdatedRaw.slice(0,10)}</div>
             {isOutdated && <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">This list may be outdated — ask your doctor for current list.</div>}
           </div>
         </div>
 
-        {/* Summary Strip — compact counts */}
+        {}
         <div className="pt-3 border-t border-canvas-border">
           <p className="text-sm text-slate-700">
             <strong className="text-slate-900">{reconciledItems.length}</strong> medicines
@@ -491,9 +462,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         )}
       </div>
 
-      {/* Main Mode Switcher + Action Bar — one scrollable line on phone */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-4 shadow-sm flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-        {/* Table vs Walk mode toggle */}
+        {}
         <div className="flex items-center gap-0.5 bg-canvas-muted p-0.5 rounded-xl border border-canvas-border text-xs shadow-xs shrink-0">
           <button
             onClick={() => setViewMode('table')}
@@ -519,7 +490,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           </button>
         </div>
 
-        {/* Teach-Back Button */}
+        {}
         <button
           onClick={() => setIsTeachBackOpen(true)}
           title="Check my understanding"
@@ -534,7 +505,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           <span className="hidden sm:inline text-xs font-bold">{teachBackRecord ? 'Checked ✓' : 'Check understanding'}</span>
         </button>
 
-        {/* 1-Page Summary Export */}
+        {}
         <button
           onClick={handleOpenExportSummary}
           title="Print summary"
@@ -545,7 +516,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           <span className="hidden sm:inline text-xs font-semibold">Print</span>
         </button>
 
-        {/* Cross-Module Handoff Button — RB4 gate */}
+        {}
         <button
           onClick={handleFinalizeAndHandoffToPillMap}
           disabled={totalApproved !== reconciledItems.length}
@@ -561,7 +532,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         </button>
       </div>
 
-      {/* Main View Mode Component */}
+      {}
       {viewMode === 'table' ? (
         <ThreeListTable
           items={reconciledItems}
@@ -599,7 +570,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         />
       )}
 
-      {/* Global Modals */}
+      {}
       {isTeachBackOpen && (
         <TeachBackModal
           dataset={activeDataset}
@@ -624,3 +595,4 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     </div>
   );
 };
+

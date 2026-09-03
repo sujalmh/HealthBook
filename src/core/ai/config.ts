@@ -1,7 +1,3 @@
-/**
- * Healthbook AI Core — Config
- * Runtime configuration with SettingsStore > Environment variables precedence.
- */
 
 import type { AIConfig, AIProvider } from './types.ts';
 
@@ -37,7 +33,7 @@ function readSettingsStoreOverrides(): Record<string, unknown> {
           }
         }
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
   }
 
   for (const k of SETTINGS_KEYS) {
@@ -46,7 +42,7 @@ function readSettingsStoreOverrides(): Record<string, unknown> {
       if (v !== null && v !== '' && overrides[k] === undefined) {
         overrides[k] = v;
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
   }
 
   return overrides;
@@ -86,10 +82,7 @@ function parseProvider(val: unknown, fallback: AIProvider): AIProvider {
 }
 
 export function getAIConfig(): AIConfig {
-  // IMPORTANT: this must reference the exact static token `import.meta.env` —
-  // optional-chained/cast forms like `(import.meta as X)?.env` survive the
-  // production build as a runtime access, so Vite never bakes the VITE_* vars
-  // and the browser bundle always sees an empty env (prod "AI not configured").
+
   const env: Record<string, unknown> = (() => {
     try {
       const metaEnv = import.meta.env ?? {};
@@ -160,7 +153,7 @@ export function getAIConfig(): AIConfig {
 }
 
 export function isAIEnabled(_config?: AIConfig): boolean {
-  // AI is the primary pipeline and is always enabled
+
   return true;
 }
 
@@ -201,7 +194,7 @@ export function getAIModel(config?: AIConfig, forVision: boolean = false): strin
   const c = config ?? getAIConfig();
   if (forVision && c.visionModel && c.visionModel.trim() !== '') return c.visionModel.trim();
   if (c.model && c.model.trim() !== '') return c.model.trim();
-  // Config-driven fallback: single source of truth for default models (literal appears only here)
+
   return isResponsesProvider(c) ? 'muse-spark-1.2-contributor' : 'deepseek-v4-flash-vision-exp';
 }
 
@@ -212,3 +205,4 @@ export function getAIConfigSource(): { source: 'settings' | 'env'; overrides: Re
     overrides,
   };
 }
+

@@ -1,10 +1,3 @@
-/**
- * Healthbook WebMCP Tools: PillMap Polypharmacy Negotiator (M3) — AI-native.
- * Tools: add_medication, check_interactions, check_diet_interactions, check_duplicate_ingredient, suggest_schedule, simulate_adherence, export_for_pharmacist, set_reminder
- * All clinical reasoning flows through the AI pipeline (no bundled drug tables).
- * When the pipeline is unavailable the tools return honest AI_UNAVAILABLE/AI_FAILED
- * errors instead of fabricated content.
- */
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
 import { ClinicalInteractionEngine, AIUnavailableError } from '../core/knowledge/interactionEngine.ts';
@@ -12,7 +5,6 @@ import { healthRepository, DEFAULT_DIET_FLAGS } from '../core/vault/HealthReposi
 import { gateIfViewOnly } from '../core/rbac/canAccess.ts';
 import type {  TimeSlot, DayOfWeek  } from '../types/pillmap.ts';
 
-/** Honest error result when the AI pipeline cannot produce clinical content. */
 function aiErrorResult(tool: string, err: unknown, what: string): WebMCPToolResult {
   const code = err instanceof AIUnavailableError ? err.code : 'AI_FAILED';
   const message = err instanceof Error ? err.message : String(err);
@@ -76,7 +68,6 @@ export const addMedicationTool: WebMCPToolDefinition = {
       };
     }
 
-    // Generic-name resolution via the AI pipeline (required — no local tables)
     let genericName: string;
     try {
       genericName = await ClinicalInteractionEngine.resolveGenericName(params.name);
@@ -128,9 +119,7 @@ export const checkInteractionsTool: WebMCPToolDefinition = {
     canvasRerenders: ['pillmap']
   },
   execute: async (params: { medList?: string[] }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    // Stored-evaluation fast path: when evaluating the patient's own active
-    // regimen (no explicit medList override), serve the persisted evaluation
-    // instead of recomputing on every call.
+
     const isStoredRegimen = !params.medList;
     if (isStoredRegimen) {
       try {
@@ -151,12 +140,11 @@ export const checkInteractionsTool: WebMCPToolDefinition = {
           humanApprovalRequired: false
         };
       } catch {
-        // fall through to ad-hoc compute
+
       }
     }
     const list = params.medList || context.vault.getMedications(context.patientId).map((m: never) => (m as { genericName: string }).genericName);
-    // Ad-hoc what-if evaluation (explicit medList): compute directly without
-    // polluting the stored patient regimen cache.
+
     let arcs;
     try {
       arcs = await ClinicalInteractionEngine.checkDrugInteractions(list);
@@ -207,8 +195,6 @@ export const checkDietInteractionsTool: WebMCPToolDefinition = {
       usesPotassiumSaltSubstitute: true
     };
 
-    // Stored-evaluation fast path: if the requested medList matches the
-    // patient's active regimen, serve persisted badges instead of recomputing.
     try {
       const activeMeds = context.vault.getMedications(context.patientId, 'active');
       const activeNames = new Set<string>(activeMeds.map((m: unknown) => String((m as { brandName?: string; genericName?: string }).brandName || (m as { genericName?: string }).genericName || '').toLowerCase()));
@@ -231,7 +217,7 @@ export const checkDietInteractionsTool: WebMCPToolDefinition = {
         };
       }
     } catch {
-      // fall through to ad-hoc compute
+
     }
 
     let badges;
@@ -274,7 +260,7 @@ export const checkDuplicateIngredientTool: WebMCPToolDefinition = {
     canvasRerenders: ['pillmap']
   },
   execute: async (params: { medList: { name: string; dose?: string }[] }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    // Stored-evaluation fast path for the patient's own regimen.
+
     try {
       const activeMeds = context.vault.getMedications(context.patientId, 'active');
       const activeNames = new Set<string>(activeMeds.map((m: unknown) => String((m as { brandName?: string; genericName?: string }).brandName || (m as { genericName?: string }).genericName || '').toLowerCase()));
@@ -297,7 +283,7 @@ export const checkDuplicateIngredientTool: WebMCPToolDefinition = {
         };
       }
     } catch {
-      // fall through to ad-hoc compute
+
     }
     let alerts;
     try {
@@ -522,3 +508,4 @@ export const setReminderTool: WebMCPToolDefinition = {
     };
   }
 };
+

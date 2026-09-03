@@ -1,9 +1,3 @@
-/**
- * Healthbook WebMCP Tools: Family Care Circle & Continuity Dossier (M5 / M6) — AI Enhanced
- * Tools: link_patient, grant_caregiver_access, revoke_caregiver_access, switch_profile, act_on_behalf,
- *        grant_doctor_access, revoke_access, view_timeline
- * AI enrichment for patient linking via AI when enabled (generic configurable via Settings>env, never hardcoded literals).
- */
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
 import type {  LinkedCareProfile, CaregiverPermissionLevel, DoctorAccessGrant  } from '../types/carecircle.ts';
@@ -46,10 +40,8 @@ export const linkPatientTool: WebMCPToolDefinition = {
       };
     }
 
-    // Vault-derived patient name: prefer activeProfile context generic, no hardcoded Shanti/Jenkins (M3 real-data fix)
     let resolvedPatientName = context.activeProfile.onBehalfOf || context.activeProfile.name || params.patientId || 'Patient';
 
-    // AI enrichment for patient linking when enabled (generic configurable via Settings>env, vision+text not needed)
     const cfg = getAIConfig();
     if (isAIEnabled(cfg)) {
       try {
@@ -81,7 +73,7 @@ export const linkPatientTool: WebMCPToolDefinition = {
     const derivedCaregiverName = params.caregiverName?.trim() && params.caregiverName.trim().length >= 2
       ? params.caregiverName.trim()
       : (context.activeProfile.name && context.activeProfile.name !== 'Family member' ? context.activeProfile.name : (params.relationship || 'Family member'));
-    // R8 fix: respect permissionTier — use param or activeProfile permissionLevel, not hardcoded manage (was 89)
+
     const requestedLevel = ((params as any).permissionLevel as CaregiverPermissionLevel) || (context.activeProfile.permissionLevel as CaregiverPermissionLevel) || 'manage';
     const normalizedLevel: CaregiverPermissionLevel = ['view_only','manage','full'].includes(requestedLevel as any) ? requestedLevel as any : 'manage';
     const link: LinkedCareProfile = {
@@ -129,12 +121,12 @@ export const grantCaregiverAccessTool: WebMCPToolDefinition = {
   execute: async (params: { caregiverId: string; permissionLevel: CaregiverPermissionLevel; patientId?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const denied = gateIfViewOnly(context.activeProfile, 'grant_caregiver_access');
     if (denied) return denied;
-    // R8: persist via LocalVault.updateCaregiverPermission 837 — defense against stale UI
+
     try {
       const pid = params.patientId || context.patientId;
-      // Find matching link by caregiverId
+
       let targetLinkId: string | null = null;
-      // Direct map scan
+
       try {
         for (const l of context.vault.careCircle.values()) {
           const cid = (l as any).caregiverId || (l as any).caregiverUserId;
@@ -148,7 +140,7 @@ export const grantCaregiverAccessTool: WebMCPToolDefinition = {
           if (found) targetLinkId = found.linkId;
         } catch {}
       }
-      // Fallback broader scan if still not found
+
       if (!targetLinkId) {
         try {
           for (const l of context.vault.careCircle.values()) {
@@ -160,12 +152,11 @@ export const grantCaregiverAccessTool: WebMCPToolDefinition = {
       if (targetLinkId) {
         await context.vault.updateCaregiverPermission(targetLinkId, params.permissionLevel);
       } else if (pid) {
-        // No existing link — create minimal link for persistence (covers test without prior link_patient)
-        // Do not create if we cannot determine patient linkage — just persist via vault best-effort
+
         try {
           const links = context.vault.getCaregiverLinks(pid) || [];
           if (links.length === 0) {
-            // Create placeholder link to persist tier for later probes
+
             const placeholder: any = {
               linkId: `link_${Date.now()}`,
               patientId: pid,
@@ -249,7 +240,7 @@ export const switchProfileTool: WebMCPToolDefinition = {
   },
   execute: async (params: { targetPatientId: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const isSelf = params.targetPatientId === 'self' || params.targetPatientId === context.activeProfile.userId;
-    // Generic vault-derived name: use activeProfile context or patientId, no hardcoded Shanti/Jenkins (M3)
+
     const patientName = isSelf ? 'Self' : (context.activeProfile.onBehalfOf || context.activeProfile.name || params.targetPatientId);
 
     context.patientId = isSelf ? context.activeProfile.userId : params.targetPatientId;
@@ -359,9 +350,7 @@ export const grantDoctorAccessTool: WebMCPToolDefinition = {
   execute: async (params: { doctorEmail: string; durationDays?: number; scope?: 'full_dossier' | 'snapshot_only' | 'labs_and_meds'; patientId?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const denied3 = gateIfViewOnly(context.activeProfile, 'grant_doctor_access');
     if (denied3) return denied3;
-    // Optional: full admin check — patient owner or full tier. For now view_only deny suffices; full check would be: if (context.activeProfile.role !== 'patient' && context.activeProfile.permissionLevel !== 'full' && context.activeProfile.role !== 'doctor') { // but allow manage patient-owner case
-    //   return PERMISSION_DENIED
-    // }
+
     const days = params.durationDays || 7;
     const expires = new Date(Date.now() + days * 86400000).toISOString();
 
@@ -470,7 +459,7 @@ export const viewTimelineTool: WebMCPToolDefinition = {
     canvasRerenders: ['dossier']
   },
   execute: async (params: { itemId: string; category?: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
-    // Specific match for Nephrology CKD 3b diagnosis source highlight
+
     if (params.itemId === 'fact_ckd_stage_3b_diagnosis' || params.itemId.includes('ckd')) {
       return {
         success: true,
@@ -506,3 +495,4 @@ export const viewTimelineTool: WebMCPToolDefinition = {
     };
   }
 };
+

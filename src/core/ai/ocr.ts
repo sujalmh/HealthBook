@@ -1,7 +1,3 @@
-/**
- * Healthbook AI Core — Document & Image OCR Pre-Processor
- * Uses Mistral OCR (mistral-ocr-latest) to convert PDFs and images into structured Markdown.
- */
 
 export interface OCRResult {
   markdown: string;
@@ -44,11 +40,10 @@ function resolveOCRApiKey(): string {
         if (typeof parsed.MISTRAL_API_KEY === 'string' && parsed.MISTRAL_API_KEY) return parsed.MISTRAL_API_KEY;
       }
     }
-  } catch { /* intentionally empty */ }
+  } catch {  }
 
   try {
-    // Static token `import.meta.env` — Vite bakes VITE_* vars at build time.
-    // Cast/optional-chain forms are NOT replaced, so keep this literal.
+
     const metaEnv = import.meta.env ?? {};
     const procEnv = typeof globalThis !== 'undefined' && 'process' in globalThis
       ? ((globalThis as unknown as { process?: { env?: Record<string, unknown> } }).process?.env ?? {})
@@ -196,3 +191,4 @@ export async function runDocumentOCR(
   };
   return emptyResult;
 }
+

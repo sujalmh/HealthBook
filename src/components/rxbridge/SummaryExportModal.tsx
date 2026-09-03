@@ -1,8 +1,3 @@
-/**
- * Healthbook Component: SummaryExportModal
- * 1-page printable patient discharge summary card with medication schedule,
- * food instructions, red flags, doctor questions, and clinic contacts.
- */
 
 import React, { useState } from 'react';
 import {
@@ -55,7 +50,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
   return (
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="1-Page Patient Discharge Home Summary">
       <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto print:max-h-none print:border-none print:shadow-none print:p-0 print:bg-white print:text-black mx-auto">
-        {/* Action Header (Hidden in Print) */}
+        {}
         <div className="border-b border-slate-200 pb-4 space-y-3 print:hidden">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -68,7 +63,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
               </div>
             </div>
 
-            {/* Close Button */}
+            {}
             <button
               onClick={onClose}
               className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center shrink-0 min-h-[44px] min-w-[44px]"
@@ -79,7 +74,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            {/* Language Switcher */}
+            {}
             <div className="flex items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs min-h-[40px]">
               <Globe className="w-3.5 h-3.5 text-slate-600 mr-1.5 shrink-0" />
               <select
@@ -93,7 +88,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
               </select>
             </div>
 
-            {/* Print Button */}
+            {}
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200 transition-colors min-h-[40px]"
@@ -102,7 +97,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
               <span>Print</span>
             </button>
 
-            {/* Download JSON Button */}
+            {}
             <button
               onClick={handleDownloadJSON}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs transition-colors min-h-[40px]"
@@ -113,9 +108,9 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
           </div>
         </div>
 
-        {/* Printable 1-Page Summary Card */}
+        {}
         <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm text-slate-900 print:bg-white print:text-black print:border-none print:p-4">
-          {/* Header Block */}
+          {}
           <div className="border-b-2 border-slate-200 print:border-black pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
@@ -134,7 +129,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
             </div>
           </div>
 
-          {/* Section 1: What Changed (High Priority Box) */}
+          {}
           <div className="space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400 print:text-black flex items-center gap-1.5">
               <Sparkles className="w-4 h-4" />
@@ -179,7 +174,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
             </div>
           </div>
 
-          {/* Section 2: Active Daily Medication Schedule */}
+          {}
           <div className="space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-sky-400 print:text-black flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
@@ -215,9 +210,9 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3 & 4: Food Rules & Red Flags (2 columns) */}
+          {}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Food Rules */}
+            {}
             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 print:bg-amber-50 print:border-amber-200 text-xs text-amber-700 print:text-black space-y-2">
               <h4 className="font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-amber-400 print:text-black">
                 <Utensils className="w-3.5 h-3.5" />
@@ -230,7 +225,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
               </ul>
             </div>
 
-            {/* Red Flag Warning Signs */}
+            {}
             <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 print:bg-rose-50 print:border-rose-200 text-xs text-rose-700 print:text-black space-y-2">
               <h4 className="font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-rose-400 print:text-black">
                 <AlertOctagon className="w-3.5 h-3.5" />
@@ -244,7 +239,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
             </div>
           </div>
 
-          {/* Section 5: Doctor Follow-Up Questions */}
+          {}
           {summary.doctorQuestionBankItems && summary.doctorQuestionBankItems.length > 0 && (
             <div className="p-4 rounded-2xl bg-white border border-slate-200 print:bg-gray-100 print:border-gray-300 text-xs space-y-2">
               <h4 className="font-bold uppercase tracking-wider text-[11px] text-slate-700 print:text-black">
@@ -258,7 +253,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
             </div>
           )}
 
-          {/* Section 6: Emergency & Clinic Contact Strip */}
+          {}
           <div className="border-t border-slate-200 print:border-black pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
             <div className="space-y-1">
               <div className="font-bold text-slate-900 print:text-black flex items-center gap-1.5">
@@ -285,3 +280,4 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
     </ModalPortal>
   );
 };
+

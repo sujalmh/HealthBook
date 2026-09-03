@@ -1,7 +1,3 @@
-/**
- * Healthbook Component: PharmacistExportModal
- * 1-Page visual schedule and clinical crosswalk export bundle for pharmacist review.
- */
 
 import React, { useState } from 'react';
 import { Printer, Copy, Check, X, FileText, ShieldAlert, CheckCircle2, Award } from 'lucide-react';
@@ -33,7 +29,7 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
   return (
     <ModalPortal isOpen={true} onClose={onClose} ariaLabel="1-Page Pharmacist Consultation & Regimen Map">
       <div className="bg-white border border-canvas-border rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden mx-auto">
-        {/* Modal Top Control Bar */}
+        {}
         <div className="p-3.5 sm:p-4 bg-canvas-muted border-b border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <FileText className="w-5 h-5 text-primary shrink-0" />
@@ -66,9 +62,9 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
           </div>
         </div>
 
-        {/* Printable Document Body */}
+        {}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-canvas-muted text-slate-900 space-y-6 print:bg-white print:text-black">
-          {/* Document Header */}
+          {}
           <div className="border-b border-canvas-border pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -89,7 +85,7 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
             </div>
           </div>
 
-          {/* Section 1: Brand / Generic Crosswalk Table */}
+          {}
           <div className="space-y-2">
             <h3 className="text-caption uppercase tracking-wider text-primary-text print:text-gray-800 font-bold">
               1. Active Medication Regimen & Crosswalk
@@ -120,9 +116,9 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
             </div>
           </div>
 
-          {/* Section 2: Clinical Interactions & Diet Rules */}
+          {}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Drug-Drug Conflicts */}
+            {}
             <div className="space-y-2">
               <h3 className="text-caption uppercase tracking-wider text-rose-600 print:text-gray-800">
                 2. Flagged Drug Interactions ({bundle.drugInteractions.length})
@@ -155,7 +151,7 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
               </div>
             </div>
 
-            {/* Diet & Meal Rules */}
+            {}
             <div className="space-y-2">
               <h3 className="text-caption uppercase tracking-wider text-amber-700 print:text-gray-800">
                 3. Dietary & Timing Rules ({bundle.dietTimingRules.length})
@@ -181,7 +177,7 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Pharmacist Sign-Off & Verification Block */}
+          {}
           <div className="p-4 rounded-2xl bg-white border border-canvas-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:bg-gray-50 print:border-gray-300">
             <div className="flex items-center gap-3">
               <Award className="w-8 h-8 text-primary shrink-0" />
@@ -208,3 +204,4 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
     </ModalPortal>
   );
 };
+

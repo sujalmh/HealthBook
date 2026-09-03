@@ -51,17 +51,16 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
-  // Load Activity content (Tool Catalog, pendingCount, recent logs) — WebMCPInspector embedded inside Connect
   const refreshActivity = async () => {
     try {
-      // Try native getTools first, fallback to engine sync — preserves 42 count
+
       let engineTools: Array<{ name: string; description?: string; moduleOwner?: string; category?: string }> = [];
       try {
         if (typeof document !== 'undefined' && (document as unknown as { modelContext?: { getTools?: () => Promise<unknown[]> } }).modelContext?.getTools) {
           const native = await (document as unknown as { modelContext: { getTools: () => Promise<unknown[]> } }).modelContext.getTools();
           if (Array.isArray(native) && native.length > 0) {
             engineTools = webMCPEngine.getRegisteredTools();
-            // if native length differs, prefer engine list for stable 42
+
             if (native.length !== engineTools.length) engineTools = webMCPEngine.getRegisteredTools();
           } else {
             engineTools = webMCPEngine.getRegisteredTools();
@@ -83,7 +82,7 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
         try {
           const raw = localStorage.getItem('healthbook_active_user');
           if (raw) pid = JSON.parse(raw)?.userId || '';
-        } catch { /* intentionally empty */ }
+        } catch {  }
         let pending = webMCPEngine.getPendingApprovals();
         if (pid) {
           try {
@@ -102,7 +101,7 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
             for (const v of vaultApprovals) {
               if (!existingIds.has(v.id)) pending = [...pending, v as unknown as { id?: string; invocationId?: string }];
             }
-          } catch { /* intentionally empty */ }
+          } catch {  }
         } else {
           setPendingCount(pending.length);
         }
@@ -110,7 +109,7 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
       } catch {
         setPendingApprovals(webMCPEngine.getPendingApprovals().slice(0, 6));
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
   };
 
   useEffect(() => {
@@ -130,10 +129,10 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
         removeNative = () => {
           try {
             (document as unknown as { modelContext?: { removeEventListener?: (e:string, h:()=>void)=>void } }).modelContext?.removeEventListener?.('toolchange', handler);
-          } catch { /* intentionally empty */ }
+          } catch {  }
         };
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
     return () => {
       u1();
       u2();
@@ -198,7 +197,7 @@ console['log'](JSON.parse(raw));`;
         className="bg-white border border-canvas-border rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {}
         <div className="flex items-start justify-between gap-3 px-5 sm:px-6 py-5 border-b border-canvas-border bg-canvas-muted">
           <div className="flex items-center gap-3 min-w-0">
             <div className="p-2.5 bg-primary-light border border-primary-border rounded-xl text-primary shrink-0">
@@ -230,7 +229,7 @@ console['log'](JSON.parse(raw));`;
           </button>
         </div>
 
-        {/* Tabs — Activity nested inside single Connect (Tool Catalog 42, pendingCount, recent logs) */}
+        {}
         <div className="flex items-center gap-1 px-5 sm:px-6 pt-3 border-b border-canvas-border bg-white" role="tablist" aria-label="Connect sections">
           <button
             role="tab"
@@ -262,12 +261,12 @@ console['log'](JSON.parse(raw));`;
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
           {activeTab === 'connect' ? (
             <div className="space-y-6">
 
-          {/* Connection Link */}
+          {}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
               <Globe className="w-4 h-4 text-primary" />
@@ -305,7 +304,7 @@ console['log'](JSON.parse(raw));`;
             </div>
           </div>
 
-          {/* How to connect steps */}
+          {}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
               <Info className="w-4 h-4 text-primary" />
@@ -338,7 +337,7 @@ console['log'](JSON.parse(raw));`;
             </div>
           </div>
 
-          {/* Global Objects */}
+          {}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
               <Terminal className="w-4 h-4 text-primary" />
@@ -363,7 +362,7 @@ console['log'](JSON.parse(raw));`;
             </div>
           </div>
 
-          {/* Code examples */}
+          {}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
@@ -398,7 +397,7 @@ console['log'](JSON.parse(raw));`;
             </div>
           </div>
 
-          {/* Tool catalog teaser */}
+          {}
           <div className="bg-primary-light border border-primary-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm">
@@ -417,9 +416,9 @@ console['log'](JSON.parse(raw));`;
           </div>
             </div>
           ) : (
-            // Activity tab — WebMCPInspector content nested inside Connect (Tool Catalog 42, pendingCount, recent logs)
+
             <div className="space-y-6" data-testid="connect-activity">
-              {/* pendingCount badge preserved inside Activity */}
+              {}
               <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
                 <div className="flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-amber-700" aria-hidden="true" />
@@ -431,7 +430,7 @@ console['log'](JSON.parse(raw));`;
                 </span>
               </div>
 
-              {/* Tool Catalog — 42 tools */}
+              {}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -465,7 +464,7 @@ console['log'](JSON.parse(raw));`;
                 </div>
               </div>
 
-              {/* Recent logs — telemetry */}
+              {}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
                   <Activity className="w-4 h-4 text-primary" aria-hidden="true" />
@@ -493,7 +492,7 @@ console['log'](JSON.parse(raw));`;
                 )}
               </div>
 
-              {/* Pending approvals */}
+              {}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-caption font-bold uppercase tracking-wider text-slate-700">
                   <ShieldCheck className="w-4 h-4 text-primary" aria-hidden="true" />
@@ -522,7 +521,7 @@ console['log'](JSON.parse(raw));`;
           )}
         </div>
 
-        {/* Footer */}
+        {}
         <div className="px-5 sm:px-6 py-4 border-t border-canvas-border bg-canvas-muted flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <p className="text-caption text-muted">Need help? Open <strong className="text-slate-800">Activity → Manual Trigger Playground</strong> to try tools without code.</p>
           <button
@@ -536,3 +535,4 @@ console['log'](JSON.parse(raw));`;
     </div>
   );
 };
+

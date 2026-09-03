@@ -1,6 +1,3 @@
-/**
- * Healthbook AI Core — Vision & Multimodal Message Composition
- */
 
 import type {
   AIProvider,
@@ -91,3 +88,4 @@ export function isMultimodalRequestBody(body: unknown, provider: AIProvider): bo
     return false;
   }
 }
+

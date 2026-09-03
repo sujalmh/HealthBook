@@ -1,12 +1,3 @@
-/**
- * Healthbook Component: ChangeBadge
- * Visual status badge for the 5 reconciliation states:
- * - CONTINUED (Green)
- * - DOSE_CHANGED (Blue)
- * - STOPPED (Red)
- * - NEW (Purple)
- * - HELD_AND_RESUMED (Amber)
- */
 
 import React from 'react';
 import {
@@ -109,3 +100,4 @@ export const ChangeBadge: React.FC<ChangeBadgeProps> = ({
     </span>
   );
 };
+

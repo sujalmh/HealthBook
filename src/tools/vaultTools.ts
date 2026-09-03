@@ -1,10 +1,3 @@
-/**
- * Healthbook WebMCP Tools: Approved Fact Vault Module — AI Intelligence (M1)
- * Tools: extract_fact, confirm_fact, compile_health_record
- * Generic AI extraction via extractWithAI vision+text single response + grounded bbox.
- * Fallback heuristic only when disabled (Q10 for text never for images).
- * Never hardcoded provider/model/baseURL literals — reads via config.
- */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import type { Fact, FactCategory, AllergyRecord, MedicationRecord, LabRecord } from '../types/vault.ts';
@@ -71,7 +64,6 @@ export const extractFactTool: WebMCPToolDefinition = {
 
     const extractionPathParam: 'ocr_then_ai' | 'direct_vision' | undefined = p.extractionPath as 'ocr_then_ai' | 'direct_vision' | undefined;
 
-
     if (aiEnabled) {
       try {
         extractedFacts = await extractWithAI(
@@ -97,7 +89,7 @@ export const extractFactTool: WebMCPToolDefinition = {
         };
       }
     } else {
-      // No offline heuristic fallback — AI must be configured
+
       return {
         success: false,
         tool: 'extract_fact',
@@ -109,15 +101,12 @@ export const extractFactTool: WebMCPToolDefinition = {
       };
     }
 
-    // Verification step — web evidence AFTER extraction, BEFORE staging for review.
-    // Attaches fact.verification (status/note/sources); never blocks or throws.
     try {
       await verifyFactsWithWebEvidence(extractedFacts);
     } catch (err: unknown) {
       console.warn('[vaultTools] Fact verification skipped:', err instanceof Error ? err.message : err);
     }
 
-    // Save to Vault with status 'unconfirmed' for the authenticated patientId
     for (const fact of extractedFacts) {
       await context.vault.addFact(
         { ...fact, patientId: context.patientId, status: 'unconfirmed' },
@@ -180,10 +169,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
     }
     const { factId, action, edits } = params;
 
-    // --- Shared propagation helpers -------------------------------------
-    // Resolve a concrete date for a fact: prefer the AI-resolved fact.date,
-    // then relative phrases in the value/explanation ("in 3 months"),
-    // falling back to a sensible default per category.
     const resolveFactDate = (fact: Fact, fallbackDays: number): string => {
       const explicit = (fact as unknown as { date?: unknown }).date;
       if (typeof explicit === 'string' && /^\d{4}-\d{2}-\d{2}/.test(explicit.trim())) {
@@ -202,9 +187,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
       return new Date(Date.now() + fallbackDays * 86400000).toISOString();
     };
 
-    // Extract the most-recent numeric lab reading from a value string that may
-    // embed dated readings ("20-Aug: 286 mg/dL, 22-Aug: 178 mg/dL"). The old
-    // first-number regex matched "20" inside the date token, corrupting values.
     const extractLatestLabValue = (raw: unknown): number | null => {
       if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
       if (raw && typeof raw === 'object') {
@@ -227,7 +209,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
       return latest;
     };
 
-    // Helper to propagate confirmed categorical facts to respective module stores
     const propagateFact = async (fact: Fact) => {
       const cat = (fact.category || '').toLowerCase().trim();
       const name = fact.name || 'Clinical Item';
@@ -241,7 +222,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
         role: context.activeProfile.role
       };
 
-      // 1. Medications
       if (cat.includes('med') || cat === 'medication' || cat === 'medications') {
         const valObj = typeof val === 'object' && val !== null ? val : {};
         const doseStr = valObj.dose || valObj.rawSnippet || (typeof val === 'string' ? val : '') || plain;
@@ -288,7 +268,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
         );
       }
 
-      // 2. Laboratory Tests
       else if (cat.includes('lab') || cat === 'laboratory_tests') {
         const labVal = extractLatestLabValue(val);
         if (labVal === null) {
@@ -302,7 +281,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
         else if (lowerName.includes('glucose') && labVal > 140) flag = 'HIGH';
         else if (lowerName.includes('hba1c') && labVal > 6.5) flag = 'HIGH';
 
-        // Reference range from the explanation, e.g. "within normal range (0.7-1.3 mg/dL)"
         const rangeMatch = (fact.plainExplanation || '').match(/\((\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*([A-Za-z\/°²^0-9]*)\s*\)/);
 
         await context.vault.addLab(
@@ -327,7 +305,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
         }
       }
 
-      // 3. Conditions & Diagnoses
       else if (cat.includes('condition') || cat.includes('diagnos')) {
         await context.vault.addCondition(
           {
@@ -343,12 +320,11 @@ export const confirmFactTool: WebMCPToolDefinition = {
         );
       }
 
-      // 4. Allergies
       else if (cat.includes('allerg')) {
-        // NKDA / "no known allergies" must NOT create an allergy record
+
         const isNoAllergy = /NKDA|no known allerg/i.test(`${name} ${String(val ?? '')}`);
         if (isNoAllergy) {
-          // Still record it as a condition-style note? No — nothing to track; skip silently.
+
           return;
         }
         await context.vault.addAllergy(
@@ -364,7 +340,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
         );
       }
 
-      // 5. Follow-ups & Scheduled Appointments
       else if (cat.includes('followup') || cat.includes('appointment')) {
         await context.vault.addCalendarEvent(
           {
@@ -381,15 +356,13 @@ export const confirmFactTool: WebMCPToolDefinition = {
         );
       }
 
-      // 6. Due Labs & Monitoring Panels
       else if (cat.includes('due') || cat.includes('panel')) {
         await context.vault.addDueCard({
           id: `due_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
           patientId,
           testPanel: name || 'Prescribed Monitoring Lab',
           biomarkers: [name],
-          // AI-resolved date from the document (e.g. "Month 6 post-discharge" →
-          // concrete YYYY-MM-DD); relative-phrase parse; default quarterly.
+
           dueDate: resolveFactDate(fact, 90),
           prescribedBy: 'Care Team',
           prescribedDate: new Date().toISOString(),
@@ -398,7 +371,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
         });
       }
 
-      // 7. Questions for Doctor
       else if (cat.includes('question')) {
         await context.vault.addQuestion({
           id: `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
@@ -411,7 +383,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
         });
       }
 
-      // 8. Patient Demographics & Profile
       else if (cat.includes('demograph') || cat.includes('patient')) {
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
@@ -424,11 +395,10 @@ export const confirmFactTool: WebMCPToolDefinition = {
               }
             }
           }
-        } catch { /* intentionally empty */ }
+        } catch {  }
       }
     };
 
-    // Batch confirmation / rejection for all pending facts
     if (factId === 'all' || factId === '*' || !factId) {
       const pending = context.vault.getPendingFacts(context.patientId);
       const updatedFacts: any[] = [];
@@ -470,7 +440,6 @@ export const confirmFactTool: WebMCPToolDefinition = {
       };
     }
 
-    // Individual fact confirmation
     const fact = context.vault.getFact(factId);
     if (!fact) {
       return {
@@ -543,7 +512,7 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
   },
   execute: async (params: { patientId: string; sections?: string[]; format?: string; includeAuditTrail?: boolean }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const { patientId: requestedPatientId, sections = ['all'], format = 'json_dossier' } = params;
-    // AuthZ: only allow reading own patientId via healthbook_active_user unless caregiver/doctor grant (RBAC doctor ↔ patient)
+
     let patientId = requestedPatientId;
     if (requestedPatientId !== context.patientId) {
       let hasCaregiverGrant = false;
@@ -571,7 +540,7 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
           hasDoctorLink = (grants as { doctorEmail?: string; status: string; expiresAt: string }[]).some((g) => g.status === 'active' && new Date(g.expiresAt).getTime() > Date.now() && (g.doctorEmail === activeEmail || g.doctorEmail === context.activeProfile.userId));
         }
       } catch {
-        // ignore
+
       }
       const isDoctorWithLink = context.activeProfile?.role === 'doctor' && hasDoctorLink;
       if (!hasCaregiverGrant && !isDoctorWithLink) {
@@ -589,63 +558,50 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
           const vAllergies = v.getAllergies?.(requestedPatientId)?.length || 0;
           victimHasData = vFacts > 0 || vMeds > 0 || vLabs > 0 || vAllergies > 0;
         } catch {
-          // ignore
+
         }
         if (victimHasData) {
-          // Fallback to context.patientId — attacker reading victim with data gets own empty facts (isolated)
+
           patientId = context.patientId;
         } else {
-          // No data for requested — allow reading empty dossier with requested ID (covers test p_empty_patient_999)
+
           patientId = requestedPatientId;
         }
       }
     }
 
-    // 1. Facts (only confirmed facts - strictly exclude unconfirmed and rejected per TC-V03-02)
     const confirmedFacts = context.vault.getFactsByPatient(patientId, 'confirmed');
 
-    // 2. Medications
     let activeMeds = context.vault.getActiveMedications(patientId);
     let allMeds = context.vault.getMedications(patientId);
 
-    // 3. Labs
     let labs = context.vault.getLabs(patientId);
 
-    // 4. Allergies
     let allergies = context.vault.getAllergies(patientId);
 
-    // 5. Conditions
     let conditions = context.vault.getConditions(patientId);
 
-    // 6. Proposals
     const proposals = context.vault.getProposals(patientId);
 
-    // 7. Calendar Events
     const calendarEvents = context.vault.getCalendarEvents(patientId);
 
-    // 8. Care Circle
     const careCircle = context.vault.getCaregiverLinks(patientId);
 
-    // 9. Doctor Grants
     const doctorGrants = context.vault.getDoctorGrants(patientId);
 
-    // 10. Audit Logs
     const audits = context.vault.getAuditLogs(patientId);
 
-    // 11. Due Cards & Danger Reports
     const dueCards = context.vault.getDueCards(patientId);
     const dangerReports = context.vault.getDangerReports(patientId);
     const questionBank = context.vault.getQuestionBankItems(patientId);
     const documents = context.vault.getDocuments(patientId);
 
-    // Patient metadata — derived from vault / activeProfile only (no hardcoded Shanti/Jenkins).
     const patientName = context.activeProfile.onBehalfOf || context.activeProfile.name || 'Patient';
     const patientMrn = `MRN-${patientId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase() || 'XXXXXX'}`;
     const patientDob = '1950-01-01';
     const patientAge = 55;
     const patientGender = 'Other';
 
-    // Source Document Citations — vault-derived only (bbox removed)
     const citations: any[] = [];
     for (const f of confirmedFacts) {
       if (f.sourceDocId) {
@@ -660,7 +616,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       }
     }
 
-    // Baseline Vitals — vault-agnostic defaults (not patient-specific mock)
     const baselineVitals = {
       systolicBP: 120,
       diastolicBP: 80,
@@ -672,7 +627,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       lastUpdated: new Date().toISOString()
     };
 
-    // Most Recent Critical Labs — vault-derived only (no mock defaults)
     const markerMap = new Map<string, any>();
     for (const lab of labs) {
       const k = (lab.marker ?? '').toLowerCase();
@@ -701,7 +655,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       })
       .filter(Boolean) as unknown as { marker: string; value: number; unit: string; drawDate: string; flag: string; referenceRange?: { low: number; high: number }; isCritical: boolean }[];
 
-    // Emergency Contacts — vault-derived (no hardcoded Shanti/Jenkins)
     const emergencyContacts = [
       {
         name: 'Primary Caregiver',
@@ -719,7 +672,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       }
     ];
 
-    // QR Validation Stamp
     const stampTimestamp = new Date().toISOString();
     const validationCode = `CC-EMRG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const hash = `sha256_${Date.now()}_${patientId}_valid`;
@@ -739,7 +691,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       })
     };
 
-    // Emergency Snapshot Card Summary — vault-derived only
     const emergencySnapshot = {
       patientId,
       patientName,
@@ -759,10 +710,8 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       qrValidationStamp
     };
 
-    // Chronological Timeline Stream Items
     const timelineItems: any[] = [];
 
-    // Add facts — bbox removed
     for (const f of confirmedFacts) {
       timelineItems.push({
         id: `tl_fact_${f.id}`,
@@ -778,7 +727,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       });
     }
 
-    // Add meds
     for (const m of allMeds) {
       if (!timelineItems.some((t) => t.id === `tl_fact_${m.id}` || t.title.includes(m.genericName))) {
         const mSlots = (m as unknown as { timingSlots?: string[] }).timingSlots;
@@ -795,7 +743,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       }
     }
 
-    // Add labs — bbox removed
     for (const l of labs) {
       const lDoc = l as unknown as { doctorComment?: { comment?: string; doctorName?: string } };
       timelineItems.push({
@@ -812,7 +759,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       });
     }
 
-    // Add proposals
     for (const p of proposals) {
       const pRec = p as unknown as { reason?: string; plainNarration?: string; previousDose?: string; proposedDose?: string };
       timelineItems.push({
@@ -835,7 +781,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       });
     }
 
-    // Add danger reports
     for (const d of dangerReports) {
       timelineItems.push({
         id: `tl_danger_${d.reportId}`,
@@ -848,7 +793,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       });
     }
 
-    // Add calendar followups
     for (const c of calendarEvents) {
       timelineItems.push({
         id: `tl_cal_${c.id}`,
@@ -861,10 +805,8 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       });
     }
 
-    // Sort timeline items descending (newest first)
     timelineItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Assemble Master Continuity Dossier Bundle — vault-derived only (no mock fallbacks)
     const bundle: any = {
       recordType: 'ContinuityDossierCompilation',
       patientId,
@@ -901,7 +843,6 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       format
     };
 
-    // Build FHIR R4 Bundle
     const fhirBundle = buildFHIRR4Bundle(bundle);
     bundle.fhirBundle = fhirBundle;
 
@@ -917,3 +858,4 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
     };
   }
 };
+

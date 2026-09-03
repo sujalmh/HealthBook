@@ -1,14 +1,3 @@
-/**
- * Healthbook WebMCP Tools: Health Grounding — Web Intelligence AFTER Extraction
- * Optional tools that use Exa search to ground vault facts with citations.
- * These are NOT auto-registered in allWebMCPTools (keeps 40-tool count for M7).
- * Register explicitly via registerGroundingTools(engine) if you want them as WebMCP tools.
- *
- * Each tool uses Exa best practices:
- * - contents.highlights: true for token efficiency
- * - type auto by default; deep-lite/deep for synthesis
- * - No deprecated params
- */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import { groundLabTrend, groundMedicationContext, groundHealthQuestion } from '../core/search/healthGrounding.ts';
@@ -133,3 +122,4 @@ export function registerGroundingTools(engine: { register: (t: WebMCPToolDefinit
     try { engine.register(tool); } catch {}
   }
 }
+

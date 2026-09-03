@@ -93,7 +93,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Calendar Header & Actions — tokenized */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
         <div>
           <h3 className="text-heading-md text-slate-900">Appointments</h3>
@@ -131,7 +131,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Filter Chips */}
+      {}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {[
           { id: 'all', label: 'All Scheduled Events' },
@@ -153,7 +153,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         ))}
       </div>
 
-      {/* Events Stream */}
+      {}
       {filteredEvents.length === 0 ? (
         <p className="text-body-sm text-muted">No scheduled events in this category.</p>
       ) : (
@@ -266,3 +266,4 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     </div>
   );
 };
+

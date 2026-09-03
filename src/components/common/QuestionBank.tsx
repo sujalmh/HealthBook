@@ -30,7 +30,6 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void; 
     };
   }, [patientId]);
 
-  // ESC closes modal when onClose provided
   useEffect(() => {
     if (!onClose) return;
     const onKey = (e: KeyboardEvent) => {
@@ -117,7 +116,7 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void; 
         </div>
       </div>
 
-      {/* Add New Question Form */}
+      {}
       <form onSubmit={handleAddQuestion} className="bg-canvas-muted p-3 sm:p-4 rounded-xl border border-canvas-border space-y-3 shadow-sm">
         <div className="text-xs font-semibold text-slate-700 flex items-center gap-2">
           <Plus className="w-3.5 h-3.5 text-sky-600" />
@@ -150,7 +149,7 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void; 
         </div>
       </form>
 
-      {/* Filter Toolbar */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2 max-w-full overflow-hidden">
           <Filter className="w-3.5 h-3.5 text-muted shrink-0" />
@@ -176,7 +175,7 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void; 
         </div>
       </div>
 
-      {/* Questions List */}
+      {}
       <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
         {filteredQuestions.length === 0 ? (
           <div className="p-8 text-center bg-canvas-muted rounded-xl border border-dashed border-canvas-border space-y-2">
@@ -244,3 +243,4 @@ export const QuestionBank: React.FC<{ patientId?: string; onClose?: () => void; 
     </div>
   );
 };
+

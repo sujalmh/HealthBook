@@ -43,7 +43,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const refreshData = async () => {
-    // Try native first: document.modelContext.getTools() Promise spec §4.2, fallback to engine sync for polyfill parity
+
     let nextTools: WebMCPToolDefinition[] | null = null;
     try {
       if (typeof document !== 'undefined' && (document as unknown as { modelContext?: { getTools?: () => Promise<unknown[]> } }).modelContext?.getTools) {
@@ -58,7 +58,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
             try {
               const parsed = typedRt.inputSchema ? JSON.parse(typedRt.inputSchema) : {};
               params = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
-            } catch { /* intentionally empty */ }
+            } catch {  }
             const props = (params as { properties?: unknown }).properties;
             if (!params || !props) {
               if (params && typeof params === 'object' && !props) {
@@ -88,18 +88,18 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
           });
         }
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
     if (nextTools) setTools(nextTools);
     else setTools(webMCPEngine.getRegisteredTools());
     setTelemetryLogs(webMCPEngine.getTelemetryLogs());
-    // Real pending approvals — combine engine queue with vault pending facts/proposals (no mock).
+
     let pending = webMCPEngine.getPendingApprovals();
     try {
       let pid = '';
       try {
         const raw = localStorage.getItem('healthbook_active_user');
         if (raw) pid = JSON.parse(raw)?.userId || '';
-      } catch { /* intentionally empty */ }
+      } catch {  }
       if (pid) {
         const vaultFacts = localVault.getPendingFacts(pid);
         const vaultFactApprovals = vaultFacts.map((f) => {
@@ -117,7 +117,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
           if (!existingIds.has(v.id)) pending = [...pending, v as unknown as unknown];
         }
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
     setPendingApprovals(pending);
   };
 
@@ -129,7 +129,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     const u4 = eventBus.on('telemetry_updated', refreshData);
     const u5 = eventBus.on('approval_queued', refreshData);
     const u6 = eventBus.on('approval_resolved', refreshData);
-    // Native toolchange listener per W3C §4.4 — observe browser ModelContext EventTarget
+
     let removeNative: (() => void) | null = null;
     try {
       if (typeof document !== 'undefined' && (document as unknown as { modelContext?: { addEventListener?: (e:string,h:()=>void)=>void } }).modelContext?.addEventListener) {
@@ -140,10 +140,10 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
         removeNative = () => {
           try {
             (document as unknown as { modelContext?: { removeEventListener?: (e:string,h:()=>void)=>void } }).modelContext?.removeEventListener?.('toolchange', handler);
-          } catch { /* intentionally empty */ }
+          } catch {  }
         };
       }
-    } catch { /* intentionally empty */ }
+    } catch {  }
 
     return () => {
       u1();
@@ -165,18 +165,15 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
-  // Preload sample payloads when selected tool changes in playground
   const handleSelectToolForPlayground = (toolName: string) => {
     setSelectedToolName(toolName);
     setPlaygroundResult(null);
 
-    // Playground payloads are vault-derived templates, not mock patient fixtures.
-    // All IDs are generic placeholders; real execution uses context.patientId from session.
     const activeUserId = (() => {
       try {
         const raw = localStorage.getItem('healthbook_active_user');
         if (raw) return JSON.parse(raw)?.userId || 'current-patient';
-      } catch { /* intentionally empty */ }
+      } catch {  }
       return 'current-patient';
     })();
     const samplePayloads: Record<string, object> = {
@@ -327,7 +324,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
         className="bg-white border border-canvas-border rounded-2xl w-full max-w-5xl h-[85vh] max-h-[90vh] shadow-2xl flex flex-col text-slate-900 overflow-hidden my-auto mx-0 sm:mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between gap-3 px-3 sm:px-6 py-4 border-b border-canvas-border bg-canvas-muted">
           <div className="flex items-center gap-3 min-w-0">
             <div className="p-2 bg-primary-light border border-primary-border rounded-xl text-primary-text shrink-0">
@@ -355,7 +352,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
           </button>
         </div>
 
-        {/* Tab Navigation */}
+        {}
         <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 pt-3 border-b border-canvas-border bg-canvas-muted text-xs overflow-x-auto scrollbar-none flex-nowrap">
           <button
             onClick={() => setActiveTab('catalog')}
@@ -406,9 +403,9 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
           </button>
         </div>
 
-        {/* Tab Body */}
+        {}
         <div className="flex-1 overflow-y-auto p-3 sm:p-6">
-          {/* TAB 1: TOOL CATALOG */}
+          {}
           {activeTab === 'catalog' && (
             <div className="space-y-4">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -487,7 +484,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
             </div>
           )}
 
-          {/* TAB 2: INVOCATION TELEMETRY LOG */}
+          {}
           {activeTab === 'telemetry' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
@@ -572,10 +569,10 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
             </div>
           )}
 
-          {/* TAB 3: MANUAL TRIGGER PLAYGROUND */}
+          {}
           {activeTab === 'playground' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column: Tool Selector & Param Editor */}
+              {}
               <div className="space-y-4 min-w-0">
                 <div>
                   <label className="block text-caption font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -628,7 +625,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
                 </button>
               </div>
 
-              {/* Right Column: Execution Response Viewer */}
+              {}
               <div className="space-y-4 min-w-0">
                 <div className="text-caption font-bold text-slate-700 uppercase tracking-wider">Execution Output</div>
 
@@ -668,7 +665,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
             </div>
           )}
 
-          {/* TAB 4: HUMAN APPROVAL INTERCEPTOR */}
+          {}
           {activeTab === 'approvals' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -726,3 +723,4 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     </div>
   );
 };
+

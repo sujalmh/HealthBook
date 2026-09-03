@@ -1,8 +1,3 @@
-/**
- * Healthbook Component: PillboxGrid
- * 7x4 weekly drag-and-drop grid (Mon–Sun × Morning, Noon, Evening, Bedtime) with accessible typography,
- * chronotype-aware timing headers, drop target animations, and conflict arc anchoring.
- */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Sun, CloudSun, Sunset, Moon, Plus, Utensils } from 'lucide-react';
@@ -74,9 +69,6 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     }
   };
 
-  // Open on today's column so the highlighted day matches visible content.
-  // The grid mounts hidden (inactive tab = display:none, no layout), so scroll
-  // when it first becomes visible — not on mount.
   const didInitialDayScroll = useRef(false);
   useEffect(() => {
     const el = containerRef.current;
@@ -92,7 +84,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     );
     obs.observe(el);
     return () => obs.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   const times = CHRONOTYPE_TIMES[chronotype] || CHRONOTYPE_TIMES.standard;
@@ -145,7 +137,6 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     sunday: { short: 'Sun', full: 'Sunday' }
   };
 
-  // Re-calculate coordinate positions for SVG Arcs
   const updateArcCoordinates = () => {
     if (!containerRef.current) return;
     const containerRect = containerRef.current.getBoundingClientRect();
@@ -161,7 +152,6 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
 
     const calculated: ArcCoordinate[] = [];
 
-    // Find DOM pill tiles matching drugA and drugB
     for (const arc of interactionArcs) {
       const drugAName = arc.drugA.toLowerCase();
       const drugBName = arc.drugB.toLowerCase();
@@ -195,7 +185,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
           clinicalGuidance: arc.clinicalGuidance
         });
       } else {
-        // Fallback slot estimation if specific DOM element is offscreen or Monday slot default
+
         const path = calculateArcPath(180, 150, 480, 420);
         calculated.push({
           id: arc.id,
@@ -224,7 +214,6 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [grid, interactionArcs, ghostShifts]);
 
-  // Width-based day highlight after initial: update activeDay from scroll position
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
@@ -250,14 +239,12 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     return () => container.removeEventListener('scroll', onScroll as EventListener);
   }, [activeDay]);
 
-  // Check if a medication is involved in duplicate alert
   const isDuplicateIngredient = (medName: string) => {
     return duplicateAlerts.some(alert =>
       alert.drugsInvolved.some(d => d.name.toLowerCase().includes(medName.toLowerCase()))
     );
   };
 
-  // Drag-and-drop event handlers
   const handleDragOver = (e: React.DragEvent, cellKey: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -281,7 +268,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         onDropPill(dragData, day, slot);
       }
     } catch (err) {
-      
+
     }
   };
 
@@ -290,7 +277,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
       ref={containerRef}
       className="relative bg-white border border-canvas-border rounded-2xl shadow-sm p-3 sm:p-4 select-none"
     >
-      {/* SVG Conflict Arc Overlay — desktop/tablet overlay */}
+      {}
       <div className="hidden sm:block">
         <SVGArcOverlay
           arcs={interactionArcs}
@@ -300,7 +287,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         />
       </div>
 
-      {/* Day Scroller — drives the mobile day view and desktop scroll */}
+      {}
       <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto scrollbar-none py-2 -mx-1 px-1" role="tablist" aria-label="Days of week">
         {DAYS_OF_WEEK.map((day) => (
           <button
@@ -320,12 +307,12 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         ))}
       </div>
 
-      {/* Mobile swipe affordance indicator */}
+      {}
       <div className="sm:hidden flex items-center justify-between text-caption text-muted px-1">
         <span>Swipe horizontally for full week</span>
       </div>
 
-      {/* Mobile single-day view — stacked time slots, no horizontal scroll */}
+      {}
       <div className="sm:hidden space-y-2">
         {TIME_SLOTS.map((slot) => {
           const meta = slotMeta[slot];
@@ -391,15 +378,15 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         })}
       </div>
 
-      {/* Main Responsive Grid Container — desktop/tablet 7-day table */}
+      {}
       <div ref={scrollRef} className="hidden sm:block overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="min-w-[720px] sm:min-w-[960px]">
-        {/* Table Structure */}
+        {}
         <table className="w-full border-collapse">
-          {/* Day Column Headers */}
+          {}
           <thead>
             <tr>
-              {/* Time Slot column title */}
+              {}
               <th className="p-3 w-36 text-left bg-white border-b border-r border-canvas-border text-caption tracking-wider text-muted uppercase rounded-tl-xl">
                 Time Slot
               </th>
@@ -422,14 +409,14 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
             </tr>
           </thead>
 
-          {/* 4 Time Rows (Morning, Noon, Evening, Bedtime) */}
+          {}
           <tbody>
             {TIME_SLOTS.map((slot) => {
               const meta = slotMeta[slot];
 
               return (
                 <tr key={slot} className="border-b border-canvas-border last:border-b-0">
-                  {/* Row Header: Slot Label, Chronotype Time, Meal Icon — tokenized */}
+                  {}
                   <td className={`p-3 align-top border-r border-canvas-border ${meta.headerBg}`}>
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5 font-bold text-body text-slate-900">
@@ -445,13 +432,12 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                     </div>
                   </td>
 
-                  {/* 7 Day Cells */}
+                  {}
                   {DAYS_OF_WEEK.map((day) => {
                     const cellKey = `${day}_${slot}`;
                     const pillsInSlot = (grid[day] && grid[day][slot]) || [];
                     const isDragOver = dragOverCell === cellKey;
 
-                    // Check for ghost preview shifts into this cell
                     const ghostsInThisSlot = ghostShifts.filter((g) => {
                       if (g.toSlot !== slot) return false;
                       if (g.toDay && g.toDay !== day) return false;
@@ -471,7 +457,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                         }`}
                       >
                         <div className="min-h-[116px] flex flex-col gap-2.5">
-                          {/* Active Pills */}
+                          {}
                           {pillsInSlot.map((pill) => (
                             <PillCard
                               key={pill.id}
@@ -487,7 +473,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                             />
                           ))}
 
-                          {/* Ghost Preview Shifts */}
+                          {}
                           {ghostsInThisSlot.map((ghost, gIdx) => (
                             <PillCard
                               key={`ghost_${ghost.medId}_${gIdx}`}
@@ -507,7 +493,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
                             />
                           ))}
 
-                          {/* Empty Slot Drop Area / Quick Add */}
+                          {}
                           {pillsInSlot.length === 0 && ghostsInThisSlot.length === 0 && (
                             <button
                               type="button"
@@ -533,3 +519,4 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     </div>
   );
 };
+

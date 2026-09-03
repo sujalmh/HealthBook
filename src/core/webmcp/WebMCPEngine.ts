@@ -1,9 +1,3 @@
-/**
- * Healthbook Core: WebMCP Engine & Registry — Spec-Correct Protocol Adapter
- * W3C WebMCP Spec Draft 26 Aug 2026 §4.1-4.5
- * Canonical surface ONLY document.modelContext (SecureContext, EventTarget, Promise-based)
- * Polyfill/shim ONLY for jsdom/tests, production never overwrites native document.modelContext
- */
 
 import type {
   WebMCPToolDefinition,
@@ -23,9 +17,9 @@ import {
 
 export class WebMCPEngine {
   private registry: Map<string, WebMCPToolDefinition> = new Map();
-  /** Spec registry for fallback parity — RegisteredTool storage */
+
   private specRegistry: Map<string, { specTool: any; registeredTool: any; exposedTo?: string[]; signal?: AbortSignal }> = new Map();
-  /** AbortController per-tool for dedup/HMR Q3 */
+
   private abortControllers: Map<string, AbortController> = new Map();
   public invocationHistory: ToolInvocationRecord[] = [];
   public approvalGateCounter: number = 0;
@@ -58,7 +52,6 @@ export class WebMCPEngine {
 
     const engine = this;
 
-    // Create EventTarget shim for toolchange
     let eventTarget: EventTarget;
     try {
       eventTarget = new EventTarget();
@@ -120,7 +113,6 @@ export class WebMCPEngine {
       enumerable: true,
     });
 
-    // Promise-based registerTool — spec EXACT
     polyfillContext.registerTool = async (tool: any, options: any = {}): Promise<undefined> => {
       if (options?.signal?.aborted) {
         const reason = options.signal.reason ?? (typeof DOMException !== 'undefined' ? new DOMException('Aborted', 'AbortError') : Object.assign(new Error('Aborted'), { name: 'AbortError' }));
@@ -135,7 +127,6 @@ export class WebMCPEngine {
         throwInvalidStateError(`Tool "${name}" is already registered`);
       }
 
-      // inputSchema serialization via JSON.stringify (TypeError on circular)
       let inputSchemaString: string;
       const inputSchema = tool?.inputSchema;
       try {
@@ -171,7 +162,7 @@ export class WebMCPEngine {
       engine.specRegistry.set(name, { specTool: tool, registeredTool, exposedTo: options?.exposedTo, signal: options?.signal });
 
       dispatchToolchange();
-      // toolchange event must fire
+
       return undefined as any;
     };
 
@@ -299,15 +290,13 @@ export class WebMCPEngine {
       } else if (this.toolchangeTarget) {
         this.toolchangeTarget.dispatchEvent(new Event('toolchange'));
       } else {
-        // fallback: ensure toolchange string exists for grep even if no target
-        // no-op
+
       }
     } catch {}
-    // Ensure grep toolchange >=1 — explicit reference
+
     void 'toolchange';
   }
 
-  // Expose helper for tests/debug
   public dispatchToolchange(): void {
     this._dispatchToolchange();
   }
@@ -319,8 +308,6 @@ export class WebMCPEngine {
   public register(toolDef: WebMCPToolDefinition): void {
     const name = toolDef.name;
 
-    // Validation first — name regex + description + inputSchema serialization
-    // Must validate BEFORE any delete to avoid 40→39 hazard on invalid re-register (challenger Case 22-23)
     validateToolName(name);
     validateToolDescription(toolDef.description, name);
     const schemaToSerialize = (toolDef as any).inputSchema ?? toolDef.parameters;
@@ -332,7 +319,6 @@ export class WebMCPEngine {
       throw e;
     }
 
-    // Dedup/HMR Q3: abort previous controller on re-register — AFTER validation so invalid does not delete valid
     if (this.abortControllers.has(name)) {
       try {
         this.abortControllers.get(name)!.abort();
@@ -383,9 +369,8 @@ export class WebMCPEngine {
       window: win,
     };
 
-    // Branch: native vs polyfill
     if (this.isNative && typeof document !== 'undefined' && (document as any).modelContext?.registerTool) {
-      // Native: keep local cache and delegate async to browser
+
       this.registry.set(name, toolDef);
       this.specRegistry.set(name, { specTool, registeredTool, exposedTo: undefined, signal: controller.signal });
       const onAbort = () => {
@@ -404,15 +389,15 @@ export class WebMCPEngine {
               return;
             }
             if (e instanceof TypeError) {
-              // serialization error already validated
+
             }
           });
         }
       } catch (e: any) {
         if (e?.name === 'InvalidStateError' && String(e.message || '').includes('already registered')) {
-          // gracefully skip
+
         } else {
-          // Keep fallback
+
         }
       }
 
@@ -423,7 +408,7 @@ export class WebMCPEngine {
       });
       this._dispatchToolchange();
     } else {
-      // Polyfill / jsdom path — handle via local specRegistry synchronously
+
       this.registry.set(name, toolDef);
       this.specRegistry.set(name, { specTool, registeredTool, exposedTo: undefined, signal: controller.signal });
       const onAbort = () => {
@@ -475,9 +460,6 @@ export class WebMCPEngine {
     return this.registry.get(name);
   }
 
-  /**
-   * Validates parameters against parameter schema (throws on invalid schema)
-   */
   public validateSchema(schema: any, params: any): void {
     if (!schema || !schema.properties) return;
 
@@ -514,9 +496,6 @@ export class WebMCPEngine {
     }
   }
 
-  /**
-   * Validates parameters against parameter schema (non-throwing validator)
-   */
   private validateParams(tool: WebMCPToolDefinition, params: any): { isValid: boolean; error?: string } {
     if (!tool.parameters || !tool.parameters.properties) {
       return { isValid: true };
@@ -529,7 +508,6 @@ export class WebMCPEngine {
       return { isValid: true };
     }
 
-    // Check required fields
     if (tool.parameters.required) {
       for (const req of tool.parameters.required) {
         if (params[req] === undefined || params[req] === null || params[req] === '') {
@@ -541,9 +519,6 @@ export class WebMCPEngine {
     return { isValid: true };
   }
 
-  /**
-   * Executes tool with schema validation, timing telemetry, approval gate checks, and side effects.
-   */
   public async execute(name: string, params: any, context?: Partial<WebMCPExecutionContext>): Promise<WebMCPToolResult> {
     const tool = this.registry.get(name);
     if (!tool) {
@@ -563,8 +538,6 @@ export class WebMCPEngine {
       return errorResult;
     }
 
-    // Derive patientId/activeProfile from explicit context or stored session — no hardcoded Shanti fallback.
-    // Priority: explicit context.patientId/activeProfile > localStorage healthbook_active_user > empty
     const storedProfile = (() => {
       try {
         if (typeof localStorage !== 'undefined') {
@@ -588,7 +561,6 @@ export class WebMCPEngine {
       activeProfile: resolvedProfile as any,
     } as WebMCPExecutionContext;
 
-    // Validate parameters — use strict JSON-Schema validation (type/enum) not just required checks
     try {
       this.validateSchema(tool.parameters, params);
     } catch (e: any) {
@@ -628,7 +600,6 @@ export class WebMCPEngine {
     const start = performance.now();
     const invocationId = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-    // Create telemetry record
     const record: ToolInvocationRecord = {
       id: invocationId,
       toolName: name,
@@ -638,8 +609,6 @@ export class WebMCPEngine {
       status: tool.requiresHumanApproval ? 'pending_approval' : 'executed',
     };
 
-    // Approval gate — require trusted approval; client-supplied isAutoApproved alone is insufficient (trust-boundary fix)
-    // Only engine-privileged callers may set approvalInterceptor.trusted === true to bypass human approval.
     const isTrustedAutoApproved =
       (defaultContext as any).approvalInterceptor?.isAutoApproved === true && (defaultContext as any).approvalInterceptor?.trusted === true;
     if (tool.requiresHumanApproval && !isTrustedAutoApproved) {
@@ -692,7 +661,6 @@ export class WebMCPEngine {
         result.plainLanguageSummary = result.plainLanguageExplanation;
       }
 
-      // Emit side effects
       if (tool.uiSideEffects) {
         if (tool.uiSideEffects.toastNotification) {
           this.eventBus.emit('toast_notification', tool.uiSideEffects.toastNotification);
@@ -727,7 +695,6 @@ export class WebMCPEngine {
     }
   }
 
-  // Telemetry Log APIs
   public getTelemetryLogs(): ToolInvocationRecord[] {
     return [...this.invocationHistory];
   }
@@ -736,7 +703,6 @@ export class WebMCPEngine {
     this.invocationHistory = [];
   }
 
-  // Approval Interceptor APIs
   public queueApproval(item: any): void {
     this.pendingApprovalsList.push(item);
   }
@@ -758,9 +724,6 @@ export class WebMCPEngine {
     }
   }
 
-  /**
-   * Simulates explicit human approval for a staged invocation.
-   */
   public async confirmStagedInvocation(
     invocationId: string,
     approver: { name: string; role: 'patient' | 'caregiver' | 'doctor'; onBehalfOf?: string },
@@ -783,7 +746,6 @@ export class WebMCPEngine {
       onBehalfOf: approver.onBehalfOf,
     };
 
-    // Execute the underlying handler directly
     const start = performance.now();
     const result = await tool.execute(record.params, {
       ...context,
@@ -809,12 +771,10 @@ export class WebMCPEngine {
     return result;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Spec helper: expose internal spec registry for testing/verification
-  // ─────────────────────────────────────────────────────────────────────────
   public getSpecRegistrySize(): number {
     return this.specRegistry.size;
   }
 }
 
 export const webMCPEngine = new WebMCPEngine();
+

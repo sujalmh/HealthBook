@@ -1,7 +1,3 @@
-/**
- * Healthbook Core: FHIR R4 Bundle Serializer & Exporter
- * Generates standards-compliant FHIR R4 Document Bundles from LocalVault stores
- */
 
 import type { FHIRR4Bundle, CompiledHealthRecord } from '../../types/dossier.ts';
 import type { LabRecord, MedicationRecord, AllergyRecord, ConditionRecord, Fact } from '../../types/vault.ts';
@@ -23,7 +19,6 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
   const bundleId = `bundle-cc-${patientId.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
   const entries: FHIRR4Bundle['entry'] = [];
 
-  // 1. Patient Resource
   const patientResource = {
     resourceType: 'Patient',
     id: patientId,
@@ -56,7 +51,6 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     resource: patientResource
   });
 
-  // 2. Condition Resources
   const conditions = dossier.chronicConditions || profile.chronicConditions || [];
   for (const cond of conditions) {
     const condId = cond.id || `cond-${cond.conditionName?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
@@ -115,7 +109,6 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     });
   }
 
-  // 3. AllergyIntolerance Resources
   const allergies = dossier.allergies || profile.allergies || [];
   for (const allergy of allergies) {
     const allergyId = allergy.id || `allergy-${allergy.allergen?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
@@ -176,7 +169,6 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     });
   }
 
-  // 4. MedicationStatement Resources
   const meds = dossier.activeMedications || dossier.allMedications || [];
   for (const med of meds) {
     const medId = med.id || `med-${med.genericName?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
@@ -221,7 +213,6 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     });
   }
 
-  // 5. Observation Resources (Labs)
   const labs = dossier.longitudinalLabs || [];
   for (const lab of labs) {
     const safeMarker = (lab.marker ?? 'lab').toLowerCase();
@@ -307,7 +298,6 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     });
   }
 
-  // 6. CarePlan Resource
   if ((dossier.dueCards && dossier.dueCards.length > 0) || (dossier.proposals && dossier.proposals.length > 0)) {
     entries.push({
       fullUrl: `urn:uuid:careplan-${patientId}`,
@@ -343,7 +333,6 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     });
   }
 
-  // 7. Provenance Resource (Immutable Verification Stamp)
   entries.push({
     fullUrl: `urn:uuid:prov-${patientId}`,
     resource: {
@@ -420,3 +409,4 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     entry: entries
   };
 }
+

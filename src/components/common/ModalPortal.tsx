@@ -20,7 +20,7 @@ export const ModalPortal: React.FC<ModalPortalProps> = ({
   ariaLabel,
   ariaLabelledBy
 }) => {
-  // ESC listener on window when modal is open
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -31,7 +31,7 @@ export const ModalPortal: React.FC<ModalPortalProps> = ({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    // Prevent background scrolling while modal is open
+
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -61,11 +61,10 @@ export const ModalPortal: React.FC<ModalPortalProps> = ({
     </div>
   );
 
-  // If in browser environment with document.body available, portal to document.body.
-  // Otherwise fallback to direct render.
   if (typeof document !== 'undefined' && document.body) {
     return createPortal(modalElement, document.body);
   }
 
   return modalElement;
 };
+

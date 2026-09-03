@@ -33,7 +33,6 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  // Fallback defaults if snapshot is loading or empty — vault-derived empty (no mock).
   const data: EmergencySnapshot = snapshot || {
     patientId: '',
     patientName: 'Patient',
@@ -114,7 +113,7 @@ SECURITY VALIDATION:
 
   return (
     <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6 text-slate-900 print:bg-white print:text-black print:border-none print:shadow-none animate-fade-in">
-      {/* Top Banner: Emergency Priority Header & Action Bar */}
+      {}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 border-b border-canvas-border pb-4 sm:pb-6 print:border-black">
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-rose-600 flex items-center justify-center text-white shadow-md shrink-0">
@@ -135,7 +134,7 @@ SECURITY VALIDATION:
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {}
         <div className="flex items-center gap-2.5 self-end md:self-auto print:hidden">
           <button
             onClick={handleCopySummary}
@@ -158,7 +157,7 @@ SECURITY VALIDATION:
         </div>
       </div>
 
-      {/* Patient Demographics Bar — tokenized */}
+      {}
       <div className="bg-canvas-muted rounded-xl p-4 border border-canvas-border grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-body-sm">
         <div className="min-w-0">
           <span className="text-caption text-muted uppercase font-bold tracking-wider">Patient name</span>
@@ -190,11 +189,11 @@ SECURITY VALIDATION:
         </div>
       </div>
 
-      {/* Grid: Left Column (Allergies & Critical Labs) | Right Column (Active Meds & Vitals) */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (5 Cols): Severe Allergies & Critical Labs */}
+        {}
         <div className="lg:col-span-5 space-y-6">
-          {/* Severe Allergies Card — tokenized light */}
+          {}
           <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-200 shadow-sm space-y-3">
             <div className="flex items-center justify-between border-b border-rose-900/30 pb-2.5">
               <div className="flex items-center gap-2">
@@ -230,7 +229,7 @@ SECURITY VALIDATION:
             </div>
           </div>
 
-          {/* Critical Recent Labs */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
             <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
               <div className="flex items-center gap-2">
@@ -296,7 +295,7 @@ SECURITY VALIDATION:
             </div>
           </div>
 
-          {/* Baseline Vitals Card */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
             <div className="flex items-center gap-2 border-b border-canvas-border pb-2.5">
               <Heart className="w-4 h-4 text-rose-400" />
@@ -333,9 +332,9 @@ SECURITY VALIDATION:
           </div>
         </div>
 
-        {/* Right Column (7 Cols): Active Medication Regimen & Handover Contacts */}
+        {}
         <div className="lg:col-span-7 space-y-6">
-          {/* Active Medications List */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
             <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
               <div className="flex items-center gap-2">
@@ -404,7 +403,7 @@ SECURITY VALIDATION:
             </div>
           </div>
 
-          {/* Emergency Contacts & Physician Handover */}
+          {}
           <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border space-y-3">
             <div className="flex items-center gap-2 border-b border-canvas-border pb-2.5">
               <Phone className="w-4 h-4 text-emerald-400" />
@@ -449,10 +448,10 @@ SECURITY VALIDATION:
             </div>
           </div>
 
-          {/* QR Validation Seal & Tamper-Evident Attestation */}
+          {}
           <div className="bg-canvas-muted rounded-2xl p-5 border border-canvas-border flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              {/* Simulated High-Res QR Seal */}
+              {}
               <div className="w-16 h-16 rounded-xl bg-canvas-card p-1.5 flex items-center justify-center shrink-0 shadow-sm border border-canvas-border">
                 <QrCode className="w-full h-full text-slate-900" />
               </div>
@@ -479,3 +478,4 @@ SECURITY VALIDATION:
     </div>
   );
 };
+

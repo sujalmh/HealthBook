@@ -34,12 +34,12 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
   onSelectPatient
 }) => {
   const patients: PatientSummaryCard[] = useMemo(() => {
-    // Vault-derived family patients — no hardcoded Mother/Father/Child mocks.
+
     let primaryId = '';
     try {
       const raw = localStorage.getItem('healthbook_active_user');
       if (raw) primaryId = JSON.parse(raw)?.userId || '';
-    } catch { /* intentionally empty */ }
+    } catch {  }
     if (!primaryId) return [];
     const links = localVault.getCaregiverLinks(primaryId);
     if (links.length === 0) return [];
@@ -116,7 +116,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
                   : 'bg-canvas-card border-canvas-border hover:border-primary-border'
               }`}
             >
-              {/* Card Header */}
+              {}
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
@@ -148,7 +148,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
                 </span>
               </div>
 
-              {/* Status Grid */}
+              {}
               <div className="grid grid-cols-3 gap-2 text-center text-body-sm">
                 <div className="bg-canvas-muted rounded-xl p-2 border border-canvas-border">
                   <div className="text-caption text-muted font-semibold">Danger alerts</div>
@@ -184,7 +184,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Next Scheduled Milestone */}
+              {}
               <div className="bg-canvas-muted rounded-xl p-2.5 border border-canvas-border flex items-center justify-between text-body-sm text-slate-700">
                 <span className="flex items-center gap-1.5 truncate">
                   <Clock className="w-3.5 h-3.5 text-sky-400 shrink-0" />
@@ -199,3 +199,4 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
     </div>
   );
 };
+

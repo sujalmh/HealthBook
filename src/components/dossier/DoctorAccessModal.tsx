@@ -118,7 +118,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose} ariaLabel="Clinician handover delegation">
       <div className="bg-canvas-card border border-canvas-border rounded-2xl max-w-2xl w-full p-4 sm:p-8 shadow-2xl space-y-5 sm:space-y-6 text-slate-900 max-h-[90vh] overflow-y-auto mx-auto">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4 gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
@@ -146,13 +146,13 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
           </button>
         </div>
 
-        {/* Create Grant Form — tokenized */}
+        {}
         <form onSubmit={handleGenerateGrant} className="bg-canvas-muted rounded-xl p-4 sm:p-5 border border-canvas-border space-y-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
             Generate Time-Bound Access Passkey
           </h4>
 
-          {/* Clinician Email */}
+          {}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Clinician Email Address</label>
             <div className="relative">
@@ -168,7 +168,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
             </div>
           </div>
 
-          {/* Duration Presets */}
+          {}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Access Duration Window</label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -193,7 +193,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
             </div>
           </div>
 
-          {/* Scope Selector */}
+          {}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">Access Scope Tier</label>
             <select
@@ -217,7 +217,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
           </button>
         </form>
 
-        {/* Active Grants List */}
+        {}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -280,7 +280,7 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
                       )}
                     </div>
 
-                    {/* Token Display & Expiration Details */}
+                    {}
                     <div className="bg-white rounded-xl p-2.5 border border-slate-200 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 truncate">
                         <Lock className="w-3.5 h-3.5 text-teal-500 shrink-0" />
@@ -312,3 +312,4 @@ export const DoctorAccessModal: React.FC<DoctorAccessModalProps> = ({
     </ModalPortal>
   );
 };
+

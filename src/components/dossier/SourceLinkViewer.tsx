@@ -61,7 +61,6 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
     if (propSnippet) setSnippet(propSnippet);
   }, [documentId, fileName, propSnippet]);
 
-  // Listen to global highlight events
   useEffect(() => {
     const unsub = eventBus.onHighlightDocument((payload) => {
       if (payload.documentId) setActiveDocId(payload.documentId);
@@ -81,7 +80,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
     if (!box || !containerRef.current) return;
     setTimeout(() => {
       if (!containerRef.current) return;
-      // Calculate center coordinate
+
       const isNormalized = box.x <= 1 && box.y <= 1;
       const targetY = isNormalized ? box.y * 600 : (box.y / 800) * 600;
       containerRef.current.scrollTo({
@@ -105,10 +104,8 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Convert bounding box coordinate to CSS style percentages
   const getBoxStyle = (box: BoundingBox): React.CSSProperties => {
-    // If coordinates are <= 1, they are normalized (0.0 - 1.0)
-    // If coordinates are > 1, they are pixel/point based on a standard 800x1000 page
+
     const isNormalized = box.x <= 1 && box.y <= 1 && box.width <= 1 && box.height <= 1;
     const left = isNormalized ? `${box.x * 100}%` : `${(box.x / 750) * 100}%`;
     const top = isNormalized ? `${box.y * 100}%` : `${(box.y / 900) * 100}%`;
@@ -125,7 +122,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
 
   return (
     <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col h-full text-slate-900 space-y-4">
-      {/* Header with document title and zoom controls */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-200 flex items-center justify-center text-amber-400">
@@ -143,9 +140,9 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons: Page Nav, Zoom Controls, Close */}
+        {}
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {/* Page Switcher */}
+          {}
           <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs min-h-[36px]">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -168,7 +165,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
             </button>
           </div>
 
-          {/* Zoom Controls */}
+          {}
           <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 text-xs min-h-[36px]">
             <button
               onClick={handleZoomOut}
@@ -211,7 +208,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
         </div>
       </div>
 
-      {/* Document Viewport — tokenized */}
+      {}
       <div
         ref={containerRef}
         className="flex-1 overflow-auto bg-canvas-muted rounded-xl border border-canvas-border p-3 sm:p-6 min-h-[260px] sm:min-h-[440px] max-h-[50vh] sm:max-h-[560px] relative flex justify-center items-start shadow-inner"
@@ -221,7 +218,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
           className="relative bg-white text-slate-900 rounded-lg shadow-2xl transition-transform duration-300 origin-top p-8 font-serif text-[11px] leading-relaxed border border-slate-300 max-w-2xl w-full select-text"
           style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
         >
-          {/* Document Content Render Based on Document Type */}
+          {}
           {activeDocId.includes('nephrology') || activeFileName.includes('nephrology') ? (
             <div className="space-y-4">
               <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start gap-2">
@@ -323,7 +320,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
               </div>
             </div>
           ) : (
-            /* Default: Healthcare Facility Discharge Summary */
+
             <div className="space-y-4">
               <div className="border-b-2 border-slate-900 pb-3 flex justify-between items-start gap-2">
                 <div className="min-w-0 flex-1">
@@ -387,7 +384,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
             </div>
           )}
 
-          {/* Animated Gold & Sky Bounding Box Highlight */}
+          {}
           {activeBox && (!activeBox.pageIndex || activeBox.pageIndex === currentPage) && (
             <div
               className="absolute pointer-events-none rounded-md transition-all duration-300 border-2 border-amber-400 bg-amber-400/20 animate-pulse"
@@ -402,7 +399,7 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
         </div>
       </div>
 
-      {/* Footer: Verbatim text span and Bounding Box Citation — tokenized */}
+      {}
       <div className="bg-canvas-muted rounded-xl p-4 border border-canvas-border flex flex-col md:flex-row md:items-center justify-between gap-3 text-body-sm">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
@@ -434,3 +431,4 @@ export const SourceLinkViewer: React.FC<SourceLinkViewerProps> = ({
     </div>
   );
 };
+

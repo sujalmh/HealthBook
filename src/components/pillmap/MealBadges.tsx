@@ -1,8 +1,3 @@
-/**
- * Healthbook Component: MealBadges
- * Interactive meal-time badges and food interaction flags attached to medications.
- * Badges: Take with Food, Empty Stomach, No Grapefruit, Vit K, Separate Calcium, Zero Alcohol, K+ Salt.
- */
 
 import React, { useState } from 'react';
 import { Utensils, X, AlertCircle, Info, Sparkles } from 'lucide-react';
@@ -45,12 +40,6 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     }
   };
 
-  // Compile badges from flags and dynamic dietBadges.
-  // Note: with-food / empty-stomach are shown as the prominent meal line on
-  // PillCard, so they are intentionally not duplicated here.
-  // Dedupe rule: when the interaction engine already emitted a diet badge for
-  // a concept (grapefruit / dairy), skip the redundant per-med flag chip
-  // (e.g. Lipitor "No grapefruit" + "Avoid Grapefruit").
   const engineText = dietBadges.map((d) => (d.badgeText || '').toLowerCase()).join(' | ');
   const engineCovers = (concept: RegExp) => concept.test(engineText);
   const badgesToRender: {
@@ -107,7 +96,6 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     });
   }
 
-  // Add specific diet badges from interaction engine
   for (const db of dietBadges) {
     if (!badgesToRender.some(b => b.label === db.badgeText || b.key.includes(db.id))) {
       badgesToRender.push({
@@ -153,7 +141,7 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
         ))}
       </div>
 
-      {/* Modal on click */}
+      {}
       <ModalPortal isOpen={!!selectedBadge} onClose={() => setSelectedBadge(null)} ariaLabel={selectedBadge?.title || 'Dietary guidance'}>
         {selectedBadge && (
           <div className="bg-white border border-canvas-border rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-auto">
@@ -188,3 +176,4 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     </>
   );
 };
+

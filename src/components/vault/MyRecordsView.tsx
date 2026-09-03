@@ -47,7 +47,7 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
 
   useEffect(() => {
     loadDocuments();
-    // Reload on fact events (extraction complete may add docs/facts)
+
     const u1 = eventBus.on('fact_extracted', loadDocuments);
     const u2 = eventBus.on('fact_confirmed', loadDocuments);
     const u3 = eventBus.on('fact_status_changed', loadDocuments);
@@ -69,11 +69,9 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
     return () => unsub();
   }, []);
 
-  // Also reload when selectedDocId changes? Not needed.
-
   const handleDocumentAdded = (docId: string) => {
     setSelectedDocId(docId);
-    // R2: do NOT auto-show preview after upload — remain hidden until explicit tap (Q5)
+
     loadDocuments();
   };
 
@@ -84,10 +82,10 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
 
   return (
     <div className="w-full space-y-3 relative">
-      {/* Top Dropzone — compact */}
+      {}
       <DocumentDropzone patientId={effectivePatientId} onDocumentAdded={handleDocumentAdded} onExtracted={loadDocuments} onBusyChange={handleBusyChange} />
 
-      {/* Viewer with doc gallery */}
+      {}
       <div className="space-y-3">
         {documents.length > 0 && (
           <div className="bg-white border border-canvas-border rounded-2xl p-3 shadow-sm">
@@ -118,11 +116,10 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
         {isPreviewOpen && <div className="w-full"><BoundingBoxViewer documentId={selectedDocId} documentTitle={documents.find((d) => d.id === selectedDocId)?.fileName} boundingBox={highlightBox} onClose={() => setIsPreviewOpen(false)} /></div>}
       </div>
 
-      {/* Review list */}
+      {}
       <FactStreamView patientId={effectivePatientId} />
 
-
-      {/* Blocking overlay — wait till final results */}
+      {}
       {isBusy && (
         <div className="fixed inset-0 bg-slate-900/35 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 shadow-xl flex flex-col items-center gap-3 max-w-sm w-full border border-slate-200">
@@ -135,3 +132,4 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
     </div>
   );
 };
+

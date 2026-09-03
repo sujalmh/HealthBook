@@ -41,7 +41,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
   const profileRole = activeProfile?.role || 'patient';
   const isViewOnly = permissionLevel === 'view_only';
   const canAccessDoctorTriage = profileRole === 'doctor' || permissionLevel === 'full';
-  // helper for direct tab bypass blocked — gate in render, not just click handler
+
   const handleTabChange = (tab: 'patient_safety' | 'doctor_triage' | 'calendar') => {
     if (tab === 'doctor_triage' && !canAccessDoctorTriage) {
       eventBus.dispatchToast({ type: 'error', title: 'Permission denied', message: 'Doctor actions — requires clinician login (PERMISSION_DENIED)' });
@@ -62,7 +62,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
   const [isFollowupModalOpen, setIsFollowupModalOpen] = useState(false);
 
   const loadData = () => {
-    // Read-only vault loads — uses effectivePatientId for isolation, danger triage via AI vision+text but still clinician path
+
     const reports = effectivePatientId ? localVault.getDangerReports(effectivePatientId) : [];
     setDangerReports(reports);
 
@@ -96,7 +96,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Safety Header */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
         <div className="flex items-center gap-2.5">
           <h2 className="text-xl font-bold tracking-tight text-slate-900">Get Help</h2>
@@ -107,7 +107,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           )}
         </div>
 
-        {/* Emergency Trigger & Mode Tabs — RBAC: view_only disables I need help now, doctor_triage gated doctor/full */}
+        {}
         <button
           onClick={handleHelpNow}
           disabled={false}
@@ -164,7 +164,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           </div>
       </div>
 
-      {/* Active Danger Warning Banner — light clinical amber/red */}
+      {}
       {activeAlerts.length > 0 && (
         <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -199,10 +199,10 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
         </div>
       )}
 
-      {/* Main Tab Views */}
+      {}
       {activeTab === 'patient_safety' ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Safety Advice & Red Flags */}
+          {}
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-canvas-border pb-3">
@@ -239,14 +239,14 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
               </div>
             </div>
 
-            {/* Prescribed Calendar Snippet */}
+            {}
             <CalendarView
               events={calendarEvents}
               onAddEventClick={() => setIsFollowupModalOpen(true)}
             />
           </div>
 
-          {/* Right Column: Active Emergency Alerts & Dossier Pinning */}
+          {}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-canvas-border pb-3">
@@ -337,3 +337,4 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
     </div>
   );
 };
+

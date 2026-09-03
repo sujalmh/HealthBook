@@ -23,8 +23,8 @@ export interface TimelineMedication {
 }
 
 interface MedOverlayBandsProps {
-  minTime: number; // epoch ms
-  maxTime: number; // epoch ms
+  minTime: number;
+  maxTime: number;
   activeMeds?: MedicationRecord[];
   className?: string;
   onMedToggle?: (medId: string, visible: boolean) => void;
@@ -82,7 +82,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
       }
     } catch { setVaultDerived(null); }
   }, [activeMeds, minTime, maxTime]);
-  // Built-in rich timeline medications covering the longitudinal 2022-2026 timeline — vault-derived when available, fallback only for empty vault
+
   const fallbackTimelineMeds: TimelineMedication[] = [
     {
       id: 'med_lisinopril',
@@ -185,7 +185,6 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
     }
   ];
 
-  // Effective timeline: vault-derived when available (AI propagations), else fallback rich timeline for empty vault
   const effectiveTimelineMeds = vaultDerived && vaultDerived.length > 0 ? vaultDerived : fallbackTimelineMeds;
   const [visibleMeds, setVisibleMeds] = useState<Record<string, boolean>>({
     med_lisinopril: true,
@@ -195,7 +194,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
     med_ibuprofen: true,
     med_apixaban: true
   });
-  // Keep visibleMeds in sync when effective list changes (vault-derived ids may differ)
+
   useEffect(() => {
     const ids = effectiveTimelineMeds.map(m => m.id);
     setVisibleMeds(prev => {
@@ -231,7 +230,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
 
   return (
     <div className={`bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm ${className}`}>
-      {/* Header with Info and Filters */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-canvas-border pb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-lg bg-primary-light border border-primary-border text-primary shrink-0">
@@ -250,7 +249,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
           </div>
         </div>
 
-        {/* Legend / Toggles with >=44px Touch Targets */}
+        {}
         <div className="flex items-center gap-2 flex-wrap">
           {effectiveTimelineMeds.map((med) => {
             const isVis = visibleMeds[med.id] !== false;
@@ -278,9 +277,9 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
         </div>
       </div>
 
-      {/* Timeline Visualization Bands Container */}
+      {}
       <div className="relative pt-1 pb-2 space-y-1.5">
-        {/* Subtle grid ticks matching chart width */}
+        {}
         <div className="absolute inset-0 pointer-events-none flex justify-between">
           <div className="w-px h-full bg-canvas-border/60" />
           <div className="w-px h-full bg-canvas-border/60" />
@@ -294,13 +293,13 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
           .map((med) => {
             const leftPct = getPositionPercent(med.startDate);
             const widthPct = getWidthPercent(med.startDate, med.stopDate);
-            // Clamp left position so that a 64px min-width band never clips or overflows the container on narrow screens
+
             const clampedLeft = Math.min(leftPct, 84);
             const isSelected = selectedMed?.id === med.id;
 
             return (
               <div key={med.id} className="relative h-8 w-full flex items-center">
-                {/* Horizontal Band with minimum width and non-collapsing drug label */}
+                {}
                 <button
                   type="button"
                   onClick={() => setSelectedMed(selectedMed?.id === med.id ? null : med)}
@@ -330,7 +329,7 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
           })}
       </div>
 
-      {/* Selected Medication Details Card */}
+      {}
       {selectedMed && (
         <div className="mt-3 p-3.5 sm:p-4 bg-canvas-muted border border-canvas-border rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in text-body-sm shadow-sm">
           <div className="space-y-1 flex-1">
@@ -365,3 +364,4 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
     </div>
   );
 };
+

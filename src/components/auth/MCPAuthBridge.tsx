@@ -27,7 +27,7 @@ function getPending(): PendingAuth | null {
     if (!raw) return null;
     const p = JSON.parse(raw) as PendingAuth;
     if (p?.email && p?.pendingId && (p.mode === 'create' || p.mode === 'signin')) return p;
-  } catch { /* ignore */ }
+  } catch {  }
   return null;
 }
 
@@ -39,16 +39,16 @@ function clearPending() {
         try {
           const p = JSON.parse(raw) as PendingAuth;
           if (p?.pendingId) localStorage.removeItem(`healthbook_mcp_auth_pending_${p.pendingId}`);
-        } catch { /* ignore */ }
+        } catch {  }
       }
       localStorage.removeItem('healthbook_mcp_auth_pending');
     }
-  } catch { /* ignore */ }
+  } catch {  }
   try {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_cleared'));
     }
-  } catch { /* ignore */ }
+  } catch {  }
 }
 
 export const MCPAuthBridge: React.FC = () => {
@@ -69,7 +69,7 @@ export const MCPAuthBridge: React.FC = () => {
           return !!p?.userId;
         }
       }
-    } catch { /* ignore */ }
+    } catch {  }
     return false;
   })();
 
@@ -107,9 +107,8 @@ export const MCPAuthBridge: React.FC = () => {
       if (e.key === 'healthbook_mcp_auth_pending' || e.key === null) refresh();
     };
 
-    // eventBus pending
     const off1 = eventBus.on('mcp_auth_pending' as unknown as string, onPending as unknown as () => void);
-    // window events
+
     window.addEventListener('healthbook_mcp_auth_pending', onPending as EventListener);
     window.addEventListener('healthbook_mcp_auth_cleared', onClear as EventListener);
     window.addEventListener('healthbook_mcp_prefill', onPending as EventListener);
@@ -124,7 +123,6 @@ export const MCPAuthBridge: React.FC = () => {
     };
   }, [refresh]);
 
-  // Also watch localStorage polling for jsdom fallback
   useEffect(() => {
     const id = window.setInterval(() => {
       const p = getPending();
@@ -167,8 +165,6 @@ export const MCPAuthBridge: React.FC = () => {
       if (!displayName) displayName = 'Anonymous';
       displayName = truncateName(displayName, 64);
 
-      // Server truth: Supabase Auth only. No local fallback —
-      // passwords go to the server and are never stored on this device.
       const { session, user, error } = await supabaseSignUp(emailTrim, passwordTrim, { name: displayName, role });
       if (error) {
         if (error.code === 'ACCOUNT_EXISTS') {
@@ -214,7 +210,7 @@ export const MCPAuthBridge: React.FC = () => {
       persistActiveProfile(userProfile);
       try {
         await hydrateFromSupabase(userProfile.patientId, localVault);
-      } catch { /* non-blocking */ }
+      } catch {  }
 
       eventBus.dispatchToast({
         type: 'success',
@@ -222,40 +218,35 @@ export const MCPAuthBridge: React.FC = () => {
         message: `Account created for ${displayName} — signed in.`,
       });
 
-      // Notify App.tsx to hydrate
       try {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_completed', { detail: profile }));
           window.dispatchEvent(new CustomEvent('healthbook_auth_completed', { detail: profile }));
         }
-      } catch { /* ignore */ }
+      } catch {  }
       try {
         eventBus.emit('mcp_auth_completed' as unknown as string, profile as unknown as never);
-      } catch { /* ignore */ }
+      } catch {  }
 
       clearPending();
       setPending(null);
       setPassword('');
 
-      // Also reload-ish via event — App will pick up via storage or custom event
-      // For cold start, App's gate will close and show main content via state update
-      // Dispatch a storage event fallback
       try {
         if (typeof window !== 'undefined') {
-          // Force App to re-read by dispatching a synthetic storage event
+
           window.dispatchEvent(new StorageEvent('storage', { key: 'healthbook_active_user', newValue: JSON.stringify(profile) } as unknown as StorageEventInit));
         }
-      } catch { /* ignore */ }
+      } catch {  }
 
-      // If still on gate (no activeProfile), do a gentle reload to let App hydrate
       setTimeout(() => {
         try {
           if (typeof window !== 'undefined' && !document.querySelector('[data-testid="mcp-bridge-success"]')) {
-            // No need to reload if App already updated via event — but ensure
+
             const raw = localStorage.getItem('healthbook_active_user');
             if (raw) window.location.reload();
           }
-        } catch { /* ignore */ }
+        } catch {  }
       }, 400);
     } finally {
       setIsBusy(false);
@@ -276,7 +267,7 @@ export const MCPAuthBridge: React.FC = () => {
     }
     setIsBusy(true);
     try {
-      // Server truth: Supabase Auth only. No local fallback.
+
       const { session, error } = await supabaseSignIn(emailTrim, passwordTrim);
       if (error || !session) {
         const msg = error?.code === 'INVALID_CREDENTIALS'
@@ -316,41 +307,32 @@ export const MCPAuthBridge: React.FC = () => {
       persistActiveProfile(userProfile);
       try {
         await hydrateFromSupabase(userProfile.patientId, localVault);
-      } catch { /* non-blocking */ }
+      } catch {  }
         eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${profile.name}` });
         try {
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_completed', { detail: profile }));
           }
-        } catch { /* ignore */ }
+        } catch {  }
         clearPending();
         setPending(null);
         setPassword('');
-        setTimeout(() => { try { window.location.reload(); } catch { /* ignore */ } }, 300);
+        setTimeout(() => { try { window.location.reload(); } catch {  } }, 300);
         return;
     } finally {
       setIsBusy(false);
     }
   };
 
-  // Only show modal when pending exists AND user is already signed in (gate handles cold start)
-  // For cold start, we still want to highlight but not duplicate — gate view prefills, so bridge can be hidden when not signed in.
-  // However to ensure onboarding easier, we show bridge also when not signed in if gate not handling? Decide: hide when not signed in.
   const shouldShowModal = !!pending && isSignedIn;
 
-  // Also show in cold start if pending exists but gate is hidden? Check if activeProfile missing — then gate is visible, so skip modal.
-  // If pending exists and isSignedIn===false, don't show modal (let gate handle). But ensure prefill dispatched.
   if (!pending) return null;
 
-  // If not signed in, don't render modal — gate view will prefill via window event
-  // Instead just render a subtle banner? We return null and rely on gate.
-  // But we keep a tiny toast already dispatched, so no modal needed.
   if (!isSignedIn) {
-    // Still render a small non-blocking indicator that AI prepared sign-up — handled via toast, no modal.
+
     return null;
   }
 
-  // Signed-in case: show modal to complete second account / switch
   const isCreate = mode === 'create';
 
   return (
@@ -510,3 +492,4 @@ export const MCPAuthBridge: React.FC = () => {
 };
 
 export default MCPAuthBridge;
+

@@ -1,8 +1,3 @@
-/**
- * Healthbook Component: ReconciliationWalk
- * Step-by-step conversational med-by-med walkthrough wizard displaying
- * plain-language explanations, interaction badges, and per-med Approve/Edit actions.
- */
 
 import React, { useState } from 'react';
 import {
@@ -33,7 +28,7 @@ interface ReconciliationWalkProps {
   onUpdateNote: (medId: string, note: string) => void;
   onFinishWalk: () => void;
   onOpenTeachBack: () => void;
-  /** AI-pipeline explanation for the current med (explain_med_change tool). Falls back to template when absent. */
+
   aiExplanation?: string;
   aiQuestions?: string[];
   aiLoading?: boolean;
@@ -93,7 +88,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
 
   return (
     <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-6">
-      {/* Top Stepper & Navigation Header */}
+      {}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -108,7 +103,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             </p>
           </div>
 
-          {/* Progress Indicator — tokenized */}
+          {}
           <div className="flex items-center gap-3 bg-canvas-muted px-4 py-2 rounded-xl border border-canvas-border text-body-sm">
             <div className="text-right">
               <div className="font-bold text-slate-900">
@@ -125,7 +120,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         </div>
 
-        {/* Stepper Pills Strip */}
+        {}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-1 scrollbar-none max-w-full">
           {items.map((item, idx) => {
             const isCurrent = idx === currentIndex;
@@ -159,9 +154,9 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
         </div>
       </div>
 
-      {/* Main Walkthrough Card — tokenized */}
+      {}
       <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-5 sm:p-6 space-y-6 shadow-sm">
-        {/* Medication Header */}
+        {}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-canvas-border pb-5">
           <div>
             <div className="flex items-center gap-3">
@@ -178,7 +173,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             </div>
           </div>
 
-          {/* Timing & Food Tag */}
+          {}
           {currentItem.timingSlots && currentItem.timingSlots.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 bg-canvas-card px-3.5 py-2 rounded-xl border border-canvas-border text-body-sm">
               <Clock className="w-4 h-4 text-accent shrink-0" />
@@ -189,9 +184,9 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           )}
         </div>
 
-        {/* 3-List Comparative Visual Grid */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          {/* 1. Pre-Admission (Home) */}
+          {}
           <div className="p-4 rounded-2xl bg-white/70 border border-slate-200 space-y-1.5">
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block">
               1. Pre-Admission (Home)
@@ -204,7 +199,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             </div>
           </div>
 
-          {/* 2. In-Hospital Chart */}
+          {}
           <div className="p-4 rounded-2xl bg-white/70 border border-slate-200 space-y-1.5">
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-600 font-bold block">
               2. In-Hospital Action
@@ -219,7 +214,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             )}
           </div>
 
-          {/* 3. Discharge Orders — tokenized light */}
+          {}
           <div
             className={`p-4 rounded-xl border space-y-1.5 ${
               currentItem.statusBadge === 'STOPPED'
@@ -241,7 +236,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         </div>
 
-        {/* Conversational Explanation Card — AI pipeline with honest loading/error states */}
+        {}
         <div className="p-5 rounded-2xl bg-canvas-card border border-canvas-border shadow-sm space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sky-50 text-clinical-blue flex items-center justify-center border border-sky-200">
@@ -288,7 +283,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           )}
         </div>
 
-        {/* Safety & Interaction Warnings (if any) */}
+        {}
         {((currentItem.interactions && currentItem.interactions.length > 0) ||
           (currentItem.dietInteractions && currentItem.dietInteractions.length > 0)) && (
           <div className="space-y-3">
@@ -340,7 +335,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         )}
 
-        {/* Doctor Questions Strip */}
+        {}
         {((aiQuestions && aiQuestions.length > 0) || (currentItem.suggestedQuestions && currentItem.suggestedQuestions.length > 0)) && (
           <div className="space-y-2">
             <span className="text-[11px] font-mono text-slate-600 uppercase tracking-wider font-bold">
@@ -368,7 +363,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         )}
 
-        {/* Patient Note Field */}
+        {}
         {showNoteInput || currentItem.patientComment ? (
           <div className="p-4 rounded-xl bg-canvas-card border border-canvas-border space-y-2">
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -399,7 +394,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         ) : null}
 
-        {/* Action Gate & Decision Bar */}
+        {}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
@@ -425,7 +420,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             )}
           </div>
 
-          {/* Stepper Nav Buttons */}
+          {}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
             <button
               onClick={handlePrev}
@@ -453,3 +448,4 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
     </div>
   );
 };
+

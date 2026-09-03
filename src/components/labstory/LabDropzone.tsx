@@ -37,7 +37,7 @@ export const LabDropzone: React.FC<LabDropzoneProps> = ({ patientId, activeProfi
           ocrText = ocr.markdown;
           pageCount = ocr.pageCount || 1;
         }
-      } catch { /* intentionally empty */ }
+      } catch {  }
 
       await localVault.addDocument({
         id: documentId,
@@ -77,7 +77,6 @@ export const LabDropzone: React.FC<LabDropzoneProps> = ({ patientId, activeProfi
         context as unknown as Record<string, unknown>
       );
 
-      // Ensure labs appear via eventBus; also reload callback
       if (result.success) {
         const count = Array.isArray(result.data) ? result.data.length : 0;
         if (count > 0) {
@@ -224,3 +223,4 @@ export const LabDropzone: React.FC<LabDropzoneProps> = ({ patientId, activeProfi
     </div>
   );
 };
+

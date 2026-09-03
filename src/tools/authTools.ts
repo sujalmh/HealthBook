@@ -1,10 +1,3 @@
-/**
- * Healthbook WebMCP Tools: Auth Onboarding — human-only password
- * Tools: create_account, sign_in
- * Security: NO password field in parameters. AI must never receive or handle password.
- * Password entry is human-only via secure browser <input type="password">.
- * AI prepares name/email/role, then prompts human to type password in browser.
- */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
 import { eventBus } from '../core/events/eventBus.ts';
@@ -25,7 +18,7 @@ function hasForbiddenPasswordField(params: unknown): string | null {
   for (const k of Object.keys(obj)) {
     const low = k.toLowerCase();
     if (forbidden.includes(low)) return k;
-    // also check nested? only top level
+
   }
   return null;
 }
@@ -55,7 +48,7 @@ export const createAccountTool: WebMCPToolDefinition = {
     params: { name?: string; email: string; role?: string },
     context: WebMCPExecutionContext
   ): Promise<WebMCPToolResult> => {
-    // Security: reject any password field smuggled in
+
     const forbidden = hasForbiddenPasswordField(params);
     if (forbidden) {
       return {
@@ -99,28 +92,24 @@ export const createAccountTool: WebMCPToolDefinition = {
 
     const role = params.role === 'doctor' ? 'doctor' : 'patient';
 
-    // Server truth: account existence is validated by Supabase Auth at completion.
-    // This tool only stages the pending request — it never reads passwords or user stores.
     const pendingId = `mcp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
     const pendingPayload = { pendingId, mode: 'create' as const, name: displayName, email: emailRaw, role };
 
-    // Persist pending for UI bridge / gate views
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('healthbook_mcp_auth_pending', JSON.stringify({ ...pendingPayload, timestamp: new Date().toISOString() }));
       }
-    } catch { /* ignore */ }
+    } catch {  }
 
     try {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_pending', { detail: pendingPayload }));
-        // Also store prefill for gate views to pick up synchronously
+
         window.dispatchEvent(new CustomEvent('healthbook_mcp_prefill', { detail: { name: displayName, email: emailRaw, role } }));
       }
-    } catch { /* ignore */ }
+    } catch {  }
 
-    // Dispatch toast via eventBus
     try {
       eventBus.dispatchToast({
         type: 'info',
@@ -128,7 +117,7 @@ export const createAccountTool: WebMCPToolDefinition = {
         message: `AI prepared account for ${displayName} (${emailRaw}) as ${role} — please type your password in the browser password field and click Create Account. Password is never shared with AI.`,
       });
       eventBus.emit('mcp_auth_pending' as unknown as string, pendingPayload as unknown as never);
-    } catch { /* ignore */ }
+    } catch {  }
 
     try {
       context.eventBus?.dispatchToast?.({
@@ -136,7 +125,7 @@ export const createAccountTool: WebMCPToolDefinition = {
         title: 'Complete sign-up in browser',
         message: `AI prepared account for ${displayName} (${emailRaw}) — please type password in browser to finish.`,
       });
-    } catch { /* */ }
+    } catch {  }
 
     return {
       success: true,
@@ -222,8 +211,6 @@ export const signInTool: WebMCPToolDefinition = {
       };
     }
 
-    // Server truth: account existence is validated by Supabase Auth at completion.
-    // This tool stages the pending request — the human completes it in the browser.
     const displayName = emailRaw.split('@')[0] || 'User';
     const role = 'patient' as const;
     const pendingId = `mcp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -233,14 +220,14 @@ export const signInTool: WebMCPToolDefinition = {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('healthbook_mcp_auth_pending', JSON.stringify({ ...pendingPayload, timestamp: new Date().toISOString() }));
       }
-    } catch { /* ignore */ }
+    } catch {  }
 
     try {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_pending', { detail: pendingPayload }));
         window.dispatchEvent(new CustomEvent('healthbook_mcp_prefill', { detail: { email: emailRaw } }));
       }
-    } catch { /* ignore */ }
+    } catch {  }
 
     try {
       eventBus.dispatchToast({
@@ -249,7 +236,7 @@ export const signInTool: WebMCPToolDefinition = {
         message: `AI prepared sign-in for ${emailRaw} — please type your password in the browser password field and click Sign In. Password is never shared with AI.`,
       });
       eventBus.emit('mcp_auth_pending' as unknown as string, pendingPayload as unknown as never);
-    } catch { /* ignore */ }
+    } catch {  }
 
     try {
       context.eventBus?.dispatchToast?.({
@@ -257,7 +244,7 @@ export const signInTool: WebMCPToolDefinition = {
         title: 'Complete sign-in in browser',
         message: `AI prepared sign-in for ${emailRaw} — please type password in browser to finish.`,
       });
-    } catch { /* */ }
+    } catch {  }
 
     return {
       success: true,
@@ -284,3 +271,4 @@ export const signInTool: WebMCPToolDefinition = {
 };
 
 export const authTools: WebMCPToolDefinition[] = [createAccountTool, signInTool];
+

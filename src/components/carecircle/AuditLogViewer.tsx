@@ -34,7 +34,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
 
   return (
     <div className="space-y-4">
-      {/* Header & Filters */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -72,7 +72,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
         </div>
       </div>
 
-      {/* Log Entries */}
+      {}
       {filteredLogs.length === 0 ? (
         <div className="bg-canvas-muted rounded-xl p-8 text-center text-body-sm text-muted border border-canvas-border">
           No matching audit log transactions found.
@@ -109,7 +109,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
                   </div>
                 </div>
 
-                {/* Details Breakdown */}
+                {}
                 {entry.details && (
                   <div className="bg-canvas-card rounded-xl p-2.5 text-caption text-slate-700 font-mono border border-canvas-border space-y-1">
                     {Object.entries(entry.details).map(([k, v]) => (
@@ -121,7 +121,7 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
                   </div>
                 )}
 
-                {/* Cryptographic Signature Hash */}
+                {}
                 <div className="flex items-center justify-between text-[10px] text-slate-600 pt-1">
                   <span className="flex items-center gap-1 font-mono">
                     <Hash className="w-3 h-3 text-emerald-400" />
@@ -140,3 +140,4 @@ export const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ logs }) => {
     </div>
   );
 };
+

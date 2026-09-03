@@ -1,15 +1,3 @@
-/**
- * Healthbook Core: Interaction Engine & Schedule Negotiator — AI-native.
- *
- * There is no bundled drug database in this app. Every evaluation below calls
- * the configured AI pipeline (callAI) with verified clinical rubrics embedded
- * in the system prompts (severity grading rules, FDA thresholds, ceiling
- * doses). Deterministic result IDs keep stored evaluations diffable.
- *
- * Failure contract: methods THROW AIUnavailableError when the pipeline is
- * unconfigured or fails. Callers must surface honest loading/error states —
- * never fabricated clinical content.
- */
 
 import type {
   InteractionArc,
@@ -29,10 +17,8 @@ import {
   deterministicDuplicateId,
 } from './interactionCache.ts';
 
-/** Re-exported so vault/tool layers can version stored evaluations. */
 export const ENGINE_VERSION = INTERACTION_ENGINE_VERSION;
 
-/** Thrown when the AI pipeline cannot produce an evaluation. Never fall back to canned content. */
 export class AIUnavailableError extends Error {
   public readonly code: 'AI_UNAVAILABLE' | 'AI_FAILED';
   constructor(message: string, code: 'AI_UNAVAILABLE' | 'AI_FAILED' = 'AI_FAILED') {
@@ -48,7 +34,6 @@ function toAIError(err: unknown, context: string): AIUnavailableError {
   return new AIUnavailableError(`${context}: ${msg}`, code);
 }
 
-// Unified AI caller for knowledge reasoning via central AI client
 async function callKnowledgeAI(
   systemPrompt: string,
   userText: string,
@@ -86,20 +71,12 @@ export interface DietFlagsInput {
   alcoholFrequency?: string;
 }
 
-/**
- * Pure string normalization for cross-list medication matching (lowercase
- * alphanumeric). This is string processing, not clinical knowledge — actual
- * brand/generic resolution always goes through resolveGenerics (AI).
- */
 export function normalizeMedName(name: string): string {
   return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
 export class ClinicalInteractionEngine {
-  /**
-   * Resolves the generic name via the AI pipeline. Throws AIUnavailableError
-   * when the pipeline cannot answer — callers must handle honestly.
-   */
+
   public static async resolveGenericName(drugName: string): Promise<string> {
     const trimmed = (drugName || '').trim();
     if (!trimmed) return trimmed;
@@ -126,10 +103,6 @@ export class ClinicalInteractionEngine {
     }
   }
 
-  /**
-   * Batch generic resolution in ONE AI call (for list matching/sync paths).
-   * Returns a map of input -> generic; unresolvable inputs map to themselves.
-   */
   public static async resolveGenerics(names: string[]): Promise<Record<string, string>> {
     const unique = [...new Set((names || []).map((n) => (n || '').trim()).filter(Boolean))];
     if (unique.length === 0) return {};
@@ -175,14 +148,10 @@ export class ClinicalInteractionEngine {
     }
   }
 
-  /**
-   * Evaluates drug-drug interactions across medication names via AI (brand/
-   * generic aliases handled by the model). Exa-grounded when available.
-   */
   public static async checkDrugInteractions(medNames: string[]): Promise<InteractionArc[]> {
     const list = (medNames || []).map((n) => (n || '').trim()).filter(Boolean);
     if (list.length < 2) return [];
-    // Pipeline: AI search first for authoritative interaction evidence (no hardcoded domains) — skip in VITEST for determinism
+
     let exaContext = '';
     if (!isVitest() && await isHealthGroundingAvailable()) {
       try {
@@ -240,13 +209,6 @@ export class ClinicalInteractionEngine {
     }
   }
 
-  /**
-   * Evaluates drug-diet interactions via AI against the patient diet profile.
-   * Verified reference points embedded: atorvastatin/grapefruit FDA thresholds
-   * (typical glass +37% AUC; avoid >1.2L/day), levothyroxine 30-60min empty
-   * stomach plus 4h mineral separation, metronidazole 3-day alcohol abstinence
-   * including propylene glycol, warfarin intake consistency.
-   */
   public static async checkDietInteractions(
     medNames: string[],
     patientDiet: DietFlagsInput
@@ -309,12 +271,6 @@ export class ClinicalInteractionEngine {
     }
   }
 
-  /**
-   * Detects duplicate active ingredients across brand/generic combinations via
-   * AI. Reference ceilings embedded: acetaminophen 4000mg/24h all sources,
-   * ibuprofen prescription max 3200mg, atorvastatin max 80mg, metformin max
-   * 2550mg; same-class co-use (e.g. dual NSAID) counts as duplication.
-   */
   public static async checkDuplicateIngredients(meds: { name: string; dose?: string }[]): Promise<DuplicateIngredientAlert[]> {
     const list = (meds || []).filter((m) => m && m.name && m.name.trim() !== '');
     if (list.length < 2) return [];
@@ -364,9 +320,6 @@ export class ClinicalInteractionEngine {
     }
   }
 
-  /**
-   * Suggests personalized, chronotype-aware timing shifts via AI.
-   */
   public static async suggestSchedule(
     meds: { id: string; name: string; currentSlot: TimeSlot }[],
     chronotype: 'early_bird' | 'night_owl' | 'standard' = 'standard'
@@ -426,11 +379,6 @@ export class ClinicalInteractionEngine {
     }
   }
 
-  /**
-   * Simulates missed-dose clinical impact via AI. The no-double-dose rule is
-   * enforced in code (always true) regardless of model output — safety
-   * invariant, never model-dependent.
-   */
   public static async simulateAdherence(medName: string, missedSlot: { day: DayOfWeek; slot: TimeSlot }): Promise<MissedDoseSimulationResult> {
     const name = (medName || '').trim();
     if (!name) throw new AIUnavailableError('Medication name is required for adherence simulation');
@@ -475,3 +423,4 @@ export class ClinicalInteractionEngine {
     }
   }
 }
+

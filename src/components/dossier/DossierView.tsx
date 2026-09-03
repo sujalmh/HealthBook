@@ -61,7 +61,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
   const [searchQuery, setSearchQuery] = useState('');
   const [viewerOpen, setViewerOpen] = useState(false);
   const [snapshotExpanded, setSnapshotExpanded] = useState(false);
-  // Long category groups (e.g. 24 lab draws in one report) collapse to first few items
+
   const CAT_LIMIT = 4;
   const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({});
   const isCatExpanded = (key: string) => !!expandedCats[key];
@@ -89,7 +89,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
       });
       if (res.success && res.data) setDossier(res.data as CompiledHealthRecord);
     } catch {
-      // compile failure silent; retry on next event
+
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +164,6 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
   const citationsCount = dossier?.sourceDocumentCitations?.length || 0;
   const labsCount = dossier?.longitudinalLabs?.length || 0;
 
-  // --- Report-based grouping: combine sparse events by source document ---
   const groupedReports = useMemo(() => {
     if (!dossier?.timelineItems?.length) return [];
     const q = searchQuery.trim().toLowerCase();
@@ -191,11 +190,10 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
       g.items.push(it);
       if (new Date(it.date).getTime() > new Date(g.date).getTime()) g.date = it.date;
     }
-    // For items without sourceDocId but same category, keep separate groups per category (already keyed by category)
-    // Sort groups by date descending, but put document groups first
+
     const groups = Array.from(map.values());
     groups.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    // Sort items inside each group by date descending
+
     for (const g of groups) g.items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return groups;
   }, [dossier, searchQuery]);
@@ -204,7 +202,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Header Banner */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm">
@@ -232,7 +230,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         </div>
       </div>
 
-      {/* Metrics */}
+      {}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
           <div className="p-2.5 rounded-xl bg-sky-50 text-clinical-blue border border-sky-200"><Pill className="w-4 h-4" /></div>
@@ -252,7 +250,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         </div>
       </div>
 
-      {/* Single-view search bar — scrollable on mobile */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3 overflow-x-auto scrollbar-none">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -266,7 +264,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         {searchQuery && <button onClick={() => setSearchQuery('')} className="px-3 py-1.5 rounded-lg bg-white border border-canvas-border text-caption font-semibold hover:bg-canvas-muted min-h-[32px] self-end">Clear</button>}
       </div>
 
-      {/* Emergency Snapshot — integrated as collapsible categorical section, not separate tab */}
+      {}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl shadow-sm overflow-hidden">
         <button
           onClick={() => setSnapshotExpanded((v) => !v)}
@@ -299,7 +297,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         )}
       </div>
 
-      {/* Reports — single view with categorical separations */}
+      {}
       {groupedReports.length === 0 ? (
         <div className="bg-canvas-card border border-dashed border-canvas-border rounded-2xl p-8 sm:p-12 text-center space-y-3 shadow-sm">
           <div className="w-14 h-14 rounded-2xl bg-primary-light border border-primary-border text-primary flex items-center justify-center mx-auto">
@@ -337,7 +335,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
 
             return (
               <div key={report.key} className="bg-canvas-card border border-canvas-border rounded-2xl shadow-sm overflow-hidden">
-                {/* Report header */}
+                {}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 border-b border-canvas-border bg-canvas-muted/40">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${hasDoc ? 'bg-white border-canvas-border text-primary' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
@@ -359,9 +357,9 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                   </div>
                 </div>
 
-                {/* Categorical separations — grid */}
+                {}
                 <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  {/* Meds */}
+                  {}
                   {byCategory.meds.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b border-sky-100 pb-2">
@@ -396,7 +394,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     </div>
                   )}
 
-                  {/* Labs */}
+                  {}
                   {byCategory.labs.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b border-emerald-100 pb-2">
@@ -430,7 +428,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     </div>
                   )}
 
-                  {/* Conditions */}
+                  {}
                   {byCategory.conditions.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b border-amber-100 pb-2">
@@ -450,7 +448,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     </div>
                   )}
 
-                  {/* Allergies */}
+                  {}
                   {byCategory.allergies.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b border-rose-100 pb-2">
@@ -470,7 +468,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     </div>
                   )}
 
-                  {/* Doctor notes / proposals */}
+                  {}
                   {byCategory.proposals.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b border-amber-100 pb-2">
@@ -500,7 +498,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     </div>
                   )}
 
-                  {/* Visits */}
+                  {}
                   {byCategory.visits.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b border-teal-100 pb-2">
@@ -521,7 +519,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     </div>
                   )}
 
-                  {/* Safety */}
+                  {}
                   {byCategory.danger.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b border-rose-100 pb-2">
@@ -542,7 +540,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     </div>
                   )}
 
-                  {/* Other */}
+                  {}
                   {byCategory.other.length > 0 && (
                     <div className="space-y-2.5">
                       <div className="flex items-center gap-2 border-b border-canvas-border pb-2">
@@ -563,7 +561,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                   )}
                 </div>
 
-                {/* Report footer — source */}
+                {}
                 {hasDoc && (
                   <div className="px-4 sm:px-5 py-3 bg-canvas-muted border-t border-canvas-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-caption text-muted flex items-center gap-2">
@@ -586,7 +584,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         </div>
       )}
 
-      {/* In-page Source Viewer — single view, not separate tab */}
+      {}
       {viewerOpen && (
         <div id="dossier-source-viewer" className="space-y-3">
           <div className="flex items-center justify-between">
@@ -642,3 +640,4 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
     </div>
   );
 };
+
