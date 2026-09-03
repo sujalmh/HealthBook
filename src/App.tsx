@@ -308,7 +308,7 @@ export const App: React.FC = () => {
         { id: 'medicines' as ActiveModule, label: 'Medicines', shortLabel: 'Meds', icon: Pill, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Weekly Box + Review' },
         { id: 'ask' as ActiveModule, label: 'Ask', shortLabel: 'Ask', icon: HelpCircle, badge: questionCount > 0 ? `${questionCount}` : null, desc: isViewOnly ? viewOnlyTooltip : 'Doctor Questions — ask', highlight: true as const },
         { id: 'safety' as ActiveModule, label: 'Get Help', shortLabel: 'Help', icon: AlertTriangle, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Urgent help + appointments' },
-        { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Trusted helpers' },
+        { id: 'family' as ActiveModule, label: 'Family', shortLabel: 'Family', icon: Users, badge: null, desc: isViewOnly ? viewOnlyTooltip : 'Family helpers' },
       ];
 
   const pastelActive = 'bg-primary-light text-primary-text border-primary-border shadow-sm';
