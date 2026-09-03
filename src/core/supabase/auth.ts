@@ -247,8 +247,24 @@ export function persistActiveProfile(profile: UserProfile): CompletedAuth {
   return completed;
 }
 
-export async function resolveSessionProfile(): Promise<{ session: AuthSession; authUser: AuthUser; profile: UserProfile } | null> {
-  if (!isAuthConfigured()) return null;
+export async function sessionState(): Promise<'valid' | 'invalid' | 'unknown'> {
+  if (!isAuthConfigured()) return 'unknown';
+  if (!loadSession()) return 'invalid';
+  const s = await validSession();
+  if (!s) return 'invalid';
+  const { user, error } = await callUser(s.access_token);
+  if (user) return 'valid';
+  if (error?.code === 'NETWORK_ERROR') return 'unknown';
+  return 'invalid';
+}
+
+async function callUser(token: string) {
+  const { json, error } = await call('/user', { token });
+  if (error || !(json as any)?.id) return { user: null, error };
+  return { user: json as AuthUser, error: null };
+}
+
+export async function resolveSessionProfile(): Promise<{ session: AuthSession; authUser: AuthUser; profile: UserProfile } | null> {  if (!isAuthConfigured()) return null;
   const session = await validSession();
   if (!session) return null;
   const { json, error } = await call('/user', { token: session.access_token });

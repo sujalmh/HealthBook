@@ -130,14 +130,13 @@ async function bootstrap(): Promise<void> {
   await localVault.init();
   if (!localVault.isEventBusConnected()) wireLocalVaultToEventBus(eventBus);
 
-  // 0) Validate stored session — a stale/expired login must not open any vault.
-  //    Server is the source of truth; without a valid session the gate takes over.
+  // 0) Session gate: server truth requires a valid session. Stale logins
+  //    (expired tokens, pre-migration local logins) are cleared to the gate —
+  //    otherwise the app would open an empty vault for the wrong identity.
+  //    'unknown' (offline/unconfigured) leaves state untouched.
   try {
-    const { loadSession, resolveSessionProfile, clearSession, isAuthConfigured } = await import('./core/supabase/auth.ts');
-    if (isAuthConfigured() && loadSession()) {
-      const sp = await resolveSessionProfile();
-      if (!sp) clearSession();
-    }
+    const { sessionState, clearSession } = await import('./core/supabase/auth.ts');
+    if ((await sessionState()) === 'invalid') clearSession();
   } catch { /* ignore — auth gate handles signed-out state */ }
 
   // 1) Offline gap-fill cache — fills ONLY patients with zero rows (server wins).
