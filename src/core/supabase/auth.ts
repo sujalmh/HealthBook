@@ -44,9 +44,16 @@ const DEMO_PATIENT_IDS: Record<string, { patientId: string; name: string; role: 
 };
 
 function readEnv(key: string): string | null {
+  // Bare `import.meta.env` literal ONLY — Vite statically replaces exactly this
+  // form at build time. Casts (`import.meta as X`), `?.` chains, aliases and
+  // dynamic indexing all survive into the bundle with an empty env (prod-only
+  // failure; dev server populates the object at runtime which hides it).
   try {
-    const vite = (import.meta as unknown as { env?: Record<string, string> })?.env;
-    if (vite && vite[key]) return vite[key];
+    const vite = import.meta.env;
+    if (vite) {
+      const v = (vite as Record<string, unknown>)[key];
+      if (typeof v === 'string' && v) return v;
+    }
   } catch { /* ignore */ }
   try {
     const proc = (globalThis as unknown as { process?: { env?: Record<string, string> } })?.process;
