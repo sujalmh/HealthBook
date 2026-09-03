@@ -56,8 +56,10 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
     );
 
     // AI-generated narrative when enabled (single request vision+text structured when doc context available)
+    // aiGenerated tracks real AI provenance so callers can label AI vs template honestly.
     let explanation: string;
     let suggestedQuestions: string[];
+    let aiGenerated = false;
     if (shouldUseAI()) {
       try {
         // Try AI for explanation and questions via reconciliation engine AI helpers
@@ -77,6 +79,7 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
           preHospDose,
           dischargeDose
         );
+        aiGenerated = true;
       } catch {
         explanation = ClinicalReconciliationEngine.generatePlainLanguageExplanation(
           medName,
@@ -114,6 +117,22 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
       );
     }
 
+    // Provenance: the AI helpers fall back to template text silently on
+    // failure, so compare against the deterministic template — only genuinely
+    // different text counts as AI-generated (callers label it honestly).
+    if (aiGenerated) {
+      const template = ClinicalReconciliationEngine.generatePlainLanguageExplanation(
+        medName,
+        generic,
+        preHospDose,
+        inHospAction,
+        dischargeDose,
+        statusBadge,
+        reason
+      );
+      if (explanation.trim() === template.trim()) aiGenerated = false;
+    }
+
     const result = {
       medName,
       genericName: generic,
@@ -123,7 +142,8 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
       statusBadge,
       plainLanguageExplanation: explanation,
       documentedReason: reason || 'Post-discharge clinical reconciliation',
-      suggestedQuestions
+      suggestedQuestions,
+      aiGenerated
     };
 
     return {

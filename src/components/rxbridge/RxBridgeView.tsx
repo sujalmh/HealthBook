@@ -176,8 +176,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         { patientId: effectivePatientId }
       )
       .then((res) => {
-        const d = (res as { success?: boolean; data?: { plainLanguageExplanation?: string; suggestedQuestions?: string[] } })?.data;
-        if ((res as { success?: boolean })?.success && d?.plainLanguageExplanation) {
+        const d = (res as { success?: boolean; data?: { plainLanguageExplanation?: string; suggestedQuestions?: string[]; aiGenerated?: boolean } })?.data;
+        // Only real AI output replaces the template — honest labeling
+        if ((res as { success?: boolean })?.success && d?.aiGenerated && d?.plainLanguageExplanation) {
           setAiNarratives((prev) => ({
             ...prev,
             [item.medId]: {

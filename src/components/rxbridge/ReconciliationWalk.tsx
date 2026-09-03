@@ -273,9 +273,9 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
         {((currentItem.interactions && currentItem.interactions.length > 0) ||
           (currentItem.dietInteractions && currentItem.dietInteractions.length > 0)) && (
           <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4" />
-              <span>Safety & Interaction Screen Results</span>
+              <span>Safety check results</span>
             </h4>
 
             {currentItem.interactions?.map((inter) => (
@@ -296,11 +296,11 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-rose-100/90 leading-relaxed">
-                  <strong>Mechanism:</strong> {inter.mechanism}
+                <p className="text-xs text-rose-900 leading-relaxed">
+                  <strong>Why it matters:</strong> {inter.mechanism}
                 </p>
-                <p className="text-xs text-slate-700 italic bg-slate-50/50 p-2 rounded-xl">
-                  <strong>Guidance:</strong> {inter.clinicalGuidance}
+                <p className="text-xs text-slate-700 bg-white/70 p-2 rounded-xl">
+                  <strong>What to do:</strong> {inter.clinicalGuidance}
                 </p>
               </div>
             ))}
@@ -311,11 +311,11 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
                 className="p-3.5 rounded-2xl bg-amber-50 border border-amber-800/70 text-xs text-amber-700 space-y-1"
               >
                 <div className="flex items-center gap-2 font-bold">
-                  <Utensils className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Diet Interaction: {diet.badge}</span>
+                  <Utensils className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Food interaction: {diet.badge}</span>
                 </div>
-                <p className="text-amber-100/90">{diet.mechanism}</p>
-                <p className="text-slate-700 italic">{diet.clinicalGuidance}</p>
+                <p className="text-amber-900">{diet.mechanism}</p>
+                <p className="text-slate-700">{diet.clinicalGuidance}</p>
               </div>
             ))}
           </div>
