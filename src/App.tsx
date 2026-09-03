@@ -20,7 +20,7 @@ import { QuestionBank } from '@/components/common/QuestionBank';
 import { WebMCPInspector } from '@/components/common/WebMCPInspector';
 import { ConnectWebMCPModal } from '@/components/common/ConnectWebMCPModal';
 import { ProfileIndicator } from '@/components/carecircle/ProfileIndicator';
-import { ProfileDetails } from '@/components/carecircle/ProfileDetails';
+import { ProfilePage } from '@/components/carecircle/ProfilePage';
 import { ModalPortal } from '@/components/common/ModalPortal';
 import { ToastContainer } from '@/components/common/ToastContainer';
 import { MyRecordsView } from '@/components/vault/MyRecordsView';
@@ -49,7 +49,7 @@ import { isViewOnly as isViewOnlyUtil } from '@/core/rbac/canAccess';
 // Help     = Get Help (safety) | Family = Family (carecircle)
 // Settings stays header gear. 5-item bottom bar: Health | Medicines | Ask | Help | Family (Ask centered)
 // Doctor  = My Patients dashboard when role === 'doctor' (RBAC doctor ↔ patient linking)
-export type ActiveModule = 'health' | 'medicines' | 'ask' | 'safety' | 'family' | 'settings' | 'doctor';
+export type ActiveModule = 'health' | 'medicines' | 'ask' | 'safety' | 'family' | 'settings' | 'doctor' | 'profile';
 export type HealthSub = 'vault' | 'labstory' | 'homelab' | 'dossier';
 export type MedicinesSub = 'pillmap' | 'rxbridge';
 
@@ -82,7 +82,6 @@ export const App: React.FC = () => {
   const [isVaultBusy, setIsVaultBusy] = useState(false);
   const [askWhyPrefill, setAskWhyPrefill] = useState<{ marker?: string; query?: string } | null>(null);
   const [doctorSelectedPatientId, setDoctorSelectedPatientId] = useState<string | null>(null);
-  const [isProfileDetailsOpen, setIsProfileDetailsOpen] = useState(false);
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -359,6 +358,10 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSessionEnd = () => {
+    setActiveProfile(null);
+  };
+
   return (
     <div className="min-h-screen bg-canvas-bg text-slate-900 flex flex-col antialiased w-full max-w-full overflow-x-hidden">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-xl focus:shadow-lg focus:border focus:border-canvas-border focus:outline-none focus:ring-2 focus:ring-primary">
@@ -438,8 +441,8 @@ export const App: React.FC = () => {
               <span className="hidden md:inline">Settings</span>
             </button>
 
-            {/* Profile indicator — vault-derived completeness, top right after Settings, visible 375+1024, click reveals details */}
-            <ProfileIndicator activeProfile={activeProfile} onClick={() => setIsProfileDetailsOpen(true)} />
+            {/* Profile — header avatar opens the full profile page */}
+            <ProfileIndicator activeProfile={activeProfile} onClick={() => handleNav('profile')} />
           </div>
         </div>
       </header>
@@ -664,6 +667,11 @@ export const App: React.FC = () => {
         <div className={activeModule === 'settings' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'settings'}>
           <SettingsView />
         </div>
+
+        {/* PROFILE — opened from the header avatar */}
+        <div className={activeModule === 'profile' ? 'block' : 'hidden'} aria-hidden={activeModule !== 'profile'}>
+          <ProfilePage activeProfile={activeProfile} onSignOut={handleSessionEnd} />
+        </div>
       </main>
 
       {/* Mobile Bottom Nav — grid cols adapt to role (patient 5 vs doctor 3), no scroll, 44px+ targets, safe-area, accessible */}
@@ -718,7 +726,6 @@ export const App: React.FC = () => {
 
       <WebMCPInspector isOpen={isInspectorOpen} onClose={() => setIsInspectorOpen(false)} />
       <ConnectWebMCPModal isOpen={isConnectOpen} onClose={() => setIsConnectOpen(false)} />
-      <ProfileDetails isOpen={isProfileDetailsOpen} onClose={() => setIsProfileDetailsOpen(false)} activeProfile={activeProfile} />
       <MCPAuthBridge />
       <ToastContainer />
     </div>

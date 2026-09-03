@@ -93,8 +93,8 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ doctorId, doct
               <Stethoscope className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">My Patients <span className="text-caption px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">Doctor</span></h2>
-              <p className="text-body-sm text-muted">Patients who have linked you — vault-derived, no mock patients shown.</p>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">My Patients</h2>
+              <p className="text-body-sm text-muted">Patients who have linked you for remote review.</p>
             </div>
           </div>
         </div>

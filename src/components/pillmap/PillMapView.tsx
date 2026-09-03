@@ -494,14 +494,9 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
               <Pill className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                  My Medicines
-                </h2>
-                <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
-                  Weekly Planner
-                </span>
-              </div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                My Medicines
+              </h2>
               <p className="text-body-sm text-muted">
                 Your medicines for the week — drag to change times, see warnings, and check food rules.
               </p>

@@ -10,8 +10,6 @@ import type { DietBadge } from '../../types/pillmap.ts';
 import { ModalPortal } from '../common/ModalPortal';
 
 export interface MealBadgesProps {
-  withFood?: boolean;
-  emptyStomach?: boolean;
   avoidGrapefruit?: boolean;
   avoidAlcohol?: boolean;
   avoidDairy?: boolean;
@@ -20,8 +18,6 @@ export interface MealBadgesProps {
 }
 
 export const MealBadges: React.FC<MealBadgesProps> = ({
-  withFood,
-  emptyStomach,
   avoidGrapefruit,
   avoidAlcohol,
   avoidDairy,
@@ -49,10 +45,11 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     }
   };
 
-  // Compile individual badges from flags and dynamic dietBadges.
+  // Compile badges from flags and dynamic dietBadges.
+  // Note: with-food / empty-stomach are shown as the prominent meal line on
+  // PillCard, so they are intentionally not duplicated here.
   // Dedupe rule: when the interaction engine already emitted a diet badge for
-  // a concept (grapefruit / empty-stomach / dairy), skip the redundant
-  // per-med flag chip so pills don't show two badges for the same rule
+  // a concept (grapefruit / dairy), skip the redundant per-med flag chip
   // (e.g. Lipitor "No grapefruit" + "Avoid Grapefruit").
   const engineText = dietBadges.map((d) => (d.badgeText || '').toLowerCase()).join(' | ');
   const engineCovers = (concept: RegExp) => concept.test(engineText);
@@ -67,34 +64,6 @@ export const MealBadges: React.FC<MealBadgesProps> = ({
     guidance: string;
     severity: string;
   }[] = [];
-
-  if (withFood) {
-    badgesToRender.push({
-      key: 'with_food',
-      label: 'With food',
-      icon: '',
-      bgColor: 'bg-emerald-100',
-      textColor: 'text-emerald-700',
-      borderColor: 'border-emerald-200',
-      mechanism: 'Food helps.',
-      guidance: 'Take with food.',
-      severity: 'INFO'
-    });
-  }
-
-  if (emptyStomach && !engineCovers(/empty\s*stomach/)) {
-    badgesToRender.push({
-      key: 'empty_stomach',
-      label: 'Empty stomach',
-      icon: '',
-      bgColor: 'bg-amber-100',
-      textColor: 'text-amber-700',
-      borderColor: 'border-amber-200',
-      mechanism: 'Food blocks it.',
-      guidance: 'Take before breakfast.',
-      severity: 'MAJOR'
-    });
-  }
 
   if (avoidGrapefruit && !engineCovers(/grapefruit/)) {
     badgesToRender.push({

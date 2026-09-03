@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Trash2, HelpCircle, GripVertical, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Trash2, HelpCircle, GripVertical, AlertTriangle, ArrowRight, Utensils } from 'lucide-react';
 import type { PillSlotItem, DietBadge } from '../../types/pillmap.ts';
 import { MealBadges } from './MealBadges.tsx';
 
@@ -80,6 +80,16 @@ export const PillCard: React.FC<PillCardProps> = ({
   };
 
   const isGhost = isGhostPreview || pill.status === 'ghost_preview';
+
+  // Meal timing is the main thing on a pill: before or with a meal.
+  const mealTiming = pill.emptyStomach
+    ? { label: 'Take before meal', hint: 'Empty stomach', className: 'bg-amber-50 border-amber-200 text-amber-800' }
+    : pill.withFood
+      ? { label: 'Take with meal', hint: 'With food', className: 'bg-emerald-50 border-emerald-200 text-emerald-700' }
+      : null;
+  // Engine badges repeating the prominent meal line are dropped to avoid duplication.
+  const mealCovered = mealTiming ? (mealTiming.hint === 'Empty stomach' ? /empty\s*stomach/i : /with\s*(food|meal)|take\s*with/i) : null;
+  const filteredDietBadges = mealCovered ? dietBadges.filter((d) => !mealCovered.test(d.badgeText || '')) : dietBadges;
 
   return (
     <div
@@ -164,16 +174,20 @@ export const PillCard: React.FC<PillCardProps> = ({
         )}
       </div>
 
-      {/* Dosage already shown with name — no redundant middle row */}
+      {/* Meal timing — prominent: before or with meal */}
+      {mealTiming && !isGhost && (
+        <div className={`mt-1.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[13px] font-bold leading-tight ${mealTiming.className}`}>
+          <Utensils className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+          <span>{mealTiming.label}</span>
+        </div>
+      )}
 
-      {/* Bottom Row: Meal & Food Badges */}
+      {/* Bottom Row: Other food & interaction badges (meal timing shown above) */}
       <MealBadges
-        withFood={pill.withFood}
-        emptyStomach={pill.emptyStomach}
         avoidGrapefruit={pill.avoidGrapefruit}
         avoidAlcohol={pill.avoidAlcohol}
         avoidDairy={pill.avoidDairy}
-        dietBadges={dietBadges.filter(d => d.drugName?.toLowerCase().includes(pill.name?.toLowerCase()) || (pill.genericName && d.drugName?.toLowerCase().includes(pill.genericName?.toLowerCase())))}
+        dietBadges={filteredDietBadges.filter(d => d.drugName?.toLowerCase().includes(pill.name?.toLowerCase()) || (pill.genericName && d.drugName?.toLowerCase().includes(pill.genericName?.toLowerCase())))}
       />
     </div>
   );

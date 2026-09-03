@@ -81,7 +81,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
         <div className="bg-canvas-muted rounded-xl p-8 text-center border border-dashed border-canvas-border">
           <Users className="w-8 h-8 text-muted-light mx-auto mb-2" />
           <p className="text-body-sm font-semibold text-slate-900">No linked family profiles yet</p>
-          <p className="text-body-sm text-muted">Add a family member in Family List → Manage Access. Vault-derived — no mock profiles shown.</p>
+          <p className="text-body-sm text-muted">Add a family member in Family List → Manage Access.</p>
         </div>
       </div>
     );

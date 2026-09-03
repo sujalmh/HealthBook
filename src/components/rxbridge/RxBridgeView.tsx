@@ -10,7 +10,7 @@
  * - Cross-module handoff to PillMap Day 0 schedule & LocalVault meds.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   FileCheck2,
   Sparkles,
@@ -87,6 +87,13 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [summaryData, setSummaryData] = useState<PatientHomeSummaryExport | null>(null);
 
+  // AI narratives — per-med explanations from the AI pipeline (explain_med_change
+  // tool). Fetched lazily, one call per med the patient actually opens in the
+  // walkthrough, cached for the session. Falls back to the reconciled template.
+  const [aiNarratives, setAiNarratives] = useState<Record<string, { explanation: string; questions: string[] }>>({});
+  const [aiLoadingMeds, setAiLoadingMeds] = useState<Record<string, boolean>>({});
+  const aiTriedMeds = useRef<Set<string>>(new Set());
+
   const loadReconciliation = async (dataset: Patient3ListDischargeDataset) => {
     try {
       let useAI = false;
@@ -107,6 +114,10 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     }
     setWalkIndex(0);
     setTeachBackRecord(null);
+    // New dataset → drop cached AI narratives so explanations match current meds
+    setAiNarratives({});
+    setAiLoadingMeds({});
+    aiTriedMeds.current.clear();
   };
 
   useEffect(() => {
@@ -135,6 +146,54 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
 
     return () => { u1(); u2(); u3(); u4(); u5(); };
   }, [effectivePatientId, activeDataset]);
+
+  // Attach the walkthrough to the AI pipeline: when the patient opens a med in
+  // Step-by-Step, fetch its AI explanation via explain_med_change (AI when
+  // enabled, template fallback inside the tool). One call per med, cached.
+  useEffect(() => {
+    if (viewMode !== 'walk' || reconciledItems.length === 0) return;
+    const item = reconciledItems[walkIndex] || reconciledItems[0];
+    if (!item || aiTriedMeds.current.has(item.medId) || aiNarratives[item.medId]) return;
+    let enabled = false;
+    try {
+      enabled = isAIEnabled(getAIConfig());
+    } catch {
+      enabled = false;
+    }
+    if (!enabled) return;
+    aiTriedMeds.current.add(item.medId);
+    setAiLoadingMeds((prev) => ({ ...prev, [item.medId]: true }));
+    webMCPEngine
+      .execute(
+        'explain_med_change',
+        {
+          medName: item.medName,
+          preHospDose: item.preHospDose,
+          inHospAction: item.inHospAction,
+          dischargeDose: item.dischargeDose,
+          reason: item.documentedReason,
+        },
+        { patientId: effectivePatientId }
+      )
+      .then((res) => {
+        const d = (res as { success?: boolean; data?: { plainLanguageExplanation?: string; suggestedQuestions?: string[] } })?.data;
+        if ((res as { success?: boolean })?.success && d?.plainLanguageExplanation) {
+          setAiNarratives((prev) => ({
+            ...prev,
+            [item.medId]: {
+              explanation: d.plainLanguageExplanation as string,
+              questions: Array.isArray(d.suggestedQuestions) ? (d.suggestedQuestions as string[]) : [],
+            },
+          }));
+        }
+      })
+      .catch(() => {
+        // Template explanation stays visible — AI is enhancement only
+      })
+      .finally(() => {
+        setAiLoadingMeds((prev) => ({ ...prev, [item.medId]: false }));
+      });
+  }, [viewMode, walkIndex, reconciledItems, effectivePatientId, aiNarratives]);
 
   // Handle Per-Med Approval
   const handleToggleApproval = (medId: string) => {
@@ -381,14 +440,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               <FileCheck2 className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                  Medicine Review
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-primary-light text-primary-text font-bold text-caption border border-primary-border">
-                  Before / Hospital / Now
-                </span>
-              </div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                Medicine Review
+              </h2>
               <p className="text-xs text-muted">
                 Check what changed after your hospital stay — approve each medicine in plain language before it goes to your weekly box.
               </p>
@@ -397,15 +451,8 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
 
           {/* Doctor source + Last updated */}
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-1 rounded-full bg-primary-light text-primary-text font-bold text-caption border border-primary-border">From your hospital stay — doctor's list</span>
-              <span className="text-caption text-muted">Shared by Dr {doctorSourceName} on {lastUpdatedRaw.slice(0,10)}</span>
-            </div>
-            <div className="text-caption text-muted">Last updated: {lastUpdatedRaw.slice(0,10)}</div>
+            <div className="text-caption text-muted">Shared by Dr {doctorSourceName} • Updated {lastUpdatedRaw.slice(0,10)}</div>
             {isOutdated && <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">This list may be outdated — ask your doctor for current list.</div>}
-            <div className="flex items-center gap-2 bg-canvas-muted p-1.5 rounded-xl border border-canvas-border text-body-sm">
-              <span className="text-caption font-semibold text-muted px-2">Your discharge list — vault data for {activeProfile.name || 'Patient'}</span>
-            </div>
           </div>
         </div>
 
@@ -540,6 +587,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           onApproveMed={handleApproveMedInWalk}
           onAskDoctor={handleAskDoctor}
           onUpdateNote={handleUpdateNote}
+          aiExplanation={(reconciledItems[walkIndex] && aiNarratives[reconciledItems[walkIndex].medId]?.explanation) || undefined}
+          aiQuestions={(reconciledItems[walkIndex] && aiNarratives[reconciledItems[walkIndex].medId]?.questions) || undefined}
+          aiLoading={!!(reconciledItems[walkIndex] && aiLoadingMeds[reconciledItems[walkIndex].medId])}
           onFinishWalk={() => {
             setViewMode('table');
             if (!teachBackRecord) {

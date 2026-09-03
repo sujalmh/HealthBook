@@ -104,12 +104,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">Family</h2>
-              <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
-                Trusted helpers
-              </span>
-            </div>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">Family</h2>
             <p className="text-body-sm text-muted">
               Family and caregivers who can help — see who has access and what they did.
             </p>
@@ -137,15 +132,13 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
         </div>
       </div>
 
-      {/* Profile indicator — vault-derived completeness in Family where active profile visible */}
+      {/* Profile status */}
       <div className="bg-white border border-canvas-border rounded-2xl p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
           <Shield className="w-4 h-4 text-primary" aria-hidden="true" />
-          <h3 className="text-sm font-bold text-slate-900">Profile status — completeness</h3>
-          <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text border border-primary-border font-bold">vault-derived</span>
+          <h3 className="text-sm font-bold text-slate-900">Profile status</h3>
         </div>
         <ProfileIndicator activeProfile={activeProfile} />
-        <p className="text-caption text-muted mt-2">Derived from real vault/profile (not mock): papers, meds, labs, confirmed facts. Empty vault shows low completeness, not mock helper.</p>
       </div>
 
       {/* Profile Switcher Component (G1) */}

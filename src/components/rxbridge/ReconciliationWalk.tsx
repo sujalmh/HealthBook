@@ -33,6 +33,10 @@ interface ReconciliationWalkProps {
   onUpdateNote: (medId: string, note: string) => void;
   onFinishWalk: () => void;
   onOpenTeachBack: () => void;
+  /** AI-pipeline explanation for the current med (explain_med_change tool). Falls back to template when absent. */
+  aiExplanation?: string;
+  aiQuestions?: string[];
+  aiLoading?: boolean;
 }
 
 export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
@@ -43,7 +47,10 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
   onAskDoctor,
   onUpdateNote,
   onFinishWalk,
-  onOpenTeachBack
+  onOpenTeachBack,
+  aiExplanation,
+  aiQuestions,
+  aiLoading = false
 }) => {
   const currentItem = items[currentIndex] || items[0];
   const [showNoteInput, setShowNoteInput] = useState(false);
@@ -230,7 +237,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         </div>
 
-        {/* Conversational Explanation Card — tokenized */}
+        {/* Conversational Explanation Card — AI pipeline when available, template fallback */}
         <div className="p-5 rounded-2xl bg-canvas-card border border-canvas-border shadow-sm space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sky-50 text-clinical-blue flex items-center justify-center border border-sky-200">
@@ -238,15 +245,21 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             </div>
             <div>
               <h4 className="text-caption font-bold uppercase tracking-wider text-clinical-blue">
-                CareCanvas clinical agent explanation
+                Why this changed{aiExplanation ? ' — AI explanation' : ''}
               </h4>
-              <p className="text-caption text-muted">Plain-language why this medication changed</p>
             </div>
           </div>
 
-          <p className="text-body font-medium text-slate-900 leading-relaxed bg-canvas-muted p-4 rounded-xl border border-canvas-border">
-            {currentItem.plainLanguageExplanation}
-          </p>
+          {aiLoading && !aiExplanation ? (
+            <div className="bg-canvas-muted p-4 rounded-xl border border-canvas-border flex items-center gap-2 text-body-sm text-muted" role="status">
+              <span className="w-4 h-4 rounded-full border-2 border-sky-200 border-t-sky-600 animate-spin shrink-0" aria-hidden="true" />
+              Getting the AI explanation for {currentItem.medName}…
+            </div>
+          ) : (
+            <p className="text-body font-medium text-slate-900 leading-relaxed bg-canvas-muted p-4 rounded-xl border border-canvas-border">
+              {aiExplanation || currentItem.plainLanguageExplanation}
+            </p>
+          )}
 
           {currentItem.dietInstructions && (
             <div className="flex items-center gap-2 text-body-sm text-clinical-amber bg-amber-50 p-2.5 rounded-xl border border-amber-200 font-medium">
@@ -309,13 +322,13 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
         )}
 
         {/* Doctor Questions Strip */}
-        {currentItem.suggestedQuestions && currentItem.suggestedQuestions.length > 0 && (
+        {((aiQuestions && aiQuestions.length > 0) || (currentItem.suggestedQuestions && currentItem.suggestedQuestions.length > 0)) && (
           <div className="space-y-2">
             <span className="text-[11px] font-mono text-slate-600 uppercase tracking-wider font-bold">
-              Suggested Questions for Your Follow-Up Doctor:
+              Questions for your follow-up visit:
             </span>
             <div className="space-y-2">
-              {currentItem.suggestedQuestions.map((q, qIdx) => (
+              {(aiQuestions && aiQuestions.length > 0 ? aiQuestions : currentItem.suggestedQuestions || []).map((q, qIdx) => (
                 <div
                   key={qIdx}
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-2xl bg-white border border-slate-200 text-xs text-slate-800"
