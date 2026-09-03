@@ -74,10 +74,24 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     }
   };
 
-  // Open on today's column so the highlighted day matches visible content
+  // Open on today's column so the highlighted day matches visible content.
+  // The grid mounts hidden (inactive tab = display:none, no layout), so scroll
+  // when it first becomes visible — not on mount.
+  const didInitialDayScroll = useRef(false);
   useEffect(() => {
-    const t = setTimeout(() => scrollToDay(activeDay), 80);
-    return () => clearTimeout(t);
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && !didInitialDayScroll.current) {
+          didInitialDayScroll.current = true;
+          scrollToDay(activeDay);
+        }
+      },
+      { threshold: 0.05 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
