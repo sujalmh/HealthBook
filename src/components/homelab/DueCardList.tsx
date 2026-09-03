@@ -33,7 +33,7 @@ export const DueCardList: React.FC<DueCardListProps> = ({
   if (dueCards.length === 0) {
     return (
       <div className="bg-white border border-canvas-border rounded-2xl p-6 text-center space-y-3 shadow-sm">
-        <p className="text-body-sm font-semibold text-slate-800">No tests waiting.</p>
+        <p className="text-body-sm font-semibold text-slate-800">All caught up! No tests waiting.</p>
         <button
           onClick={() => onUploadClick()}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border text-body-sm font-semibold transition-colors min-h-[44px]"

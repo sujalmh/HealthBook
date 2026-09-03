@@ -10,7 +10,8 @@ import {
   Pill,
   ExternalLink,
   Plus,
-  Filter
+  Filter,
+  Upload
 } from 'lucide-react';
 import type { CalendarEventRecord } from '@/types/vault';
 import { eventBus } from '@/core/events/eventBus';
@@ -94,7 +95,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     <div className="space-y-3">
       {/* Calendar Header & Actions — tokenized */}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
-        <h3 className="text-heading-md text-slate-900">Appointments</h3>
+        <div>
+          <h3 className="text-heading-md text-slate-900">Appointments</h3>
+          <p className="text-caption text-muted">Prescribed clinical calendar</p>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
@@ -102,16 +106,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all min-h-[44px]"
           >
             <Download className="w-4 h-4" />
-            <span>Export</span>
+            <span>Export iCal</span>
           </button>
 
           {onAddEventClick && (
             <button
               onClick={onAddEventClick}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors min-h-[44px]"
+              className="flex items-center gap-1 px-3 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all min-h-[44px]"
             >
-              <Plus className="w-4 h-4 text-sky-400" />
-              <span>Book visit</span>
+              <Plus className="w-4 h-4" />
+              <span>Add Event</span>
+            </button>
+          )}
+
+          {onUploadSlipClick && (
+            <button
+              onClick={onUploadSlipClick}
+              className="flex items-center gap-1 px-3 py-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-slate-700 text-xs font-bold transition-all min-h-[44px]"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload Slip</span>
             </button>
           )}
         </div>
@@ -120,9 +134,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Filter Chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {[
-          { id: 'all', label: 'All' },
+          { id: 'all', label: 'All Scheduled Events' },
           { id: 'doctor_followup', label: 'Visits' },
-          { id: 'lab_due', label: 'Labs' },
+          { id: 'lab_due', label: 'Prescribed Labs' },
           { id: 'med_reminder', label: 'Reminders' }
         ].map((tab) => (
           <button
@@ -141,7 +155,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Events Stream */}
       {filteredEvents.length === 0 ? (
-        <p className="text-body-sm text-muted">No appointments in this view.</p>
+        <p className="text-body-sm text-muted">No scheduled events in this category.</p>
       ) : (
         <div className="space-y-3">
           {filteredEvents.map((evt) => {

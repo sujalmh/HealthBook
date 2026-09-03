@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { HeartPulse, ShieldCheck, LogIn, UserPlus, X } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
+import { supabaseSignUp, supabaseSignIn, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } from '@/core/supabase/auth';
 
 interface PendingAuth {
   pendingId: string;
@@ -166,7 +167,6 @@ export const MCPAuthBridge: React.FC = () => {
 
       // Server truth: Supabase Auth only. No local fallback —
       // passwords go to the server and are never stored on this device.
-      const { supabaseSignUp, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } = await import('@/core/supabase/auth.ts');
       const { session, user, error } = await supabaseSignUp(emailTrim, passwordTrim, { name: displayName, role });
       if (error) {
         if (error.code === 'ACCOUNT_EXISTS') {
@@ -272,7 +272,6 @@ export const MCPAuthBridge: React.FC = () => {
     setIsBusy(true);
     try {
       // Server truth: Supabase Auth only. No local fallback.
-      const { supabaseSignIn, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } = await import('@/core/supabase/auth.ts');
       const { session, error } = await supabaseSignIn(emailTrim, passwordTrim);
       if (error || !session) {
         const msg = error?.code === 'INVALID_CREDENTIALS'

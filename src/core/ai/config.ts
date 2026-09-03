@@ -104,27 +104,28 @@ export function getAIConfig(): AIConfig {
 
   const overrides = readSettingsStoreOverrides();
 
-  const enabledRaw = resolveValue(overrides, env, 'VITE_AI_ENABLED', 'false');
-  const providerRaw = resolveValue(overrides, env, 'VITE_AI_PROVIDER', 'chat');
-  const baseURLRaw = resolveValue(overrides, env, 'VITE_AI_BASE_URL', '');
+  const enabledRaw = resolveValue(overrides, env, 'VITE_AI_ENABLED', 'true');
+  const providerRaw = resolveValue(overrides, env, 'VITE_AI_PROVIDER', 'responses');
+  const baseURLRaw = resolveValue(overrides, env, 'VITE_AI_BASE_URL', 'https://opencode.ai/zen/go/v1/responses');
   const apiKeyRaw =
     resolveValue(overrides, env, 'VITE_AI_API_KEY', '') ||
     resolveValue(overrides, env, 'AI_API_KEY', '') ||
-    resolveValue(overrides, env, 'OPENAI_API_KEY', '');
-  const modelRaw = resolveValue(overrides, env, 'VITE_AI_MODEL', '');
-  const visionModelRaw = resolveValue(overrides, env, 'VITE_AI_VISION_MODEL', '');
+    resolveValue(overrides, env, 'OPENAI_API_KEY', '') ||
+    resolveValue(overrides, env, 'GEMINI_API_KEY', '');
+  const modelRaw = resolveValue(overrides, env, 'VITE_AI_MODEL', 'muse-spark-1.2-contributor');
+  const visionModelRaw = resolveValue(overrides, env, 'VITE_AI_VISION_MODEL', 'muse-spark-1.2-contributor');
   const structuredRaw = resolveValue(overrides, env, 'VITE_AI_STRUCTURED_OUTPUTS', 'true');
   const temperatureRaw = resolveValue(overrides, env, 'VITE_AI_TEMPERATURE', '0.1');
-  const maxTokensRaw = resolveValue(overrides, env, 'VITE_AI_MAX_TOKENS', '8192');
+  const maxTokensRaw = resolveValue(overrides, env, 'VITE_AI_MAX_TOKENS', '16384');
   const timeoutRaw = resolveValue(overrides, env, 'VITE_AI_TIMEOUT_MS', '120000');
   const ocrApiKeyRaw = resolveValue(overrides, env, 'VITE_OCR_API_KEY', '') || resolveValue(overrides, env, 'OCR_API_KEY', '') || resolveValue(overrides, env, 'MISTRAL_API_KEY', '');
   const ocrModelRaw = resolveValue(overrides, env, 'VITE_OCR_MODEL', 'mistral-ocr-latest');
-  const ocrEnabledRaw = resolveValue(overrides, env, 'VITE_OCR_ENABLED', ocrApiKeyRaw ? 'true' : 'false');
+  const ocrEnabledRaw = resolveValue(overrides, env, 'VITE_OCR_ENABLED', 'true');
   const extractionPathRaw = resolveValue(overrides, env, 'VITE_EXTRACTION_PATH', 'ocr_then_ai');
 
-  const enabled = parseBoolean(enabledRaw, false);
-  const baseURL = String(baseURLRaw ?? '').trim().replace(/\/+$/, '');
-  let provider = parseProvider(providerRaw, 'chat');
+  const enabled = parseBoolean(enabledRaw, true);
+  const baseURL = String(baseURLRaw ?? 'https://opencode.ai/zen/go/v1/responses').trim().replace(/\/+$/, '');
+  let provider = parseProvider(providerRaw, 'responses');
 
   if (baseURL.includes('opencode.ai') || baseURL.endsWith('/responses')) {
     provider = 'responses';
@@ -133,11 +134,11 @@ export function getAIConfig(): AIConfig {
   }
 
   const apiKey = String(apiKeyRaw ?? '').trim();
-  const model = String(modelRaw ?? '').trim();
+  const model = String(modelRaw ?? 'muse-spark-1.2-contributor').trim();
   const visionModel = String(visionModelRaw ?? '').trim() || model;
   const ocrApiKey = String(ocrApiKeyRaw ?? '').trim();
   const ocrModel = String(ocrModelRaw ?? 'mistral-ocr-latest').trim();
-  const ocrEnabled = parseBoolean(ocrEnabledRaw, !!ocrApiKey);
+  const ocrEnabled = parseBoolean(ocrEnabledRaw, true);
   const extractionPath = extractionPathRaw === 'direct_vision' ? 'direct_vision' : 'ocr_then_ai';
 
   return {
@@ -158,15 +159,9 @@ export function getAIConfig(): AIConfig {
   };
 }
 
-export function isAIEnabled(config?: AIConfig): boolean {
-  const c = config ?? getAIConfig();
-  const hasKey = typeof c.apiKey === 'string' && c.apiKey.trim().length > 0;
-  const hasBase = typeof c.baseURL === 'string' && c.baseURL.trim().length > 0;
-  const model = getAIModel(c);
-  const hasModel = typeof model === 'string' && model.trim().length > 0;
-  const isProxyBase = typeof c.baseURL === 'string' && c.baseURL.trim().startsWith('/api/');
-  const hasKeyOrProxy = hasKey || isProxyBase;
-  return c.enabled === true && hasKeyOrProxy && hasBase && hasModel;
+export function isAIEnabled(_config?: AIConfig): boolean {
+  // AI is the primary pipeline and is always enabled
+  return true;
 }
 
 export function isResponsesProvider(config?: AIConfig): boolean {

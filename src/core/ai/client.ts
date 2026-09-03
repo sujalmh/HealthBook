@@ -82,10 +82,6 @@ export async function callAI<T = unknown>(
   options?: AICallOptions
 ): Promise<T> {
   const config = getAIConfig();
-  if (!isAIEnabled(config)) {
-    throw new Error('AI is disabled or unconfigured — please check Settings or configure .env API key');
-  }
-
   const endpoint = getAIEndpoint(config);
   const isVision = !!options?.imageDataUrl && isDataUrl(options.imageDataUrl);
   const model = getAIModel(config, isVision);

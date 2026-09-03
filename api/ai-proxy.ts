@@ -24,11 +24,20 @@ export default async function handler(req: any, res?: any) {
         targetPath = '/' + targetPath;
       }
 
-      const targetUrl = `https://opencode.ai${targetPath}`;
+      const targetBase = (process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://opencode.ai').replace(/\/+$/, '');
+      const targetUrl = `${targetBase}${targetPath}`;
       const authHeader = req.headers?.['authorization'] || '';
       // Client has no VITE_-prefixed key in production — fall back to the
       // server-only AI_API_KEY (same contract as api/ai/responses.ts).
-      const serverKey = (process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '').trim();
+      const serverKey = (
+        process.env.AI_API_KEY ||
+        process.env.VITE_AI_API_KEY ||
+        process.env.OPENAI_API_KEY ||
+        process.env.GEMINI_API_KEY ||
+        process.env.ANTHROPIC_API_KEY ||
+        process.env.GROQ_API_KEY ||
+        ''
+      ).trim();
       const effectiveAuth = authHeader && authHeader.trim().toLowerCase() !== 'bearer'
         ? authHeader
         : (serverKey ? `Bearer ${serverKey}` : '');
@@ -103,10 +112,19 @@ export default async function handler(req: any, res?: any) {
       targetPath = '/' + targetPath;
     }
 
-    const targetUrl = `https://opencode.ai${targetPath}${url.search}`;
+    const targetBase = (process.env.AI_BASE_URL || process.env.OPENAI_BASE_URL || 'https://opencode.ai').replace(/\/+$/, '');
+    const targetUrl = `${targetBase}${targetPath}${url.search}`;
     const authHeader = req.headers.get('authorization') || '';
     // Server-only key fallback (same contract as api/ai/responses.ts).
-    const serverKey = (process.env.AI_API_KEY || process.env.OPENAI_API_KEY || '').trim();
+    const serverKey = (
+      process.env.AI_API_KEY ||
+      process.env.VITE_AI_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.GROQ_API_KEY ||
+      ''
+    ).trim();
     const effectiveAuth = authHeader && authHeader.trim().toLowerCase() !== 'bearer'
       ? authHeader
       : (serverKey ? `Bearer ${serverKey}` : '');

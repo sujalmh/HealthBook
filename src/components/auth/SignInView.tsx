@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { HeartPulse, Sparkles } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
+import { supabaseSignIn, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } from '@/core/supabase/auth';
 import type { CreatedProfile } from './CreateAccountView';
 
 interface SignInViewProps {
@@ -58,7 +59,6 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
     try {
       // Server truth: Supabase Auth is the only identity provider. No local fallback —
       // passwords are verified server-side and never stored on this device.
-      const { supabaseSignIn, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } = await import('@/core/supabase/auth.ts');
       const { session, error } = await supabaseSignIn(emailTrim, passwordTrim);
       if (error || !session) {
         const msg = error?.code === 'INVALID_CREDENTIALS'

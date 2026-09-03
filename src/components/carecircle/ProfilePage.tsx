@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { LogOut, Mail, CalendarDays } from 'lucide-react';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { loadSession, supabaseSignOut, clearSession } from '@/core/supabase/auth';
 import type { ActiveProfile } from '@/App';
 
 interface ProfilePageProps {
@@ -65,7 +66,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
     try {
       // All vault writes already hit the server before caching — nothing to flush.
       try {
-        const { loadSession, supabaseSignOut, clearSession } = await import('@/core/supabase/auth.ts');
         const s = loadSession();
         if (s) await supabaseSignOut(s.access_token);
         else clearSession();

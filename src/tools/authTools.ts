@@ -7,6 +7,7 @@
  */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
+import { eventBus } from '../core/events/eventBus.ts';
 
 function truncateName(name: string, max = 64): string {
   if (name.length <= max) return name;
@@ -119,16 +120,15 @@ export const createAccountTool: WebMCPToolDefinition = {
       }
     } catch { /* ignore */ }
 
-    // Dispatch toast via eventBus if available (import at runtime to avoid cycle)
+    // Dispatch toast via eventBus
     try {
-      const { eventBus: bus } = await import('@/core/events/eventBus.ts');
-      bus.dispatchToast({
+      eventBus.dispatchToast({
         type: 'info',
         title: 'Complete sign-up in browser',
         message: `AI prepared account for ${displayName} (${emailRaw}) as ${role} — please type your password in the browser password field and click Create Account. Password is never shared with AI.`,
       });
-      bus.emit('mcp_auth_pending' as unknown as string, pendingPayload as unknown as never);
-    } catch { /* ignore — fallback window event already dispatched */ }
+      eventBus.emit('mcp_auth_pending' as unknown as string, pendingPayload as unknown as never);
+    } catch { /* ignore */ }
 
     try {
       context.eventBus?.dispatchToast?.({
@@ -243,13 +243,12 @@ export const signInTool: WebMCPToolDefinition = {
     } catch { /* ignore */ }
 
     try {
-      const { eventBus: bus } = await import('@/core/events/eventBus.ts');
-      bus.dispatchToast({
+      eventBus.dispatchToast({
         type: 'info',
         title: 'Complete sign-in in browser',
         message: `AI prepared sign-in for ${emailRaw} — please type your password in the browser password field and click Sign In. Password is never shared with AI.`,
       });
-      bus.emit('mcp_auth_pending' as unknown as string, pendingPayload as unknown as never);
+      eventBus.emit('mcp_auth_pending' as unknown as string, pendingPayload as unknown as never);
     } catch { /* ignore */ }
 
     try {

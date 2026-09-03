@@ -10,7 +10,15 @@ export default async function handler(req: any, res: any) {
   const targetUrl = `${targetBase}/models${search}`;
   try {
     const headers: Record<string, string> = {};
-    const serverKey = process.env.AI_API_KEY;
+    const serverKey = (
+      process.env.AI_API_KEY ||
+      process.env.VITE_AI_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.GROQ_API_KEY ||
+      ''
+    ).trim();
     const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).trim() : '';
     if (authHeader && authHeader.length > 7 && authHeader.toLowerCase() !== 'bearer' && authHeader !== 'Bearer ') headers['Authorization'] = authHeader;
     else if (serverKey) headers['Authorization'] = `Bearer ${serverKey}`;

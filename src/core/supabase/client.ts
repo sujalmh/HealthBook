@@ -27,6 +27,7 @@
 import type { Fact, DocumentRecord, MedicationRecord, LabRecord, AllergyRecord, ConditionRecord, ProposalRecord, CalendarEventRecord, QuestionBankItem, DueCardRecord } from '../../types/vault.ts';
 import type { LinkedCareProfile, DoctorAccessGrant } from '../../types/carecircle.ts';
 import type { DangerSignReport } from '../../types/safety.ts';
+import { getAccessToken } from './auth.ts';
 
 // Re-export canonical id for convenience (single source is src/core/vault/seed.ts)
 export const CANONICAL_PATIENT_ID = 'patient-s-devi';
@@ -279,7 +280,6 @@ class LightweightTableClient implements SupabaseTableClient {
     if (this.anonKey) headers.apikey = this.anonKey;
     let bearer: string | null = null;
     try {
-      const { getAccessToken } = await import('./auth.ts');
       bearer = await getAccessToken();
     } catch { /* ignore — fall back to anon */ }
     if (bearer) headers.Authorization = `Bearer ${bearer}`;

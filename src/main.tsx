@@ -5,6 +5,11 @@ import './index.css';
 import { localVault, wireLocalVaultToEventBus } from './core/vault/LocalVault';
 import { allWebMCPTools } from './tools';
 import { eventBus } from './core/events/eventBus';
+import { toSpecTool } from './core/webmcp/WebMCPAdapter';
+import { webMCPEngine } from './core/webmcp/WebMCPEngine';
+import { isSupabaseEnabled } from './core/supabase/client';
+import { hydrateFromSupabase } from './core/vault/supabaseSync';
+import { sessionState, clearSession } from './core/supabase/auth';
 
 const bootstrapAbortControllers = new Map<string, AbortController>();
 
@@ -61,8 +66,6 @@ async function registerAllTools(): Promise<void> {
       try {
         const doc = document as unknown as { modelContext?: { registerTool?: (t: unknown, opts?: unknown) => Promise<void> } };
         if (doc.modelContext?.registerTool) {
-          const { toSpecTool } = await import('./core/webmcp/WebMCPAdapter.ts');
-          const { webMCPEngine } = await import('./core/webmcp/WebMCPEngine.ts');
           const specTool = toSpecTool(tool, webMCPEngine);
           try {
             await doc.modelContext.registerTool(specTool, { signal: controller.signal });
@@ -72,14 +75,13 @@ async function registerAllTools(): Promise<void> {
             const errName = (e as { name?: string })?.name || '';
             if (errName === 'NotAllowedError' || errName === 'SecurityError' || errName === 'InvalidStateError') {
               console.warn(`[Healthbook] native register blocked for ${tool.name}: ${errName}`);
-              try { (await import('./core/webmcp/WebMCPEngine.ts')).webMCPEngine.register(tool); } catch {}
+              try { webMCPEngine.register(tool); } catch {}
               return;
             }
             if (errName === 'AbortError') return;
             throw e;
           }
         }
-        const { webMCPEngine } = await import('./core/webmcp/WebMCPEngine.ts');
         webMCPEngine.register(tool);
       } catch (e: unknown) {
         const errName = (e as { name?: string })?.name || '';
@@ -135,7 +137,6 @@ async function bootstrap(): Promise<void> {
   //    otherwise the app would open an empty vault for the wrong identity.
   //    'unknown' (offline/unconfigured) leaves state untouched.
   try {
-    const { sessionState, clearSession } = await import('./core/supabase/auth.ts');
     if ((await sessionState()) === 'invalid') clearSession();
   } catch { /* ignore — auth gate handles signed-out state */ }
 
@@ -146,10 +147,8 @@ async function bootstrap(): Promise<void> {
   const storedUserId = getStoredUserId();
   if (storedUserId) {
     try {
-      const { isSupabaseEnabled } = await import('./core/supabase/client.ts');
       if (isSupabaseEnabled()) {
         try {
-          const { hydrateFromSupabase } = await import('./core/vault/supabaseSync.ts');
           await hydrateFromSupabase(storedUserId, localVault);
         } catch (e) { console.warn('[Healthbook] Hydration failed — empty vault, no mock seed', e); }
       }
@@ -167,7 +166,6 @@ async function bootstrap(): Promise<void> {
     if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'InvalidStateError') console.warn('[Healthbook] WebMCP bulk registration blocked', e);
     else console.warn('[Healthbook] WebMCP bootstrap registration failed — fallback to polyfill, still mounting', e);
     try {
-      const { webMCPEngine } = await import('./core/webmcp/WebMCPEngine.ts');
       for (const tool of allWebMCPTools) try { webMCPEngine.register(tool); } catch {}
     } catch {}
   }

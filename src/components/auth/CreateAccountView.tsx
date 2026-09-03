@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { HeartPulse, Sparkles } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
+import { supabaseSignUp, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } from '@/core/supabase/auth';
 
 export interface CreatedProfile {
   userId: string;
@@ -93,7 +94,6 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
 
       // Server truth: Supabase Auth creates the account. No local fallback —
       // passwords go to the server only and are never stored on this device.
-      const { supabaseSignUp, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } = await import('@/core/supabase/auth.ts');
       const { session, user, error } = await supabaseSignUp(emailTrim, passwordTrim, { name: displayName, role });
       if (error) {
         if (error.code === 'ACCOUNT_EXISTS') {

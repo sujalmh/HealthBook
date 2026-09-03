@@ -232,7 +232,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
           <div className="p-2.5 rounded-xl bg-sky-50 text-clinical-blue border border-sky-200"><Pill className="w-4 h-4" /></div>
           <div><span className="text-caption text-muted uppercase font-bold tracking-wider">Medicines</span><p className="text-heading-md text-slate-900">{activeMedsCount}</p></div>
@@ -240,6 +240,10 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
           <div className="p-2.5 rounded-xl bg-emerald-50 text-clinical-emerald border border-emerald-200"><Activity className="w-4 h-4" /></div>
           <div><span className="text-caption text-muted uppercase font-bold tracking-wider">Labs</span><p className="text-heading-md text-slate-900">{labsCount}</p></div>
+        </div>
+        <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
+          <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-200"><FileText className="w-4 h-4" /></div>
+          <div><span className="text-caption text-muted uppercase font-bold tracking-wider">Citations</span><p className="text-heading-md text-slate-900">{citationsCount}</p></div>
         </div>
         <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
           <div className="p-2.5 rounded-xl bg-primary-light text-primary border border-primary-border"><ShieldCheck className="w-4 h-4" /></div>

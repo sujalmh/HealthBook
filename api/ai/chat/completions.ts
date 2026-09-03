@@ -11,7 +11,15 @@ export default async function handler(req: any, res: any) {
   try {
     const headers: Record<string, string> = {};
     if (req.headers['content-type']) headers['Content-Type'] = String(req.headers['content-type']);
-    const serverKey = process.env.AI_API_KEY;
+    const serverKey = (
+      process.env.AI_API_KEY ||
+      process.env.VITE_AI_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.GROQ_API_KEY ||
+      ''
+    ).trim();
     const authHeader = req.headers['authorization'] ? String(req.headers['authorization']).trim() : '';
     // Only use client header if it contains a real token after "Bearer " (avoid "Bearer " empty spam)
     if (authHeader && authHeader.length > 7 && authHeader.toLowerCase() !== 'bearer' && authHeader !== 'Bearer ') headers['Authorization'] = authHeader;

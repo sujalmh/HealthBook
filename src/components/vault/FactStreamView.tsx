@@ -237,7 +237,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
 
           {pendingLabsCount > 0 && (
             <div className="px-3 sm:px-4 py-2 bg-violet-50 border-b border-violet-200 text-caption text-violet-800">
-              <span className="font-bold">{pendingLabsCount} lab{pendingLabsCount===1?'':'s'}</span> consolidated in Lab Results.
+              <span className="font-bold">{pendingLabsCount} lab{pendingLabsCount===1?'':'s'}</span> consolidated in Lab Results (Indicators).
             </div>
           )}
           <div className="overflow-x-auto scrollbar-none">
@@ -316,7 +316,7 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
 
       <div className="w-full bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="px-3 sm:px-4 py-3 border-b border-slate-100 flex flex-row items-center justify-between gap-3 bg-slate-50/60">
-          <h3 className="text-sm font-bold text-slate-900">Records ({approvedFacts.length})</h3>
+          <h3 className="text-sm font-bold text-slate-900">Your Saved Records ({approvedFacts.length})</h3>
           {approvedFacts.length > 0 && (
           <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs overflow-x-auto scrollbar-none shrink-0">
             {['all', 'lab', 'medication', 'allergy', 'condition'].map((cat) => (
@@ -328,12 +328,12 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
 
         {approvedLabsCount > 0 && !labDelegationActive && (
           <div className="px-3 sm:px-4 py-2 bg-violet-50 border-y border-violet-200 text-caption text-violet-800">
-            <span className="font-bold">{approvedLabsCount} lab{approvedLabsCount===1?'':'s'}</span> in Lab Results.
+            <span className="font-bold">{approvedLabsCount} lab{approvedLabsCount===1?'':'s'}</span> in Lab Results (Indicators).
           </div>
         )}
         {labDelegationActive ? (
           <div className="p-6 text-center bg-violet-50/60 border-y border-violet-200">
-            <p className="text-sm font-bold text-slate-900">Lab results live under Lab Results.</p>
+            <p className="text-sm font-bold text-slate-900">Lab results are in Indicators (one row per marker).</p>
           </div>
         ) : filteredApprovedFacts.length === 0 ? (
           <div className="p-6 text-center bg-slate-50/50">

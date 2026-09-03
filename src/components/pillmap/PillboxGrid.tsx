@@ -320,6 +320,11 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         ))}
       </div>
 
+      {/* Mobile swipe affordance indicator */}
+      <div className="sm:hidden flex items-center justify-between text-caption text-muted px-1">
+        <span>Swipe horizontally for full week</span>
+      </div>
+
       {/* Mobile single-day view — stacked time slots, no horizontal scroll */}
       <div className="sm:hidden space-y-2">
         {TIME_SLOTS.map((slot) => {
