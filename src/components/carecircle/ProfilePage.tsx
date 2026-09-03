@@ -63,16 +63,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
       return;
     }
     try {
-      // Consistency first: push any in-flight vault writes to the server truth.
-      try {
-        const { flushSync } = localVault as unknown as { flushSync?: () => Promise<{ pending: number; lastError: string | null }> };
-        if (typeof flushSync === 'function') {
-          const report = await flushSync();
-          if (report.lastError) {
-            eventBus.dispatchToast({ type: 'warning', title: 'Sync incomplete', message: 'Some changes may not have reached the server. They remain on this device.' });
-          }
-        }
-      } catch { /* boundary */ }
+      // All vault writes already hit the server before caching — nothing to flush.
       try {
         const { loadSession, supabaseSignOut, clearSession } = await import('@/core/supabase/auth.ts');
         const s = loadSession();

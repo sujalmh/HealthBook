@@ -50,9 +50,9 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(grid.sunday.evening).toHaveLength(1);
     });
 
-    it('persists medications and slot-based calendar reminders into LocalVault', () => {
+    it('persists medications and slot-based calendar reminders into LocalVault', async () => {
       // Add medication
-      const med = vault.addMedication({
+      const med = await vault.addMedication({
         id: 'med-apixaban-001',
         patientId: testPatientId,
         brandName: 'Eliquis',
@@ -70,7 +70,7 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(activeMeds[0].genericName).toBe('Apixaban');
 
       // Add slot-based reminders to calendar_events
-      const reminderEvent = vault.addCalendarEvent({
+      const reminderEvent = await vault.addCalendarEvent({
         id: 'rem_morning_001',
         patientId: testPatientId,
         title: 'MORNING Meds Reminder (08:00)',

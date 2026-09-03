@@ -266,7 +266,7 @@ export async function runHomeLabToolsTests(): Promise<{ passed: number; failed: 
   // --- Tool 5: sync_pillmap_from_proposal (5 tests) ---
   await test('TC-HL05-01: sync_pillmap_from_proposal - updates medication dosage in LocalVault', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_metformin',
       patientId: context.patientId,
       genericName: 'Metformin',

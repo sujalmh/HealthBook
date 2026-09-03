@@ -273,8 +273,16 @@ CREATE POLICY carecircle_insert_own ON care_circle FOR INSERT
   WITH CHECK (patient_id IN (SELECT public.carecanvas_my_patient_ids()));
 DROP POLICY IF EXISTS carecircle_update_own ON care_circle;
 CREATE POLICY carecircle_update_own ON care_circle FOR UPDATE
-  USING (patient_id IN (SELECT public.carecanvas_my_patient_ids()))
-  WITH CHECK (patient_id IN (SELECT public.carecanvas_my_patient_ids()));
+  USING (
+    patient_id IN (SELECT public.carecanvas_my_patient_ids())
+    OR payload ->> 'doctorId' IN (SELECT public.carecanvas_my_patient_ids())
+    OR payload ->> 'doctorUserId' IN (SELECT public.carecanvas_my_patient_ids())
+  )
+  WITH CHECK (
+    patient_id IN (SELECT public.carecanvas_my_patient_ids())
+    OR payload ->> 'doctorId' IN (SELECT public.carecanvas_my_patient_ids())
+    OR payload ->> 'doctorUserId' IN (SELECT public.carecanvas_my_patient_ids())
+  );
 DROP POLICY IF EXISTS carecircle_delete_own_or_self ON care_circle;
 CREATE POLICY carecircle_delete_own_or_self ON care_circle FOR DELETE
   USING (

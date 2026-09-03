@@ -379,7 +379,7 @@ export const suggestQuestionForDoctorTool: WebMCPToolDefinition = {
     };
 
     if (params.autoAddToBank !== false && context.vault) {
-      context.vault.addQuestion(item);
+      await context.vault.addQuestion(item);
     }
 
     return {

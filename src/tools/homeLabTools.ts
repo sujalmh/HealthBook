@@ -132,7 +132,7 @@ export const uploadLabImageTool: WebMCPToolDefinition = {
 
     // Add facts to vault
     for (const fact of facts) {
-      context.vault.addFact(
+      await context.vault.addFact(
         fact,
         { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role }
       );
@@ -210,7 +210,7 @@ export const doctorReviewCommentTool: WebMCPToolDefinition = {
       readStatus: true
     };
 
-    context.vault.addDoctorCommentToLab(params.labId, {
+    await context.vault.addDoctorCommentToLab(params.labId, {
       doctorId: doctorComment.doctorId,
       doctorName: doctorComment.doctorName,
       comment: params.commentText
@@ -281,7 +281,7 @@ export const proposeDosageChangeTool: WebMCPToolDefinition = {
       timestamp: new Date().toISOString()
     };
 
-    context.vault.addProposal(proposal, {
+    await context.vault.addProposal(proposal, {
       userId: (proposal.doctorId || '').trim() || 'clinician',
       userName: proposal.doctorName,
       role: 'doctor'
@@ -332,7 +332,7 @@ export const approveDosageChangeTool: WebMCPToolDefinition = {
     const role = (params.role || context.activeProfile.role) as unknown as string;
     const onBehalfOf = params.onBehalfOf || context.activeProfile.onBehalfOf;
 
-    const updated = context.vault.updateProposalStatus(
+    const updated = await context.vault.updateProposalStatus(
       params.proposalId,
       isApprove ? 'approved' : 'rejected',
       {
@@ -397,7 +397,7 @@ export const syncPillmapFromProposalTool: WebMCPToolDefinition = {
   execute: async (params: { proposalId: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const denied5 = gateIfViewOnly(context.activeProfile, 'sync_pillmap_from_proposal');
     if (denied5) return denied5;
-    const proposal = context.vault.proposals.get(params.proposalId);
+    const proposal = context.vault.getProposals(context.patientId).find((p: ProposalRecord) => p.id === params.proposalId);
     if (!proposal) {
       return {
         success: false,
@@ -418,7 +418,7 @@ export const syncPillmapFromProposalTool: WebMCPToolDefinition = {
     });
 
     if (targetMed && proposal.proposedDose) {
-      context.vault.updateMedication(
+      await context.vault.updateMedication(
         targetMed.id,
         { dosage: proposal.proposedDose, status: 'active' },
         { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role }

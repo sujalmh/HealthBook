@@ -163,7 +163,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
     return;
   };
 
-  const handleApproveAndCommit = () => {
+  const handleApproveAndCommit = async () => {
     const drawDate = new Date().toISOString();
     const sourceDocId = lastDocumentId || `doc_homelab_${Date.now()}`;
 
@@ -177,9 +177,10 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
     }
 
     let addedCount = 0;
-    for (const item of extractedValues) {
-      const numVal = typeof item.value === 'number' ? item.value : parseFloat(String(item.value).replace(/[^0-9.]/g, ''));
-      if (Number.isFinite(numVal)) {
+    try {
+      for (const item of extractedValues) {
+        const numVal = typeof item.value === 'number' ? item.value : parseFloat(String(item.value).replace(/[^0-9.]/g, ''));
+        if (!Number.isFinite(numVal)) continue;
         const correctFlag = deriveCorrectFlag(item.marker, numVal, item.flag);
         const std = findLocalStandard(item.marker);
         const isBorderline = (() => {
@@ -191,7 +192,7 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
           return isNearHigh || isNearLow;
         })();
         const isCritical = correctFlag.includes('CRITICAL');
-        localVault.addLab({
+        await localVault.addLab({
           id: `lab_${(item.marker ?? 'lab').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
           patientId,
           marker: item.marker,
@@ -209,13 +210,20 @@ export const UploadLabModal: React.FC<UploadLabModalProps> = ({
         } as unknown as import('@/types/vault').LabRecord);
         addedCount++;
       }
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Ingest failed', message: e instanceof Error ? e.message : 'Server save failed partway. Already-saved values remain.' });
+      return;
     }
 
     if (linkedDueCardId) {
-      localVault.updateDueCard(linkedDueCardId, {
-        status: 'completed',
-        completedLabId: sourceDocId
-      });
+      try {
+        await localVault.updateDueCard(linkedDueCardId, {
+          status: 'completed',
+          completedLabId: sourceDocId
+        });
+      } catch (e: unknown) {
+        eventBus.dispatchToast({ type: 'error', title: 'Due card update failed', message: e instanceof Error ? e.message : 'Server save failed. Please retry.' });
+      }
     }
 
     const summaryParts = extractedValues.map((v) => `${v.marker}: ${v.value} ${v.unit || ''}`);

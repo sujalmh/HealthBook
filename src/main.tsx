@@ -101,15 +101,15 @@ async function hydrateFromLocalSnapshotIfNeeded(): Promise<void> {
     for (const [patientId, bundle] of Object.entries(blob)) {
       if (!patientId || localVault.hasAnyData(patientId)) continue;
       try {
-        for (const c of (bundle.conditions as unknown[]) || []) { try { localVault.addCondition(c as never); totalInjected++; } catch {} }
-        for (const a of (bundle.allergies as unknown[]) || []) { try { localVault.addAllergy(a as never); totalInjected++; } catch {} }
-        for (const m of (bundle.medications as unknown[]) || []) { try { localVault.addMedication(m as never); totalInjected++; } catch {} }
-        for (const l of (bundle.labs as unknown[]) || []) { try { localVault.addLab(l as never); totalInjected++; } catch {} }
-        for (const d of (bundle.dueCards as unknown[]) || []) { try { (localVault as unknown as { addDueCard: (x: unknown)=>void }).addDueCard(d as never); totalInjected++; } catch {} }
-        for (const p of (bundle.proposals as unknown[]) || []) { try { localVault.addProposal(p as never); totalInjected++; } catch {} }
-        for (const e of (bundle.calendarEvents as unknown[]) || []) { try { localVault.addCalendarEvent(e as never); totalInjected++; } catch {} }
-        for (const r of (bundle.dangerReports as unknown[]) || []) { try { localVault.addDangerReport(r as never); totalInjected++; } catch {} }
-        for (const q of (bundle.questionBank as unknown[]) || []) { try { localVault.addQuestion(q as never); totalInjected++; } catch {} }
+        for (const c of (bundle.conditions as unknown[]) || []) { try { await localVault.addCondition(c as never); totalInjected++; } catch {} }
+        for (const a of (bundle.allergies as unknown[]) || []) { try { await localVault.addAllergy(a as never); totalInjected++; } catch {} }
+        for (const m of (bundle.medications as unknown[]) || []) { try { await localVault.addMedication(m as never); totalInjected++; } catch {} }
+        for (const l of (bundle.labs as unknown[]) || []) { try { await localVault.addLab(l as never); totalInjected++; } catch {} }
+        for (const d of (bundle.dueCards as unknown[]) || []) { try { await (localVault as unknown as { addDueCard: (x: unknown)=>Promise<unknown> }).addDueCard(d as never); totalInjected++; } catch {} }
+        for (const p of (bundle.proposals as unknown[]) || []) { try { await localVault.addProposal(p as never); totalInjected++; } catch {} }
+        for (const e of (bundle.calendarEvents as unknown[]) || []) { try { await localVault.addCalendarEvent(e as never); totalInjected++; } catch {} }
+        for (const r of (bundle.dangerReports as unknown[]) || []) { try { await localVault.addDangerReport(r as never); totalInjected++; } catch {} }
+        for (const q of (bundle.questionBank as unknown[]) || []) { try { await localVault.addQuestion(q as never); totalInjected++; } catch {} }
       } catch (e) { console.warn('[Healthbook] snapshot inject failed for', patientId, e); }
     }
     // also hydrate doctor links if present in separate key
@@ -118,7 +118,7 @@ async function hydrateFromLocalSnapshotIfNeeded(): Promise<void> {
       if (linkRaw) {
         const links = JSON.parse(linkRaw) as unknown[];
         for (const lk of links) {
-          try { (localVault as unknown as { addDoctorLink:(x:unknown)=>void }).addDoctorLink(lk as never); } catch {}
+          try { await (localVault as unknown as { addDoctorLink:(x:unknown)=>Promise<unknown> }).addDoctorLink(lk as never); } catch {}
         }
       }
     } catch {}

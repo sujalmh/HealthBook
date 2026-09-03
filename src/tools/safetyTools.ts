@@ -119,7 +119,7 @@ export const reportDangerSignTool: WebMCPToolDefinition = {
       ...(aiConfidence !== undefined ? { aiConfidence, aiTriageSource: 'ai_vision_text_multimodal' } : {}),
     } as any;
 
-    context.vault.addDangerReport(report);
+    await context.vault.addDangerReport(report);
 
     context.vault.logAudit(
       'report_danger_sign',
@@ -202,7 +202,7 @@ export const doctorAddMedicationTool: WebMCPToolDefinition = {
   execute: async (params: { medName: string; dose: string; slot?: string; reason: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const denied = gateIfViewOnly(context.activeProfile, 'doctor_add_medication');
     if (denied) return denied;
-    const proposal = context.vault.addProposal(
+    const proposal = await context.vault.addProposal(
       {
         id: `prop_add_${Date.now()}`,
         patientId: context.patientId,
@@ -268,7 +268,7 @@ export const doctorRemoveMedicationTool: WebMCPToolDefinition = {
       };
     }
 
-    const proposal = context.vault.addProposal(
+    const proposal = await context.vault.addProposal(
       {
         id: `prop_remove_${Date.now()}`,
         patientId: params.patientId || context.patientId,
@@ -315,7 +315,7 @@ export const doctorChangeDoseTool: WebMCPToolDefinition = {
   execute: async (params: { medName: string; newDose: string; reason: string }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const denied = gateIfViewOnly(context.activeProfile, 'doctor_change_dose');
     if (denied) return denied;
-    const proposal = context.vault.addProposal(
+    const proposal = await context.vault.addProposal(
       {
         id: `prop_change_${Date.now()}`,
         patientId: context.patientId,
@@ -373,8 +373,12 @@ export const approvePillmapChangeTool: WebMCPToolDefinition = {
     const isApprove = params.action !== 'reject';
     const approverName = params.approvedBy || context.activeProfile.name;
 
-    const proposal = context.vault.proposals.get(params.actionId);
-    if (!proposal) {
+    const updated = await context.vault.updateProposalStatus(
+      params.actionId,
+      isApprove ? 'approved' : 'rejected',
+      { userId: context.activeProfile.userId, userName: approverName, role: context.activeProfile.role }
+    );
+    if (!updated) {
       return {
         success: false,
         tool: 'approve_pillmap_change',
@@ -385,16 +389,15 @@ export const approvePillmapChangeTool: WebMCPToolDefinition = {
         error: { code: 'ACTION_NOT_FOUND', message: 'Proposal not found.' }
       };
     }
-
-    proposal.status = isApprove ? 'approved' : 'rejected';
+    const proposal = updated;
     proposal.approvedBy = approverName;
-    proposal.approvedAt = new Date().toISOString();
+    proposal.approvedAt = proposal.approvedAt || new Date().toISOString();
 
     if (isApprove && proposal.type === 'remove_med') {
       const meds = context.vault.getMedications(proposal.patientId);
       const target = meds.find((m: any) => m.genericName?.toLowerCase().includes(proposal.medName.toLowerCase()) || proposal.medName.toLowerCase().includes(m.genericName?.toLowerCase()));
       if (target) {
-        context.vault.updateMedication(
+        await context.vault.updateMedication(
           target.id,
           { status: 'discontinued' },
           { userId: context.activeProfile.userId, userName: approverName, role: context.activeProfile.role }
@@ -460,7 +463,7 @@ export const scheduleFollowupTool: WebMCPToolDefinition = {
       if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return new Date(d + 'T12:00:00').toISOString();
       return d;
     })();
-    const event = context.vault.addCalendarEvent(
+    const event = await context.vault.addCalendarEvent(
       {
         id: `apt_${Date.now()}`,
         patientId: context.patientId,

@@ -324,7 +324,7 @@ describe('Milestone 4: RxBridge Post-Discharge 3-List Reconciliation Engine', ()
   describe('6. WebMCP Tool: export_patient_summary', () => {
     it('generates complete 1-page discharge summary package with schedule, food rules, and red flags', async () => {
       // Seed question bank first
-      vault.addQuestion({
+      await vault.addQuestion({
         id: 'q_test_1',
         patientId: testPatientId,
         questionText: 'When should we recheck my kidney labs?',
@@ -388,7 +388,7 @@ describe('Milestone 4: RxBridge Post-Discharge 3-List Reconciliation Engine', ()
       expect(result.feedbackNarration.toLowerCase()).toContain('stopped');
     });
 
-    it('returns minor_confusion for vague or incomplete responses', () => {
+    it('returns minor_confusion for vague or incomplete responses', async () => {
       const response = 'I will take my pills.';
 
       const result = ClinicalReconciliationEngine.evaluateTeachBack(response, mockShantiDevi3ListDataset);
@@ -402,13 +402,13 @@ describe('Milestone 4: RxBridge Post-Discharge 3-List Reconciliation Engine', ()
   // 8. Cross-Module Handoff to PillMap & LocalVault Persistence
   // =========================================================================
   describe('8. Cross-Module Handoff to PillMap & LocalVault', () => {
-    it('populates LocalVault active medications and Day 0 schedule from approved discharge list', () => {
+    it('populates LocalVault active medications and Day 0 schedule from approved discharge list', async () => {
       const activeMeds = mockShantiDevi3ListDataset.dischargeMeds.filter((d) => d.status !== 'STOPPED');
       const stoppedMeds = mockShantiDevi3ListDataset.dischargeMeds.filter((d) => d.status === 'STOPPED');
 
       // Add active discharge meds
       for (const d of activeMeds) {
-        vault.addMedication({
+        await vault.addMedication({
           id: `med_${d.medName.toLowerCase()}`,
           patientId: testPatientId,
           brandName: d.medName,
@@ -425,7 +425,7 @@ describe('Milestone 4: RxBridge Post-Discharge 3-List Reconciliation Engine', ()
 
       // Add stopped meds with stopped status
       for (const s of stoppedMeds) {
-        vault.addMedication({
+        await vault.addMedication({
           id: `med_${s.medName.toLowerCase()}`,
           patientId: testPatientId,
           brandName: s.medName,

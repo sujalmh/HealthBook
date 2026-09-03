@@ -37,7 +37,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
   describe('CD1: compile_health_record — 11-Store Lifetime Compilation', () => {
     it('compiles comprehensive health record from all 11 LocalVault stores', async () => {
       // 1. Facts
-      localVault.addFact({
+      await localVault.addFact({
         id: 'fact_ckd_diag',
         patientId,
         category: 'condition',
@@ -52,7 +52,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 2. Meds
-      localVault.addMedication({
+      await localVault.addMedication({
         id: 'med_apixaban',
         patientId,
         genericName: 'Apixaban',
@@ -65,7 +65,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 3. Labs
-      localVault.addLab({
+      await localVault.addLab({
         id: 'lab_egfr_28',
         patientId,
         marker: 'eGFR',
@@ -82,7 +82,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 4. Allergies
-      localVault.addAllergy({
+      await localVault.addAllergy({
         id: 'allergy_pcn',
         patientId,
         allergen: 'Penicillin',
@@ -92,7 +92,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 5. Conditions
-      localVault.addCondition({
+      await localVault.addCondition({
         id: 'cond_t2d',
         patientId,
         conditionName: 'Type 2 Diabetes Mellitus',
@@ -101,7 +101,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 6. Proposals
-      localVault.addProposal({
+      await localVault.addProposal({
         id: 'prop_metformin_500',
         patientId,
         doctorName: 'Dr. Patel',
@@ -115,7 +115,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 7. Calendar Events
-      localVault.addCalendarEvent({
+      await localVault.addCalendarEvent({
         id: 'cal_cardio_followup',
         patientId,
         title: 'Cardiology Clinic Follow-up',
@@ -127,7 +127,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 8. Care Circle
-      localVault.addCaregiverLink({
+      await localVault.addCaregiverLink({
         linkId: 'link_raj_son',
         patientId,
         patientName: 'Smt. Shanti Devi',
@@ -139,7 +139,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 9. Doctor Grants
-      localVault.addDoctorGrant({
+      await localVault.addDoctorGrant({
         grantId: 'grant_dr_chen',
         patientId,
         doctorEmail: 'dr.chen@nephrology.org',
@@ -162,7 +162,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       );
 
       // 11. Danger Reports & Due Cards
-      localVault.addDangerReport({
+      await localVault.addDangerReport({
         reportId: 'danger_edema_001',
         patientId,
         symptomTags: ['edema_feet', 'dyspnea'],
@@ -173,7 +173,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
         firstAidAdvice: 'Elevate legs and contact cardiologist.'
       });
 
-      localVault.addDueCard({
+      await localVault.addDueCard({
         id: 'due_renal_2w',
         patientId,
         testPanel: 'Renal Function Panel',
@@ -209,7 +209,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
     });
 
     it('strictly excludes unconfirmed and rejected facts from citations and compiled records', async () => {
-      localVault.addFact({
+      await localVault.addFact({
         id: 'fact_unconfirmed',
         patientId,
         category: 'medication',
@@ -223,7 +223,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
         timestamp: new Date().toISOString()
       });
 
-      localVault.addFact({
+      await localVault.addFact({
         id: 'fact_rejected',
         patientId,
         category: 'medication',
@@ -237,7 +237,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
         timestamp: new Date().toISOString()
       });
 
-      localVault.addFact({
+      await localVault.addFact({
         id: 'fact_approved',
         patientId,
         category: 'medication',
@@ -261,7 +261,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
     });
 
     it('generates a complete EmergencySnapshot with vitals, critical labs, and QR seal', async () => {
-      localVault.addLab({
+      await localVault.addLab({
         id: 'lab_egfr',
         patientId,
         marker: 'eGFR',
@@ -296,7 +296,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
     });
 
     it('compiles valid FHIR R4 Bundle JSON with Patient, Condition, Observation, and MedicationStatement', async () => {
-      localVault.addMedication({
+      await localVault.addMedication({
         id: 'med_atorva',
         patientId,
         genericName: 'Atorvastatin',
@@ -309,7 +309,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
         status: 'active'
       });
 
-      localVault.addLab({
+      await localVault.addLab({
         id: 'lab_creat',
         patientId,
         marker: 'Creatinine',
@@ -325,7 +325,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
         flag: 'HIGH'
       });
 
-      localVault.addAllergy({
+      await localVault.addAllergy({
         id: 'allergy_pcn',
         patientId,
         allergen: 'Penicillin',
@@ -387,7 +387,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
     });
 
     it('retrieves source bounding box for confirmed vault facts', async () => {
-      localVault.addFact({
+      await localVault.addFact({
         id: 'fact_apixaban_source',
         patientId,
         category: 'medication',
@@ -501,7 +501,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
   describe('INT1–INT9 Cross-Module Integration in Compiled Dossier', () => {
     it('seamlessly aggregates data from Labs, PillMap, RxBridge, HomeLab, and Safety into Dossier', async () => {
       // 1. Ingest baseline lab from LabStory
-      localVault.addLab({
+      await localVault.addLab({
         id: 'lab_creat_baseline',
         patientId,
         marker: 'Creatinine',
@@ -524,7 +524,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 2. Reconcile meds from RxBridge
-      localVault.addMedication({
+      await localVault.addMedication({
         id: 'med_apixaban_reconciled',
         patientId,
         genericName: 'Apixaban',
@@ -537,7 +537,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 3. HomeLab dosage proposal & approval
-      localVault.addProposal({
+      await localVault.addProposal({
         id: 'prop_metformin_halved',
         patientId,
         doctorName: 'Dr. Patel',
@@ -553,7 +553,7 @@ describe('Milestone 6: Continuity Dossier & Cross-Module Integration', () => {
       });
 
       // 4. Safety Alert danger sign
-      localVault.addDangerReport({
+      await localVault.addDangerReport({
         reportId: 'danger_001',
         patientId,
         symptomTags: ['edema_feet'],

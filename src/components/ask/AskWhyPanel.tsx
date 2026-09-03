@@ -85,7 +85,7 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
     }
   };
 
-  const handleAddToQuestionBank = () => {
+  const handleAddToQuestionBank = async () => {
     if (!causalResult?.recommendedDoctorQuestion) return;
     const item: QuestionBankItem = {
       id: `qb_askwhy_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -100,7 +100,16 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
       status: 'active',
       createdAt: new Date().toISOString(),
     };
-    localVault.addQuestionBankItem(item);
+    try {
+      await localVault.addQuestionBankItem(item);
+    } catch (e: unknown) {
+      eventBus.dispatchToast({
+        type: 'error',
+        title: 'Save failed',
+        message: e instanceof Error ? e.message : 'Server save failed. Please retry.',
+      });
+      return;
+    }
     setIsQuestionAdded(true);
     eventBus.dispatchToast({
       type: 'success',

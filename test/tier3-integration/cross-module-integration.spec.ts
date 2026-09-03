@@ -62,7 +62,7 @@ export async function runCrossModuleIntegrationTests(): Promise<{ passed: number
   // INT-03: Vault -> RxBridge
   await test('INT-03: Vault -> RxBridge - reads baseline OTCs from Vault and checks discharge cross-talk', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_home_fishoil',
       patientId: context.patientId,
       genericName: 'Fish Oil',
@@ -144,7 +144,7 @@ export async function runCrossModuleIntegrationTests(): Promise<{ passed: number
   // INT-07: HomeLab -> PillMap
   await test('INT-07: HomeLab -> PillMap - approved dosage proposal updates PillMap dose diff and pulses green', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_metformin',
       patientId: context.patientId,
       genericName: 'Metformin',
@@ -188,7 +188,7 @@ export async function runCrossModuleIntegrationTests(): Promise<{ passed: number
   // INT-09: Safety -> PillMap
   await test('INT-09: Safety -> PillMap - remote NSAID removal deletes pill from canvas and clears arcs', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_ibuprofen',
       patientId: context.patientId,
       genericName: 'Ibuprofen',

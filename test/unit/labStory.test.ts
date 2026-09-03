@@ -194,9 +194,9 @@ describe('Module 1: LabStory & Longitudinal Biomarker Engine', () => {
       ]);
       await extractLabsTool.execute({ documentId: 'doc_historical_labs_2022_2026', patientId, rawLabData }, context);
       // Seed vault meds for correlatedMeds generic derivation
-      localVault.addMedication({ id: 'med_metformin_test', patientId, brandName: 'Glucophage', genericName: 'Metformin', dosage: '1000mg', unit: 'mg', frequency: 'BID', timingSlots: ['morning', 'evening'], withFood: true, status: 'active' } as any);
-      localVault.addMedication({ id: 'med_atorva_test', patientId, brandName: 'Lipitor', genericName: 'Atorvastatin', dosage: '40mg', unit: 'mg', frequency: 'QHS', timingSlots: ['bedtime'], withFood: false, status: 'active' } as any);
-      localVault.addMedication({ id: 'med_lisinopril_test', patientId, brandName: 'Zestril', genericName: 'Lisinopril', dosage: '20mg', unit: 'mg', frequency: 'QAM', timingSlots: ['morning'], withFood: false, status: 'active' } as any);
+      await localVault.addMedication({ id: 'med_metformin_test', patientId, brandName: 'Glucophage', genericName: 'Metformin', dosage: '1000mg', unit: 'mg', frequency: 'BID', timingSlots: ['morning', 'evening'], withFood: true, status: 'active' } as any);
+      await localVault.addMedication({ id: 'med_atorva_test', patientId, brandName: 'Lipitor', genericName: 'Atorvastatin', dosage: '40mg', unit: 'mg', frequency: 'QHS', timingSlots: ['bedtime'], withFood: false, status: 'active' } as any);
+      await localVault.addMedication({ id: 'med_lisinopril_test', patientId, brandName: 'Zestril', genericName: 'Lisinopril', dosage: '20mg', unit: 'mg', frequency: 'QAM', timingSlots: ['morning'], withFood: false, status: 'active' } as any);
     };
 
     it('correlates eGFR decline with vault-derived trajectory', async () => {
@@ -264,7 +264,7 @@ describe('Module 1: LabStory & Longitudinal Biomarker Engine', () => {
       const egfrs = localVault.getLabs(patientId, 'eGFR');
       const latestPoint = egfrs[egfrs.length - 1];
 
-      const updated = localVault.addDoctorCommentToLab(latestPoint.id, {
+      const updated = await localVault.addDoctorCommentToLab(latestPoint.id, {
         doctorId: 'dr_patel_md',
         doctorName: 'Dr. Anita Patel, MD',
         comment: 'eGFR dropped to 28 mL/min; halving Metformin to 500mg daily to protect kidneys.',
@@ -277,7 +277,7 @@ describe('Module 1: LabStory & Longitudinal Biomarker Engine', () => {
       expect(updated?.doctorComments?.[0].comment).toContain('halving Metformin');
     });
 
-    it('saves generated doctor question to Central Question Bank store in LocalVault', () => {
+    it('saves generated doctor question to Central Question Bank store in LocalVault', async () => {
       const question = {
         id: 'qb_lab_test_01',
         patientId,
@@ -290,7 +290,7 @@ describe('Module 1: LabStory & Longitudinal Biomarker Engine', () => {
         createdAt: new Date().toISOString(),
       };
 
-      localVault.addQuestionBankItem(question);
+      await localVault.addQuestionBankItem(question);
 
       const items = localVault.getQuestionBankItems(patientId);
       expect(items.length).toBe(1);
@@ -306,7 +306,7 @@ describe('Module 1: LabStory & Longitudinal Biomarker Engine', () => {
       expect(zoomList.length).toBe(6);
     });
 
-    it('verifies doctor comment pinning and reference/optimal range calculations', () => {
+    it('verifies doctor comment pinning and reference/optimal range calculations', async () => {
       const sampleLab: LabRecord = {
         id: 'lab_test_sample_01',
         patientId,
@@ -323,8 +323,8 @@ describe('Module 1: LabStory & Longitudinal Biomarker Engine', () => {
         flag: 'LOW'
       };
 
-      localVault.addLab(sampleLab, { userId: 'u1', userName: 'Test', role: 'patient' });
-      const pinned = localVault.addDoctorCommentToLab(sampleLab.id, {
+      await localVault.addLab(sampleLab, { userId: 'u1', userName: 'Test', role: 'patient' });
+      const pinned = await localVault.addDoctorCommentToLab(sampleLab.id, {
         doctorId: 'doc1',
         doctorName: 'Dr. Anita Patel, MD',
         comment: 'Hold NSAIDs and re-check eGFR in 2 weeks.'

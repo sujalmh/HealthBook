@@ -362,6 +362,13 @@ export async function hydrateFromSupabase(patientId: string, vault: LocalVaultMa
     if (total === 0 && skippedTables === HYDRATION_MAPPINGS.length) {
       return { hydrated: 0, skipped: true, counts };
     }
+    try {
+      const v = vault as unknown as { hydratePendingItems?: (pid: string) => Promise<number> };
+      if (typeof v.hydratePendingItems === 'function') {
+        counts['pending_items'] = await v.hydratePendingItems(trimmedPatientId);
+        total += counts['pending_items'];
+      }
+    } catch { /* inbox is additive on top of records */ }
     return { hydrated: total, skipped: false, counts };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);

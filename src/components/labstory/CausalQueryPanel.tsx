@@ -83,7 +83,7 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
     }
   };
 
-  const handleAddToQuestionBank = () => {
+  const handleAddToQuestionBank = async () => {
     if (!causalResult?.recommendedDoctorQuestion) return;
 
     const questionItem: QuestionBankItem = {
@@ -100,7 +100,16 @@ export const CausalQueryPanel: React.FC<CausalQueryPanelProps> = ({
       createdAt: new Date().toISOString()
     };
 
-    localVault.addQuestionBankItem(questionItem);
+    try {
+      await localVault.addQuestionBankItem(questionItem);
+    } catch (e: unknown) {
+      eventBus.dispatchToast({
+        type: 'error',
+        title: 'Save failed',
+        message: e instanceof Error ? e.message : 'Server save failed. Please retry.',
+      });
+      return;
+    }
     setIsQuestionAdded(true);
 
     eventBus.dispatchToast({

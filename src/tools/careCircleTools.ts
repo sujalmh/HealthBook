@@ -96,7 +96,7 @@ export const linkPatientTool: WebMCPToolDefinition = {
       status: 'active'
     };
 
-    context.vault.addCaregiverLink(link);
+    await context.vault.addCaregiverLink(link);
 
     return {
       success: true,
@@ -158,7 +158,7 @@ export const grantCaregiverAccessTool: WebMCPToolDefinition = {
         } catch {}
       }
       if (targetLinkId) {
-        context.vault.updateCaregiverPermission(targetLinkId, params.permissionLevel);
+        await context.vault.updateCaregiverPermission(targetLinkId, params.permissionLevel);
       } else if (pid) {
         // No existing link — create minimal link for persistence (covers test without prior link_patient)
         // Do not create if we cannot determine patient linkage — just persist via vault best-effort
@@ -177,7 +177,7 @@ export const grantCaregiverAccessTool: WebMCPToolDefinition = {
               linkedDate: new Date().toISOString(),
               status: 'active'
             };
-            context.vault.addCaregiverLink(placeholder);
+            await context.vault.addCaregiverLink(placeholder);
           }
         } catch {}
       }
@@ -378,7 +378,7 @@ export const grantDoctorAccessTool: WebMCPToolDefinition = {
       status: 'active'
     };
 
-    context.vault.addDoctorGrant(grant);
+    await context.vault.addDoctorGrant(grant);
     context.vault.logAudit(
       'grant_doctor_access',
       'access_grant',
@@ -423,7 +423,7 @@ export const revokeAccessTool: WebMCPToolDefinition = {
     if (grant) {
       grant.status = 'revoked';
       grant.revokedAt = new Date().toISOString();
-      context.vault.revokeDoctorGrant(params.grantId);
+      await context.vault.revokeDoctorGrant(params.grantId);
     }
 
     context.vault.logAudit(

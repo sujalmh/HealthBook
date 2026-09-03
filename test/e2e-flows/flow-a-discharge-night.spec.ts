@@ -96,7 +96,7 @@ export async function runFlowATests(): Promise<{ passed: number; failed: number;
     assert(questionsInBank.length >= 2, 'Step A.4: Question Bank must have >= 2 items');
 
     // Step A.5: Export 1-page patient discharge summary — seed vault meds first for real-data path
-    vault.addMedication({ id: 'med_a5_001', patientId: context.patientId, genericName: 'Apixaban', dosage: '5mg', frequency: 'BID', timingSlots: ['morning','evening'], status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
+    await vault.addMedication({ id: 'med_a5_001', patientId: context.patientId, genericName: 'Apixaban', dosage: '5mg', frequency: 'BID', timingSlots: ['morning','evening'], status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
     const exportRes = await engine.execute('export_patient_summary', {
       patientId: context.patientId,
       format: 'one_page_pdf'

@@ -119,7 +119,7 @@ export const extractFactTool: WebMCPToolDefinition = {
 
     // Save to Vault with status 'unconfirmed' for the authenticated patientId
     for (const fact of extractedFacts) {
-      context.vault.addFact(
+      await context.vault.addFact(
         { ...fact, patientId: context.patientId, status: 'unconfirmed' },
         { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role }
       );
@@ -228,7 +228,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
     };
 
     // Helper to propagate confirmed categorical facts to respective module stores
-    const propagateFact = (fact: Fact) => {
+    const propagateFact = async (fact: Fact) => {
       const cat = (fact.category || '').toLowerCase().trim();
       const name = fact.name || 'Clinical Item';
       const val = fact.value;
@@ -270,7 +270,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
           || lowerDose.includes('with supper') || lowerDose.includes('after supper');
         const isStopped = lowerDose.includes('stopped') || lowerDose.includes('discontinued') || lowerDose.includes('held') || lowerDose.includes('prior');
 
-        context.vault.addMedication(
+        await context.vault.addMedication(
           {
             id: `med_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
@@ -305,7 +305,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
         // Reference range from the explanation, e.g. "within normal range (0.7-1.3 mg/dL)"
         const rangeMatch = (fact.plainExplanation || '').match(/\((\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*([A-Za-z\/°²^0-9]*)\s*\)/);
 
-        context.vault.addLab(
+        await context.vault.addLab(
           {
             id: `lab_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
@@ -329,7 +329,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
       // 3. Conditions & Diagnoses
       else if (cat.includes('condition') || cat.includes('diagnos')) {
-        context.vault.addCondition(
+        await context.vault.addCondition(
           {
             id: `cond_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
@@ -351,7 +351,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
           // Still record it as a condition-style note? No — nothing to track; skip silently.
           return;
         }
-        context.vault.addAllergy(
+        await context.vault.addAllergy(
           {
             id: `allg_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
             patientId,
@@ -366,7 +366,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
       // 5. Follow-ups & Scheduled Appointments
       else if (cat.includes('followup') || cat.includes('appointment')) {
-        context.vault.addCalendarEvent(
+        await context.vault.addCalendarEvent(
           {
             id: `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
             patientId,
@@ -383,7 +383,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
       // 6. Due Labs & Monitoring Panels
       else if (cat.includes('due') || cat.includes('panel')) {
-        context.vault.addDueCard({
+        await context.vault.addDueCard({
           id: `due_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
           patientId,
           testPanel: name || 'Prescribed Monitoring Lab',
@@ -400,7 +400,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
       // 7. Questions for Doctor
       else if (cat.includes('question')) {
-        context.vault.addQuestion({
+        await context.vault.addQuestion({
           id: `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
           patientId,
           questionText: plain || name,
@@ -435,7 +435,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
 
       for (const f of pending) {
         const newStatus = action === 'reject' ? 'rejected' : 'confirmed';
-        const updated = context.vault.updateFactStatus(
+        const updated = await context.vault.updateFactStatus(
           f.id,
           newStatus,
           {
@@ -448,7 +448,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
         );
         if (updated) {
           if (newStatus === 'confirmed') {
-            propagateFact(updated);
+            await propagateFact(updated);
           }
           updatedFacts.push(updated);
         }
@@ -485,7 +485,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
     }
 
     const newStatus = action === 'reject' ? 'rejected' : 'confirmed';
-    const updatedFact = context.vault.updateFactStatus(
+    const updatedFact = await context.vault.updateFactStatus(
       factId,
       newStatus,
       {
@@ -498,7 +498,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
     );
 
     if (newStatus === 'confirmed' && updatedFact) {
-      propagateFact(updatedFact);
+      await propagateFact(updatedFact);
     }
 
     const narration =

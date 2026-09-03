@@ -104,6 +104,10 @@ try {
 
 beforeEach(async () => {
   try {
+    const { setVaultSyncMode } = await import('../src/core/vault/LocalVault');
+    setVaultSyncMode('local');
+  } catch { /* ignore */ }
+  try {
     if (typeof localStorage !== 'undefined') {
       localStorage.clear();
       const mockAIConfig = JSON.stringify({

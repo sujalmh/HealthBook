@@ -149,7 +149,7 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = '' 
             <div className="pt-3 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-canvas-border">
               <div className="text-xs text-muted flex items-center gap-2">
                 <Database className="w-3.5 h-3.5 text-muted shrink-0" />
-                <span>Store: IndexedDB (LocalVault v1)</span>
+                <span>Store: Supabase (server truth, RLS-isolated)</span>
               </div>
               <button
                 onClick={handleExportFHIR}

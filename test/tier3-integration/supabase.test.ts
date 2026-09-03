@@ -20,6 +20,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LocalVaultManager } from '@/core/vault/LocalVault';
+import { setVaultSyncMode } from '@/core/vault/LocalVault';
 import { WebMCPEventBus } from '@/core/events/eventBus';
 import { seedIfEmpty, CANONICAL_PATIENT_ID } from '@/core/vault/seed';
 import { isSupabaseEnabled, _resetSupabaseClientForTests } from '@/core/supabase/client';
@@ -62,13 +63,14 @@ function disableSupabaseEnv() {
 }
 
 describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.restoreAllMocks();
     disableSupabaseEnv();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
+    setVaultSyncMode('local');
     // restore original env shape but keep our disable as baseline; tests that enabled will re-disable via beforeEach
     // Ensure we don't leak mock env
     for (const k of Object.keys(process.env)) {
@@ -104,7 +106,7 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
     };
 
     // LocalVault addMedication should succeed locally even when Supabase disabled
-    vault.addMedication(med as any);
+    await vault.addMedication(med as any);
     expect(vault.getMedications(CANONICAL).some(m => m.id === med.id)).toBe(true);
     expect(countEvents(bus, 'medication_added')).toBe(1);
 
@@ -200,8 +202,8 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
     // Also test with Supabase disabled rapid local adds — should be 10 distinct
     const promises: Promise<void>[] = [];
     for (let i = 0; i < 10; i++) {
-      promises.push(Promise.resolve().then(() => {
-        vault.addMedication({
+      promises.push(Promise.resolve().then(async () => {
+        await vault.addMedication({
           id: `med_rapid_supabase_${i}`,
           patientId: CANONICAL,
           genericName: `RapidSupa-${i}`,
@@ -223,16 +225,17 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
     // Map size correct
     expect((vault as any).meds.size).toBe(10);
 
-    // Enable env and repeat rapid with Supabase sync path (sync is fire-and-forget toast, not duplicate events)
+    // Enable env and repeat rapid with Supabase sync path (mocked upsert intercepts network)
     enableSupabaseEnv();
+    setVaultSyncMode('server');
     // Mock upsert to be no-op skipped so rapid doesn't hit network
     const upSpy = vi.spyOn(SupabaseClientModule, 'upsertSupabaseRecord').mockResolvedValue({ ok: true, skipped: true } as any);
     const { vault: v2, bus: b2 } = makeVaultWithBus();
     b2.clearHistory();
     const p2: Promise<void>[] = [];
     for (let i = 0; i < 10; i++) {
-      p2.push(Promise.resolve().then(() => {
-        v2.addMedication({
+      p2.push(Promise.resolve().then(async () => {
+        await v2.addMedication({
           id: `med_rapid_supabase2_${i}`,
           patientId: CANONICAL,
           genericName: `Rapid2-${i}`,
@@ -245,12 +248,11 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
       }));
     }
     await Promise.all(p2);
-    // Allow fire-and-forget microtasks
-    await new Promise(r => setTimeout(r, 20));
     expect(v2.getMedications(CANONICAL).length).toBe(10);
     expect(countEvents(b2, 'medication_added')).toBe(10);
     expect(new Set(v2.getMedications(CANONICAL).map(m => m.id)).size).toBe(10);
-    expect(upSpy).toHaveBeenCalledTimes(10);
+    // 10 med writes + 10 auto-generated medication questions (nested writes persist too)
+    expect(upSpy).toHaveBeenCalledTimes(20);
     // No duplicate Map entries
     expect((v2 as any).meds.size).toBe(10);
   });
@@ -339,9 +341,11 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
     expect(countEvents(bus, 'due_card_added')).toBe(0);
     expect(countEvents(bus, 'toast')).toBe(0);
 
-    // Now test sync path: addMedication when Supabase sync fails should emit only one medication_added + one toast, not duplicate added
-    // Mock upsert to fail (non-skipped error) so fire-and-forget dispatches toast
+    // Now test sync path: addMedication when Supabase save fails must reject —
+    // server truth means nothing is silently kept local on failure.
     vi.restoreAllMocks();
+    enableSupabaseEnv();
+    setVaultSyncMode('server');
     vi.spyOn(SupabaseClientModule, 'upsertSupabaseRecord').mockResolvedValue({ ok: false, error: 'mock supabase down' } as any);
     // Also need fetch stub still
     vi.spyOn(SupabaseClientModule, 'fetchSupabaseTable').mockResolvedValue({ data: [], error: null } as any);
@@ -359,17 +363,10 @@ describe('M4 Supabase Integration — env-gated sync+hydration adversarial', () 
       withFood: false,
       status: 'active' as const,
     };
-    v2.addMedication(med as any);
-    // Allow async .then to dispatch toast
-    await new Promise(r => setTimeout(r, 30));
-
-    expect(countEvents(b2, 'medication_added')).toBe(1);
-    // Should NOT have duplicate added inflation; only toast warning
-    expect(countEvents(b2, 'toast')).toBe(1);
-    expect(b2.getEvents('toast')[0].payload.message).toMatch(/Saved locally/);
-    // Ensure no extra medication_added from sync layer
-    expect(countEvents(b2, 'medication_added')).toBe(1);
-    expect(v2.getMedications(CANONICAL).length).toBe(1);
+    await expect(v2.addMedication(med as any)).rejects.toThrow(/mock supabase down/);
+    // Nothing cached on failure: no event, no silent local copy
+    expect(countEvents(b2, 'medication_added')).toBe(0);
+    expect(v2.getMedications(CANONICAL).length).toBe(0);
   });
 
   // ------------------------------------------------------------------

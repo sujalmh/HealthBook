@@ -24,7 +24,7 @@ export async function runFlowCTests(): Promise<{ passed: number; failed: number;
     const { engine, context, vault } = createTestHarness('test-patient-001', 'patient');
 
     // Step C.1: Set up initial active regimen and prescribed lab due card
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_metformin',
       patientId: context.patientId,
       genericName: 'Metformin',

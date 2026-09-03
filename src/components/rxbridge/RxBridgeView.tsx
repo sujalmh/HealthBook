@@ -257,19 +257,24 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     });
   };
 
-  const handleAskDoctor = (medName: string, questionText: string) => {
+  const handleAskDoctor = async (medName: string, questionText: string) => {
     // Dedup spam via vault (LocalVault.addQuestion checks duplicate) — AI-enriched without spam
-    localVault.addQuestionBankItem({
-      id: `q_recon_${Date.now()}`,
-      patientId: effectivePatientId,
-      questionText,
-      category: 'medication_change',
-      sourceModule: 'rxbridge',
-      linkedMedName: medName,
-      priority: 'high',
-      status: 'active',
-      createdAt: new Date().toISOString()
-    });
+    try {
+      await localVault.addQuestionBankItem({
+        id: `q_recon_${Date.now()}`,
+        patientId: effectivePatientId,
+        questionText,
+        category: 'medication_change',
+        sourceModule: 'rxbridge',
+        linkedMedName: medName,
+        priority: 'high',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      });
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Save failed', message: e instanceof Error ? e.message : 'Server save failed. Please retry.' });
+      return;
+    }
 
     eventBus.dispatchToast({
       type: 'success',
@@ -287,7 +292,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   };
 
   // Cross-Module Bridge: Finalize & Populate PillMap Day 0 Schedule — RB4 approval gate + RB9 diet-aware Day 0
-  const handleFinalizeAndHandoffToPillMap = () => {
+  const handleFinalizeAndHandoffToPillMap = async () => {
     // RB4 Approval Gate (trivial fix): block finalize unless 100% of reconciliation items approved
     const approvedCount = reconciledItems.filter((i) => i.isApprovedByPatient).length;
     const total = reconciledItems.length;
@@ -303,14 +308,17 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     // RB9: diet-aware Day 0 handoff — process all discharge medications into LocalVault meds + slot reminders
     const activeDischargeMeds = activeDataset.dischargeMeds.filter((d) => d.status !== 'STOPPED');
     const stoppedMeds = activeDataset.dischargeMeds.filter((d) => d.status === 'STOPPED');
+    const slotTimeMap: Record<string, string> = {};
+    const defaultTimes: Record<string, string> = { morning: '08:00', noon: '12:00', evening: '18:00', bedtime: '22:00' };
 
     // Add active discharge meds — uses effectivePatientId, AI-aware (questionBank enriched without duplicate spam)
-    for (const d of activeDischargeMeds) {
-      const generic = ClinicalReconciliationEngine.determineStatusBadge(undefined, undefined, d.dose) === 'NEW'
-        ? d.medName
-        : d.medName;
+    try {
+      for (const d of activeDischargeMeds) {
+        const generic = ClinicalReconciliationEngine.determineStatusBadge(undefined, undefined, d.dose) === 'NEW'
+          ? d.medName
+          : d.medName;
 
-      localVault.addMedication(
+        await localVault.addMedication(
         {
           id: `med_${d.medName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
           patientId: effectivePatientId,
@@ -334,7 +342,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         (m) => m.genericName?.toLowerCase().includes(s.medName?.toLowerCase()) || (m.brandName && m.brandName?.toLowerCase().includes(s.medName?.toLowerCase()))
       );
       if (existing) {
-        localVault.updateMedicationStatus(existing.id, 'stopped', {
+        await localVault.updateMedicationStatus(existing.id, 'stopped', {
           userId: activeProfile.userId,
           userName: activeProfile.name,
           role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
@@ -343,8 +351,6 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     }
 
     // RB9: Register diet-aware slot reminders via set_reminder semantics (calendar events grouped by slot time)
-    const slotTimeMap: Record<string, string> = {};
-    const defaultTimes: Record<string, string> = { morning: '08:00', noon: '12:00', evening: '18:00', bedtime: '22:00' };
     const activeSlots = new Set<string>();
     for (const d of activeDischargeMeds) {
       for (const s of (d.timingSlots || ['morning'])) activeSlots.add(s);
@@ -357,7 +363,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         .map((m) => m.dietInstructions)
         .filter(Boolean)
         .join('; ');
-      localVault.addCalendarEvent(
+      await localVault.addCalendarEvent(
         {
           id: `reminder_${slot}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
           patientId: effectivePatientId,
@@ -371,6 +377,10 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         },
         { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
       );
+    }
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Handoff failed', message: e instanceof Error ? e.message : 'Server save failed. Your Day 0 schedule was not saved.' });
+      return;
     }
 
     // Emit event so PillMap re-evaluates (INT2) — include patientId for relevant-only filtering, never '' leak

@@ -139,9 +139,10 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
     }
   };
 
-  const handleAddQuestionToBank = () => {
+  const handleAddQuestionToBank = async () => {
     const qText = `${(proposal.doctorName || '').trim() || 'Your doctor'}: Why is my ${proposal.medName} being changed to ${proposal.proposedDose}?`;
-    localVault.addQuestion({
+    try {
+      await localVault.addQuestion({
       id: `q_${Date.now()}`,
       patientId: proposal.patientId,
       questionText: qText,
@@ -152,6 +153,10 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
       priority: 'high',
       createdAt: new Date().toISOString()
     });
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Save failed', message: e instanceof Error ? e.message : 'Server save failed. Please retry.' });
+      return;
+    }
 
     setIsQuestionAdded(true);
     eventBus.dispatchToast({

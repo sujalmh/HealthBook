@@ -25,7 +25,7 @@ export async function runFlowDTests(): Promise<{ passed: number; failed: number;
     const { engine, context, vault } = createTestHarness('patient-s-devi', 'patient');
 
     // Setup active medications including offending NSAID
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_ibuprofen',
       patientId: 'patient-s-devi',
       genericName: 'Ibuprofen',

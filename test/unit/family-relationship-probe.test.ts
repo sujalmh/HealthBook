@@ -199,7 +199,7 @@ describe('Family #7 — Name + ≥12 relationships — probe 2 cases + a11y', ()
     const caregiverCards = container.textContent;
     expect(caregiverCards).toContain('Asha');
     // Ensure that if we add legacy link, it still renders Family member
-    localVault.addCaregiverLink({
+    await localVault.addCaregiverLink({
       linkId: 'link_legacy_001',
       patientId: pid,
       relationship: 'son',

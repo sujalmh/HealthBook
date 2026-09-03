@@ -16,7 +16,7 @@ describe('Follow-up #6 — range 7-14 days — probe 3 cases', () => {
 
   it('Case A — Single compat: addCalendarEvent old shape → CalendarView single dot In X days ICS DTSTART present DTEND absent', async () => {
     const singleId = 'cal_single_probe';
-    localVault.addCalendarEvent({
+    await localVault.addCalendarEvent({
       id: singleId,
       patientId: pid,
       title: '🏥 Your doctor Follow-up: check',
@@ -159,7 +159,7 @@ describe('Follow-up #6 — range 7-14 days — probe 3 cases', () => {
       isCompleted: false,
       syncedToCalendar: true,
     } as any;
-    localVault.addCalendarEvent(rangeEvent);
+    await localVault.addCalendarEvent(rangeEvent);
     const events = localVault.getCalendarEvents(pid);
     const { container } = render(React.createElement(CalendarView, { events }));
     await waitFor(() => expect(container.textContent).toContain('Prescribed clinical calendar'));

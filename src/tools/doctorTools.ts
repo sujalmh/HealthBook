@@ -87,7 +87,7 @@ export const linkDoctorTool: WebMCPToolDefinition = {
       grantedDate: new Date().toISOString(),
       authToken: params.authToken
     };
-    context.vault.addDoctorLink(link);
+    await context.vault.addDoctorLink(link);
     return {
       success: true,
       tool: 'link_doctor',
@@ -156,7 +156,7 @@ export const revokeDoctorLinkTool: WebMCPToolDefinition = {
       };
     }
     const targetId = link.linkId;
-    context.vault.revokeDoctorLink(targetId);
+    await context.vault.revokeDoctorLink(targetId);
     return {
       success: true,
       tool: 'revoke_doctor_link',

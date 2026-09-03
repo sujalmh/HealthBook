@@ -244,20 +244,29 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       });
       return;
     }
-    localVault.addMedication(
-      {
-        id: `med_${dragData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
-        patientId: effectivePatientId,
-        brandName: dragData.name,
-        genericName: generic,
-        dosage: dragData.dosage || dragData.dose || 'Standard',
-        frequency: 'Once daily',
-        timingSlots: [targetSlot],
-        withFood: false,
-        status: 'active'
-      },
-      { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
-    );
+    try {
+      await localVault.addMedication(
+        {
+          id: `med_${dragData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
+          patientId: effectivePatientId,
+          brandName: dragData.name,
+          genericName: generic,
+          dosage: dragData.dosage || dragData.dose || 'Standard',
+          frequency: 'Once daily',
+          timingSlots: [targetSlot],
+          withFood: false,
+          status: 'active'
+        },
+        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
+      );
+    } catch (e: unknown) {
+      eventBus.dispatchToast({
+        type: 'error',
+        title: 'Could not add medication',
+        message: e instanceof Error ? e.message : 'Server save failed. Please retry.',
+      });
+      return;
+    }
 
     eventBus.dispatchToast({
       type: 'success',
@@ -267,7 +276,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     loadMedicationsFromVault();
   };
 
-  const handleRemovePill = (pillId: string) => {
+  const handleRemovePill = async (pillId: string) => {
     let baseId = pillId;
     const daySlotSuffix = new RegExp(`_(${DAYS_OF_WEEK.join('|')})_(${TIME_SLOTS.join('|')})$`);
     if (daySlotSuffix.test(pillId)) {
@@ -289,15 +298,23 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         }
       }
     }
-    // Canonical removal via repository: single audited mutation that syncs to
-    // Supabase, emits medication_updated, and invalidates stored interaction
-    // evaluations. Replaces the old updateStatus+meds.delete double-write
-    // that bypassed audit/sync/invalidation.
-    healthRepository.removeMedication(baseId, {
-      userId: activeProfile.userId,
-      userName: activeProfile.name,
-      role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
-    });
+    // Canonical removal via repository: single audited mutation that writes to
+    // the server first, emits medication_updated, and invalidates stored
+    // interaction evaluations.
+    try {
+      const removed = await healthRepository.removeMedication(baseId, {
+        userId: activeProfile.userId,
+        userName: activeProfile.name,
+        role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
+      });
+      if (!removed) {
+        eventBus.dispatchToast({ type: 'error', title: 'Not found', message: 'That medicine was already removed.' });
+        return;
+      }
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Remove failed', message: e instanceof Error ? e.message : 'Server delete failed. Please retry.' });
+      return;
+    }
 
     eventBus.dispatchToast({
       type: 'info',
@@ -332,14 +349,19 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     }
   };
 
-  const handleApproveShifts = () => {
+  const handleApproveShifts = async () => {
     if (!activeSuggestion) return;
-    for (const shift of activeSuggestion.proposedShifts) {
-      localVault.updateMedication(
-        shift.medId,
-        { timingSlots: [shift.toSlot] },
-        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
-      );
+    try {
+      for (const shift of activeSuggestion.proposedShifts) {
+        await localVault.updateMedication(
+          shift.medId,
+          { timingSlots: [shift.toSlot] },
+          { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
+        );
+      }
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Shifts failed', message: e instanceof Error ? e.message : 'Server save failed. Please retry.' });
+      return;
     }
     setGhostShifts([]);
     setIsShiftModalOpen(false);
@@ -401,25 +423,30 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     return 'Prescription Regimen';
   }
 
-  const handleAddMedSubmit = (newMed: { name: string; genericName: string; dosage: string; frequency: string; timingSlots: TimeSlot[]; withFood: boolean; emptyStomach: boolean; avoidGrapefruit: boolean; avoidAlcohol: boolean; avoidDairy: boolean }) => {
-    localVault.addMedication(
-      {
-        id: `med_${newMed.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
-        patientId: effectivePatientId,
-        brandName: newMed.name,
-        genericName: newMed.genericName,
-        dosage: newMed.dosage,
-        frequency: newMed.frequency,
-        timingSlots: newMed.timingSlots,
-        withFood: newMed.withFood,
-        emptyStomach: newMed.emptyStomach,
-        avoidGrapefruit: newMed.avoidGrapefruit,
-        avoidAlcohol: newMed.avoidAlcohol,
-        avoidDairy: newMed.avoidDairy,
-        status: 'active'
-      },
-      { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
-    );
+  const handleAddMedSubmit = async (newMed: { name: string; genericName: string; dosage: string; frequency: string; timingSlots: TimeSlot[]; withFood: boolean; emptyStomach: boolean; avoidGrapefruit: boolean; avoidAlcohol: boolean; avoidDairy: boolean }) => {
+    try {
+      await localVault.addMedication(
+        {
+          id: `med_${newMed.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
+          patientId: effectivePatientId,
+          brandName: newMed.name,
+          genericName: newMed.genericName,
+          dosage: newMed.dosage,
+          frequency: newMed.frequency,
+          timingSlots: newMed.timingSlots,
+          withFood: newMed.withFood,
+          emptyStomach: newMed.emptyStomach,
+          avoidGrapefruit: newMed.avoidGrapefruit,
+          avoidAlcohol: newMed.avoidAlcohol,
+          avoidDairy: newMed.avoidDairy,
+          status: 'active'
+        },
+        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
+      );
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Could not add medication', message: e instanceof Error ? e.message : 'Server save failed. Please retry.' });
+      return;
+    }
     setIsAddMedOpen(false);
     eventBus.dispatchToast({
       type: 'success',
@@ -429,37 +456,47 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     loadMedicationsFromVault();
   };
 
-  const handleSaveReminders = (slotTimes: Record<TimeSlot, string>) => {
-    for (const [slot, time] of Object.entries(slotTimes)) {
-      localVault.addCalendarEvent(
-        {
-          id: `reminder_${slot}_${Date.now()}`,
-          patientId: effectivePatientId,
-          title: `${slot.toUpperCase()} Pill Reminder (${time})`,
-          eventType: 'med_reminder',
-          scheduledDate: new Date().toISOString(),
-          reason: `Take scheduled ${slot} medications at ${time}`,
-          notifyHoursBefore: [0],
-          isCompleted: false,
-          syncedToCalendar: true
-        },
-        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
-      );
+  const handleSaveReminders = async (slotTimes: Record<TimeSlot, string>) => {
+    try {
+      for (const [slot, time] of Object.entries(slotTimes)) {
+        await localVault.addCalendarEvent(
+          {
+            id: `reminder_${slot}_${Date.now()}`,
+            patientId: effectivePatientId,
+            title: `${slot.toUpperCase()} Pill Reminder (${time})`,
+            eventType: 'med_reminder',
+            scheduledDate: new Date().toISOString(),
+            reason: `Take scheduled ${slot} medications at ${time}`,
+            notifyHoursBefore: [0],
+            isCompleted: false,
+            syncedToCalendar: true
+          },
+          { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
+        );
+      }
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Reminders failed', message: e instanceof Error ? e.message : 'Server save failed. Please retry.' });
+      return;
     }
   };
 
-  const handleAddQuestionToBank = (questionText: string, medName: string) => {
-    localVault.addQuestionBankItem({
-      id: `q_${Date.now()}`,
-      patientId: effectivePatientId,
-      questionText,
-      category: 'medication_clarification',
-      sourceModule: 'rxbridge',
-      linkedMedName: medName,
-      priority: 'high',
-      status: 'active',
-      createdAt: new Date().toISOString()
-    });
+  const handleAddQuestionToBank = async (questionText: string, medName: string) => {
+    try {
+      await localVault.addQuestionBankItem({
+        id: `q_${Date.now()}`,
+        patientId: effectivePatientId,
+        questionText,
+        category: 'medication_clarification',
+        sourceModule: 'rxbridge',
+        linkedMedName: medName,
+        priority: 'high',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      });
+    } catch (e: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Save failed', message: e instanceof Error ? e.message : 'Server save failed. Please retry.' });
+      return;
+    }
     eventBus.dispatchToast({
       type: 'success',
       title: 'Question Bank Updated',

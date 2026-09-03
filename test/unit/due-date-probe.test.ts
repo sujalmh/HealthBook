@@ -36,7 +36,7 @@ describe('Due-date R5 — local-noon + range — probe 4 cases', () => {
       instructions: 'Monitor',
       status: 'due_soon' as const,
     };
-    localVault.addDueCard(dueCard as any);
+    await localVault.addDueCard(dueCard as any);
     const cards = localVault.getDueCards(pid);
     expect(cards.length).toBe(1);
     const { container } = render(React.createElement(DueCardList, { dueCards: cards, onUploadClick: () => {} }));
@@ -67,7 +67,7 @@ describe('Due-date R5 — local-noon + range — probe 4 cases', () => {
       instructions: 'Check',
       status: 'due_soon' as const,
     };
-    localVault.addDueCard(dueCard as any);
+    await localVault.addDueCard(dueCard as any);
     const cards = localVault.getDueCards(pid);
     const { container } = render(React.createElement(DueCardList, { dueCards: cards, onUploadClick: () => {} }));
     await waitFor(() => expect(container.textContent).toContain('Potassium Panel'));
@@ -96,7 +96,7 @@ describe('Due-date R5 — local-noon + range — probe 4 cases', () => {
       isCompleted: false,
       syncedToCalendar: true,
     } as any;
-    localVault.addCalendarEvent(rangeEvent);
+    await localVault.addCalendarEvent(rangeEvent);
     const events = localVault.getCalendarEvents(pid);
     expect(events.length).toBe(1);
     expect((events[0] as any).scheduledDateEnd).toContain('2026-09-10');
@@ -196,7 +196,7 @@ describe('Due-date R5 — local-noon + range — probe 4 cases', () => {
       isCompleted: false,
       syncedToCalendar: true,
     } as any;
-    localVault.addCalendarEvent(rangeEvt);
+    await localVault.addCalendarEvent(rangeEvt);
     const syncRes = await syncToCalendarTool.execute({ eventId: 'cal_sync_probe' }, ctx as any);
     expect(syncRes.success).toBe(true);
     expect(syncRes.data.icsData).toContain('DTSTART:');

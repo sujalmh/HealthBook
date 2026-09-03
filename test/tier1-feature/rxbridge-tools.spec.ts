@@ -236,7 +236,7 @@ export async function runRxBridgeToolsTests(): Promise<{ passed: number; failed:
   await test('TC-RB05-01: export_patient_summary - generates 1-page summary with what changed and schedule', async () => {
     const { engine, context, vault } = createTestHarness();
     // Seed vault with at least one med for real-data export (no mock dataset fallback)
-    vault.addMedication({ id: 'med_test_001', patientId: context.patientId, genericName: 'Metformin', brandName: 'Metformin', dosage: '500mg', frequency: 'BID', timingSlots: ['morning','evening'], withFood: true, status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
+    await vault.addMedication({ id: 'med_test_001', patientId: context.patientId, genericName: 'Metformin', brandName: 'Metformin', dosage: '500mg', frequency: 'BID', timingSlots: ['morning','evening'], withFood: true, status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
     const res = await engine.execute('export_patient_summary', {
       patientId: context.patientId,
       format: 'one_page_pdf'
@@ -248,7 +248,7 @@ export async function runRxBridgeToolsTests(): Promise<{ passed: number; failed:
 
   await test('TC-RB05-02: export_patient_summary - includes emergency contacts and red flag symptoms', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addMedication({ id: 'med_test_002', patientId: context.patientId, genericName: 'Lisinopril', dosage: '10mg', frequency: 'QD', timingSlots: ['morning'], status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
+    await vault.addMedication({ id: 'med_test_002', patientId: context.patientId, genericName: 'Lisinopril', dosage: '10mg', frequency: 'QD', timingSlots: ['morning'], status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
     const res = await engine.execute('export_patient_summary', { patientId: context.patientId }, context);
     assert(res.success);
     assert(!!res.data.emergencyContact.phone, 'Emergency phone must be present');
@@ -257,7 +257,7 @@ export async function runRxBridgeToolsTests(): Promise<{ passed: number; failed:
 
   await test('TC-RB05-03: export_patient_summary - embeds aggregated Question Bank items', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addMedication({ id: 'med_test_003', patientId: context.patientId, genericName: 'Atorvastatin', dosage: '20mg', frequency: 'QHS', timingSlots: ['bedtime'], status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
+    await vault.addMedication({ id: 'med_test_003', patientId: context.patientId, genericName: 'Atorvastatin', dosage: '20mg', frequency: 'QHS', timingSlots: ['bedtime'], status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
     await engine.execute('suggest_question_for_doctor', { context: 'Lisinopril kidney question', medName: 'Lisinopril' }, context);
     const res = await engine.execute('export_patient_summary', { patientId: context.patientId }, context);
     assert(res.success);
@@ -266,7 +266,7 @@ export async function runRxBridgeToolsTests(): Promise<{ passed: number; failed:
 
   await test('TC-RB05-04: export_patient_summary - JSON interchange format export', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addMedication({ id: 'med_test_004', patientId: context.patientId, genericName: 'Apixaban', dosage: '5mg', frequency: 'BID', timingSlots: ['morning','evening'], status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
+    await vault.addMedication({ id: 'med_test_004', patientId: context.patientId, genericName: 'Apixaban', dosage: '5mg', frequency: 'BID', timingSlots: ['morning','evening'], status: 'active' } as any, { userId: context.activeProfile.userId, userName: context.activeProfile.name, role: context.activeProfile.role as any });
     const res = await engine.execute('export_patient_summary', { patientId: context.patientId, format: 'json' }, context);
     assert(res.success);
     assertEquals(res.data.format, 'json');

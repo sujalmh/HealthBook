@@ -84,7 +84,7 @@ export const addMedicationTool: WebMCPToolDefinition = {
       return aiErrorResult('add_medication', err, `resolve a generic name for "${params.name}"`);
     }
 
-    const medRecord = context.vault.addMedication(
+    const medRecord = await context.vault.addMedication(
       {
         id: `med_${params.name?.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
         patientId: context.patientId,
@@ -496,7 +496,7 @@ export const setReminderTool: WebMCPToolDefinition = {
     }
     const slots = params.slotTimes;
     for (const [slot, time] of Object.entries(slots)) {
-      context.vault.addCalendarEvent(
+      await context.vault.addCalendarEvent(
         {
           id: `reminder_${slot}_${Date.now()}`,
           patientId: params.patientId || context.patientId,

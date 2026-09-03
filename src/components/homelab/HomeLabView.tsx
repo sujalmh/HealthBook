@@ -84,8 +84,17 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
     setSelectedDueCardId(undefined);
   };
 
-  const handleCompleteCard = (cardId: string) => {
-    localVault.updateDueCard(cardId, { status: 'completed' });
+  const handleCompleteCard = async (cardId: string) => {
+    try {
+      await localVault.updateDueCard(cardId, { status: 'completed' });
+    } catch (e: unknown) {
+      eventBus.dispatchToast({
+        type: 'error',
+        title: 'Update failed',
+        message: e instanceof Error ? e.message : 'Server save failed. Please retry.'
+      });
+      return;
+    }
     loadData();
     eventBus.dispatchToast({
       type: 'success',

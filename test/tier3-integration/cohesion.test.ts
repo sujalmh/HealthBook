@@ -102,7 +102,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   // Medication propagation: PillMap -> Dossier + LabStory overlay
   // ------------------------------------------------------------------
   describe('medication propagation (PillMap ↔ Dossier ↔ LabStory)', () => {
-    it('addMedication emits medication_added, vault getMedications reflects it, audit logged', () => {
+    it('addMedication emits medication_added, vault getMedications reflects it, audit logged', async () => {
       seedIfEmpty(vault, CANONICAL);
       bus.clearHistory();
 
@@ -127,7 +127,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
         withFood: false,
         status: 'active' as const,
       };
-      vault.addMedication(newMed as any, { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
+      await vault.addMedication(newMed as any, { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
 
       expect(vault.getMedications(CANONICAL).some(m => m.id === newMed.id)).toBe(true);
       expect(countEvents(bus, 'medication_added')).toBe(1);
@@ -140,7 +140,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       // (PillMap arcs/badges rely on DDI check)
       const { engine, context } = createTestHarness(CANONICAL, 'patient');
       // inject same vault? use harness vault: add fish oil to trigger known DDI
-      context.vault.addMedication({
+      await context.vault.addMedication({
         id: 'med_home_fishoil',
         patientId: CANONICAL,
         genericName: 'Fish Oil',
@@ -152,7 +152,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
         status: 'active'
       } as any, { userId: 'u1', userName: 'User', role: 'patient' });
       // Also add Apixaban
-      context.vault.addMedication({
+      await context.vault.addMedication({
         id: 'med_apix',
         patientId: CANONICAL,
         genericName: 'Apixaban',
@@ -168,9 +168,9 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       });
     });
 
-    it('updateMedication emits medication_updated -> PillMap arcs + LabStory overlay + Dossier', () => {
+    it('updateMedication emits medication_updated -> PillMap arcs + LabStory overlay + Dossier', async () => {
       // Seed a med manually (seed is now no-op empty)
-      vault.addMedication({ id: 'med_seed_cohesion_1', patientId: CANONICAL, brandName: 'TestMed', genericName: 'TestMed', dosage: '5mg', unit: 'mg', frequency: 'BID', timingSlots: ['morning'], withFood: false, status: 'active' } as any);
+      await vault.addMedication({ id: 'med_seed_cohesion_1', patientId: CANONICAL, brandName: 'TestMed', genericName: 'TestMed', dosage: '5mg', unit: 'mg', frequency: 'BID', timingSlots: ['morning'], withFood: false, status: 'active' } as any);
       bus.clearHistory();
       let pillMapUpdated = 0;
       let labStoryUpdated = 0;
@@ -180,7 +180,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       bus.on('audit_logged', () => dossierViaAudit++);
 
       const medId = vault.getMedications(CANONICAL)[0].id;
-      vault.updateMedication(medId, { dosage: '2.5mg' }, { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
+      await vault.updateMedication(medId, { dosage: '2.5mg' }, { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
 
       expect(countEvents(bus, 'medication_updated')).toBe(1);
       expect(pillMapUpdated).toBe(1);
@@ -189,7 +189,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(dossierViaAudit).toBeGreaterThanOrEqual(1); // logAudit emits audit_logged
     });
 
-    it('medication alias transitive: medication_created reaches medication_added listeners', () => {
+    it('medication alias transitive: medication_created reaches medication_added listeners', async () => {
       let added = 0;
       bus.on('medication_added', () => added++);
       bus.emit('medication_created', { patientId: CANONICAL, id: 'alias_test' });
@@ -203,9 +203,9 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   // Lab propagation: LabStory + HomeLab due + Dossier
   // ------------------------------------------------------------------
   describe('lab propagation (LabStory ↔ HomeLab ↔ Dossier)', () => {
-    it('addLab emits lab_added, LabStory timeline sorted, HomeLab dueCard transitions, Dossier audit', () => {
+    it('addLab emits lab_added, LabStory timeline sorted, HomeLab dueCard transitions, Dossier audit', async () => {
       // Create dueCard manually (seed is empty)
-      vault.addDueCard({ id: 'due_card_kidney_001', patientId: CANONICAL, testPanel: 'Creatinine & eGFR', biomarkers: ['Creatinine', 'eGFR'], dueDate: new Date().toISOString(), prescribedBy: 'Dr. Patel', prescribedDate: new Date().toISOString(), status: 'due_soon' } as any);
+      await vault.addDueCard({ id: 'due_card_kidney_001', patientId: CANONICAL, testPanel: 'Creatinine & eGFR', biomarkers: ['Creatinine', 'eGFR'], dueDate: new Date().toISOString(), prescribedBy: 'Dr. Patel', prescribedDate: new Date().toISOString(), status: 'due_soon' } as any);
       bus.clearHistory();
       let labStoryCalls = 0;
       let homeLabCalls = 0;
@@ -233,7 +233,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
         isCritical: false,
         flag: 'HIGH' as const
       };
-      vault.addLab(newLab as any, { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
+      await vault.addLab(newLab as any, { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
 
       expect(vault.getLabs(CANONICAL).some(l => l.id === newLab.id)).toBe(true);
       // Timeline sorted by drawDate — with empty vault, 1 is valid
@@ -246,7 +246,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(homeLabCalls).toBe(1);
 
       // HomeLab dueCard completion: simulate view handler reacting to lab_added by marking due completed
-      vault.updateDueCard('due_card_kidney_001', { status: 'completed', completedLabId: newLab.id });
+      await vault.updateDueCard('due_card_kidney_001', { status: 'completed', completedLabId: newLab.id });
       expect(countEvents(bus, 'due_card_updated')).toBe(1);
       const dueAfter = vault.getDueCards(CANONICAL).find(c => c.id === 'due_card_kidney_001');
       expect(dueAfter?.status).toBe('completed');
@@ -264,13 +264,13 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(added).toBe(1);
     });
 
-    it('fact_confirmed alias propagates to fact_status_changed listeners and updates dossier', () => {
+    it('fact_confirmed alias propagates to fact_status_changed listeners and updates dossier', async () => {
       let confirmed = 0;
       let statusChanged = 0;
       bus.on('fact_confirmed', () => confirmed++);
       bus.on('fact_status_changed', () => statusChanged++);
 
-      vault.addFact({
+      await vault.addFact({
         id: 'fact_cohesion_1',
         patientId: CANONICAL,
         category: 'lab',
@@ -285,7 +285,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       confirmed = 0;
       statusChanged = 0;
       bus.clearHistory();
-      vault.updateFactStatus('fact_cohesion_1', 'confirmed', { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
+      await vault.updateFactStatus('fact_cohesion_1', 'confirmed', { userId: 'user_shanti_devi', userName: 'Smt. Shanti Devi', role: 'patient' });
 
       // updateFactStatus emits fact_status_changed, alias should notify fact_confirmed listeners
       expect(countEvents(bus, 'fact_status_changed')).toBe(1);
@@ -298,7 +298,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   // Danger report triage flow: Safety -> PillMap + calendar + Dossier
   // ------------------------------------------------------------------
   describe('danger report triage flow (Safety ↔ PillMap ↔ Calendar ↔ Dossier)', () => {
-    it('addDangerReport emits danger_report_added, vault reflects, calendar and pillmap react via events', () => {
+    it('addDangerReport emits danger_report_added, vault reflects, calendar and pillmap react via events', async () => {
       seedIfEmpty(vault, CANONICAL);
       bus.clearHistory();
 
@@ -317,7 +317,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
         timestamp: new Date().toISOString(),
         triagePriority: 'URGENT' as const
       };
-      vault.addDangerReport(report as any);
+      await vault.addDangerReport(report as any);
 
       expect(vault.getDangerReports(CANONICAL).some(r => r.reportId === report.reportId)).toBe(true);
       expect(countEvents(bus, 'danger_report_added')).toBe(1);
@@ -325,7 +325,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
 
       // Simulate triage removal: doctor removes offending med + schedules followup (as in SafetyView)
       // Add offending med first
-      vault.addMedication({
+      await vault.addMedication({
         id: 'med_ibuprofen_cohesion',
         patientId: CANONICAL,
         genericName: 'Ibuprofen',
@@ -340,14 +340,14 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       // Simulate pill removal via updateMedicationStatus (PillMap reacts to medication_updated)
       let pillMapUpdated = 0;
       bus.on('medication_updated', () => pillMapUpdated++);
-      vault.updateMedicationStatus('med_ibuprofen_cohesion', 'discontinued', { userId: 'dr_patel_md', userName: 'Dr. Patel', role: 'doctor' });
+      await vault.updateMedicationStatus('med_ibuprofen_cohesion', 'discontinued', { userId: 'dr_patel_md', userName: 'Dr. Patel', role: 'doctor' });
       expect(pillMapUpdated).toBe(1);
       expect(vault.getMedications(CANONICAL).find(m => m.id === 'med_ibuprofen_cohesion')?.status).toBe('discontinued');
 
       // Simulate calendar event added as part of triage followup
       let calendarAdded = 0;
       bus.on('calendar_event_added', () => calendarAdded++);
-      vault.addCalendarEvent({
+      await vault.addCalendarEvent({
         id: 'cal_cohesion_followup_001',
         patientId: CANONICAL,
         title: '🏥 Dr. Patel Clinic Follow-Up',
@@ -381,7 +381,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   // Calendar event addition: Safety + Dossier + PillMap reminders
   // ------------------------------------------------------------------
   describe('calendar propagation (Safety ↔ Dossier ↔ PillMap)', () => {
-    it('addCalendarEvent emits calendar_event_added, Safety + Dossier react, PillMap reminders conditional', () => {
+    it('addCalendarEvent emits calendar_event_added, Safety + Dossier react, PillMap reminders conditional', async () => {
       seedIfEmpty(vault, CANONICAL);
       bus.clearHistory();
       let safetyCalendar = 0;
@@ -392,7 +392,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       // PillMap optionally listens for reminders (conditional)
       bus.on('calendar_event_added', () => pillMapReminder++);
 
-      vault.addCalendarEvent({
+      await vault.addCalendarEvent({
         id: 'cal_cohesion_002',
         patientId: CANONICAL,
         title: '🧪 Repeat Lab',
@@ -412,8 +412,8 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(vault.getCalendarEvents(CANONICAL).some(e => e.id === 'cal_cohesion_002')).toBe(true);
     });
 
-    it('calendar event isolation: other patient calendar not visible to canonical', () => {
-      vault.addCalendarEvent({
+    it('calendar event isolation: other patient calendar not visible to canonical', async () => {
+      await vault.addCalendarEvent({
         id: 'cal_other',
         patientId: OTHER_PATIENT_JENKINS,
         title: 'Other Event',
@@ -432,8 +432,8 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   // Multi-patient isolation
   // ------------------------------------------------------------------
   describe('multi-patient isolation', () => {
-    it('adding data for patient-s-devi does NOT leak to p_jenkins_72 or patient-child-003', () => {
-      vault.addMedication({
+    it('adding data for patient-s-devi does NOT leak to p_jenkins_72 or patient-child-003', async () => {
+      await vault.addMedication({
         id: 'med_isolation_sdevi',
         patientId: CANONICAL,
         genericName: 'Metformin-Isolation',
@@ -443,7 +443,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
         withFood: true,
         status: 'active'
       } as any);
-      vault.addLab({
+      await vault.addLab({
         id: 'lab_isolation_sdevi',
         patientId: CANONICAL,
         marker: 'eGFR',
@@ -466,9 +466,9 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(vault.getLabs(CANONICAL).some(l => l.id === 'lab_isolation_sdevi')).toBe(true);
     });
 
-    it('danger and calendar isolation across patients', () => {
-      vault.addDangerReport({ reportId: 'danger_iso_sdevi', patientId: CANONICAL, symptomTags: ['edema'], freeText: 'x', severityRating: 'severe', timestamp: new Date().toISOString() } as any);
-      vault.addCalendarEvent({ id: 'cal_iso_sdevi', patientId: CANONICAL, title: 't', eventType: 'lab_due', scheduledDate: new Date().toISOString(), reason: 'r', isCompleted: false, syncedToCalendar: false } as any);
+    it('danger and calendar isolation across patients', async () => {
+      await vault.addDangerReport({ reportId: 'danger_iso_sdevi', patientId: CANONICAL, symptomTags: ['edema'], freeText: 'x', severityRating: 'severe', timestamp: new Date().toISOString() } as any);
+      await vault.addCalendarEvent({ id: 'cal_iso_sdevi', patientId: CANONICAL, title: 't', eventType: 'lab_due', scheduledDate: new Date().toISOString(), reason: 'r', isCompleted: false, syncedToCalendar: false } as any);
 
       expect(vault.getDangerReports(OTHER_PATIENT_JENKINS).length).toBe(0);
       expect(vault.getCalendarEvents(OTHER_PATIENT_JENKINS).length).toBe(0);
@@ -476,18 +476,18 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(vault.getCalendarEvents(CANONICAL).length).toBe(1);
     });
 
-    it('proposals and dueCards isolated', () => {
-      vault.addProposal({ id: 'prop_iso_sdevi', patientId: CANONICAL, doctorName: 'Dr. X', medName: 'Metformin', type: 'dose_change', reason: 'x', status: 'pending', timestamp: new Date().toISOString() } as any);
-      vault.addDueCard({ id: 'due_iso_sdevi', patientId: CANONICAL, testPanel: 'X', biomarkers: ['Y'], dueDate: new Date().toISOString(), prescribedBy: 'Dr. X', prescribedDate: new Date().toISOString(), status: 'due_soon' } as any);
+    it('proposals and dueCards isolated', async () => {
+      await vault.addProposal({ id: 'prop_iso_sdevi', patientId: CANONICAL, doctorName: 'Dr. X', medName: 'Metformin', type: 'dose_change', reason: 'x', status: 'pending', timestamp: new Date().toISOString() } as any);
+      await vault.addDueCard({ id: 'due_iso_sdevi', patientId: CANONICAL, testPanel: 'X', biomarkers: ['Y'], dueDate: new Date().toISOString(), prescribedBy: 'Dr. X', prescribedDate: new Date().toISOString(), status: 'due_soon' } as any);
       expect(vault.getProposals(OTHER_PATIENT_JENKINS).length).toBe(0);
       expect(vault.getDueCards(OTHER_PATIENT_JENKINS).length).toBe(0);
       expect(vault.getProposals(CANONICAL).length).toBe(1);
       expect(vault.getDueCards(CANONICAL).length).toBe(1);
     });
 
-    it('audit logs filtered by patientId do not leak', () => {
-      vault.addMedication({ id: 'med_audit_iso', patientId: CANONICAL, genericName: 'A', dosage: '1mg', frequency: 'QD', timingSlots: ['morning'], withFood: false, status: 'active' } as any, { userId: 'u1', userName: 'User', role: 'patient' });
-      vault.addMedication({ id: 'med_audit_other', patientId: OTHER_PATIENT_JENKINS, genericName: 'B', dosage: '1mg', frequency: 'QD', timingSlots: ['morning'], withFood: false, status: 'active' } as any, { userId: 'u2', userName: 'Other', role: 'patient' });
+    it('audit logs filtered by patientId do not leak', async () => {
+      await vault.addMedication({ id: 'med_audit_iso', patientId: CANONICAL, genericName: 'A', dosage: '1mg', frequency: 'QD', timingSlots: ['morning'], withFood: false, status: 'active' } as any, { userId: 'u1', userName: 'User', role: 'patient' });
+      await vault.addMedication({ id: 'med_audit_other', patientId: OTHER_PATIENT_JENKINS, genericName: 'B', dosage: '1mg', frequency: 'QD', timingSlots: ['morning'], withFood: false, status: 'active' } as any, { userId: 'u2', userName: 'Other', role: 'patient' });
       const sDeviLogs = vault.getAuditLogs(CANONICAL);
       const jenkinsLogs = vault.getAuditLogs(OTHER_PATIENT_JENKINS);
       expect(sDeviLogs.every(l => l.patientId === CANONICAL || l.details?.patientId === CANONICAL || l.performedBy?.onBehalfOf === CANONICAL || l.performedBy?.userId === CANONICAL || true)).toBe(true); // at least not cross-leak
@@ -508,8 +508,8 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       bus.clearHistory();
       const promises: Promise<any>[] = [];
       for (let i = 0; i < 10; i++) {
-        promises.push(Promise.resolve().then(() => {
-          vault.addMedication({
+        promises.push(Promise.resolve().then(async () => {
+          await vault.addMedication({
             id: `med_rapid_${i}`,
             patientId: CANONICAL,
             genericName: `RapidMed-${i}`,
@@ -533,9 +533,9 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       bus.clearHistory();
       const tasks: Promise<void>[] = [];
       for (let i = 0; i < 10; i++) {
-        tasks.push(Promise.resolve().then(() => {
+        tasks.push(Promise.resolve().then(async () => {
           if (i % 3 === 0) {
-            vault.addLab({
+            await await vault.addLab({
               id: `lab_rapid_${i}`,
               patientId: CANONICAL,
               marker: 'eGFR',
@@ -550,9 +550,9 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
               isCritical: false
             } as any);
           } else if (i % 3 === 1) {
-            vault.addDangerReport({ reportId: `danger_rapid_${i}`, patientId: CANONICAL, symptomTags: ['edema'], freeText: `rapid ${i}`, severityRating: 'moderate', timestamp: new Date().toISOString() } as any);
+            await await vault.addDangerReport({ reportId: `danger_rapid_${i}`, patientId: CANONICAL, symptomTags: ['edema'], freeText: `rapid ${i}`, severityRating: 'moderate', timestamp: new Date().toISOString() } as any);
           } else {
-            vault.addCalendarEvent({ id: `cal_rapid_${i}`, patientId: CANONICAL, title: `Event ${i}`, eventType: 'lab_due', scheduledDate: new Date().toISOString(), reason: 'r', isCompleted: false, syncedToCalendar: false } as any);
+            await vault.addCalendarEvent({ id: `cal_rapid_${i}`, patientId: CANONICAL, title: `Event ${i}`, eventType: 'lab_due', scheduledDate: new Date().toISOString(), reason: 'r', isCompleted: false, syncedToCalendar: false } as any);
           }
         }));
       }
@@ -583,8 +583,8 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
   // Irrelevant events do NOT spurious-rerender
   // ------------------------------------------------------------------
   describe('relevant-only telemetry (spurious-rerender guards)', () => {
-    it('adding doctor comment to lab does NOT emit medication/lab events nor trigger PillMap', () => {
-      vault.addLab({ id: 'lab_for_comment_1', patientId: CANONICAL, marker: 'eGFR', value: 30, unit: 'mL/min/1.73m2', normalizedValue: 30, normalizedUnit: 'mL/min/1.73m2', drawDate: new Date().toISOString(), referenceRange: { low: 60, high: 120 }, optimalRange: { low: 90, high: 120 }, isBorderline: false, isCritical: false } as any);
+    it('adding doctor comment to lab does NOT emit medication/lab events nor trigger PillMap', async () => {
+      await vault.addLab({ id: 'lab_for_comment_1', patientId: CANONICAL, marker: 'eGFR', value: 30, unit: 'mL/min/1.73m2', normalizedValue: 30, normalizedUnit: 'mL/min/1.73m2', drawDate: new Date().toISOString(), referenceRange: { low: 60, high: 120 }, optimalRange: { low: 90, high: 120 }, isBorderline: false, isCritical: false } as any);
       const labId = vault.getLabs(CANONICAL)[0].id;
       bus.clearHistory();
       let pillMapMedAdded = 0;
@@ -592,7 +592,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       bus.on('medication_added', () => pillMapMedAdded++);
       bus.on('lab_added', () => labAdded++);
 
-      const updated = vault.addDoctorCommentToLab(labId, { doctorId: 'dr_patel_md', doctorName: 'Dr. Patel', comment: 'Monitor closely' });
+      const updated = await vault.addDoctorCommentToLab(labId, { doctorId: 'dr_patel_md', doctorName: 'Dr. Patel', comment: 'Monitor closely' });
       expect(updated?.doctorComments?.length).toBeGreaterThanOrEqual(1);
 
       // No spurious events should have fired
@@ -604,7 +604,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(bus.getEvents('doctor_comment_added').length).toBe(0);
     });
 
-    it('lab_added does NOT trigger Safety-only listeners (danger/calendar irrelevant)', () => {
+    it('lab_added does NOT trigger Safety-only listeners (danger/calendar irrelevant)', async () => {
       bus.clearHistory();
       let safetyDangerCalls = 0;
       // Safety subscribes to danger_report_added and calendar_event_added, NOT lab_added
@@ -612,7 +612,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       bus.on('calendar_event_added', () => safetyDangerCalls++);
       // No subscription to lab_added
 
-      vault.addLab({
+      await vault.addLab({
         id: 'lab_spurious_check',
         patientId: CANONICAL,
         marker: 'Potassium',
@@ -633,13 +633,13 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(countEvents(bus, 'calendar_event_added')).toBe(0);
     });
 
-    it('medication_added does NOT trigger HomeLab due card listeners', () => {
+    it('medication_added does NOT trigger HomeLab due card listeners', async () => {
       bus.clearHistory();
       let homeLabDueCalls = 0;
       bus.on('due_card_added', () => homeLabDueCalls++);
       bus.on('due_card_updated', () => homeLabDueCalls++);
 
-      vault.addMedication({
+      await vault.addMedication({
         id: 'med_spurious_homelab',
         patientId: CANONICAL,
         genericName: 'SpuriousMed',
@@ -655,7 +655,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(countEvents(bus, 'due_card_added')).toBe(0);
     });
 
-    it('question_added does NOT trigger PillMap or LabStory; only Dossier', () => {
+    it('question_added does NOT trigger PillMap or LabStory; only Dossier', async () => {
       bus.clearHistory();
       let pillMapQuestion = 0;
       let labStoryQuestion = 0;
@@ -664,7 +664,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       // LabStory does NOT listen to question_added
       bus.on('question_added', () => dossierQuestion++);
       // Also check question_bank alias
-      vault.addQuestion({
+      await vault.addQuestion({
         id: 'q_spurious_1',
         patientId: CANONICAL,
         questionText: 'Can I take X with Y?',
@@ -680,7 +680,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(vault.getQuestions(CANONICAL).some(q => q.id === 'q_spurious_1')).toBe(true);
     });
 
-    it('doctor_grant_added triggers Dossier + CareCircle only, not PillMap/LabStory/HomeLab/Safety', () => {
+    it('doctor_grant_added triggers Dossier + CareCircle only, not PillMap/LabStory/HomeLab/Safety', async () => {
       bus.clearHistory();
       let pillMapGrant = 0;
       let labStoryGrant = 0;
@@ -695,7 +695,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       bus.on('doctor_grant_added', () => dossierGrant++);
       bus.on('doctor_grant_added', () => careCircleGrant++);
 
-      vault.addDoctorGrant({
+      await vault.addDoctorGrant({
         grantId: 'grant_spurious_1',
         patientId: CANONICAL,
         doctorName: 'Dr. Chen',
@@ -719,7 +719,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(safetyGrant).toBe(0);
     });
 
-    it('fact_added alias reaches fact_confirmed listeners but does NOT spurious-trigger medication or lab', () => {
+    it('fact_added alias reaches fact_confirmed listeners but does NOT spurious-trigger medication or lab', async () => {
       bus.clearHistory();
       let medAdded = 0;
       let labAdded = 0;
@@ -728,7 +728,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       bus.on('lab_added', () => labAdded++);
       bus.on('fact_confirmed', () => factConfirmed++);
 
-      vault.addFact({
+      await vault.addFact({
         id: 'fact_spurious_alias',
         patientId: CANONICAL,
         category: 'lab',
@@ -761,7 +761,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(hBus.getEvents('medication_added').length).toBeGreaterThanOrEqual(1);
 
       // Add lab to trigger HomeLab due logic (via direct vault; tool path also validates)
-      hVault.addLab({
+      await hVault.addLab({
         id: 'lab_e2e_egfr',
         patientId: CANONICAL,
         marker: 'eGFR',
@@ -779,7 +779,7 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
       expect(hBus.getEvents('lab_added').length).toBeGreaterThanOrEqual(1);
 
       // Due card completion
-      hVault.addDueCard({
+      await hVault.addDueCard({
         id: 'due_e2e_1',
         patientId: CANONICAL,
         testPanel: 'Creatinine & eGFR',
@@ -790,15 +790,15 @@ describe('M4 Cohesion — Single-User Vault Consistency (patient-s-devi)', () =>
         status: 'due_soon'
       } as any);
       hBus.clearHistory();
-      hVault.updateDueCard('due_e2e_1', { status: 'completed' });
+      await hVault.updateDueCard('due_e2e_1', { status: 'completed' });
       expect(hBus.getEvents('due_card_updated').length).toBe(1);
       expect(hVault.getDueCards(CANONICAL).find(c => c.id === 'due_e2e_1')?.status).toBe('completed');
     });
 
-    it('harness isolates vaults: two harnesses do not share state', () => {
+    it('harness isolates vaults: two harnesses do not share state', async () => {
       const h1 = createTestHarness(CANONICAL, 'patient');
       const h2 = createTestHarness(CANONICAL, 'patient');
-      h1.vault.addMedication({
+      await h1.vault.addMedication({
         id: 'med_h1_only',
         patientId: CANONICAL,
         genericName: 'H1Med',

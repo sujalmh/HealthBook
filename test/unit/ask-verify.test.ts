@@ -87,7 +87,7 @@ describe('Ask #4 — delete presetQueries + gate auto-add — probe', () => {
   it('Case B — Auto-add suppressed: non-critical med → 0, critical med → 1, lab non-critical → 0, critical lab →1', async () => {
     localVault.clear();
     // Non-critical med: Metformin 500mg without isCritical
-    localVault.addMedication({
+    await localVault.addMedication({
       id: 'med-metformin-probe-1',
       patientId: probePatient,
       genericName: 'Metformin',
@@ -103,7 +103,7 @@ describe('Ask #4 — delete presetQueries + gate auto-add — probe', () => {
     expect(items.length).toBe(0); // gated, non-critical should NOT auto-add
 
     // Critical med: with flag CRITICAL_HIGH
-    localVault.addMedication({
+    await localVault.addMedication({
       id: 'med-metformin-probe-critical',
       patientId: probePatient,
       genericName: 'Metformin-Critical',
@@ -122,7 +122,7 @@ describe('Ask #4 — delete presetQueries + gate auto-add — probe', () => {
 
     // Lab non-critical: Creatinine 1.0 NORMAL should NOT add
     const beforeLabCount = localVault.getQuestionBankItems(probePatient).length;
-    localVault.addLab({
+    await localVault.addLab({
       id: 'lab-creat-normal-1',
       patientId: probePatient,
       marker: 'Creatinine',
@@ -141,7 +141,7 @@ describe('Ask #4 — delete presetQueries + gate auto-add — probe', () => {
     expect(afterNormal).toBe(beforeLabCount); // no new question for normal
 
     // Lab critical: Creatinine 3.5 CRITICAL_HIGH should add
-    localVault.addLab({
+    await localVault.addLab({
       id: 'lab-creat-critical-1',
       patientId: probePatient,
       marker: 'Creatinine',

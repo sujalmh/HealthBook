@@ -617,7 +617,7 @@ export const extractLabsTool: WebMCPToolDefinition = {
 
     // Save into LocalVault for real patientId
     for (const record of labRecords) {
-      context.vault.addLab(record, {
+      await context.vault.addLab(record, {
         userId: context.activeProfile.userId,
         userName: context.activeProfile.name,
         role: context.activeProfile.role

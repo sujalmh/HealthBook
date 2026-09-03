@@ -27,7 +27,7 @@ describe('Privacy-First LocalVault (11 Object Stores & In-Memory Engine)', () =>
       boundingBox: { pageIndex: 0, x: 0.1, y: 0.2, width: 0.3, height: 0.05 },
     };
 
-    vault.addFact(fact);
+    await vault.addFact(fact);
     const retrieved = vault.getFact('fact-1');
     expect(retrieved).toBeDefined();
     expect(retrieved?.name).toBe('eGFR');
@@ -59,15 +59,15 @@ describe('Privacy-First LocalVault (11 Object Stores & In-Memory Engine)', () =>
       timestamp: new Date().toISOString(),
     };
 
-    vault.addFact(fact1);
-    vault.addFact(fact2);
+    await vault.addFact(fact1);
+    await vault.addFact(fact2);
 
     const pendingTestPatient = vault.getPendingFacts(testPatientId);
     expect(pendingTestPatient).toHaveLength(1);
     expect(pendingTestPatient[0].id).toBe('fact-p1');
 
     // Confirm fact with proxy actor
-    const confirmed = vault.updateFactStatus(
+    const confirmed = await vault.updateFactStatus(
       'fact-p1',
       'confirmed',
       { userId: 'user_raj_son', userName: 'Raj Devi', role: 'caregiver', onBehalfOf: 'Shanti Devi' }
@@ -97,7 +97,7 @@ describe('Privacy-First LocalVault (11 Object Stores & In-Memory Engine)', () =>
       withFood: true,
       status: 'active',
     };
-    vault.addMedication(med);
+    await vault.addMedication(med);
 
     const activeMeds = vault.getActiveMedications(testPatientId);
     expect(activeMeds).toHaveLength(1);
@@ -117,7 +117,7 @@ describe('Privacy-First LocalVault (11 Object Stores & In-Memory Engine)', () =>
       isBorderline: true,
       isCritical: false,
     };
-    vault.addLab(lab);
+    await vault.addLab(lab);
 
     const labs = vault.getLabsByMarker(testPatientId, 'eGFR');
     expect(labs).toHaveLength(1);
@@ -136,12 +136,12 @@ describe('Privacy-First LocalVault (11 Object Stores & In-Memory Engine)', () =>
       status: 'pending',
       timestamp: new Date().toISOString(),
     };
-    vault.addProposal(prop);
+    await vault.addProposal(prop);
 
     const pendingProps = vault.getPendingProposals(testPatientId);
     expect(pendingProps).toHaveLength(1);
 
-    vault.updateProposalStatus('prop-1', 'approved', { userId: testPatientId, userName: 'Shanti Devi', role: 'patient' });
+    await vault.updateProposalStatus('prop-1', 'approved', { userId: testPatientId, userName: 'Shanti Devi', role: 'patient' });
     const resolvedProps = vault.getPendingProposals(testPatientId);
     expect(resolvedProps).toHaveLength(0);
   });
@@ -160,13 +160,13 @@ describe('Privacy-First LocalVault (11 Object Stores & In-Memory Engine)', () =>
       linkedDate: new Date().toISOString(),
       grantedDate: new Date().toISOString(),
     };
-    vault.addCaregiverLink(member);
+    await vault.addCaregiverLink(member);
 
     const circle = vault.getCaregiverLinks(testPatientId);
     expect(circle).toHaveLength(1);
     expect(circle[0].caregiverName).toBe('Raj Devi');
 
-    vault.updateCaregiverPermission('circle-1', 'full');
+    await vault.updateCaregiverPermission('circle-1', 'full');
     const updated = vault.careCircle.get('circle-1');
     expect(updated?.permissionLevel).toBe('full');
 
@@ -184,7 +184,7 @@ describe('Privacy-First LocalVault (11 Object Stores & In-Memory Engine)', () =>
       expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
       status: 'active',
     };
-    vault.addDoctorGrant(grant);
+    await vault.addDoctorGrant(grant);
 
     const retrievedGrant = vault.getDoctorGrant('grant-1');
     expect(retrievedGrant?.doctorName).toBe('Dr. Kevin Chen');

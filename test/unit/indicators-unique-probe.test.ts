@@ -110,14 +110,14 @@ describe('R3 — Indicators unique one table details on click — probe 3 cases'
     const factLab2: any = { id: 'fact_lab_2', patientId: pid, category: 'lab', name: 'eGFR', value: '28 mL/min', unit: 'mL/min', factValue: '28', status: 'unconfirmed', approvalStatus: 'pending', plainExplanation: 'eGFR low', confidence: 0.9, sourceDocId: 'doc1', boundingBox: null, createdAt: new Date().toISOString() };
     const factMed1: any = { id: 'fact_med_1', patientId: pid, category: 'medication', name: 'Metformin', value: '1000mg', unit: 'mg', factValue: '1000mg', status: 'unconfirmed', approvalStatus: 'pending', plainExplanation: 'Metformin twice daily', confidence: 0.95, sourceDocId: 'doc1', boundingBox: null, createdAt: new Date().toISOString() };
     // add via vault
-    localVault.addFact(factLab1);
-    localVault.addFact(factLab2);
-    localVault.addFact(factMed1);
+    await localVault.addFact(factLab1);
+    await localVault.addFact(factLab2);
+    await localVault.addFact(factMed1);
     // also add one approved lab and one approved med
     const factLabApproved: any = { id: 'fact_lab_ap_1', patientId: pid, category: 'lab', name: 'HbA1c', value: '9%', unit: '%', factValue: '9', status: 'confirmed', approvalStatus: 'approved', plainExplanation: 'HbA1c high', confidence: 0.92, sourceDocId: 'doc2', boundingBox: null, createdAt: new Date().toISOString(), approvedAt: new Date().toISOString() };
     const factMedApproved: any = { id: 'fact_med_ap_1', patientId: pid, category: 'medication', name: 'Lisinopril', value: '10mg', unit: 'mg', factValue: '10mg', status: 'confirmed', approvalStatus: 'approved', plainExplanation: 'Lisinopril daily', confidence: 0.93, sourceDocId: 'doc2', boundingBox: null, createdAt: new Date().toISOString(), approvedAt: new Date().toISOString() };
-    localVault.addFact(factLabApproved);
-    localVault.addFact(factMedApproved);
+    await localVault.addFact(factLabApproved);
+    await localVault.addFact(factMedApproved);
     Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 375 });
     const { container } = render(React.createElement(FactStreamView, { patientId: pid }));
     await waitFor(() => expect(container.textContent).toContain('Review extracted details'));

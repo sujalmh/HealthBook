@@ -33,7 +33,7 @@ export async function runBoundaryStressTests(): Promise<{ passed: number; failed
   // T2-02: Extreme Lab Value
   await test('T2-02: Extreme Lab Value - detects critical high Creatinine 9.4 and eGFR 4', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addLab({
+    await vault.addLab({
       id: 'lab_critical_creat',
       patientId: context.patientId,
       marker: 'Creatinine',
@@ -125,7 +125,7 @@ export async function runBoundaryStressTests(): Promise<{ passed: number; failed
     const { engine, context, vault } = createTestHarness();
     for (let year = 2018; year <= 2026; year++) {
       for (let month = 1; month <= 12; month++) {
-        vault.addLab({
+        await vault.addLab({
           id: `lab_stress_${year}_${month}`,
           patientId: context.patientId,
           marker: 'Creatinine',
@@ -158,7 +158,7 @@ export async function runBoundaryStressTests(): Promise<{ passed: number; failed
   // T2-09: Expired Doctor Token
   await test('T2-09: Expired Doctor Token - token past expiration is rejected', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addDoctorGrant({
+    await vault.addDoctorGrant({
       grantId: 'grant_expired_01',
       patientId: context.patientId,
       doctorEmail: 'dr.past@clinic.org',

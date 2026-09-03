@@ -276,4 +276,24 @@ export interface DueCardRecord {
   completedLabId?: string;
 }
 
+/**
+ * Pending inbox item — anything awaiting a human accept/reject decision.
+ * Lives in the `pending_items` table with a 1-day TTL (expiresAt); the
+ * hourly pg_cron purge plus read-path filtering enforce expiry.
+ * On decision the effect is applied to the real table, the decision is audit
+ * logged (permanent trail), and the inbox row is deleted.
+ */
+export interface PendingItem {
+  id: string;
+  patientId: string;
+  kind: 'dosage_proposal' | 'pill_change' | 'fact_approval' | 'general';
+  title: string;
+  payload: Record<string, unknown>;
+  status: 'pending';
+  createdBy?: string;
+  createdByRole?: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
 export type { LinkedCareProfile, DoctorAccessGrant } from './carecircle.ts';

@@ -150,7 +150,7 @@ export async function runSafetyToolsTests(): Promise<{ passed: number; failed: n
       reason: 'Edema'
     }, context);
     assert(res.success);
-    const prop = vault.proposals.get(res.data.id);
+    const prop = vault.getPendingProposals(context.patientId).find((p) => p.id === res.data.id);
     assert(!!prop);
   });
 
@@ -195,7 +195,7 @@ export async function runSafetyToolsTests(): Promise<{ passed: number; failed: n
     const { engine, context, vault } = createTestHarness('p_devi_78', 'doctor');
     const res = await engine.execute('doctor_remove_medication', { medName: 'Advil', reason: 'Acute kidney injury' }, context);
     assert(res.success);
-    const inVault = vault.proposals.get(res.data.id);
+    const inVault = vault.getPendingProposals(context.patientId).find((p) => p.id === res.data.id);
     assert(!!inVault);
     assertEquals(inVault?.status, 'pending');
   });
@@ -249,7 +249,7 @@ export async function runSafetyToolsTests(): Promise<{ passed: number; failed: n
       reason: 'Muscle aches'
     }, context);
     assert(res.success);
-    assert(vault.proposals.has(res.data.id));
+    assert(vault.getPendingProposals(context.patientId).some((p) => p.id === res.data.id));
   });
 
   await test('TC-SF05-05: doctor_change_dose - validation rejects missing newDose', async () => {
@@ -262,7 +262,7 @@ export async function runSafetyToolsTests(): Promise<{ passed: number; failed: n
   // --- Tool 6: approve_pillmap_change (5 tests) ---
   await test('TC-SF06-01: approve_pillmap_change - patient approves doctor NSAID removal and updates vault', async () => {
     const { engine, context, vault } = createTestHarness();
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_ibuprofen',
       patientId: context.patientId,
       genericName: 'Ibuprofen',

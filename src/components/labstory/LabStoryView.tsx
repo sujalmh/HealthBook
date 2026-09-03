@@ -99,7 +99,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     }
   };
 
-  const handleManualAddSubmit = (e: React.FormEvent) => {
+  const handleManualAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const val = parseFloat(manualValue);
     if (isNaN(val)) return;
@@ -120,11 +120,16 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
       flag: undefined,
     } as unknown as LabRecord;
 
-    localVault.addLab(newRecord, {
-      userId: activeProfile.userId,
-      userName: activeProfile.name,
-      role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
-    });
+    try {
+      await localVault.addLab(newRecord, {
+        userId: activeProfile.userId,
+        userName: activeProfile.name,
+        role: activeProfile.role as 'patient' | 'caregiver' | 'doctor'
+      });
+    } catch (err: unknown) {
+      eventBus.dispatchToast({ type: 'error', title: 'Save failed', message: err instanceof Error ? err.message : 'Server save failed. Please retry.' });
+      return;
+    }
 
     loadLabs();
     setIsManualAddOpen(false);

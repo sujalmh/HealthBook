@@ -70,7 +70,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
       if (isRange) {
         const scheduledDate = new Date(customStart + 'T12:00:00').toISOString();
         const scheduledDateEnd = new Date(customEnd + 'T12:00:00').toISOString();
-        const rangeEvent = localVault.addCalendarEvent(
+        const rangeEvent = await localVault.addCalendarEvent(
           {
             id: `apt_${Date.now()}`,
             patientId,

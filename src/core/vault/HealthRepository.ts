@@ -65,15 +65,15 @@ export class HealthRepository {
     return this.vault.getMedications(patientId, status);
   }
 
-  public addMedication(med: MedicationRecord, performedBy?: AuditLogEntry['performedBy']): MedicationRecord {
+  public async addMedication(med: MedicationRecord, performedBy?: AuditLogEntry['performedBy']): Promise<MedicationRecord> {
     return this.vault.addMedication(med, performedBy);
   }
 
-  public updateMedication(
+  public async updateMedication(
     medId: string,
     updates: Partial<MedicationRecord>,
     performedBy?: AuditLogEntry['performedBy'],
-  ): MedicationRecord | undefined {
+  ): Promise<MedicationRecord | undefined> {
     return this.vault.updateMedication(medId, updates, performedBy);
   }
 
@@ -81,7 +81,7 @@ export class HealthRepository {
    * Canonical removal — audits, emits, syncs to Supabase, and invalidates
    * stored interaction evaluations. Prefer over `vault.meds.delete`.
    */
-  public removeMedication(medId: string, performedBy?: AuditLogEntry['performedBy']): boolean {
+  public async removeMedication(medId: string, performedBy?: AuditLogEntry['performedBy']): Promise<boolean> {
     return this.vault.removeMedication(medId, performedBy);
   }
 
@@ -142,7 +142,7 @@ export class HealthRepository {
       ClinicalInteractionEngine.checkDuplicateIngredients(dupInput),
     ]);
     const entry = buildStoredEvaluation({ patientId, meds: inputs, dietFlags, arcs, dietBadges, duplicateAlerts });
-    this.vault.storeInteractionEvaluation(entry);
+    await this.vault.storeInteractionEvaluation(entry);
     return { ...entry, fromCache: false };
   }
 

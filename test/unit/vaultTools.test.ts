@@ -50,7 +50,7 @@ describe('Module 0: Approved Fact Vault WebMCP Tools', () => {
 
   it('confirm_fact: approves fact, propagates to domain store (meds/labs), and logs immutable audit trail', async () => {
     // 1. Stage a fact
-    const fact = localVault.addFact({
+    const fact = await localVault.addFact({
       id: 'fact-apix-test',
       patientId,
       sourceDocId: 'doc_discharge_cardiac_001',
@@ -98,7 +98,7 @@ describe('Module 0: Approved Fact Vault WebMCP Tools', () => {
   });
 
   it('confirm_fact: supports edit action and updates value', async () => {
-    const fact = localVault.addFact({
+    const fact = await localVault.addFact({
       id: 'fact-creat-edit',
       patientId,
       sourceDocId: 'doc-1',
@@ -132,7 +132,7 @@ describe('Module 0: Approved Fact Vault WebMCP Tools', () => {
 
   it('compile_health_record: compiles lifetime comprehensive dossier with emergency snapshot', async () => {
     // Add sample facts, meds, labs
-    localVault.addFact({
+    await localVault.addFact({
       id: 'fact-c1',
       patientId,
       sourceDocId: 'doc-1',

@@ -168,6 +168,7 @@ export const SUPABASE_TABLES = [
   'danger_reports',
   'question_bank',
   'interaction_cache',
+  'pending_items',
 ] as const;
 
 export type SupabaseTableName = (typeof SUPABASE_TABLES)[number] | string;
@@ -258,6 +259,7 @@ const TABLE_ALLOWED_COLUMNS: Record<string, Set<string>> = {
   documents: new Set(['id', 'patient_id', 'file_name', 'name', 'title', 'doc_type', 'type', 'page_count', 'upload_timestamp', 'uploaded_at', 'extracted_text', 'raw_buffer', 'extracted_fact_ids', 'created_at', 'payload']),
   question_bank: new Set(['id', 'patient_id', 'question_text', 'category', 'source_module', 'origin_module', 'context', 'linked_med_name', 'linked_lab_marker', 'priority', 'clinical_rationale', 'status', 'included_in_export', 'created_at', 'payload']),
   interaction_cache: new Set(['id', 'patient_id', 'regimen_hash', 'engine_version', 'computed_at', 'med_fingerprint', 'diet_flags', 'arcs', 'diet_badges', 'duplicate_alerts', 'med_count', 'created_at', 'payload']),
+  pending_items: new Set(['id', 'patient_id', 'kind', 'title', 'payload', 'status', 'created_by', 'created_by_role', 'expires_at', 'decided_at', 'decided_by', 'created_at']),
 };
 
 class LightweightTableClient implements SupabaseTableClient {
@@ -407,6 +409,10 @@ class LightweightTableClient implements SupabaseTableClient {
       dietBadges: 'diet_badges',
       duplicateAlerts: 'duplicate_alerts',
       medCount: 'med_count',
+      createdBy: 'created_by',
+      createdByRole: 'created_by_role',
+      decidedAt: 'decided_at',
+      decidedBy: 'decided_by',
     };
     const r: { [key: string]: unknown } = {};
     // Preserve payload as full original record for JSONB flexibility

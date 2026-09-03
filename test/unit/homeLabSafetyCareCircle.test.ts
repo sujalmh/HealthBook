@@ -36,12 +36,12 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
   let doctorContext: WebMCPExecutionContext;
   let caregiverContext: WebMCPExecutionContext;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vault = new LocalVaultManager(eventBus);
     vault.clear();
 
     // Baseline active medication in vault
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_metformin_001',
       patientId,
       brandName: 'Glucophage',
@@ -53,7 +53,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
       status: 'active'
     });
 
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_ibuprofen_002',
       patientId,
       brandName: 'Advil',
@@ -65,7 +65,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
       status: 'active'
     });
 
-    vault.addMedication({
+    await vault.addMedication({
       id: 'med_amlodipine_003',
       patientId,
       brandName: 'Norvasc',
@@ -132,7 +132,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
         instructions: 'Monitor kidney function post-discharge.',
         status: 'due_soon'
       };
-      vault.addDueCard(card);
+      await vault.addDueCard(card);
 
       const retrieved = vault.getDueCards(patientId);
       expect(retrieved.length).toBe(1);
@@ -151,7 +151,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
         prescribedDate: new Date().toISOString(),
         status: 'due_soon'
       };
-      vault.addDueCard(card);
+      await vault.addDueCard(card);
 
       const result = await uploadLabImageTool.execute(
         {
@@ -182,7 +182,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
 
     it('HL3: doctor_review_comment attaches pinned clinical note (📌) to specific lab point', async () => {
       // Seed a lab record
-      vault.addLab({
+      await vault.addLab({
         id: 'lab_egfr_28',
         patientId,
         marker: 'eGFR',
@@ -241,7 +241,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
     });
 
     it('HL5: approve_dosage_change allows patient or caregiver to approve pending proposal', async () => {
-      const prop = vault.addProposal({
+      const prop = await vault.addProposal({
         id: 'prop_metformin_001',
         patientId,
         doctorName: 'Dr. Patel',
@@ -272,7 +272,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
     });
 
     it('HL6: sync_pillmap_from_proposal updates medication dosage in vault and emits diff event', async () => {
-      const prop = vault.addProposal({
+      const prop = await vault.addProposal({
         id: 'prop_metformin_001',
         patientId,
         doctorName: 'Dr. Patel',
@@ -403,7 +403,7 @@ describe('Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circ
     });
 
     it('SF4: approve_pillmap_change confirms doctor remote change and discontinues medication', async () => {
-      const removeProp = vault.addProposal({
+      const removeProp = await vault.addProposal({
         id: 'prop_remove_ibuprofen_001',
         patientId,
         doctorName: 'Dr. Patel',
