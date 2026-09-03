@@ -108,7 +108,7 @@ export class HealthRepository {
     dietFlags: DietFlags = DEFAULT_DIET_FLAGS,
   ): InteractionEvaluationResult {
     const inputs = toRegimenInputs(meds);
-    const regimenHash = buildRegimenHash(inputs, dietFlags);
+    const regimenHash = buildRegimenHash(inputs, dietFlags, 'sync');
 
     // 1) In-process memo (same-session fast path)
     const memoized = getMemoEvaluation(patientId, regimenHash);
@@ -136,9 +136,32 @@ export class HealthRepository {
       arcs,
       dietBadges,
       duplicateAlerts,
+      source: 'sync',
     });
     this.vault.storeInteractionEvaluation(entry);
     return { ...entry, fromCache: false };
+  }
+
+  /**
+   * Non-computing freshness probe — tells callers whether a stored evaluation
+   * for the given pipeline exists, so spinners only show on real cache misses.
+   */
+  public hasFreshEvaluation(
+    patientId: string,
+    meds: MedicationRecord[],
+    dietFlags: DietFlags = DEFAULT_DIET_FLAGS,
+    source: 'sync' | 'ai' = 'sync',
+  ): boolean {
+    try {
+      const inputs = toRegimenInputs(meds);
+      const regimenHash = buildRegimenHash(inputs, dietFlags, source);
+      const memoized = getMemoEvaluation(patientId, regimenHash);
+      if (memoized && isEvaluationFresh(memoized, inputs, dietFlags)) return true;
+      const stored = this.vault.getInteractionEvaluation(patientId, regimenHash);
+      return !!stored && isEvaluationFresh(stored, inputs, dietFlags);
+    } catch {
+      return false;
+    }
   }
 
   /** Async variant that prefers AI-grounded engine output when available. */
@@ -149,7 +172,7 @@ export class HealthRepository {
     useAI = false,
   ): Promise<InteractionEvaluationResult> {
     const inputs = toRegimenInputs(meds);
-    const regimenHash = buildRegimenHash(inputs, dietFlags);
+    const regimenHash = buildRegimenHash(inputs, dietFlags, 'ai');
     const memoized = getMemoEvaluation(patientId, regimenHash);
     if (memoized && isEvaluationFresh(memoized, inputs, dietFlags)) {
       return { ...memoized, fromCache: true };
@@ -170,30 +193,25 @@ export class HealthRepository {
           meds: { name: string; dose: string }[],
         ) => Promise<InteractionEvaluationResult['duplicateAlerts']>;
       };
-      try {
-        arcs =
-          typeof engineAI.checkDrugInteractionsAI === 'function'
-            ? await engineAI.checkDrugInteractionsAI(medNames)
-            : ClinicalInteractionEngine.checkDrugInteractions(medNames);
-        dietBadges =
-          typeof engineAI.checkDietInteractionsAI === 'function'
-            ? await engineAI.checkDietInteractionsAI(medNames, dietFlags)
-            : ClinicalInteractionEngine.checkDietInteractions(medNames, dietFlags);
-        const dupInput = meds.map((m) => ({
-          name: m.brandName || m.genericName || m.name || '',
-          dose: m.dosage || '',
-        }));
-        duplicateAlerts =
-          typeof engineAI.checkDuplicateIngredientsAI === 'function'
-            ? await engineAI.checkDuplicateIngredientsAI(dupInput)
-            : ClinicalInteractionEngine.checkDuplicateIngredients(dupInput);
-      } catch {
-        arcs = ClinicalInteractionEngine.checkDrugInteractions(medNames);
-        dietBadges = ClinicalInteractionEngine.checkDietInteractions(medNames, dietFlags);
-        duplicateAlerts = ClinicalInteractionEngine.checkDuplicateIngredients(
-          meds.map((m) => ({ name: m.brandName || m.genericName || m.name || '', dose: m.dosage || '' })),
-        );
-      }
+      const dupInput = meds.map((m) => ({
+        name: m.brandName || m.genericName || m.name || '',
+        dose: m.dosage || '',
+      }));
+      // The three AI analyses are independent — run concurrently, not sequentially.
+      const [aiArcs, aiBadges, aiDups] = await Promise.all([
+        typeof engineAI.checkDrugInteractionsAI === 'function'
+          ? engineAI.checkDrugInteractionsAI(medNames)
+          : Promise.resolve(ClinicalInteractionEngine.checkDrugInteractions(medNames)),
+        typeof engineAI.checkDietInteractionsAI === 'function'
+          ? engineAI.checkDietInteractionsAI(medNames, dietFlags)
+          : Promise.resolve(ClinicalInteractionEngine.checkDietInteractions(medNames, dietFlags)),
+        typeof engineAI.checkDuplicateIngredientsAI === 'function'
+          ? engineAI.checkDuplicateIngredientsAI(dupInput)
+          : Promise.resolve(ClinicalInteractionEngine.checkDuplicateIngredients(dupInput)),
+      ]);
+      arcs = aiArcs;
+      dietBadges = aiBadges;
+      duplicateAlerts = aiDups;
     } else {
       arcs = ClinicalInteractionEngine.checkDrugInteractions(medNames);
       dietBadges = ClinicalInteractionEngine.checkDietInteractions(medNames, dietFlags);
@@ -201,7 +219,7 @@ export class HealthRepository {
         meds.map((m) => ({ name: m.brandName || m.genericName || m.name || '', dose: m.dosage || '' })),
       );
     }
-    const entry = buildStoredEvaluation({ patientId, meds: inputs, dietFlags, arcs, dietBadges, duplicateAlerts });
+    const entry = buildStoredEvaluation({ patientId, meds: inputs, dietFlags, arcs, dietBadges, duplicateAlerts, source: useAI ? 'ai' : 'sync' });
     this.vault.storeInteractionEvaluation(entry);
     return { ...entry, fromCache: false };
   }

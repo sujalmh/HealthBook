@@ -39,7 +39,6 @@ import type {
 import { DAYS_OF_WEEK, TIME_SLOTS, CHRONOTYPE_TIMES } from '../../types/pillmap.ts';
 import { localVault } from '../../core/vault/LocalVault.ts';
 import { healthRepository } from '../../core/vault/HealthRepository.ts';
-import { buildRegimenHash, isEvaluationFresh } from '../../core/knowledge/interactionCache.ts';
 import { eventBus } from '../../core/events/eventBus.ts';
 import { ClinicalInteractionEngine } from '../../core/knowledge/interactionEngine.ts';
 import { getAIConfig, isAIEnabled } from '../../core/ai/config.ts';
@@ -157,41 +156,45 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       dairyBreakfast: true,
       usesPotassiumSaltSubstitute: true
     };
-    // Stored-evaluation fast path: serve cached pill interactions when the
-    // regimen fingerprint is unchanged — recompute + store only on miss.
-    // This replaces per-load full recomputation with a content-hash lookup.
+    // Instant-first: serve the rule-based evaluation immediately (stored row or
+    // sync compute — never a spinner with empty content), then upgrade with AI
+    // in the background when enabled. Sync and AI rows cache under separate
+    // keys, so a slow AI never blocks warnings and never refetches needlessly.
+    type EvalMeds = Parameters<typeof healthRepository.evaluateInteractionsAI>[1];
     try {
       const fullMeds = effectivePatientId ? healthRepository.getActiveMedications(effectivePatientId) : [];
       // Correlate the grid snapshot to canonical vault records so the
       // fingerprint reflects stored doses (not stale grid copies).
-      const evalMeds = fullMeds.length > 0 ? fullMeds : (vaultMeds as unknown as Parameters<typeof healthRepository.evaluateInteractionsAI>[1]);
+      const evalMeds = (fullMeds.length > 0 ? fullMeds : vaultMeds) as unknown as EvalMeds;
       const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
-      // Show spinner only when we will actually compute (cache miss is cheap
-      // to check synchronously first).
-      const fingerprintInputs = (evalMeds as unknown as { brandName?: string; genericName?: string; name?: string; dosage?: string }[]).map((m) => ({
-        name: m.brandName || m.genericName || m.name || '',
-        dose: (m as { dosage?: string }).dosage || '',
-        genericName: m.genericName || '',
-      }));
-      const hash = buildRegimenHash(fingerprintInputs, dietFlags);
-      const cached = effectivePatientId ? localVault.getInteractionEvaluation(effectivePatientId, hash) : undefined;
-      const isFresh = cached ? isEvaluationFresh(cached, fingerprintInputs, dietFlags) : false;
-      if (isFresh && cached) {
-        setInteractionArcs(cached.arcs);
-        setDietBadges(cached.dietBadges);
-        setDuplicateAlerts(cached.duplicateAlerts);
+      const syncResult = healthRepository.evaluateInteractions(effectivePatientId, evalMeds, dietFlags);
+      setInteractionArcs(syncResult.arcs);
+      setDietBadges(syncResult.dietBadges);
+      setDuplicateAlerts(syncResult.duplicateAlerts);
+      if (!useAI) return;
+      // Spinner only when no fresh AI row exists for this regimen.
+      let needsAiFetch = true;
+      try {
+        needsAiFetch = !healthRepository.hasFreshEvaluation(effectivePatientId, evalMeds, dietFlags, 'ai');
+      } catch {
+        needsAiFetch = true;
+      }
+      if (!needsAiFetch) {
+        const aiResult = await healthRepository.evaluateInteractionsAI(effectivePatientId, evalMeds, dietFlags, true);
+        setInteractionArcs(aiResult.arcs);
+        setDietBadges(aiResult.dietBadges);
+        setDuplicateAlerts(aiResult.duplicateAlerts);
         return;
       }
-      if (useAI) setIsChecking(true);
-      const result = await healthRepository.evaluateInteractionsAI(
-        effectivePatientId,
-        evalMeds as unknown as Parameters<typeof healthRepository.evaluateInteractionsAI>[1],
-        dietFlags,
-        useAI,
-      );
-      setInteractionArcs(result.arcs);
-      setDietBadges(result.dietBadges);
-      setDuplicateAlerts(result.duplicateAlerts);
+      setIsChecking(true);
+      try {
+        const aiResult = await healthRepository.evaluateInteractionsAI(effectivePatientId, evalMeds, dietFlags, true);
+        setInteractionArcs(aiResult.arcs);
+        setDietBadges(aiResult.dietBadges);
+        setDuplicateAlerts(aiResult.duplicateAlerts);
+      } finally {
+        setIsChecking(false);
+      }
     } catch {
       const medNames = vaultMeds.map((m) => m.brandName || m.genericName || m.name || '');
       const arcs = ClinicalInteractionEngine.checkDrugInteractions(medNames);
@@ -207,7 +210,6 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         vaultMeds.map((m) => ({ name: m.brandName || m.genericName || '', dose: m.dosage || '' }))
       );
       setDuplicateAlerts(dups);
-    } finally {
       setIsChecking(false);
     }
   };
