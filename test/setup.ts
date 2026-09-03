@@ -2,6 +2,7 @@ import '@testing-library/jest-dom';
 import { beforeEach, afterEach } from 'vitest';
 import { localVault } from '../src/core/vault/LocalVault';
 import { webMCPEngine } from '../src/core/webmcp/WebMCPEngine';
+import { routeAiMock } from './helpers/mockClinicalAI';
 
 // Ensure test env flags
 if (typeof process !== 'undefined') {
@@ -50,6 +51,38 @@ function wrapFetch(origFetch: unknown) {
     try { const b = (opts as { body?: unknown })?.body; bodyText = typeof b === 'string' ? b : JSON.stringify(b ?? ''); } catch {}
     const isAIRequest = isAIUrl || (bodyText && (bodyText.includes('"model"') || bodyText.includes('messages')));
     if (isAIRequest && process.env.VITEST === 'true') {
+      // Clinical pipeline prompts route to the shared deterministic mock;
+      // anything else keeps the extraction-facts behavior below.
+      try {
+        const parsed = JSON.parse(bodyText);
+        let systemPrompt = '';
+        let userText = '';
+        if (parsed.messages && Array.isArray(parsed.messages)) {
+          for (const m of parsed.messages) {
+            if (m.role === 'system') systemPrompt = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+            if (m.role === 'user') {
+              if (typeof m.content === 'string') userText = m.content;
+              else if (Array.isArray(m.content)) userText = m.content.map((p: any) => p.text || p.content || '').join(' ');
+              else userText = JSON.stringify(m.content);
+            }
+          }
+        } else if (parsed.input && Array.isArray(parsed.input)) {
+          for (const it of parsed.input) {
+            if (it.role === 'system' && it.content) systemPrompt = Array.isArray(it.content) ? it.content.map((c: any) => c.text || '').join(' ') : String(it.content);
+            if (it.role === 'user' && it.content) userText = Array.isArray(it.content) ? it.content.map((c: any) => c.text || '').join(' ') : String(it.content);
+          }
+        }
+        const routed = routeAiMock(systemPrompt, userText);
+        if (routed !== null) {
+          const text = JSON.stringify(routed);
+          const routedIsResponses = urlStr.includes('/responses') || bodyText.includes('"input"');
+          if (routedIsResponses) {
+            return new Response(JSON.stringify({ id: 'resp_test', object: 'response', status: 'completed', output: [{ id: 'msg_test', type: 'message', status: 'completed', role: 'assistant', content: [{ type: 'output_text', text }] }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+          } else {
+            return new Response(JSON.stringify({ id: 'chatcmpl-test', object: 'chat.completion', created: Date.now(), model: 'mock', choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: text } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+          }
+        }
+      } catch {}
       const facts = generateFactsFromText(bodyText + ' ' + urlStr);
       const isResponses = urlStr.includes('/responses') || bodyText.includes('"input"');
       if (isResponses) {

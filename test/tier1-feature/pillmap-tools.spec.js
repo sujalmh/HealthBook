@@ -51,24 +51,24 @@ export async function runPillMapToolsTests() {
         assertEquals(res.error?.code, 'INVALID_PARAMS');
     });
     // --- Tool 2: check_interactions (5 tests) ---
-    await test('TC-PM02-01: check_interactions - Red Contraindicated arc between Sertraline and St. John\'s Wort', async () => {
+    await test('TC-PM02-01: check_interactions - Orange Major arc between Sertraline and St. John\'s Wort (FDA warning-level, not contraindication)', async () => {
         const { engine, context } = createTestHarness();
         const res = await engine.execute('check_interactions', { medList: ['Sertraline', 'St. John\'s Wort'] }, context);
         assert(res.success);
         assert(res.data.length >= 1, 'Conflict arc must be generated');
         const arc = res.data[0];
-        assertEquals(arc.severity, 'CONTRAINDICATED');
-        assertEquals(arc.arcColor, '#EF4444');
+        assertEquals(arc.severity, 'MAJOR');
+        assertEquals(arc.arcColor, '#F97316');
         assertContains(arc.mechanism, 'Serotonin Syndrome');
     });
-    await test('TC-PM02-02: check_interactions - Orange Major arc between Apixaban and Fish Oil', async () => {
+    await test('TC-PM02-02: check_interactions - Yellow Moderate arc between Apixaban and Fish Oil (dose-dependent)', async () => {
         const { engine, context } = createTestHarness();
         const res = await engine.execute('check_interactions', { medList: ['Apixaban', 'Fish Oil'] }, context);
         assert(res.success);
         const arc = res.data.find((a) => a.drugA.includes('Apixaban') || a.drugB.includes('Apixaban'));
         assert(!!arc, 'Apixaban-Fish Oil conflict must be detected');
-        assertEquals(arc.severity, 'MAJOR');
-        assertEquals(arc.arcColor, '#F97316');
+        assertEquals(arc.severity, 'MODERATE');
+        assertEquals(arc.arcColor, '#EAB308');
     });
     await test('TC-PM02-03: check_interactions - Calcium Carbonate vs Ciprofloxacin chelation', async () => {
         const { engine, context } = createTestHarness();
@@ -91,14 +91,14 @@ export async function runPillMapToolsTests() {
         assert(Array.isArray(res.data));
     });
     // --- Tool 3: check_diet_interactions (5 tests) ---
-    await test('TC-PM03-01: check_diet_interactions - Atorvastatin + Grapefruit amber badge', async () => {
+    await test('TC-PM03-01: check_diet_interactions - Atorvastatin + Grapefruit moderate badge (FDA: only excessive intake matters)', async () => {
         const { engine, context } = createTestHarness();
         const res = await engine.execute('check_diet_interactions', { medList: ['Atorvastatin'], patientDiet: { drinksGrapefruitDaily: true } }, context);
         assert(res.success);
         const badge = res.data[0];
         assert(!!badge, 'Grapefruit badge must be returned');
         assertContains(badge.badgeText, 'Grapefruit');
-        assertEquals(badge.severity, 'MAJOR');
+        assertEquals(badge.severity, 'MODERATE');
     });
     await test('TC-PM03-02: check_diet_interactions - Warfarin + Vitamin K greens badge', async () => {
         const { engine, context } = createTestHarness();

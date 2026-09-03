@@ -3,8 +3,8 @@
  * Interactive missed-dose clinical risk calculator evaluating biomarker deltas and recovery protocols.
  */
 
-import React, { useState } from 'react';
-import { AlertTriangle, Clock, ShieldAlert, Check, X, PlusCircle, Activity, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, Clock, ShieldAlert, Check, X, PlusCircle, Activity, Sparkles, Loader2 } from 'lucide-react';
 import type { MissedDoseSimulationResult, DayOfWeek, TimeSlot } from '../../types/pillmap.ts';
 import { ModalPortal } from '../common/ModalPortal';
 import { ClinicalInteractionEngine } from '../../core/knowledge/interactionEngine.ts';
@@ -31,12 +31,33 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(initialDay);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot>(initialSlot);
   const [questionAdded, setQuestionAdded] = useState<boolean>(false);
+  const [simulation, setSimulation] = useState<MissedDoseSimulationResult | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<boolean>(false);
 
-  // Compute simulation result
-  const simulation: MissedDoseSimulationResult = ClinicalInteractionEngine.simulateAdherence(
-    selectedMed,
-    { day: selectedDay, slot: selectedSlot }
-  );
+  // AI-native simulation — loading shimmer, honest error + retry, never canned text
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(false);
+    ClinicalInteractionEngine.simulateAdherence(selectedMed, { day: selectedDay, slot: selectedSlot })
+      .then((result) => {
+        if (!cancelled) {
+          setSimulation(result);
+          setIsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSimulation(null);
+          setIsLoading(false);
+          setLoadError(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMed, selectedDay, selectedSlot]);
 
   const handleAddQuestion = () => {
     if (onAddQuestionToBank) {
@@ -145,6 +166,39 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
           </div>
 
           {/* Clinical Risk Summary */}
+          {isLoading ? (
+            <div className="bg-canvas-muted p-3.5 sm:p-4 rounded-2xl border border-canvas-border flex items-center gap-2.5 text-body-sm text-muted" role="status">
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden="true" />
+              Estimating what a missed dose means…
+            </div>
+          ) : loadError || !simulation ? (
+            <div className="bg-amber-50 p-3.5 sm:p-4 rounded-2xl border border-amber-200 space-y-2.5">
+              <p className="text-amber-900 font-medium leading-relaxed text-body-sm">
+                Couldn't estimate this right now — the AI service is unavailable and nothing was fabricated.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoadError(false);
+                  setIsLoading(true);
+                  ClinicalInteractionEngine.simulateAdherence(selectedMed, { day: selectedDay, slot: selectedSlot })
+                    .then((result) => {
+                      setSimulation(result);
+                      setIsLoading(false);
+                    })
+                    .catch(() => {
+                      setSimulation(null);
+                      setIsLoading(false);
+                      setLoadError(true);
+                    });
+                }}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-body-sm font-bold min-h-[44px]"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+          <>
           <div className="bg-canvas-muted p-3.5 sm:p-4 rounded-2xl border border-canvas-border space-y-2">
             <div className="flex items-center gap-2 text-caption font-bold text-amber-700 uppercase tracking-wider">
               <Activity className="w-4 h-4" /> Projected Clinical Impact
@@ -183,6 +237,8 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
                 </span>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
 

@@ -1,21 +1,17 @@
 /**
- * CareCanvas Core: Interaction Engine & Schedule Negotiator
- * Genuine clinical logic for Drug-Drug, Drug-Diet, Duplicate Ingredients, Chronotype Scheduling, and Adherence Simulation.
- * AI intelligence primary when enabled (generic configurable via Settings>env, never hardcoded provider/model/baseURL),
- * fixture fallback only when AI disabled (Q10 for text, image never heuristic).
+ * CareCanvas Core: Interaction Engine & Schedule Negotiator — AI-native.
+ *
+ * There is no bundled drug database in this app. Every evaluation below calls
+ * the configured AI pipeline (callAI) with verified clinical rubrics embedded
+ * in the system prompts (severity grading rules, FDA thresholds, ceiling
+ * doses). Deterministic result IDs keep stored evaluations diffable.
+ *
+ * Failure contract: methods THROW AIUnavailableError when the pipeline is
+ * unconfigured or fails. Callers must surface honest loading/error states —
+ * never fabricated clinical content.
  */
 
-import {
-  mockBrandGenericCatalog,
-  mockDrugDrugInteractions,
-  mockDrugDietInteractions,
-  mockDuplicateIngredientRules
-} from '../../fixtures/drug_knowledge.ts';
 import type {
-  DrugDrugInteractionRule,
-  DrugDietInteractionRule
-} from '../../fixtures/drug_knowledge.ts';
-import type { 
   InteractionArc,
   DietBadge,
   DuplicateIngredientAlert,
@@ -27,7 +23,6 @@ import type {
 import { callAI } from '../ai/client.ts';
 import { isHealthGroundingAvailable } from '../search/healthGrounding.ts';
 import { searchExa } from '../search/exaClient.ts';
-import { shouldUseAI } from '../rbac/canAccess.ts';
 import {
   INTERACTION_ENGINE_VERSION,
   deterministicArcId,
@@ -36,6 +31,22 @@ import {
 
 /** Re-exported so vault/tool layers can version stored evaluations. */
 export const ENGINE_VERSION = INTERACTION_ENGINE_VERSION;
+
+/** Thrown when the AI pipeline cannot produce an evaluation. Never fall back to canned content. */
+export class AIUnavailableError extends Error {
+  public readonly code: 'AI_UNAVAILABLE' | 'AI_FAILED';
+  constructor(message: string, code: 'AI_UNAVAILABLE' | 'AI_FAILED' = 'AI_FAILED') {
+    super(message);
+    this.name = 'AIUnavailableError';
+    this.code = code;
+  }
+}
+
+function toAIError(err: unknown, context: string): AIUnavailableError {
+  const msg = err instanceof Error ? err.message : String(err);
+  const code = /disabled|unconfigured|API key/i.test(msg) ? 'AI_UNAVAILABLE' : 'AI_FAILED';
+  return new AIUnavailableError(`${context}: ${msg}`, code);
+}
 
 // Unified AI caller for knowledge reasoning via central AI client
 async function callKnowledgeAI(
@@ -46,7 +57,7 @@ async function callKnowledgeAI(
   try {
     return await callAI<any>(systemPrompt, userText, { schema: jsonSchema });
   } catch (err) {
-    console.warn('[interactionEngine] AI knowledge call failed, falling back to clinical rules:', (err as any)?.message || err);
+    console.warn('[interactionEngine] AI knowledge call failed:', (err as any)?.message || err);
     return null;
   }
 }
@@ -63,141 +74,154 @@ function severityToPlateColor(severity: string): string {
   return severityToArcColor(severity);
 }
 
+function isVitest(): boolean {
+  return typeof process !== 'undefined' && (process as any).env?.VITEST === 'true';
+}
+
+export interface DietFlagsInput {
+  drinksGrapefruitDaily?: boolean;
+  frequentHighVitKGreens?: boolean;
+  dairyBreakfast?: boolean;
+  usesPotassiumSaltSubstitute?: boolean;
+  alcoholFrequency?: string;
+}
+
+/**
+ * Pure string normalization for cross-list medication matching (lowercase
+ * alphanumeric). This is string processing, not clinical knowledge — actual
+ * brand/generic resolution always goes through resolveGenerics (AI).
+ */
+export function normalizeMedName(name: string): string {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
 export class ClinicalInteractionEngine {
   /**
-   * Resolves generic name and brand aliases.
-   * AI primary when enabled (via generic config), fixture fallback when disabled.
+   * Resolves the generic name via the AI pipeline. Throws AIUnavailableError
+   * when the pipeline cannot answer — callers must handle honestly.
    */
-  public static resolveGenericName(drugName: string): string {
-    const trimmed = drugName.trim();
-    for (const [brand, info] of Object.entries(mockBrandGenericCatalog)) {
-      if (brand.toLowerCase() === trimmed.toLowerCase()) {
-        return info.generic;
-      }
-      if (info.generic.toLowerCase() === trimmed.toLowerCase()) {
-        return info.generic;
-      }
-      // Check compound names like "Apixaban (Eliquis)"
-      if (trimmed.toLowerCase().includes(brand.toLowerCase()) || trimmed.toLowerCase().includes(info.generic.toLowerCase())) {
-        return info.generic;
-      }
-    }
-    return trimmed;
-  }
-
-  /** AI-enhanced generic resolution (async) — reads meds array via AI when enabled */
-  public static async resolveGenericNameAI(drugName: string): Promise<string> {
-    if (!shouldUseAI()) return this.resolveGenericName(drugName);
+  public static async resolveGenericName(drugName: string): Promise<string> {
+    const trimmed = (drugName || '').trim();
+    if (!trimmed) return trimmed;
+    const schema = {
+      type: 'object',
+      properties: {
+        generic: { type: 'string', description: 'Resolved generic name' },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' }
+      },
+      required: ['generic', 'confidence', 'reasoning'],
+      additionalProperties: false,
+    } as any;
+    const systemPrompt = `You are a clinical pharmacology assistant. Resolve the generic name for a given drug brand or generic alias. Return ONLY valid JSON with shape {"generic": string, "confidence": number, "reasoning": string}. Be precise, handle compounds like "Apixaban (Eliquis)" -> "Apixaban". No markdown.`;
     try {
-      const schema = {
-        type: 'object',
-        properties: {
-          generic: { type: 'string', description: 'Resolved generic name' },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
-          reasoning: { type: 'string' }
-        },
-        required: ['generic', 'confidence', 'reasoning'],
-        additionalProperties: false,
-      } as any;
-      const systemPrompt = `You are a clinical pharmacology assistant. Resolve the generic name for a given drug brand or generic alias. Return ONLY valid JSON with shape {"generic": string, "confidence": number, "reasoning": string}. Be precise, handle compounds like "Apixaban (Eliquis)" -> "Apixaban". No markdown.`;
-      const parsed = await callKnowledgeAI(systemPrompt, `Drug name: "${drugName}"\nReturn JSON only.`, schema);
+      const parsed = await callKnowledgeAI(systemPrompt, `Drug name: "${trimmed}"\nReturn JSON only.`, schema);
       if (parsed && typeof parsed.generic === 'string' && parsed.generic.trim() !== '') {
         return parsed.generic.trim();
       }
+      throw new AIUnavailableError(`Could not resolve a generic name for "${trimmed}"`);
     } catch (e) {
-      console.warn('[interactionEngine] AI resolveGenericName failed, fallback to fixture', (e as any)?.message || e);
+      if (e instanceof AIUnavailableError) throw e;
+      throw toAIError(e, 'Generic-name resolution failed');
     }
-    return this.resolveGenericName(drugName);
   }
 
   /**
-   * Evaluates Drug-Drug Interactions across an array of medication names.
-   * Fallback fixture logic (used when AI disabled or AI fails).
+   * Batch generic resolution in ONE AI call (for list matching/sync paths).
+   * Returns a map of input -> generic; unresolvable inputs map to themselves.
    */
-  public static checkDrugInteractions(medNames: string[]): InteractionArc[] {
-    const resolvedMeds = medNames.map(name => ({
-      original: name,
-      generic: this.resolveGenericName(name)
-    }));
-
-    const foundArcs: InteractionArc[] = [];
-
-    for (let i = 0; i < resolvedMeds.length; i++) {
-      for (let j = i + 1; j < resolvedMeds.length; j++) {
-        const medA = resolvedMeds[i];
-        const medB = resolvedMeds[j];
-
-        // Match in interaction database
-        const rule = mockDrugDrugInteractions.find(
-          r =>
-            (r.drugA.toLowerCase() === medA.generic.toLowerCase() && r.drugB.toLowerCase() === medB.generic.toLowerCase()) ||
-            (r.drugA.toLowerCase() === medB.generic.toLowerCase() && r.drugB.toLowerCase() === medA.generic.toLowerCase()) ||
-            (medA.original.toLowerCase().includes(r.drugA.toLowerCase()) && medB.original.toLowerCase().includes(r.drugB.toLowerCase())) ||
-            (medB.original.toLowerCase().includes(r.drugA.toLowerCase()) && medA.original.toLowerCase().includes(r.drugB.toLowerCase()))
-        );
-
-        if (rule) {
-          foundArcs.push({
-            id: deterministicArcId(medA.original, medB.original, rule.severity, rule.mechanism),
-            drugA: medA.original,
-            drugB: medB.original,
-            severity: rule.severity,
-            arcColor: rule.arcColor,
-            mechanism: rule.mechanism,
-            clinicalGuidance: rule.clinicalGuidance,
-            affectedSlots: [{ day: 'monday', slot: 'morning' }]
-          });
+  public static async resolveGenerics(names: string[]): Promise<Record<string, string>> {
+    const unique = [...new Set((names || []).map((n) => (n || '').trim()).filter(Boolean))];
+    if (unique.length === 0) return {};
+    const schema = {
+      type: 'object',
+      properties: {
+        mappings: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              input: { type: 'string' },
+              generic: { type: 'string' },
+            },
+            required: ['input', 'generic'],
+            additionalProperties: false,
+          },
+        },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' },
+      },
+      required: ['mappings', 'confidence', 'reasoning'],
+      additionalProperties: false,
+    } as any;
+    const systemPrompt = `You are a clinical pharmacology assistant. Resolve the generic names for each of the following medications. Handle brand/generic aliases and compounds like "Apixaban (Eliquis)" -> "Apixaban". Return ONLY valid JSON with shape {"mappings": [{"input": string, "generic": string}], "confidence": number, "reasoning": string}. Echo each input exactly. No markdown.`;
+    try {
+      const parsed = await callKnowledgeAI(systemPrompt, `Medications: ${JSON.stringify(unique)}\nReturn JSON only.`, schema);
+      const map: Record<string, string> = {};
+      if (parsed && Array.isArray(parsed.mappings)) {
+        for (const m of parsed.mappings) {
+          if (m && typeof m.input === 'string' && typeof m.generic === 'string' && m.generic.trim() !== '') {
+            map[m.input] = m.generic.trim();
+          }
         }
       }
+      for (const n of unique) {
+        if (!map[n]) map[n] = n;
+      }
+      return map;
+    } catch (e) {
+      if (e instanceof AIUnavailableError) throw e;
+      throw toAIError(e, 'Batch generic-name resolution failed');
     }
-
-    return foundArcs;
   }
 
-  /** AI-enhanced drug-drug interaction detection — AI search grounded via Exa for accuracy */
-  public static async checkDrugInteractionsAI(medNames: string[]): Promise<InteractionArc[]> {
-    if (!shouldUseAI()) return this.checkDrugInteractions(medNames);
-    try {
-      // Pipeline: AI search first for authoritative interaction evidence (no hardcoded domains) — skip in VITEST for determinism
-      let exaContext = '';
-      const isVitest = typeof process !== 'undefined' && (process as any).env?.VITEST === 'true';
-      if (!isVitest && await isHealthGroundingAvailable()) {
-        try {
-          const q = `drug interaction ${medNames.join(' ')} mechanism severity guidance`;
-          const exaRes = await searchExa({ query: q, type: 'auto', numResults: 2, contents: { highlights: true }, systemPrompt: 'Prefer authoritative drug monographs (FDA, NIH, PubMed).' });
-          exaContext = exaRes.results.flatMap(r => r.highlights || []).slice(0, 3).join(' | ').slice(0, 800);
-        } catch {}
-      }
-      const schema = {
-        type: 'object',
-        properties: {
-          interactions: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                drugA: { type: 'string' },
-                drugB: { type: 'string' },
-                severity: { type: 'string', enum: ['CONTRAINDICATED', 'MAJOR', 'MODERATE', 'MINOR'] },
-                mechanism: { type: 'string' },
-                clinicalGuidance: { type: 'string' },
-                confidence: { type: 'number', minimum: 0, maximum: 1 },
-                arcColor: { type: 'string' },
-                reasoning: { type: 'string' }
-              },
-              required: ['drugA', 'drugB', 'severity', 'mechanism', 'clinicalGuidance', 'confidence', 'arcColor', 'reasoning'],
-              additionalProperties: false,
-            }
+  /**
+   * Evaluates drug-drug interactions across medication names via AI (brand/
+   * generic aliases handled by the model). Exa-grounded when available.
+   */
+  public static async checkDrugInteractions(medNames: string[]): Promise<InteractionArc[]> {
+    const list = (medNames || []).map((n) => (n || '').trim()).filter(Boolean);
+    if (list.length < 2) return [];
+    // Pipeline: AI search first for authoritative interaction evidence (no hardcoded domains) — skip in VITEST for determinism
+    let exaContext = '';
+    if (!isVitest() && await isHealthGroundingAvailable()) {
+      try {
+        const q = `drug interaction ${list.join(' ')} mechanism severity guidance`;
+        const exaRes = await searchExa({ query: q, type: 'auto', numResults: 2, contents: { highlights: true }, systemPrompt: 'Prefer authoritative drug monographs (FDA, NIH, PubMed).' });
+        exaContext = exaRes.results.flatMap(r => r.highlights || []).slice(0, 3).join(' | ').slice(0, 800);
+      } catch {}
+    }
+    const schema = {
+      type: 'object',
+      properties: {
+        interactions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              drugA: { type: 'string' },
+              drugB: { type: 'string' },
+              severity: { type: 'string', enum: ['CONTRAINDICATED', 'MAJOR', 'MODERATE', 'MINOR'] },
+              mechanism: { type: 'string' },
+              clinicalGuidance: { type: 'string' },
+              confidence: { type: 'number', minimum: 0, maximum: 1 },
+              arcColor: { type: 'string' },
+              reasoning: { type: 'string' }
+            },
+            required: ['drugA', 'drugB', 'severity', 'mechanism', 'clinicalGuidance', 'confidence', 'arcColor', 'reasoning'],
+            additionalProperties: false,
           }
-        },
-        required: ['interactions'],
-        additionalProperties: false,
-      } as any;
-      const systemPrompt = `You are a clinical pharmacology specialist. Analyze drug-drug interactions for the provided medication list. Consider brand/generic aliases, mechanisms (e.g., CYP450, bleeding risk, additive hypotension), severity grading CONTRAINDICATED/MAJOR/MODERATE/MINOR, and clinical guidance. Use the provided Exa highlights as grounding when available. Return ONLY valid JSON with shape {"interactions": [{"drugA": string, "drugB": string, "severity": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include confidence 0-1 and grounded reasoning per interaction. No markdown.`;
-      const userText = `Medications: ${JSON.stringify(medNames)}${exaContext ? `\nExa evidence highlights: ${exaContext}` : ''}\nProvide JSON only with AI reasoning and confidence.`;
+        }
+      },
+      required: ['interactions'],
+      additionalProperties: false,
+    } as any;
+    const systemPrompt = `You are a clinical pharmacology specialist. Analyze drug-drug interactions for the provided medication list. Consider brand/generic aliases, mechanisms (e.g., CYP450, bleeding risk, additive hypotension, potassium retention, chelation), severity grading, and clinical guidance. Use the provided Exa highlights as grounding when available. Grading rubric — CONTRAINDICATED only for label-contraindicated co-use; MAJOR for avoid-combinations (dual anticoagulation, serotonergic crisis risk, strong CYP3A4/P-gp induction collapsing DOAC levels, ACEi plus potassium-retaining drugs); MODERATE for monitor-and-manage pairs (dose-dependent fish-oil bleed risk, ACE inhibitor plus NSAID renal effects, ginkgo plus warfarin, levothyroxine plus calcium/iron separation issues). Prefer MAJOR over CONTRAINDICATED unless co-use is never acceptable. Return ONLY valid JSON with shape {"interactions": [{"drugA": string, "drugB": string, "severity": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include confidence 0-1 and grounded reasoning per interaction. No markdown.`;
+    const userText = `Medications: ${JSON.stringify(list)}${exaContext ? `\nExa evidence highlights: ${exaContext}` : ''}\nProvide JSON only with AI reasoning and confidence.`;
+    try {
       const parsed = await callKnowledgeAI(systemPrompt, userText, schema);
       if (parsed && Array.isArray(parsed.interactions)) {
-        const arcs: InteractionArc[] = parsed.interactions.map((it: any) => ({
+        return parsed.interactions.map((it: any) => ({
           id: deterministicArcId(it.drugA || 'drugA', it.drugB || 'drugB', it.severity || 'MODERATE', it.mechanism || it.reasoning || 'AI-assessed'),
           drugA: it.drugA,
           drugB: it.drugB,
@@ -206,176 +230,66 @@ export class ClinicalInteractionEngine {
           mechanism: it.mechanism || it.reasoning || 'AI-assessed interaction mechanism',
           clinicalGuidance: it.clinicalGuidance || 'Consult clinician for monitoring guidance.',
           affectedSlots: [{ day: 'monday', slot: 'morning' }],
-          // Preserve confidence/reasoning for audit if type allows extension
           ...(it.confidence !== undefined ? { confidence: it.confidence } : {}),
         } as any));
-        // Validate we got plausible arcs; if AI says 0 but fixture would have found, prefer AI (0 is valid when AI reasoning says no interactions)
-        return arcs;
       }
+      throw new AIUnavailableError('Drug interaction analysis returned no usable result');
     } catch (e) {
-      console.warn('[interactionEngine] AI checkDrugInteractions failed, fallback to fixture', (e as any)?.message || e);
+      if (e instanceof AIUnavailableError) throw e;
+      throw toAIError(e, 'Drug interaction analysis failed');
     }
-    return this.checkDrugInteractions(medNames);
   }
 
   /**
-   * Evaluates Drug-Diet Interactions against patient diet flags.
-   * Fallback fixture logic.
+   * Evaluates drug-diet interactions via AI against the patient diet profile.
+   * Verified reference points embedded: atorvastatin/grapefruit FDA thresholds
+   * (typical glass +37% AUC; avoid >1.2L/day), levothyroxine 30-60min empty
+   * stomach plus 4h mineral separation, metronidazole 3-day alcohol abstinence
+   * including propylene glycol, warfarin intake consistency.
    */
-  public static checkDietInteractions(
+  public static async checkDietInteractions(
     medNames: string[],
-    patientDiet: {
-      drinksGrapefruitDaily?: boolean;
-      frequentHighVitKGreens?: boolean;
-      dairyBreakfast?: boolean;
-      usesPotassiumSaltSubstitute?: boolean;
-      alcoholFrequency?: string;
-    }
-  ): DietBadge[] {
-    const badges: DietBadge[] = [];
-
-    for (const med of medNames) {
-      const generic = this.resolveGenericName(med);
-
-      // Grapefruit check
-      if (patientDiet.drinksGrapefruitDaily && (generic === 'Atorvastatin' || generic === 'Simvastatin')) {
-        const rule = mockDrugDietInteractions.find(r => r.drugName === generic && r.dietItem.includes('Grapefruit'));
-        if (rule) {
-          badges.push({
-            id: `diet_${generic}_grapefruit`,
-            drugName: med,
-            dietItem: 'Grapefruit & Citrus Juice',
-            severity: rule.severity,
-            badgeText: rule.badge,
-            plateArcColor: rule.plateArcColor,
-            mechanism: rule.mechanism,
-            clinicalGuidance: rule.clinicalGuidance
-          });
-        }
-      }
-
-      // Vitamin K check
-      if (patientDiet.frequentHighVitKGreens && generic === 'Warfarin') {
-        const rule = mockDrugDietInteractions.find(r => r.drugName === 'Warfarin');
-        if (rule) {
-          badges.push({
-            id: `diet_warfarin_vitk`,
-            drugName: med,
-            dietItem: 'Leafy Greens (Vit K)',
-            severity: rule.severity,
-            badgeText: rule.badge,
-            plateArcColor: rule.plateArcColor,
-            mechanism: rule.mechanism,
-            clinicalGuidance: rule.clinicalGuidance
-          });
-        }
-      }
-
-      // Levothyroxine empty stomach rule
-      if (generic === 'Levothyroxine') {
-        const rule = mockDrugDietInteractions.find(r => r.drugName === 'Levothyroxine');
-        if (rule) {
-          badges.push({
-            id: `diet_levo_empty_stomach`,
-            drugName: med,
-            dietItem: 'Breakfast / Dairy / Coffee',
-            severity: rule.severity,
-            badgeText: rule.badge,
-            plateArcColor: rule.plateArcColor,
-            mechanism: rule.mechanism,
-            clinicalGuidance: rule.clinicalGuidance
-          });
-        }
-      }
-
-      // Alcohol with Metronidazole
-      if (generic === 'Metronidazole') {
-        const rule = mockDrugDietInteractions.find(r => r.drugName === 'Metronidazole');
-        if (rule) {
-          badges.push({
-            id: `diet_flagyl_alcohol`,
-            drugName: med,
-            dietItem: 'Alcohol / Ethanol',
-            severity: rule.severity,
-            badgeText: rule.badge,
-            plateArcColor: rule.plateArcColor,
-            mechanism: rule.mechanism,
-            clinicalGuidance: rule.clinicalGuidance
-          });
-        }
-      }
-
-      // Potassium Salt substitute with Lisinopril
-      if (patientDiet.usesPotassiumSaltSubstitute && (generic === 'Lisinopril' || generic === 'Spironolactone')) {
-        const rule = mockDrugDietInteractions.find(r => r.drugName === 'Lisinopril');
-        if (rule) {
-          badges.push({
-            id: `diet_lisinopril_ksalt`,
-            drugName: med,
-            dietItem: 'High-Potassium Salt Substitutes',
-            severity: rule.severity,
-            badgeText: rule.badge,
-            plateArcColor: rule.plateArcColor,
-            mechanism: rule.mechanism,
-            clinicalGuidance: rule.clinicalGuidance
-          });
-        }
-      }
-    }
-
-    return badges;
-  }
-
-  /** AI-enhanced diet interaction detection — AI search grounded */
-  public static async checkDietInteractionsAI(
-    medNames: string[],
-    patientDiet: {
-      drinksGrapefruitDaily?: boolean;
-      frequentHighVitKGreens?: boolean;
-      dairyBreakfast?: boolean;
-      usesPotassiumSaltSubstitute?: boolean;
-      alcoholFrequency?: string;
-    }
+    patientDiet: DietFlagsInput
   ): Promise<DietBadge[]> {
-    if (!shouldUseAI()) return this.checkDietInteractions(medNames, patientDiet);
-    try {
-      let exaContext = '';
-      const isVitest = typeof process !== 'undefined' && (process as any).env?.VITEST === 'true';
-      if (!isVitest && await isHealthGroundingAvailable()) {
-        try {
-          const q = `drug food interaction ${medNames.join(' ')} diet ${JSON.stringify(patientDiet)}`;
-          const exaRes = await searchExa({ query: q, type: 'auto', numResults: 2, contents: { highlights: true }, systemPrompt: 'Prefer authoritative nutrition-pharmacology sources.' });
-          exaContext = exaRes.results.flatMap(r => r.highlights || []).slice(0, 2).join(' | ').slice(0, 600);
-        } catch {}
-      }
-      const schema = {
-        type: 'object',
-        properties: {
-          dietInteractions: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                drugName: { type: 'string' },
-                dietItem: { type: 'string' },
-                severity: { type: 'string', enum: ['CONTRAINDICATED', 'MAJOR', 'MODERATE'] },
-                badgeText: { type: 'string' },
-                plateArcColor: { type: 'string' },
-                mechanism: { type: 'string' },
-                clinicalGuidance: { type: 'string' },
-                confidence: { type: 'number', minimum: 0, maximum: 1 },
-                reasoning: { type: 'string' }
-              },
-              required: ['drugName', 'dietItem', 'severity', 'badgeText', 'plateArcColor', 'mechanism', 'clinicalGuidance', 'confidence', 'reasoning'],
-              additionalProperties: false,
-            }
+    const list = (medNames || []).map((n) => (n || '').trim()).filter(Boolean);
+    if (list.length === 0) return [];
+    let exaContext = '';
+    if (!isVitest() && await isHealthGroundingAvailable()) {
+      try {
+        const q = `drug food interaction ${list.join(' ')} diet ${JSON.stringify(patientDiet)}`;
+        const exaRes = await searchExa({ query: q, type: 'auto', numResults: 2, contents: { highlights: true }, systemPrompt: 'Prefer authoritative nutrition-pharmacology sources.' });
+        exaContext = exaRes.results.flatMap(r => r.highlights || []).slice(0, 2).join(' | ').slice(0, 600);
+      } catch {}
+    }
+    const schema = {
+      type: 'object',
+      properties: {
+        dietInteractions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              drugName: { type: 'string' },
+              dietItem: { type: 'string' },
+              severity: { type: 'string', enum: ['CONTRAINDICATED', 'MAJOR', 'MODERATE'] },
+              badgeText: { type: 'string' },
+              plateArcColor: { type: 'string' },
+              mechanism: { type: 'string' },
+              clinicalGuidance: { type: 'string' },
+              confidence: { type: 'number', minimum: 0, maximum: 1 },
+              reasoning: { type: 'string' }
+            },
+            required: ['drugName', 'dietItem', 'severity', 'badgeText', 'plateArcColor', 'mechanism', 'clinicalGuidance', 'confidence', 'reasoning'],
+            additionalProperties: false,
           }
-        },
-        required: ['dietInteractions'],
-        additionalProperties: false,
-      } as any;
-      const systemPrompt = `You are a clinical nutrition-pharmacology specialist. Analyze drug-diet interactions for the medication list and patient diet profile (grapefruit daily, Vit K greens, dairy breakfast, potassium salt substitutes, alcohol). Use Exa highlights when provided. Return ONLY valid JSON with shape {"dietInteractions": [{"drugName": string, "dietItem": string, "severity": string, "badgeText": string, "plateArcColor": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include grounded reasoning and confidence per badge. No markdown.`;
-      const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(medNames)}\nDiet: ${JSON.stringify(patientDiet)}${exaContext ? `\nExa highlights: ${exaContext}` : ''}\nReturn JSON only.`, schema);
+        }
+      },
+      required: ['dietInteractions'],
+      additionalProperties: false,
+    } as any;
+    const systemPrompt = `You are a clinical nutrition-pharmacology specialist. Analyze drug-diet interactions for the medication list and patient diet profile (grapefruit daily, Vit K greens, dairy breakfast, potassium salt substitutes, alcohol). Use Exa highlights when provided. Reference points: atorvastatin plus grapefruit — a typical glass raises levels ~37%, only excessive intake above ~1.2L/day matters (moderate, dose-aware, not absolute avoidance); simvastatin plus grapefruit is stricter (major, avoid); levothyroxine needs an empty stomach 30-60 minutes before breakfast with calcium/iron separated by 4 hours; metronidazole plus alcohol is contraindicated during therapy and for 3 days after (including propylene glycol); warfarin needs consistent vitamin K intake, not elimination; ACE inhibitors plus potassium salt substitutes risk hyperkalemia. Return ONLY valid JSON with shape {"dietInteractions": [{"drugName": string, "dietItem": string, "severity": string, "badgeText": string, "plateArcColor": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include grounded reasoning and confidence per badge. No markdown.`;
+    try {
+      const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(list)}\nDiet: ${JSON.stringify(patientDiet)}${exaContext ? `\nExa highlights: ${exaContext}` : ''}\nReturn JSON only.`, schema);
       if (parsed && Array.isArray(parsed.dietInteractions)) {
         return parsed.dietInteractions.map((b: any) => ({
           id: `diet_${(b.drugName || 'drug').replace(/[^a-z0-9]/gi, '_')}_${(b.dietItem || 'diet').replace(/[^a-z0-9]/gi, '_')}`,
@@ -388,135 +302,50 @@ export class ClinicalInteractionEngine {
           clinicalGuidance: b.clinicalGuidance,
         } as DietBadge));
       }
+      throw new AIUnavailableError('Drug-diet analysis returned no usable result');
     } catch (e) {
-      console.warn('[interactionEngine] AI checkDietInteractions failed, fallback', (e as any)?.message || e);
+      if (e instanceof AIUnavailableError) throw e;
+      throw toAIError(e, 'Drug-diet analysis failed');
     }
-    return this.checkDietInteractions(medNames, patientDiet);
   }
 
   /**
-   * Detects Duplicate Active Ingredients across combinations and brand/generic overlaps.
-   * Fallback fixture logic.
+   * Detects duplicate active ingredients across brand/generic combinations via
+   * AI. Reference ceilings embedded: acetaminophen 4000mg/24h all sources,
+   * ibuprofen prescription max 3200mg, atorvastatin max 80mg, metformin max
+   * 2550mg; same-class co-use (e.g. dual NSAID) counts as duplication.
    */
-  public static checkDuplicateIngredients(meds: { name: string; dose?: string }[]): DuplicateIngredientAlert[] {
-    const alerts: DuplicateIngredientAlert[] = [];
-
-    // Track active ingredients: ingredient -> list of { name, dose, mg }
-    const ingredientMap: Map<string, { name: string; dose: string; ingredientAmountMg: number }[]> = new Map();
-
-    for (const med of meds) {
-      const cleanName = med.name.trim();
-      const doseStr = med.dose || '';
-
-      // Match against Brand catalog
-      let foundCatalog = false;
-      for (const [brand, info] of Object.entries(mockBrandGenericCatalog)) {
-        if (cleanName.toLowerCase().includes(brand.toLowerCase()) || cleanName.toLowerCase().includes(info.generic.toLowerCase())) {
-          foundCatalog = true;
-          info.activeIngredients.forEach((item, ingIdx) => {
-            const list = ingredientMap.get(item.ingredient) || [];
-            let parsedMg = item.amountMg;
-            if (doseStr.includes('/')) {
-              const parts = doseStr.split('/');
-              if (parts[ingIdx]) {
-                parsedMg = parseFloat(parts[ingIdx]) || item.amountMg;
-              }
-              if (item.ingredient === 'Acetaminophen' && parsedMg < 50) {
-                const acPart = parts.find((p) => parseFloat(p) >= 100);
-                if (acPart) parsedMg = parseFloat(acPart);
-              }
-            } else if (info.activeIngredients.length === 1 && doseStr) {
-              parsedMg = parseFloat(doseStr) || item.amountMg;
-            }
-            list.push({ name: cleanName, dose: doseStr || `${parsedMg}mg`, ingredientAmountMg: parsedMg });
-            ingredientMap.set(item.ingredient, list);
-          });
-          break;
-        }
-      }
-
-      // Generic fallback for common drugs
-      if (!foundCatalog) {
-        if (cleanName.toLowerCase().includes('acetaminophen') || cleanName.toLowerCase().includes('tylenol')) {
-          const list = ingredientMap.get('Acetaminophen') || [];
-          list.push({ name: cleanName, dose: doseStr || '500mg', ingredientAmountMg: parseFloat(doseStr) || 500 });
-          ingredientMap.set('Acetaminophen', list);
-        } else if (cleanName.toLowerCase().includes('ibuprofen') || cleanName.toLowerCase().includes('advil')) {
-          const list = ingredientMap.get('Ibuprofen') || [];
-          list.push({ name: cleanName, dose: doseStr || '200mg', ingredientAmountMg: parseFloat(doseStr) || 200 });
-          ingredientMap.set('Ibuprofen', list);
-        }
-      }
-
-      // Check NSAID Class group
-      const nsaidNames = ['advil', 'motrin', 'aleve', 'naproxen', 'ibuprofen', 'celebrex', 'meloxicam', 'diclofenac', 'ketorolac'];
-      if (nsaidNames.some(n => cleanName.toLowerCase().includes(n))) {
-        const list = ingredientMap.get('NSAID Class') || [];
-        list.push({ name: cleanName, dose: doseStr || 'Standard', ingredientAmountMg: 1 });
-        ingredientMap.set('NSAID Class', list);
-      }
-    }
-
-    // Evaluate against rules
-    for (const [ingredient, occurrences] of ingredientMap.entries()) {
-      if (occurrences.length > 1) {
-        const rule = mockDuplicateIngredientRules.find(r => r.ingredient.toLowerCase() === ingredient.toLowerCase());
-        const totalMg = occurrences.reduce((acc, o) => acc + o.ingredientAmountMg, 0);
-        const maxLimit = rule ? rule.maxDailySafeMg : 4000;
-        const isOver = totalMg > maxLimit;
-        // Class-based groups (e.g. "NSAID Class") count co-prescribed medicines,
-        // not milligrams — phrase as a count so the banner never reads "2mg/day".
-        const isClassGroup = ingredient.toLowerCase().includes('class');
-        const narration = isClassGroup
-          ? `Duplicate class detected: "${ingredient}" — ${occurrences.map(o => o.name).join(' and ')} are ${occurrences.length} medicines from the same class taken together. ⚠️ Avoid combining; ask your doctor or pharmacist which one to keep.`
-          : 'Duplicate active ingredient detected: "' + ingredient + '" is present in ' + occurrences.map(o => o.name).join(' and ') + ' (Total: ' + totalMg + 'mg/day). ' + (isOver ? '⚠️ Exceeds max recommended daily dose of ' + maxLimit + 'mg.' : 'Verify dosage with clinician.');
-
-        alerts.push({
-          id: deterministicDuplicateId(ingredient, occurrences.map(o => o.name)),
-          ingredient,
-          drugsInvolved: occurrences,
-          totalCumulativeDoseMg: totalMg,
-          maxSafeDailyDoseMg: maxLimit,
-          isOverLimit: isOver,
-          plainNarration: narration
-        });
-      }
-    }
-
-    return alerts;
-  }
-
-  /** AI-enhanced duplicate ingredient detection — reads meds array via AI with confidence */
-  public static async checkDuplicateIngredientsAI(meds: { name: string; dose?: string }[]): Promise<DuplicateIngredientAlert[]> {
-    if (!shouldUseAI()) return this.checkDuplicateIngredients(meds);
-    try {
-      const schema = {
-        type: 'object',
-        properties: {
-          duplicateAlerts: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                ingredient: { type: 'string' },
-                drugsInvolved: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dose: { type: 'string' }, ingredientAmountMg: { type: 'number' } } } },
-                totalCumulativeDoseMg: { type: 'number' },
-                maxSafeDailyDoseMg: { type: 'number' },
-                isOverLimit: { type: 'boolean' },
-                plainNarration: { type: 'string' },
-                confidence: { type: 'number', minimum: 0, maximum: 1 },
-                reasoning: { type: 'string' }
-              },
-              required: ['ingredient', 'drugsInvolved', 'totalCumulativeDoseMg', 'maxSafeDailyDoseMg', 'isOverLimit', 'plainNarration', 'confidence', 'reasoning'],
-              additionalProperties: false,
-            }
+  public static async checkDuplicateIngredients(meds: { name: string; dose?: string }[]): Promise<DuplicateIngredientAlert[]> {
+    const list = (meds || []).filter((m) => m && m.name && m.name.trim() !== '');
+    if (list.length < 2) return [];
+    const schema = {
+      type: 'object',
+      properties: {
+        duplicateAlerts: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              ingredient: { type: 'string' },
+              drugsInvolved: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, dose: { type: 'string' }, ingredientAmountMg: { type: 'number' } } } },
+              totalCumulativeDoseMg: { type: 'number' },
+              maxSafeDailyDoseMg: { type: 'number' },
+              isOverLimit: { type: 'boolean' },
+              plainNarration: { type: 'string' },
+              confidence: { type: 'number', minimum: 0, maximum: 1 },
+              reasoning: { type: 'string' }
+            },
+            required: ['ingredient', 'drugsInvolved', 'totalCumulativeDoseMg', 'maxSafeDailyDoseMg', 'isOverLimit', 'plainNarration', 'confidence', 'reasoning'],
+            additionalProperties: false,
           }
-        },
-        required: ['duplicateAlerts'],
-        additionalProperties: false,
-      } as any;
-      const systemPrompt = `You are a clinical pharmacy specialist. Detect duplicate active ingredients across brand/generic meds (e.g., Acetaminophen in Tylenol+Percocet, Ibuprofen overlap, NSAID class). Compute cumulative mg and max safe dose, flag over-limit. Return ONLY valid JSON with shape {"duplicateAlerts": [{"ingredient": string, "drugsInvolved": [{"name": string, "dose": string, "ingredientAmountMg": number}], "totalCumulativeDoseMg": number, "maxSafeDailyDoseMg": number, "isOverLimit": boolean, "plainNarration": string, "confidence": number, "reasoning": string}]}. Include confidence and grounded reasoning. No markdown.`;
-      const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(meds)}\nReturn JSON only.`, schema);
+        }
+      },
+      required: ['duplicateAlerts'],
+      additionalProperties: false,
+    } as any;
+    const systemPrompt = `You are a clinical pharmacy specialist. Detect duplicate active ingredients across brand/generic meds (e.g., Acetaminophen in Tylenol plus Percocet, Ibuprofen overlap, NSAID class co-use). Compute cumulative mg and max safe dose, flag over-limit. Reference ceilings: acetaminophen 4000mg per 24h across all sources, ibuprofen prescription max 3200mg per day, atorvastatin max 80mg per day, metformin max 2550mg per day. Same-class pairs (e.g. two NSAIDs) count as duplication even without shared molecules. For class-level duplicates, narrate counts of medicines rather than milligrams. Return ONLY valid JSON with shape {"duplicateAlerts": [{"ingredient": string, "drugsInvolved": [{"name": string, "dose": string, "ingredientAmountMg": number}], "totalCumulativeDoseMg": number, "maxSafeDailyDoseMg": number, "isOverLimit": boolean, "plainNarration": string, "confidence": number, "reasoning": string}]}. Include confidence and grounded reasoning. No markdown.`;
+    try {
+      const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(list)}\nReturn JSON only.`, schema);
       if (parsed && Array.isArray(parsed.duplicateAlerts)) {
         return parsed.duplicateAlerts.map((a: any) => ({
           id: deterministicDuplicateId(a.ingredient || 'ing', (a.drugsInvolved || []).map((d: any) => d?.name || 'drug')),
@@ -528,114 +357,54 @@ export class ClinicalInteractionEngine {
           plainNarration: a.plainNarration || (a.reasoning ? `${a.ingredient}: ${a.reasoning}` : `Duplicate ${a.ingredient}`),
         } as DuplicateIngredientAlert));
       }
+      throw new AIUnavailableError('Duplicate-ingredient analysis returned no usable result');
     } catch (e) {
-      console.warn('[interactionEngine] AI duplicate check failed, fallback', (e as any)?.message || e);
+      if (e instanceof AIUnavailableError) throw e;
+      throw toAIError(e, 'Duplicate-ingredient analysis failed');
     }
-    return this.checkDuplicateIngredients(meds);
   }
 
   /**
-   * Suggests personalized, chronotype-aware timing shifts.
-   * Fallback fixture logic.
+   * Suggests personalized, chronotype-aware timing shifts via AI.
    */
-  public static suggestSchedule(
-    meds: { id: string; name: string; currentSlot: TimeSlot }[],
-    chronotype: 'early_bird' | 'night_owl' | 'standard' = 'standard'
-  ): ScheduleSuggestionResult {
-    const shifts: any[] = [];
-    let resolvedConflicts = 0;
-
-    for (const med of meds) {
-      const generic = this.resolveGenericName(med.name);
-
-      // Atorvastatin / Statins work best at bedtime
-      if ((generic === 'Atorvastatin' || generic === 'Simvastatin') && med.currentSlot !== 'bedtime') {
-        shifts.push({
-          medId: med.id,
-          medName: med.name,
-          fromSlot: med.currentSlot,
-          toSlot: 'bedtime',
-          reason: 'Statins have optimal hepatic cholesterol synthesis inhibition during overnight fasting at bedtime.'
-        });
-        resolvedConflicts++;
-      }
-
-      // Diuretics (Furosemide) in Morning / Noon to prevent nocturia
-      if (generic === 'Furosemide' && (med.currentSlot === 'bedtime' || med.currentSlot === 'evening')) {
-        shifts.push({
-          medId: med.id,
-          medName: med.name,
-          fromSlot: med.currentSlot,
-          toSlot: 'morning',
-          reason: 'Take diuretics in the morning to prevent nighttime urination and sleep disruption.'
-        });
-        resolvedConflicts++;
-      }
-
-      // Calcium Carbonate separated from Levothyroxine
-      if (generic === 'Calcium Carbonate' && med.currentSlot === 'morning') {
-        shifts.push({
-          medId: med.id,
-          medName: med.name,
-          fromSlot: 'morning',
-          toSlot: 'noon',
-          reason: 'Separate calcium supplements from morning thyroid medication (Levothyroxine) by 4 hours.'
-        });
-        resolvedConflicts++;
-      }
-    }
-
-    let explanation = `Optimized schedule for ${chronotype.replace('_', ' ')} chronotype. `;
-    if (shifts.length > 0) {
-      explanation += `Proposed ${shifts.length} timing adjustments to minimize drug-drug binding and optimize efficacy.`;
-    } else {
-      explanation += 'Current schedule is already well-spaced and optimal.';
-    }
-
-    return {
-      chronotype,
-      proposedShifts: shifts,
-      resolvedConflictsCount: resolvedConflicts,
-      plainExplanation: explanation
-    };
-  }
-
-  /** AI-enhanced schedule suggestion — reads meds array via AI with confidence and grounded reasoning */
-  public static async suggestScheduleAI(
+  public static async suggestSchedule(
     meds: { id: string; name: string; currentSlot: TimeSlot }[],
     chronotype: 'early_bird' | 'night_owl' | 'standard' = 'standard'
   ): Promise<ScheduleSuggestionResult> {
-    if (!shouldUseAI()) return this.suggestSchedule(meds, chronotype);
-    try {
-      const schema = {
-        type: 'object',
-        properties: {
-          proposedShifts: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                medId: { type: 'string' },
-                medName: { type: 'string' },
-                fromSlot: { type: 'string', enum: ['morning', 'noon', 'evening', 'bedtime'] },
-                toSlot: { type: 'string', enum: ['morning', 'noon', 'evening', 'bedtime'] },
-                reason: { type: 'string' },
-                confidence: { type: 'number', minimum: 0, maximum: 1 }
-              },
-              required: ['medId', 'medName', 'fromSlot', 'toSlot', 'reason', 'confidence'],
-              additionalProperties: false,
-            }
-          },
-          resolvedConflictsCount: { type: 'number' },
-          plainExplanation: { type: 'string' },
-          confidence: { type: 'number', minimum: 0, maximum: 1 },
-          reasoning: { type: 'string' }
+    const list = (meds || []).filter((m) => m && m.name);
+    if (list.length === 0) {
+      return { chronotype, proposedShifts: [], resolvedConflictsCount: 0, plainExplanation: 'No medications to schedule.' };
+    }
+    const schema = {
+      type: 'object',
+      properties: {
+        proposedShifts: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              medId: { type: 'string' },
+              medName: { type: 'string' },
+              fromSlot: { type: 'string', enum: ['morning', 'noon', 'evening', 'bedtime'] },
+              toSlot: { type: 'string', enum: ['morning', 'noon', 'evening', 'bedtime'] },
+              reason: { type: 'string' },
+              confidence: { type: 'number', minimum: 0, maximum: 1 }
+            },
+            required: ['medId', 'medName', 'fromSlot', 'toSlot', 'reason', 'confidence'],
+            additionalProperties: false,
+          }
         },
-        required: ['proposedShifts', 'resolvedConflictsCount', 'plainExplanation', 'confidence', 'reasoning'],
-        additionalProperties: false,
-      } as any;
-      const systemPrompt = `You are a clinical chronotherapy specialist. Given medications with current time slots and patient chronotype, suggest personalized timing shifts to optimize efficacy and minimize interactions (e.g., statins at bedtime, diuretics morning, separate calcium from levothyroxine). Return ONLY valid JSON with shape {"proposedShifts": [{"medId": string, "medName": string, "fromSlot": string, "toSlot": string, "reason": string, "confidence": number}], "resolvedConflictsCount": number, "plainExplanation": string, "confidence": number}. Include confidence and grounded reasoning per shift. No markdown.`;
-      const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(meds)}\nChronotype: ${chronotype}\nReturn JSON only.`, schema);
+        resolvedConflictsCount: { type: 'number' },
+        plainExplanation: { type: 'string' },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' }
+      },
+      required: ['proposedShifts', 'resolvedConflictsCount', 'plainExplanation', 'confidence', 'reasoning'],
+      additionalProperties: false,
+    } as any;
+    const systemPrompt = `You are a clinical chronotherapy specialist. Given medications with current time slots and patient chronotype, suggest personalized timing shifts to optimize efficacy and minimize interactions (e.g., statins at bedtime for overnight cholesterol synthesis, diuretics in the morning to prevent nighttime urination, separate calcium from levothyroxine by 4 hours). Return ONLY valid JSON with shape {"proposedShifts": [{"medId": string, "medName": string, "fromSlot": string, "toSlot": string, "reason": string, "confidence": number}], "resolvedConflictsCount": number, "plainExplanation": string, "confidence": number}. Include confidence and grounded reasoning per shift. No markdown.`;
+    try {
+      const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(list)}\nChronotype: ${chronotype}\nReturn JSON only.`, schema);
       if (parsed && Array.isArray(parsed.proposedShifts)) {
         return {
           chronotype,
@@ -647,70 +416,62 @@ export class ClinicalInteractionEngine {
             reason: s.reason,
           })),
           resolvedConflictsCount: parsed.resolvedConflictsCount ?? parsed.proposedShifts.length,
-          plainExplanation: parsed.plainExplanation || `Optimized schedule for ${chronotype.replace('_', ' ')} via AI.`,
+          plainExplanation: parsed.plainExplanation || `Optimized schedule for ${chronotype.replace('_', ' ')}.`,
         };
       }
+      throw new AIUnavailableError('Schedule analysis returned no usable result');
     } catch (e) {
-      console.warn('[interactionEngine] AI suggestSchedule failed, fallback', (e as any)?.message || e);
+      if (e instanceof AIUnavailableError) throw e;
+      throw toAIError(e, 'Schedule analysis failed');
     }
-    return this.suggestSchedule(meds, chronotype);
   }
 
   /**
-   * Simulates missed dose clinical risk deltas.
+   * Simulates missed-dose clinical impact via AI. The no-double-dose rule is
+   * enforced in code (always true) regardless of model output — safety
+   * invariant, never model-dependent.
    */
-  public static simulateAdherence(medName: string, missedSlot: { day: DayOfWeek; slot: TimeSlot }): MissedDoseSimulationResult {
-    const generic = this.resolveGenericName(medName);
-
-    if (generic === 'Metformin') {
-      return {
-        medName,
-        missedSlot,
-        clinicalImpactSummary: 'Missing Metformin increases estimated 24-hour peak postprandial glucose by ~35 mg/dL.',
+  public static async simulateAdherence(medName: string, missedSlot: { day: DayOfWeek; slot: TimeSlot }): Promise<MissedDoseSimulationResult> {
+    const name = (medName || '').trim();
+    if (!name) throw new AIUnavailableError('Medication name is required for adherence simulation');
+    const schema = {
+      type: 'object',
+      properties: {
+        medName: { type: 'string' },
+        clinicalImpactSummary: { type: 'string' },
         projectedBiomarkerDelta: {
-          biomarker: 'Fasting Glucose',
-          estimatedChange: '+25 to +40 mg/dL'
+          type: 'object',
+          properties: {
+            biomarker: { type: 'string' },
+            estimatedChange: { type: 'string' },
+          },
+          required: ['biomarker', 'estimatedChange'],
+          additionalProperties: false,
         },
-        recoveryProtocol: 'Take the missed dose as soon as remembered with food, unless it is almost time for your next scheduled dose. Do NOT take extra medicine to make up the missed dose.',
-        doNotDoubleDoseWarning: true
-      };
+        recoveryProtocol: { type: 'string' },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+        reasoning: { type: 'string' },
+      },
+      required: ['medName', 'clinicalImpactSummary', 'recoveryProtocol', 'confidence', 'reasoning'],
+      additionalProperties: false,
+    } as any;
+    const systemPrompt = `You are a clinical pharmacology educator. A patient missed a dose of the given medication. Estimate the clinical impact in plain language, the likely biomarker change with units, and a safe recovery protocol. Rules: NEVER advise taking two doses at once — the recovery protocol must say to take the missed dose as soon as remembered unless close to the next dose, and never double up. Consider drug half-life and indication (e.g., anticoagulants lose protection within hours; blood-pressure meds rebound; metformin raises glucose). Return ONLY valid JSON with shape {"medName": string, "clinicalImpactSummary": string, "projectedBiomarkerDelta": {"biomarker": string, "estimatedChange": string}, "recoveryProtocol": string, "confidence": number, "reasoning": string}. No markdown.`;
+    try {
+      const parsed = await callKnowledgeAI(systemPrompt, `Medication: ${name}\nMissed: ${missedSlot.day} ${missedSlot.slot}\nReturn JSON only.`, schema);
+      if (parsed && typeof parsed.clinicalImpactSummary === 'string' && typeof parsed.recoveryProtocol === 'string') {
+        return {
+          medName: parsed.medName || name,
+          missedSlot,
+          clinicalImpactSummary: parsed.clinicalImpactSummary,
+          projectedBiomarkerDelta: parsed.projectedBiomarkerDelta,
+          recoveryProtocol: parsed.recoveryProtocol,
+          doNotDoubleDoseWarning: true,
+        };
+      }
+      throw new AIUnavailableError(`Adherence simulation returned no usable result for "${name}"`);
+    } catch (e) {
+      if (e instanceof AIUnavailableError) throw e;
+      throw toAIError(e, 'Adherence simulation failed');
     }
-
-    if (generic === 'Apixaban' || generic === 'Warfarin') {
-      return {
-        medName,
-        missedSlot,
-        clinicalImpactSummary: 'Missing an anticoagulant dose leads to rapid half-life decay and temporary loss of stroke protection in Atrial Fibrillation.',
-        projectedBiomarkerDelta: {
-          biomarker: 'Anticoagulation Blood Level',
-          estimatedChange: '-50% within 12 hours'
-        },
-        recoveryProtocol: 'Take the missed dose immediately if remembered on the same day. Do NOT take two doses at the same time to make up for a missed dose.',
-        doNotDoubleDoseWarning: true
-      };
-    }
-
-    if (generic === 'Amlodipine' || generic === 'Lisinopril' || generic === 'Carvedilol') {
-      return {
-        medName,
-        missedSlot,
-        clinicalImpactSummary: 'Missing your blood pressure medication can lead to rebound hypertension and increased cardiac workload.',
-        projectedBiomarkerDelta: {
-          biomarker: 'Systolic Blood Pressure',
-          estimatedChange: '+12 to +18 mmHg'
-        },
-        recoveryProtocol: 'Take the dose as soon as you remember. If it is within 4 hours of your next regular dose, skip the missed dose and stay on schedule.',
-        doNotDoubleDoseWarning: true
-      };
-    }
-
-    // Default simulation
-    return {
-      medName,
-      missedSlot,
-      clinicalImpactSummary: `Missing ${medName} reduces therapeutic drug coverage for the day.`,
-      recoveryProtocol: 'Take the dose as soon as remembered unless it is almost time for your next regular dose. Never double up doses.',
-      doNotDoubleDoseWarning: true
-    };
   }
 }

@@ -61,8 +61,6 @@ export interface StoredInteractionEvaluation {
   duplicateAlerts: DuplicateIngredientAlert[];
   /** Number of meds evaluated — guards against empty-regimen cache poisoning. */
   medCount: number;
-  /** Which pipeline produced this row ('sync' rule engine vs 'ai' grounded). */
-  source?: EvaluationSource;
 }
 
 // ------------------------------------------------------------------
@@ -131,15 +129,11 @@ function fingerprintDiet(flags: DietFlags): string {
 /**
  * Build the stable regimen hash for a patient evaluation.
  * Includes engine version so rule updates invalidate old rows automatically.
- * `source` separates rule-based ('sync') rows from AI-grounded ('ai') rows so
- * each pipeline caches under its own key and never serves the other's output.
  */
-export type EvaluationSource = 'sync' | 'ai';
-
-export function buildRegimenHash(meds: RegimenMedInput[], dietFlags: DietFlags, source: EvaluationSource = 'sync'): string {
+export function buildRegimenHash(meds: RegimenMedInput[], dietFlags: DietFlags): string {
   const medFp = fingerprintMeds(meds).join('|');
   const dietFp = fingerprintDiet(dietFlags);
-  return stableHash(`${INTERACTION_ENGINE_VERSION}|${source}|${medFp}|${dietFp}`);
+  return stableHash(`${INTERACTION_ENGINE_VERSION}|${medFp}|${dietFp}`);
 }
 
 /** Canonical Supabase / vault PK for a stored evaluation. */
@@ -188,11 +182,9 @@ export function buildStoredEvaluation(args: {
   arcs: InteractionArc[];
   dietBadges: DietBadge[];
   duplicateAlerts: DuplicateIngredientAlert[];
-  source?: EvaluationSource;
 }): StoredInteractionEvaluation {
   const medFingerprint = fingerprintMeds(args.meds);
-  const source = args.source ?? 'sync';
-  const regimenHash = buildRegimenHash(args.meds, args.dietFlags, source);
+  const regimenHash = buildRegimenHash(args.meds, args.dietFlags);
   const entry: StoredInteractionEvaluation = {
     regimenHash,
     patientId: args.patientId,
@@ -204,7 +196,6 @@ export function buildStoredEvaluation(args: {
     dietBadges: args.dietBadges,
     duplicateAlerts: args.duplicateAlerts,
     medCount: args.meds.length,
-    source,
   };
   setMemoEvaluation(entry);
   return entry;
@@ -219,7 +210,7 @@ export function isEvaluationFresh(
 ): boolean {
   if (!entry) return false;
   if (entry.engineVersion !== INTERACTION_ENGINE_VERSION) return false;
-  if (entry.regimenHash !== buildRegimenHash(meds, dietFlags, entry.source ?? 'sync')) return false;
+  if (entry.regimenHash !== buildRegimenHash(meds, dietFlags)) return false;
   const age = Date.now() - new Date(entry.computedAt).getTime();
   if (!Number.isFinite(age) || age < 0 || age > maxAgeMs) return false;
   return true;

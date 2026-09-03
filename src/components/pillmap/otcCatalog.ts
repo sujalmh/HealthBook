@@ -1,5 +1,5 @@
 export const COMMON_OTCS = [
-  { name: "St. John's Wort", dose: '300mg', shape: 'capsule' as const, color: '#F59E0B', desc: 'Herbal (Serotonin Risk)' },
+  { name: "St. John's Wort", dose: '300mg', shape: 'capsule' as const, color: '#F59E0B', desc: 'Herbal mood supplement (Serotonin Risk)' },
   { name: 'Tylenol Extra Strength', dose: '500mg', shape: 'round' as const, color: '#EF4444', desc: 'Acetaminophen (APAP)' },
   { name: 'Advil Liqui-Gels', dose: '200mg', shape: 'capsule' as const, color: '#3B82F6', desc: 'Ibuprofen (NSAID)' },
   { name: 'Aleve', dose: '220mg', shape: 'oval' as const, color: '#0EA5E9', desc: 'Naproxen (NSAID)' },

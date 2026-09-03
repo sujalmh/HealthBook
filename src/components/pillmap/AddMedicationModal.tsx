@@ -45,6 +45,8 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
   const [avoidGrapefruit, setAvoidGrapefruit] = useState(false);
   const [avoidAlcohol, setAvoidAlcohol] = useState(false);
   const [avoidDairy, setAvoidDairy] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [resolveError, setResolveError] = useState(false);
 
   const toggleSlot = (slot: TimeSlot) => {
     if (selectedSlots.includes(slot)) {
@@ -68,38 +70,37 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
 
   const handleNameChange = (val: string) => {
     setName(val);
-    const generic = ClinicalInteractionEngine.resolveGenericName(val);
-    if (generic === 'Levothyroxine') {
-      setEmptyStomach(true);
-      setAvoidDairy(true);
-    } else if (generic === 'Metformin') {
-      setWithFood(true);
-    } else if (generic === 'Atorvastatin' || generic === 'Simvastatin') {
-      setAvoidGrapefruit(true);
-    } else if (generic === 'Metronidazole') {
-      setAvoidAlcohol(true);
-    }
+    setResolveError(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !dosage.trim()) return;
+    if (!name.trim() || !dosage.trim() || isResolving) return;
 
-    const genericName = ClinicalInteractionEngine.resolveGenericName(name.trim());
-
-    onSave({
-      name: name.trim(),
-      genericName,
-      dosage: dosage.trim(),
-      frequency,
-      timingSlots: selectedSlots,
-      days: selectedDays,
-      withFood,
-      emptyStomach,
-      avoidGrapefruit,
-      avoidAlcohol,
-      avoidDairy
-    });
+    // Generic resolution via the AI pipeline. Food-rule checkboxes stay fully
+    // manual — no hardcoded drug rules in the form.
+    setIsResolving(true);
+    setResolveError(false);
+    try {
+      const genericName = await ClinicalInteractionEngine.resolveGenericName(name.trim());
+      onSave({
+        name: name.trim(),
+        genericName,
+        dosage: dosage.trim(),
+        frequency,
+        timingSlots: selectedSlots,
+        days: selectedDays,
+        withFood,
+        emptyStomach,
+        avoidGrapefruit,
+        avoidAlcohol,
+        avoidDairy
+      });
+    } catch {
+      setResolveError(true);
+    } finally {
+      setIsResolving(false);
+    }
   };
 
   return (
@@ -262,12 +263,18 @@ export const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
             </button>
             <button
               type="submit"
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold text-body-sm shadow-sm min-h-[44px]"
+              disabled={isResolving}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-60 text-white font-bold text-body-sm shadow-sm min-h-[44px]"
             >
               <Plus className="w-4 h-4" />
-              <span>Add to Pillbox</span>
+              <span>{isResolving ? 'Resolving…' : 'Add to Pillbox'}</span>
             </button>
           </div>
+          {resolveError && (
+            <p className="text-caption text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              Couldn't resolve this medication — the AI service is unavailable. Check your connection and retry.
+            </p>
+          )}
         </form>
       </div>
     </ModalPortal>

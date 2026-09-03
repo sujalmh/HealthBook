@@ -1,14 +1,37 @@
 /**
- * CareCanvas WebMCP Tools: PillMap Polypharmacy Negotiator (M3) — AI Enhanced
+ * CareCanvas WebMCP Tools: PillMap Polypharmacy Negotiator (M3) — AI-native.
  * Tools: add_medication, check_interactions, check_diet_interactions, check_duplicate_ingredient, suggest_schedule, simulate_adherence, export_for_pharmacist, set_reminder
- * AI-enhanced reasoning via knowledge engine AI path (call AI when enabled, fallback fixture) — generic configurable via Settings>env.
+ * All clinical reasoning flows through the AI pipeline (no bundled drug tables).
+ * When the pipeline is unavailable the tools return honest AI_UNAVAILABLE/AI_FAILED
+ * errors instead of fabricated content.
  */
 
 import type {  WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult  } from '../types/webmcp.ts';
-import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
+import { ClinicalInteractionEngine, AIUnavailableError } from '../core/knowledge/interactionEngine.ts';
 import { healthRepository, DEFAULT_DIET_FLAGS } from '../core/vault/HealthRepository.ts';
-import { shouldUseAI, gateIfViewOnly } from '../core/rbac/canAccess.ts';
+import { gateIfViewOnly } from '../core/rbac/canAccess.ts';
 import type {  TimeSlot, DayOfWeek  } from '../types/pillmap.ts';
+
+/** Honest error result when the AI pipeline cannot produce clinical content. */
+function aiErrorResult(tool: string, err: unknown, what: string): WebMCPToolResult {
+  const code = err instanceof AIUnavailableError ? err.code : 'AI_FAILED';
+  const message = err instanceof Error ? err.message : String(err);
+  return {
+    success: false,
+    tool,
+    timestamp: new Date().toISOString(),
+    data: null,
+    plainLanguageSummary: `Could not ${what} — the AI service is unavailable (${message}). No content was fabricated; please retry.`,
+    humanApprovalRequired: false,
+    error: { code, message }
+  };
+}
+
+function repoFor(vault: WebMCPExecutionContext['vault']) {
+  return healthRepository.cache === vault
+    ? healthRepository
+    : new (healthRepository.constructor as new (v: typeof vault) => typeof healthRepository)(vault);
+}
 
 export const addMedicationTool: WebMCPToolDefinition = {
   name: 'add_medication',
@@ -53,13 +76,13 @@ export const addMedicationTool: WebMCPToolDefinition = {
       };
     }
 
-    // Try AI-enhanced generic resolution when enabled (vision+text not needed, text only)
-    let genericName = ClinicalInteractionEngine.resolveGenericName(params.name);
+    // Generic-name resolution via the AI pipeline (required — no local tables)
+    let genericName: string;
     try {
-      if (shouldUseAI()) {
-        genericName = await ClinicalInteractionEngine.resolveGenericNameAI(params.name);
-      }
-    } catch {}
+      genericName = await ClinicalInteractionEngine.resolveGenericName(params.name);
+    } catch (err) {
+      return aiErrorResult('add_medication', err, `resolve a generic name for "${params.name}"`);
+    }
 
     const medRecord = context.vault.addMedication(
       {
@@ -112,12 +135,8 @@ export const checkInteractionsTool: WebMCPToolDefinition = {
     if (isStoredRegimen) {
       try {
         const activeMeds = context.vault.getMedications(context.patientId, 'active');
-        const repo = healthRepository.cache === context.vault
-          ? healthRepository
-          : new (healthRepository.constructor as new (v: typeof context.vault) => typeof healthRepository)(context.vault);
-        const result = shouldUseAI()
-          ? await repo.evaluateInteractionsAI(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS, true)
-          : repo.evaluateInteractions(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS);
+        const repo = repoFor(context.vault);
+        const result = await repo.evaluateInteractions(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS);
         const arcs = result.arcs;
         const summary =
           arcs.length === 0
@@ -136,17 +155,13 @@ export const checkInteractionsTool: WebMCPToolDefinition = {
       }
     }
     const list = params.medList || context.vault.getMedications(context.patientId).map((m: never) => (m as { genericName: string }).genericName);
-    let arcs;
     // Ad-hoc what-if evaluation (explicit medList): compute directly without
     // polluting the stored patient regimen cache.
+    let arcs;
     try {
-      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDrugInteractionsAI === 'function') {
-        arcs = await ClinicalInteractionEngine.checkDrugInteractionsAI(list);
-      } else {
-        arcs = ClinicalInteractionEngine.checkDrugInteractions(list);
-      }
-    } catch {
-      arcs = ClinicalInteractionEngine.checkDrugInteractions(list);
+      arcs = await ClinicalInteractionEngine.checkDrugInteractions(list);
+    } catch (err) {
+      return aiErrorResult('check_interactions', err, 'evaluate drug-drug interactions');
     }
 
     const summary =
@@ -200,12 +215,8 @@ export const checkDietInteractionsTool: WebMCPToolDefinition = {
       const reqNames = new Set<string>((params.medList || []).map((n) => String(n).toLowerCase()));
       const matchesStored = activeNames.size > 0 && activeNames.size === reqNames.size && [...reqNames].every((n) => activeNames.has(n) || [...activeNames].some((a: string) => a.includes(n) || n.includes(a)));
       if (matchesStored) {
-        const repo = healthRepository.cache === context.vault
-          ? healthRepository
-          : new (healthRepository.constructor as new (v: typeof context.vault) => typeof healthRepository)(context.vault);
-        const result = shouldUseAI()
-          ? await repo.evaluateInteractionsAI(context.patientId, activeMeds as never, dietProfile, true)
-          : repo.evaluateInteractions(context.patientId, activeMeds as never, dietProfile);
+        const repo = repoFor(context.vault);
+        const result = await repo.evaluateInteractions(context.patientId, activeMeds as never, dietProfile);
         const badges = result.dietBadges;
         return {
           success: true,
@@ -225,13 +236,9 @@ export const checkDietInteractionsTool: WebMCPToolDefinition = {
 
     let badges;
     try {
-      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDietInteractionsAI === 'function') {
-        badges = await ClinicalInteractionEngine.checkDietInteractionsAI(params.medList, dietProfile);
-      } else {
-        badges = ClinicalInteractionEngine.checkDietInteractions(params.medList, dietProfile);
-      }
-    } catch {
-      badges = ClinicalInteractionEngine.checkDietInteractions(params.medList, dietProfile);
+      badges = await ClinicalInteractionEngine.checkDietInteractions(params.medList, dietProfile);
+    } catch (err) {
+      return aiErrorResult('check_diet_interactions', err, 'evaluate diet interactions');
     }
 
     return {
@@ -274,12 +281,8 @@ export const checkDuplicateIngredientTool: WebMCPToolDefinition = {
       const reqNames = new Set<string>((params.medList || []).map((m) => String(m?.name || '').toLowerCase()));
       const matchesStored = activeNames.size > 0 && activeNames.size === reqNames.size && [...reqNames].every((n) => activeNames.has(n) || [...activeNames].some((a: string) => a.includes(n) || n.includes(a)));
       if (matchesStored) {
-        const repo = healthRepository.cache === context.vault
-          ? healthRepository
-          : new (healthRepository.constructor as new (v: typeof context.vault) => typeof healthRepository)(context.vault);
-        const result = shouldUseAI()
-          ? await repo.evaluateInteractionsAI(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS, true)
-          : repo.evaluateInteractions(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS);
+        const repo = repoFor(context.vault);
+        const result = await repo.evaluateInteractions(context.patientId, activeMeds as never, DEFAULT_DIET_FLAGS);
         const alerts = result.duplicateAlerts;
         return {
           success: true,
@@ -298,13 +301,9 @@ export const checkDuplicateIngredientTool: WebMCPToolDefinition = {
     }
     let alerts;
     try {
-      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDuplicateIngredientsAI === 'function') {
-        alerts = await ClinicalInteractionEngine.checkDuplicateIngredientsAI(params.medList);
-      } else {
-        alerts = ClinicalInteractionEngine.checkDuplicateIngredients(params.medList);
-      }
-    } catch {
-      alerts = ClinicalInteractionEngine.checkDuplicateIngredients(params.medList);
+      alerts = await ClinicalInteractionEngine.checkDuplicateIngredients(params.medList);
+    } catch (err) {
+      return aiErrorResult('check_duplicate_ingredient', err, 'detect duplicate ingredients');
     }
 
     return {
@@ -343,13 +342,9 @@ export const suggestScheduleTool: WebMCPToolDefinition = {
   execute: async (params: { medList: any[]; chronotype?: 'early_bird' | 'night_owl' | 'standard' }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     let result;
     try {
-      if (shouldUseAI() && typeof ClinicalInteractionEngine.suggestScheduleAI === 'function') {
-        result = await ClinicalInteractionEngine.suggestScheduleAI(params.medList, params.chronotype || 'standard');
-      } else {
-        result = ClinicalInteractionEngine.suggestSchedule(params.medList, params.chronotype || 'standard');
-      }
-    } catch {
-      result = ClinicalInteractionEngine.suggestSchedule(params.medList, params.chronotype || 'standard');
+      result = await ClinicalInteractionEngine.suggestSchedule(params.medList, params.chronotype || 'standard');
+    } catch (err) {
+      return aiErrorResult('suggest_schedule', err, 'compute schedule timing shifts');
     }
 
     return {
@@ -387,7 +382,12 @@ export const simulateAdherenceTool: WebMCPToolDefinition = {
   },
   execute: async (params: { medName: string; slot?: { day: DayOfWeek; slot: TimeSlot } }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const slot = params.slot || { day: 'tuesday', slot: 'morning' };
-    const simulation = ClinicalInteractionEngine.simulateAdherence(params.medName, slot);
+    let simulation;
+    try {
+      simulation = await ClinicalInteractionEngine.simulateAdherence(params.medName, slot);
+    } catch (err) {
+      return aiErrorResult('simulate_adherence', err, 'simulate the missed-dose impact');
+    }
 
     return {
       success: true,

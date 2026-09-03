@@ -125,30 +125,32 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
   // 3. Drug-Drug Interaction Detection
   // =========================================================================
   describe('3. Drug-Drug Interaction Detection Engine', () => {
-    it('detects Red CONTRAINDICATED interaction between Sertraline and St. Johns Wort', () => {
-      const arcs = ClinicalInteractionEngine.checkDrugInteractions(['Sertraline', "St. John's Wort"]);
+    it('detects Orange MAJOR interaction between Sertraline and St. Johns Wort', async () => {
+      const arcs = await ClinicalInteractionEngine.checkDrugInteractions(['Sertraline', "St. John's Wort"]);
       expect(arcs.length).toBeGreaterThanOrEqual(1);
 
       const arc = arcs[0];
-      expect(arc.severity).toBe('CONTRAINDICATED');
-      expect(arc.arcColor).toBe('#EF4444');
+      // FDA labels this a warning (avoid/monitor), not a contraindication (reserved for MAOIs)
+      expect(arc.severity).toBe('MAJOR');
+      expect(arc.arcColor).toBe('#F97316');
       expect(arc.mechanism.toLowerCase()).toContain('serotonin syndrome');
       expect(arc.clinicalGuidance.toLowerCase()).toContain('discontinue');
     });
 
-    it('detects Orange MAJOR interaction between Apixaban and Fish Oil', () => {
-      const arcs = ClinicalInteractionEngine.checkDrugInteractions(['Apixaban', 'Fish Oil']);
+    it('detects Yellow MODERATE interaction between Apixaban and Fish Oil', async () => {
+      const arcs = await ClinicalInteractionEngine.checkDrugInteractions(['Apixaban', 'Fish Oil']);
       expect(arcs.length).toBeGreaterThanOrEqual(1);
 
       const arc = arcs.find(a => a.drugA.includes('Apixaban') || a.drugB.includes('Apixaban'));
       expect(arc).toBeDefined();
-      expect(arc?.severity).toBe('MAJOR');
-      expect(arc?.arcColor).toBe('#F97316');
+      // Dose-dependent mild antiplatelet effect — moderate, not major (Drugs.com monitor-level)
+      expect(arc?.severity).toBe('MODERATE');
+      expect(arc?.arcColor).toBe('#EAB308');
       expect(arc?.mechanism.toLowerCase()).toContain('bleeding');
     });
 
-    it('detects Orange MAJOR interaction between Ciprofloxacin and Calcium Carbonate', () => {
-      const arcs = ClinicalInteractionEngine.checkDrugInteractions(['Ciprofloxacin', 'Calcium Carbonate']);
+    it('detects Orange MAJOR interaction between Ciprofloxacin and Calcium Carbonate', async () => {
+      const arcs = await ClinicalInteractionEngine.checkDrugInteractions(['Ciprofloxacin', 'Calcium Carbonate']);
       expect(arcs.length).toBeGreaterThanOrEqual(1);
 
       const arc = arcs[0];
@@ -156,8 +158,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(arc.mechanism.toLowerCase()).toContain('chelate');
     });
 
-    it('detects Yellow MODERATE interaction between Carvedilol and Furosemide', () => {
-      const arcs = ClinicalInteractionEngine.checkDrugInteractions(['Carvedilol', 'Furosemide']);
+    it('detects Yellow MODERATE interaction between Carvedilol and Furosemide', async () => {
+      const arcs = await ClinicalInteractionEngine.checkDrugInteractions(['Carvedilol', 'Furosemide']);
       expect(arcs.length).toBeGreaterThanOrEqual(1);
 
       const arc = arcs[0];
@@ -166,8 +168,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(arc.mechanism.toLowerCase()).toContain('hypotensive');
     });
 
-    it('returns empty array for clean, non-conflicting medication regimens', () => {
-      const arcs = ClinicalInteractionEngine.checkDrugInteractions(['Levothyroxine', 'Metformin']);
+    it('returns empty array for clean, non-conflicting medication regimens', async () => {
+      const arcs = await ClinicalInteractionEngine.checkDrugInteractions(['Levothyroxine', 'Metformin']);
       expect(arcs).toHaveLength(0);
     });
   });
@@ -176,8 +178,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
   // 4. Drug-Diet Interaction Detection
   // =========================================================================
   describe('4. Drug-Diet Interaction Detection Engine', () => {
-    it('flags Grapefruit interaction with Atorvastatin and Simvastatin', () => {
-      const badges = ClinicalInteractionEngine.checkDietInteractions(['Atorvastatin', 'Simvastatin'], {
+    it('flags Grapefruit interaction with Atorvastatin and Simvastatin', async () => {
+      const badges = await ClinicalInteractionEngine.checkDietInteractions(['Atorvastatin', 'Simvastatin'], {
         drinksGrapefruitDaily: true
       });
 
@@ -185,12 +187,13 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       const atorvaBadge = badges.find(b => b.drugName === 'Atorvastatin');
       expect(atorvaBadge).toBeDefined();
       expect(atorvaBadge?.badgeText).toContain('Grapefruit');
-      expect(atorvaBadge?.severity).toBe('MAJOR');
+      // FDA label: only excessive intake (>1.2L/day) is a concern — moderate, not major
+      expect(atorvaBadge?.severity).toBe('MODERATE');
       expect(atorvaBadge?.mechanism).toContain('CYP3A4');
     });
 
-    it('flags Vitamin K leafy greens consistency requirement for Warfarin', () => {
-      const badges = ClinicalInteractionEngine.checkDietInteractions(['Coumadin'], {
+    it('flags Vitamin K leafy greens consistency requirement for Warfarin', async () => {
+      const badges = await ClinicalInteractionEngine.checkDietInteractions(['Coumadin'], {
         frequentHighVitKGreens: true
       });
 
@@ -200,8 +203,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(badge.mechanism.toLowerCase()).toContain('antagonizes warfarin');
     });
 
-    it('attaches Empty Stomach requirement to Levothyroxine', () => {
-      const badges = ClinicalInteractionEngine.checkDietInteractions(['Synthroid'], {});
+    it('attaches Empty Stomach requirement to Levothyroxine', async () => {
+      const badges = await ClinicalInteractionEngine.checkDietInteractions(['Synthroid'], {});
       expect(badges.length).toBeGreaterThanOrEqual(1);
 
       const badge = badges[0];
@@ -209,14 +212,14 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(badge.clinicalGuidance.toLowerCase()).toContain('30 to 60 minutes before breakfast');
     });
 
-    it('flags Zero Alcohol Contraindication for Metronidazole (Flagyl)', () => {
-      const badges = ClinicalInteractionEngine.checkDietInteractions(['Flagyl'], {});
+    it('flags Zero Alcohol Contraindication for Metronidazole (Flagyl)', async () => {
+      const badges = await ClinicalInteractionEngine.checkDietInteractions(['Flagyl'], {});
       expect(badges.length).toBeGreaterThanOrEqual(1);
 
       const badge = badges[0];
       expect(badge.severity).toBe('CONTRAINDICATED');
       expect(badge.badgeText).toContain('Zero Alcohol');
-      expect(badge.mechanism.toLowerCase()).toContain('acetaldehyde');
+      expect(badge.mechanism.toLowerCase()).toContain('disulfiram');
     });
   });
 
@@ -224,8 +227,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
   // 5. Duplicate Active Ingredient Detection
   // =========================================================================
   describe('5. Duplicate Active Ingredient Detection Engine', () => {
-    it('identifies duplicate Acetaminophen across Tylenol and Percocet with cumulative dose calculation', () => {
-      const alerts = ClinicalInteractionEngine.checkDuplicateIngredients([
+    it('identifies duplicate Acetaminophen across Tylenol and Percocet with cumulative dose calculation', async () => {
+      const alerts = await ClinicalInteractionEngine.checkDuplicateIngredients([
         { name: 'Tylenol Extra Strength', dose: '500mg' },
         { name: 'Percocet', dose: '10/325mg' }
       ]);
@@ -238,8 +241,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(alert?.plainNarration).toContain('Acetaminophen');
     });
 
-    it('detects concurrent dual NSAID risk across Advil and Aleve', () => {
-      const alerts = ClinicalInteractionEngine.checkDuplicateIngredients([
+    it('detects concurrent dual NSAID risk across Advil and Aleve', async () => {
+      const alerts = await ClinicalInteractionEngine.checkDuplicateIngredients([
         { name: 'Advil', dose: '200mg' },
         { name: 'Aleve', dose: '220mg' }
       ]);
@@ -250,8 +253,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(nsaidAlert?.drugsInvolved).toHaveLength(2);
     });
 
-    it('detects brand/generic overlap between Lipitor and Atorvastatin', () => {
-      const alerts = ClinicalInteractionEngine.checkDuplicateIngredients([
+    it('detects brand/generic overlap between Lipitor and Atorvastatin', async () => {
+      const alerts = await ClinicalInteractionEngine.checkDuplicateIngredients([
         { name: 'Lipitor', dose: '40mg' },
         { name: 'Atorvastatin', dose: '40mg' }
       ]);
@@ -262,8 +265,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(alert?.totalCumulativeDoseMg).toBe(80);
     });
 
-    it('returns no alerts for distinct non-overlapping active ingredients', () => {
-      const alerts = ClinicalInteractionEngine.checkDuplicateIngredients([
+    it('returns no alerts for distinct non-overlapping active ingredients', async () => {
+      const alerts = await ClinicalInteractionEngine.checkDuplicateIngredients([
         { name: 'Metformin', dose: '500mg' },
         { name: 'Levothyroxine', dose: '75mcg' }
       ]);
@@ -276,8 +279,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
   // 6. Chronotype Schedule Calibration & Shift Optimizer
   // =========================================================================
   describe('6. Chronotype Calibration & Schedule Optimization', () => {
-    it('shifts Atorvastatin from morning to bedtime for nocturnal cholesterol synthesis', () => {
-      const res = ClinicalInteractionEngine.suggestSchedule(
+    it('shifts Atorvastatin from morning to bedtime for nocturnal cholesterol synthesis', async () => {
+      const res = await ClinicalInteractionEngine.suggestSchedule(
         [{ id: 'm1', name: 'Atorvastatin', currentSlot: 'morning' }],
         'night_owl'
       );
@@ -289,8 +292,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(res.proposedShifts[0].reason).toContain('cholesterol synthesis');
     });
 
-    it('shifts Furosemide away from bedtime to morning to prevent nocturia', () => {
-      const res = ClinicalInteractionEngine.suggestSchedule(
+    it('shifts Furosemide away from bedtime to morning to prevent nocturia', async () => {
+      const res = await ClinicalInteractionEngine.suggestSchedule(
         [{ id: 'm2', name: 'Furosemide', currentSlot: 'bedtime' }],
         'standard'
       );
@@ -301,8 +304,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(res.proposedShifts[0].reason.toLowerCase()).toContain('urination');
     });
 
-    it('separates Calcium Carbonate from morning Levothyroxine by shifting to noon', () => {
-      const res = ClinicalInteractionEngine.suggestSchedule(
+    it('separates Calcium Carbonate from morning Levothyroxine by shifting to noon', async () => {
+      const res = await ClinicalInteractionEngine.suggestSchedule(
         [
           { id: 'm3', name: 'Levothyroxine', currentSlot: 'morning' },
           { id: 'm4', name: 'Calcium Carbonate', currentSlot: 'morning' }
@@ -332,8 +335,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
   // 7. Missed Dose Adherence Simulation
   // =========================================================================
   describe('7. Missed Dose Adherence Simulation', () => {
-    it('simulates missed Metformin with fasting glucose increase and no-double-dose rule', () => {
-      const sim = ClinicalInteractionEngine.simulateAdherence('Metformin', {
+    it('simulates missed Metformin with fasting glucose increase and no-double-dose rule', async () => {
+      const sim = await ClinicalInteractionEngine.simulateAdherence('Metformin', {
         day: 'tuesday',
         slot: 'morning'
       });
@@ -345,8 +348,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(sim.doNotDoubleDoseWarning).toBe(true);
     });
 
-    it('simulates missed Apixaban with anticoagulant half-life decay and stroke risk warning', () => {
-      const sim = ClinicalInteractionEngine.simulateAdherence('Apixaban', {
+    it('simulates missed Apixaban with anticoagulant half-life decay and stroke risk warning', async () => {
+      const sim = await ClinicalInteractionEngine.simulateAdherence('Apixaban', {
         day: 'friday',
         slot: 'evening'
       });
@@ -356,8 +359,8 @@ describe('Milestone 3: PillMap & Polypharmacy Negotiator (Unit & Integration Tes
       expect(sim.doNotDoubleDoseWarning).toBe(true);
     });
 
-    it('simulates missed Amlodipine blood pressure rebound prediction', () => {
-      const sim = ClinicalInteractionEngine.simulateAdherence('Amlodipine', {
+    it('simulates missed Amlodipine blood pressure rebound prediction', async () => {
+      const sim = await ClinicalInteractionEngine.simulateAdherence('Amlodipine', {
         day: 'monday',
         slot: 'morning'
       });

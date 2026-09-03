@@ -28,6 +28,15 @@ import { LocalVaultManager } from '../../src/core/vault/LocalVault.ts';
 import { WebMCPEventBus } from '../../src/core/events/eventBus.ts';
 import { registerAllWebMCPTools } from '../../src/tools/index.ts';
 import type { WebMCPExecutionContext } from '../../src/types/webmcp.ts';
+import { routeAiMock } from '../helpers/mockClinicalAI.ts';
+
+/** Envelope a mock payload in chat- or responses-style AI response. */
+function envelopeMock(payload: unknown, urlStr: string, bodyStr: string): Response {
+  const text = JSON.stringify(payload);
+  const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
+  if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text }] }] }), { status:200, headers:{'content-type':'application/json'} });
+  return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: text } }] }), { status:200, headers:{'content-type':'application/json'} });
+}
 
 if (typeof globalThis !== 'undefined' && (globalThis as any).fetch) {
   const origFetch = (globalThis as any).fetch;
@@ -90,142 +99,18 @@ if (typeof globalThis !== 'undefined' && (globalThis as any).fetch) {
         // Check userText for actual highlights content, not just systemPrompt mention of "Exa"
         const hasExaForDDI = (lowerUser.includes('exa evidence highlights:') && lowerUser.length > 50) || (lowerUser.includes('exa highlights:') && lowerUser.length > 50) || (lowerUser.includes('dailymed') && lowerUser.includes('cyp3a4'));
         if (isDDIPrompt) {
-          const hasExaForDDI = (lowerUser.includes('exa evidence highlights:') && lowerUser.length > 50) || (lowerUser.includes('exa highlights:') && lowerUser.length > 50) || lowerUser.includes('dailymed') || bodyStr.includes('Exa highlights');
-          // Check for empty regimen (boundary test T2-01) — should return 0 interactions
-          // Use userText (decoded) for robust parsing, fallback to bodyStr
-          let medMatch: RegExpMatchArray | null = null;
-          let medCount = 0;
-          try {
-            medMatch = userText.match(/Medications:\s*(\[.*?\])/s) as any;
-            if (medMatch) medCount = JSON.parse(medMatch[1]).length;
-            else {
-              medMatch = bodyStr.match(/Medications:\s*(\[.*?\])/s);
-              if (medMatch) {
-                // BodyStr is JSON-escaped; try to unescape
-                let raw = medMatch[1].replace(/\\"/g, '"').replace(/\\'/g, "'");
-                medCount = JSON.parse(raw).length;
-              }
-            }
-          } catch {}
-          if (medCount === 0 || (lowerUser.includes('[]') && !lowerUser.includes('atorvastatin') && !lowerUser.includes('apixaban') && !lowerUser.includes('sertraline'))) {
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const payload = JSON.stringify({ interactions: [] });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          // Polypharmacy — return multiple for large med lists (T2-03, T2-04) — detect by medCount or by long body
-          if (medCount >= 10 || bodyStr.length > 500 && lowerUser.includes('drug interaction') && (lowerUser.match(/drug/g) || []).length > 5) {
-            const many = Array.from({length: 5}, (_,i)=> ({ drugA: `Drug${i}`, drugB: `Drug${i+1}`, severity: i%2===0 ? 'MAJOR' : 'MODERATE', mechanism: 'Polypharmacy per Exa', clinicalGuidance: 'Monitor', confidence: 0.9, arcColor: i%2===0?'#F97316':'#EAB308', reasoning: hasExaForDDI ? 'Grounded via Exa' : 'Fixture' }));
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const payload = JSON.stringify({ interactions: many });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          // Handle fixture-specific pairs (for existing tests without Exa)
-          const lowerBodyForFixture = (lowerUser + ' ' + bodyStr.toLowerCase());
-          if (lowerBodyForFixture.includes('sertraline') && lowerBodyForFixture.includes("st. john")) {
-            const hasApixabanToo = lowerBodyForFixture.includes('apixaban');
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const interactions = [{ drugA: 'Sertraline', drugB: "St. John's Wort", severity: 'CONTRAINDICATED', mechanism: 'Concurrent serotonergic enhancement causes potentially fatal Serotonin Syndrome.', clinicalGuidance: 'Immediately discontinue St. John\'s Wort.', confidence: 0.98, arcColor: '#EF4444', reasoning: hasExaForDDI ? 'Grounded via Exa' : 'Fixture' }];
-            if (hasApixabanToo) {
-              interactions.push({ drugA: 'Apixaban', drugB: "St. John's Wort", severity: 'MAJOR', mechanism: 'P-gp and CYP3A4 induction reduces apixaban exposure', clinicalGuidance: 'Avoid', confidence: 0.9, arcColor: '#F97316', reasoning: 'Fixture' });
-            }
-            const payload = JSON.stringify({ interactions });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          if (lowerBodyForFixture.includes('apixaban') && lowerBodyForFixture.includes('fish oil')) {
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const payload = JSON.stringify({ interactions: [{ drugA: 'Apixaban', drugB: 'Fish Oil', severity: 'MAJOR', mechanism: 'Additive antiplatelet and anticoagulant effects increase bleeding time.', clinicalGuidance: 'Monitor', confidence: 0.9, arcColor: '#F97316', reasoning: hasExaForDDI ? 'Grounded via Exa' : 'Fixture' }] });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          if (lowerBodyForFixture.includes('ciprofloxacin') && lowerBodyForFixture.includes('calcium carbonate')) {
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const payload = JSON.stringify({ interactions: [{ drugA: 'Ciprofloxacin', drugB: 'Calcium Carbonate', severity: 'MAJOR', mechanism: 'Polyvalent cations form insoluble chelates with ciprofloxacin, reducing absorption by up to 75% chelates', clinicalGuidance: 'Separate', confidence: 0.9, arcColor: '#F97316', reasoning: hasExaForDDI ? 'Grounded via Exa' : 'Fixture' }] });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          if (lowerBodyForFixture.includes('warfarin') && lowerBodyForFixture.includes('ginkgo')) {
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const payload = JSON.stringify({ interactions: [{ drugA: 'Warfarin', drugB: 'Ginkgo Biloba', severity: 'CONTRAINDICATED', mechanism: 'Ginkgo inhibits platelet aggregation - bleeding risk', clinicalGuidance: 'Avoid', confidence: 0.95, arcColor: '#EF4444', reasoning: hasExaForDDI ? 'Grounded via Exa' : 'Fixture' }] });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          if (lowerBodyForFixture.includes('lisinopril') && lowerBodyForFixture.includes('spironolactone')) {
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const payload = JSON.stringify({ interactions: [{ drugA: 'Lisinopril', drugB: 'Spironolactone', severity: 'MAJOR', mechanism: 'potassium retention hyperkalemia - additive', clinicalGuidance: 'Monitor potassium', confidence: 0.9, arcColor: '#F97316', reasoning: hasExaForDDI ? 'Grounded via Exa' : 'Fixture' }] });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          if (lowerBodyForFixture.includes('apixaban') && lowerBodyForFixture.includes("st. john")) {
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const payload = JSON.stringify({ interactions: [
-              { drugA: 'Apixaban', drugB: "St. John's Wort", severity: 'MAJOR', mechanism: 'P-gp and CYP3A4 induction reduces apixaban exposure', clinicalGuidance: 'Avoid', confidence: 0.9, arcColor: '#F97316', reasoning: 'Fixture' }
-            ] });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          // For clean regimen or unknown pairs without Exa, return empty to satisfy clean tests
-          // Only return mock for known pairs or when Exa highlights present
-          if ((!hasExaForDDI || (lowerBodyForFixture.includes('levothyroxine') && lowerBodyForFixture.includes('metformin'))) && !lowerBodyForFixture.includes('apixaban') && !lowerBodyForFixture.includes('carbamazepine') && !lowerUser.includes('atorvastatin') && !lowerBodyForFixture.includes('sertraline') && !lowerBodyForFixture.includes('warfarin') && !lowerBodyForFixture.includes('lisinopril') && !lowerBodyForFixture.includes('ciprofloxacin')) {
-            const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-            const payload = JSON.stringify({ interactions: [] });
-            if (isResponses) return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-            else return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
-          const mockInteractions = [
-            { drugA: 'Apixaban', drugB: 'Carbamazepine', severity: 'MAJOR', mechanism: hasExaForDDI ? 'P-gp and CYP3A4 inducer reduces apixaban exposure per Exa DailyMed' : 'CYP3A4 interaction', clinicalGuidance: 'Avoid or monitor', confidence: 0.92, arcColor: '#F97316', reasoning: hasExaForDDI ? 'Grounded via Exa FDA DailyMed' : 'Fixture' }
-          ];
-          if (lowerUser.includes('atorvastatin') && lowerUser.includes('apixaban')) {
-            mockInteractions.push({ drugA: 'Atorvastatin', drugB: 'Apixaban', severity: 'MODERATE', mechanism: 'CYP3A4 substrate overlap', clinicalGuidance: 'Monitor', confidence: 0.85, arcColor: '#EAB308', reasoning: hasExaForDDI ? 'Grounded via Exa' : 'Fixture' });
-          }
-          const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-          const payload = JSON.stringify({ interactions: mockInteractions });
-          if (isResponses) {
-            return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-          } else {
-            return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
+          const routed = routeAiMock(systemPrompt, userText);
+          if (routed !== null) return envelopeMock(routed, urlStr, bodyStr);
         }
         if (isDietPrompt) {
-          // Dynamic diet mock based on meds and diet flags for fixture tests
-          let mockDiet: any[] = [];
-          const hasAtorva = lowerUser.includes('atorvastatin');
-          const hasWarfarin = lowerUser.includes('warfarin');
-          const hasLevo = lowerUser.includes('levothyroxine');
-          const hasMetro = lowerUser.includes('metronidazole');
-          const hasGrapefruitFlag = lowerUser.includes('drinksgrapefruitdaily') && lowerUser.includes('true');
-          const hasVitKFlag = lowerUser.includes('frequenthightvitkgreens') && lowerUser.includes('true');
-          // Clean diet test: Metformin with drinksGrapefruitDaily false should be 0
-          const isCleanDietTest = lowerUser.includes('metformin') && lowerUser.includes('drinksgrapefruitdaily') && lowerUser.includes('false') && !hasAtorva && !hasWarfarin && !hasLevo && !hasMetro;
-          if (isCleanDietTest) {
-            mockDiet = [];
-          } else {
-            if (hasAtorva) {
-              mockDiet.push({ drugName: 'Atorvastatin', dietItem: 'Grapefruit', severity: 'MAJOR', badgeText: 'Avoid Grapefruit', plateArcColor: '#F97316', mechanism: 'Furanocoumarins inhibit intestinal CYP3A4 per Exa', clinicalGuidance: 'Avoid Grapefruit', confidence: 0.9, reasoning: 'Grounded via Exa' });
-            }
-            if (hasWarfarin) {
-              mockDiet.push({ drugName: 'Warfarin', dietItem: 'Vitamin K', severity: 'MAJOR', badgeText: 'Consistent Vit K', plateArcColor: '#F97316', mechanism: 'Vitamin K antagonism', clinicalGuidance: 'Monitor INR', confidence: 0.9, reasoning: 'Fixture' });
-            }
-            if (hasLevo) {
-              mockDiet.push({ drugName: 'Levothyroxine', dietItem: 'Breakfast / Dairy / Coffee', severity: 'MAJOR', badgeText: 'Empty Stomach', plateArcColor: '#F97316', mechanism: 'Food binds levothyroxine', clinicalGuidance: 'Take 30min before breakfast', confidence: 0.92, reasoning: 'Grounded via Exa' });
-            }
-            if (hasMetro) {
-              mockDiet.push({ drugName: 'Metronidazole', dietItem: 'Alcohol', severity: 'CONTRAINDICATED', badgeText: 'Zero Alcohol', plateArcColor: '#EF4444', mechanism: 'Disulfiram-like reaction', clinicalGuidance: 'Avoid alcohol', confidence: 0.98, reasoning: 'Fixture' });
-            }
-            // Fallback for generic diet tests that don't match above but have hasExaForDiet true
-            if (mockDiet.length === 0 && (lowerUser.includes('exa highlights') || lowerUser.includes('furanocoumarins'))) {
-              mockDiet.push({ drugName: 'Atorvastatin', dietItem: 'Grapefruit', severity: 'MAJOR', badgeText: 'Avoid grapefruit', plateArcColor: '#F97316', mechanism: 'Furanocoumarins inhibit intestinal CYP3A4 per Exa', clinicalGuidance: 'Avoid grapefruit', confidence: 0.9, reasoning: 'Grounded via Exa' });
-            }
-          }
-          const isResponses = urlStr.includes('/responses') || (bodyStr.includes('"input"') && bodyStr.includes('input_text'));
-          const payload = JSON.stringify({ dietInteractions: mockDiet });
-          if (isResponses) {
-            return new Response(JSON.stringify({ id:'resp_test', object:'response', status:'completed', output:[{ id:'msg_test', type:'message', status:'completed', role:'assistant', content:[{ type:'output_text', text: payload }] }] }), { status:200, headers:{'content-type':'application/json'} });
-          } else {
-            return new Response(JSON.stringify({ id:'chatcmpl-test', object:'chat.completion', choices:[{ index:0, finish_reason:'stop', message:{ role:'assistant', content: payload } }] }), { status:200, headers:{'content-type':'application/json'} });
-          }
+          const routed = routeAiMock(systemPrompt, userText);
+          if (routed !== null) return envelopeMock(routed, urlStr, bodyStr);
+        }
+        // Other clinical-pipeline prompts (duplicates, schedule, simulate,
+        // generic resolution, discharge educator/coordinator, recon batch)
+        {
+          const routed = routeAiMock(systemPrompt, userText);
+          if (routed !== null) return envelopeMock(routed, urlStr, bodyStr);
         }
         if (isCorrelatePrompt) {
           const hasExa = lowerUser.includes('exa evidence') || bodyStr.toLowerCase().includes('exa evidence');

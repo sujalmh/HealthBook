@@ -1,17 +1,31 @@
 /**
- * CareCanvas WebMCP Tools: RxBridge Post-Discharge Reconciliation Engine — AI Enhanced (M2)
+ * CareCanvas WebMCP Tools: RxBridge Post-Discharge Reconciliation Engine — AI-native (M2)
  * Tools: explain_med_change, flag_interaction, flag_diet_interaction, suggest_question_for_doctor, export_patient_summary
- * No mock dataset fallback — requires real params.dataset or builds from vault getMedications/getQuestions.
- * AI synthesis via generic configurable client (Settings>env, vision+text multimodal single response where doc context available).
+ * All clinical content flows through the AI pipeline (no bundled drug tables, no template fallbacks).
+ * When the pipeline is unavailable the tools return honest AI_UNAVAILABLE/AI_FAILED errors.
  */
 
 import type { WebMCPToolDefinition, WebMCPExecutionContext, WebMCPToolResult } from '../types/webmcp.ts';
-import { ClinicalInteractionEngine } from '../core/knowledge/interactionEngine.ts';
+import { ClinicalInteractionEngine, AIUnavailableError } from '../core/knowledge/interactionEngine.ts';
 import { stableHash, sanitizeForId } from '../core/knowledge/interactionCache.ts';
 import { ClinicalReconciliationEngine } from '../core/knowledge/reconciliationEngine.ts';
 import { callAI } from '../core/ai/client.ts';
 import type { Patient3ListDischargeDataset } from '../types/rxbridge.ts';
-import { shouldUseAI } from '../core/rbac/canAccess.ts';
+
+/** Honest error result when the AI pipeline cannot produce clinical content. */
+function aiErrorResult(tool: string, err: unknown, what: string): WebMCPToolResult {
+  const code = err instanceof AIUnavailableError ? err.code : 'AI_FAILED';
+  const message = err instanceof Error ? err.message : String(err);
+  return {
+    success: false,
+    tool,
+    timestamp: new Date().toISOString(),
+    data: null,
+    plainLanguageSummary: `Could not ${what} — the AI service is unavailable (${message}). No content was fabricated; please retry.`,
+    humanApprovalRequired: false,
+    error: { code, message }
+  };
+}
 
 export const explainMedChangeTool: WebMCPToolDefinition = {
   name: 'explain_med_change',
@@ -47,7 +61,12 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
     context: WebMCPExecutionContext
   ): Promise<WebMCPToolResult> => {
     const { medName, preHospDose, inHospAction, dischargeDose, reason } = params;
-    const generic = ClinicalInteractionEngine.resolveGenericName(medName);
+    let generic: string;
+    try {
+      generic = await ClinicalInteractionEngine.resolveGenericName(medName);
+    } catch (err) {
+      return aiErrorResult('explain_med_change', err, `resolve a generic name for "${medName}"`);
+    }
 
     const statusBadge = ClinicalReconciliationEngine.determineStatusBadge(
       preHospDose,
@@ -55,51 +74,11 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
       dischargeDose
     );
 
-    // AI-generated narrative when enabled (single request vision+text structured when doc context available)
-    // aiGenerated tracks real AI provenance so callers can label AI vs template honestly.
+    // AI-generated narrative (single request vision+text structured when doc context available)
     let explanation: string;
     let suggestedQuestions: string[];
-    let aiGenerated = false;
-    if (shouldUseAI()) {
-      try {
-        // Try AI for explanation and questions via reconciliation engine AI helpers
-        explanation = await ClinicalReconciliationEngine.generatePlainLanguageExplanationAI(
-          medName,
-          generic,
-          preHospDose,
-          inHospAction,
-          dischargeDose,
-          statusBadge,
-          reason
-        );
-        suggestedQuestions = await ClinicalReconciliationEngine.generateDoctorQuestionsAI(
-          medName,
-          generic,
-          statusBadge,
-          preHospDose,
-          dischargeDose
-        );
-        aiGenerated = true;
-      } catch {
-        explanation = ClinicalReconciliationEngine.generatePlainLanguageExplanation(
-          medName,
-          generic,
-          preHospDose,
-          inHospAction,
-          dischargeDose,
-          statusBadge,
-          reason
-        );
-        suggestedQuestions = ClinicalReconciliationEngine.generateDoctorQuestions(
-          medName,
-          generic,
-          statusBadge,
-          preHospDose,
-          dischargeDose
-        );
-      }
-    } else {
-      explanation = ClinicalReconciliationEngine.generatePlainLanguageExplanation(
+    try {
+      explanation = await ClinicalReconciliationEngine.generatePlainLanguageExplanationAI(
         medName,
         generic,
         preHospDose,
@@ -108,29 +87,15 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
         statusBadge,
         reason
       );
-      suggestedQuestions = ClinicalReconciliationEngine.generateDoctorQuestions(
+      suggestedQuestions = await ClinicalReconciliationEngine.generateDoctorQuestionsAI(
         medName,
         generic,
         statusBadge,
         preHospDose,
         dischargeDose
       );
-    }
-
-    // Provenance: the AI helpers fall back to template text silently on
-    // failure, so compare against the deterministic template — only genuinely
-    // different text counts as AI-generated (callers label it honestly).
-    if (aiGenerated) {
-      const template = ClinicalReconciliationEngine.generatePlainLanguageExplanation(
-        medName,
-        generic,
-        preHospDose,
-        inHospAction,
-        dischargeDose,
-        statusBadge,
-        reason
-      );
-      if (explanation.trim() === template.trim()) aiGenerated = false;
+    } catch (err) {
+      return aiErrorResult('explain_med_change', err, `explain the ${medName} medication change`);
     }
 
     const result = {
@@ -143,7 +108,7 @@ export const explainMedChangeTool: WebMCPToolDefinition = {
       plainLanguageExplanation: explanation,
       documentedReason: reason || 'Post-discharge clinical reconciliation',
       suggestedQuestions,
-      aiGenerated
+      aiGenerated: true
     };
 
     return {
@@ -189,13 +154,9 @@ export const flagInteractionTool: WebMCPToolDefinition = {
     const allMeds = [...params.dischargeMeds, ...(params.preAdmitOTCs || [])];
     let rawArcs;
     try {
-      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDrugInteractionsAI === 'function') {
-        rawArcs = await ClinicalInteractionEngine.checkDrugInteractionsAI(allMeds);
-      } else {
-        rawArcs = ClinicalInteractionEngine.checkDrugInteractions(allMeds);
-      }
-    } catch {
-      rawArcs = ClinicalInteractionEngine.checkDrugInteractions(allMeds);
+      rawArcs = await ClinicalInteractionEngine.checkDrugInteractions(allMeds);
+    } catch (err) {
+      return aiErrorResult('flag_interaction', err, 'screen discharge interactions');
     }
 
     const preOTCs = params.preAdmitOTCs || [];
@@ -216,14 +177,22 @@ export const flagInteractionTool: WebMCPToolDefinition = {
       };
     });
 
-    // Check lab contextual safety if labs provided or available in vault
+    // Check lab contextual safety if labs provided or available in vault.
+    // Generics resolved once via the AI pipeline for lab-risk matching.
     const labs = params.patientLabs || (context.vault ? context.vault.getLabs(context.patientId) : []);
     const egfrLab = labs.find((l: any) => l.marker?.toLowerCase().includes('egfr'));
     const kLab = labs.find((l: any) => l.marker?.toLowerCase() === 'k' || l.marker?.toLowerCase().includes('potassium'));
+    let aliasMap: Record<string, string> = {};
+    try {
+      aliasMap = await ClinicalInteractionEngine.resolveGenerics(params.dischargeMeds);
+    } catch {
+      // Without alias resolution, lab-risk matching uses literal names only
+    }
+    const genericOf = (med: string): string => aliasMap[med] || med;
 
     if (egfrLab && egfrLab.value < 30) {
       for (const med of params.dischargeMeds) {
-        const gen = ClinicalInteractionEngine.resolveGenericName(med);
+        const gen = genericOf(med);
         if (gen === 'Metformin' || gen === 'Ibuprofen' || gen === 'Naproxen') {
           enrichedArcs.push({
             id: `lab_contra_${sanitizeForId(gen)}_egfr_${stableHash(`${gen}|${egfrLab.value}`).slice(0, 8)}`,
@@ -241,7 +210,7 @@ export const flagInteractionTool: WebMCPToolDefinition = {
 
     if (kLab && kLab.value > 5.0) {
       for (const med of params.dischargeMeds) {
-        const gen = ClinicalInteractionEngine.resolveGenericName(med);
+        const gen = genericOf(med);
         if (gen === 'Spironolactone' || gen === 'Lisinopril') {
           enrichedArcs.push({
             id: `lab_contra_${sanitizeForId(gen)}_k_${stableHash(`${gen}|${kLab.value}`).slice(0, 8)}`,
@@ -305,13 +274,9 @@ export const flagDietInteractionTool: WebMCPToolDefinition = {
     };
     let badges;
     try {
-      if (shouldUseAI() && typeof ClinicalInteractionEngine.checkDietInteractionsAI === 'function') {
-        badges = await ClinicalInteractionEngine.checkDietInteractionsAI(params.dischargeMeds, diet);
-      } else {
-        badges = ClinicalInteractionEngine.checkDietInteractions(params.dischargeMeds, diet);
-      }
-    } catch {
-      badges = ClinicalInteractionEngine.checkDietInteractions(params.dischargeMeds, diet);
+      badges = await ClinicalInteractionEngine.checkDietInteractions(params.dischargeMeds, diet);
+    } catch (err) {
+      return aiErrorResult('flag_diet_interaction', err, 'screen discharge diet interactions');
     }
 
     return {
@@ -364,80 +329,41 @@ export const suggestQuestionForDoctorTool: WebMCPToolDefinition = {
   ): Promise<WebMCPToolResult> => {
     let qText = '';
 
-    if (shouldUseAI()) {
-      try {
-        // AI synthesis via AI client from actual discharge list + document context (single request vision+text structured when available)
-        const dischargeMedsFromVault = (() => {
-          try {
-            return context.vault ? context.vault.getMedications(context.patientId).map((m: any) => m.genericName || m.name) : [];
-          } catch { return []; }
-        })();
-        const labsFromVault = (() => {
-          try {
-            return context.vault ? context.vault.getLabs(context.patientId).slice(0, 5).map((l: any) => `${l.marker}: ${l.normalizedValue ?? l.value} ${l.normalizedUnit ?? l.unit}`) : [];
-          } catch { return []; }
-        })();
-        const docContext = params.documentContext || dischargeMedsFromVault.join(', ') || params.context || '';
-        const imageDataUrl = params.imageDataUrl && params.imageDataUrl.startsWith('data:image') ? params.imageDataUrl : undefined;
+    // AI synthesis via AI client from actual discharge list + document context (single request vision+text structured when available)
+    try {
+      const dischargeMedsFromVault = (() => {
+        try {
+          return context.vault ? context.vault.getMedications(context.patientId).map((m: any) => m.genericName || m.name) : [];
+        } catch { return []; }
+      })();
+      const labsFromVault = (() => {
+        try {
+          return context.vault ? context.vault.getLabs(context.patientId).slice(0, 5).map((l: any) => `${l.marker}: ${l.normalizedValue ?? l.value} ${l.normalizedUnit ?? l.unit}`) : [];
+        } catch { return []; }
+      })();
+      const docContext = params.documentContext || dischargeMedsFromVault.join(', ') || params.context || '';
+      const imageDataUrl = params.imageDataUrl && params.imageDataUrl.startsWith('data:image') ? params.imageDataUrl : undefined;
 
-        const schema = {
-          type: 'object',
-          properties: {
-            questionText: { type: 'string', description: 'Targeted doctor question' },
-            confidence: { type: 'number', minimum: 0, maximum: 1 },
-            reasoning: { type: 'string' }
-          },
-          required: ['questionText', 'confidence', 'reasoning'],
-          additionalProperties: false,
-        } as any;
-        const systemPrompt = `You are a clinical care coordinator. Given patient context, medication name, actual discharge medication list, recent labs, and optional document image/text, generate a single targeted question for the doctor that is specific, actionable, and grounded. Consider stopped meds kidney monitoring, blood thinner bleeding risks, dose changes, diet interactions. Return ONLY valid JSON with shape {"questionText": string, "confidence": number, "reasoning": string}. Provide confidence 0-1 and grounded reasoning. Use vision+text together when image provided. No markdown.`;
-        const userText = `Context: "${params.context}"\nMed: ${params.medName || 'unknown'}\nActual discharge meds: ${JSON.stringify(dischargeMedsFromVault || params.dischargeMeds || [])}\nRecent labs: ${JSON.stringify(labsFromVault)}\nDocument context: ${docContext.slice(0, 1500)}`;
-        const parsed = await callAI<any>(systemPrompt, userText, { schema, imageDataUrl });
-        if (parsed && typeof parsed.questionText === 'string' && parsed.questionText.trim().length > 10) {
-          qText = parsed.questionText.trim();
-        }
-      } catch (e) {
-        console.warn('[rxBridgeTools] AI suggest_question failed, fallback', (e as any)?.message || e);
-      }
-    }
-
-    // Fallback heuristic only when AI disabled or AI failed — generic map-based without hardcoded branch literals
-    if (!qText || qText.trim().length === 0) {
-      const lowerCtx = (params.context || '').toLowerCase();
-      // Map-based branching preserves behavior for tests when AI disabled
-      const templateMap: Record<string, string> = {
-        kidney: 'Why was my Lisinopril stopped in the hospital, and should my primary care doctor recheck my kidney labs before restarting it?',
-        lisinopril: 'Why was my Lisinopril stopped in the hospital, and should my primary care doctor recheck my kidney labs before restarting it?',
-        stopped: 'Why was my Lisinopril stopped in the hospital, and should my primary care doctor recheck my kidney labs before restarting it?',
-        'fish oil': 'Can I safely continue taking my Omega-3 Fish Oil supplement while on my new Apixaban blood thinner, or should I stop it?',
-        bleeding: 'Can I safely continue taking my Omega-3 Fish Oil supplement while on my new Apixaban blood thinner, or should I stop it?',
-        sugar: 'My Metformin dose was increased to 1000mg twice daily. What symptoms should I watch for, and when should we recheck my A1c?',
-        dose: 'My Metformin dose was increased to 1000mg twice daily. What symptoms should I watch for, and when should we recheck my A1c?',
-        metformin: 'My Metformin dose was increased to 1000mg twice daily. What symptoms should I watch for, and when should we recheck my A1c?',
-        statin: 'Since my Atorvastatin was increased to 40mg at bedtime, when should we recheck my cholesterol levels, and is it safe to eat grapefruit occasionally?',
-        grapefruit: 'Since my Atorvastatin was increased to 40mg at bedtime, when should we recheck my cholesterol levels, and is it safe to eat grapefruit occasionally?',
-        atorvastatin: 'Since my Atorvastatin was increased to 40mg at bedtime, when should we recheck my cholesterol levels, and is it safe to eat grapefruit occasionally?',
-      };
-      // Find first matching keyword via generic iteration (not hardcoded if chain)
-      let matched: string | undefined;
-      for (const key of Object.keys(templateMap)) {
-        if (lowerCtx.includes(key)) {
-          matched = templateMap[key];
-          break;
-        }
-      }
-      // Also check medName lower for apixaban vs fish oil cross
-      if (!matched && params.medName) {
-        const medLower = params.medName?.toLowerCase();
-        if (medLower.includes('apixaban') && (lowerCtx.includes('fish') || lowerCtx.includes('oil') || lowerCtx.includes('bleeding'))) {
-          matched = templateMap['fish oil'];
-        }
-      }
-      if (matched) {
-        qText = matched;
+      const schema = {
+        type: 'object',
+        properties: {
+          questionText: { type: 'string', description: 'Targeted doctor question' },
+          confidence: { type: 'number', minimum: 0, maximum: 1 },
+          reasoning: { type: 'string' }
+        },
+        required: ['questionText', 'confidence', 'reasoning'],
+        additionalProperties: false,
+      } as any;
+      const systemPrompt = `You are a clinical care coordinator. Given patient context, medication name, actual discharge medication list, recent labs, and optional document image/text, generate a single targeted question for the doctor that is specific, actionable, and grounded. Consider stopped meds kidney monitoring, blood thinner bleeding risks, dose changes, diet interactions. Return ONLY valid JSON with shape {"questionText": string, "confidence": number, "reasoning": string}. Provide confidence 0-1 and grounded reasoning. Use vision+text together when image provided. No markdown.`;
+      const userText = `Context: "${params.context}"\nMed: ${params.medName || 'unknown'}\nActual discharge meds: ${JSON.stringify(dischargeMedsFromVault || params.dischargeMeds || [])}\nRecent labs: ${JSON.stringify(labsFromVault)}\nDocument context: ${docContext.slice(0, 1500)}`;
+      const parsed = await callAI<any>(systemPrompt, userText, { schema, imageDataUrl });
+      if (parsed && typeof parsed.questionText === 'string' && parsed.questionText.trim().length > 10) {
+        qText = parsed.questionText.trim();
       } else {
-        qText = `Could you please clarify the plan for ${params.medName || 'my medication'} and what follow-up tests are needed?`;
+        throw new AIUnavailableError('Doctor-question generation returned no usable result');
       }
+    } catch (err) {
+      return aiErrorResult('suggest_question_for_doctor', err, 'generate a doctor question');
     }
 
     const item = {

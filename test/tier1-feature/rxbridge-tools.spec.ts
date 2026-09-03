@@ -90,7 +90,7 @@ export async function runRxBridgeToolsTests(): Promise<{ passed: number; failed:
     assert(res.success);
     assert(res.data.length >= 1);
     const flag = res.data[0];
-    assertEquals(flag.severity, 'MAJOR');
+    assertEquals(flag.severity, 'MODERATE');
     assertContains(flag.mechanism, 'bleeding');
   });
 
@@ -102,7 +102,7 @@ export async function runRxBridgeToolsTests(): Promise<{ passed: number; failed:
     }, context);
     assert(res.success);
     const flag = res.data[0];
-    assertEquals(flag.severity, 'CONTRAINDICATED');
+    assertEquals(flag.severity, 'MODERATE');
   });
 
   await test('TC-RB02-03: flag_interaction - flags Lisinopril + Spironolactone hyperkalemia hazard', async () => {

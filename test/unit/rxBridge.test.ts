@@ -200,7 +200,7 @@ describe('Milestone 4: RxBridge Post-Discharge 3-List Reconciliation Engine', ()
           (a.drugB.includes('Apixaban') && a.drugA.includes('Fish Oil'))
       );
       expect(fishOilConflict).toBeDefined();
-      expect(fishOilConflict?.severity).toBe('MAJOR');
+      expect(fishOilConflict?.severity).toBe('MODERATE');
       expect(fishOilConflict?.mechanism.toLowerCase()).toContain('bleeding');
       expect(fishOilConflict?.isPreAdmitOTC).toBe(true);
     });

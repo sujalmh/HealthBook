@@ -41,7 +41,6 @@ import { localVault } from '../../core/vault/LocalVault.ts';
 import { healthRepository } from '../../core/vault/HealthRepository.ts';
 import { eventBus } from '../../core/events/eventBus.ts';
 import { ClinicalInteractionEngine } from '../../core/knowledge/interactionEngine.ts';
-import { getAIConfig, isAIEnabled } from '../../core/ai/config.ts';
 import { PillboxGrid } from './PillboxGrid.tsx';
 import { SimpleElderView } from './SimpleElderView.tsx';
 import { ShiftPreviewModal } from './ShiftPreviewModal.tsx';
@@ -78,6 +77,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const [duplicateAlerts, setDuplicateAlerts] = useState<DuplicateIngredientAlert[]>([]);
   const [ghostShifts, setGhostShifts] = useState<GhostPreviewShift[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+  const [evalError, setEvalError] = useState(false);
 
   // Modals state
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
@@ -115,7 +115,9 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     const newGrid = createEmptyGrid();
 
     for (const med of vaultMeds) {
-      const generic = med.genericName || ClinicalInteractionEngine.resolveGenericName(med.brandName || med.name || '');
+      // Display names come straight from the record — generic resolution is an
+      // AI concern handled at evaluation time, not grid-build time.
+      const generic = med.genericName || med.brandName || med.name || '';
       const pillItem: PillSlotItem = {
         id: med.id,
         medId: med.id,
@@ -156,61 +158,40 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       dairyBreakfast: true,
       usesPotassiumSaltSubstitute: true
     };
-    // Instant-first: serve the rule-based evaluation immediately (stored row or
-    // sync compute — never a spinner with empty content), then upgrade with AI
-    // in the background when enabled. Sync and AI rows cache under separate
-    // keys, so a slow AI never blocks warnings and never refetches needlessly.
-    type EvalMeds = Parameters<typeof healthRepository.evaluateInteractionsAI>[1];
+    // AI-native, cache-first: serve the stored AI evaluation instantly when
+    // fresh; otherwise run the AI pipeline once and store the result. No
+    // fabricated content — an AI failure clears the panels and shows a retry
+    // affordance instead of invented warnings.
+    type EvalMeds = Parameters<typeof healthRepository.evaluateInteractions>[1];
     try {
       const fullMeds = effectivePatientId ? healthRepository.getActiveMedications(effectivePatientId) : [];
       // Correlate the grid snapshot to canonical vault records so the
       // fingerprint reflects stored doses (not stale grid copies).
       const evalMeds = (fullMeds.length > 0 ? fullMeds : vaultMeds) as unknown as EvalMeds;
-      const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
-      const syncResult = healthRepository.evaluateInteractions(effectivePatientId, evalMeds, dietFlags);
-      setInteractionArcs(syncResult.arcs);
-      setDietBadges(syncResult.dietBadges);
-      setDuplicateAlerts(syncResult.duplicateAlerts);
-      if (!useAI) return;
-      // Spinner only when no fresh AI row exists for this regimen.
-      let needsAiFetch = true;
+      // Spinner only when no fresh stored evaluation exists for this regimen.
+      let needsFetch = true;
       try {
-        needsAiFetch = !healthRepository.hasFreshEvaluation(effectivePatientId, evalMeds, dietFlags, 'ai');
+        needsFetch = !healthRepository.hasFreshEvaluation(effectivePatientId, evalMeds, dietFlags);
       } catch {
-        needsAiFetch = true;
+        needsFetch = true;
       }
-      if (!needsAiFetch) {
-        const aiResult = await healthRepository.evaluateInteractionsAI(effectivePatientId, evalMeds, dietFlags, true);
-        setInteractionArcs(aiResult.arcs);
-        setDietBadges(aiResult.dietBadges);
-        setDuplicateAlerts(aiResult.duplicateAlerts);
-        return;
-      }
-      setIsChecking(true);
+      if (needsFetch) setIsChecking(true);
       try {
-        const aiResult = await healthRepository.evaluateInteractionsAI(effectivePatientId, evalMeds, dietFlags, true);
-        setInteractionArcs(aiResult.arcs);
-        setDietBadges(aiResult.dietBadges);
-        setDuplicateAlerts(aiResult.duplicateAlerts);
+        const result = await healthRepository.evaluateInteractions(effectivePatientId, evalMeds, dietFlags);
+        setInteractionArcs(result.arcs);
+        setDietBadges(result.dietBadges);
+        setDuplicateAlerts(result.duplicateAlerts);
+        setEvalError(false);
       } finally {
-        setIsChecking(false);
+        if (needsFetch) setIsChecking(false);
       }
     } catch {
-      const medNames = vaultMeds.map((m) => m.brandName || m.genericName || m.name || '');
-      const arcs = ClinicalInteractionEngine.checkDrugInteractions(medNames);
-      setInteractionArcs(arcs);
-      const badges = ClinicalInteractionEngine.checkDietInteractions(medNames, {
-        drinksGrapefruitDaily: true,
-        frequentHighVitKGreens: true,
-        dairyBreakfast: true,
-        usesPotassiumSaltSubstitute: true
-      });
-      setDietBadges(badges);
-      const dups = ClinicalInteractionEngine.checkDuplicateIngredients(
-        vaultMeds.map((m) => ({ name: m.brandName || m.genericName || '', dose: m.dosage || '' }))
-      );
-      setDuplicateAlerts(dups);
+      // AI pipeline unavailable — show nothing fabricated + retry affordance
+      setInteractionArcs([]);
+      setDietBadges([]);
+      setDuplicateAlerts([]);
       setIsChecking(false);
+      setEvalError(true);
     }
   };
 
@@ -256,31 +237,40 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     return 'capsule';
   }
 
-  const handleDropPill = (dragData: { name?: string; dosage?: string; dose?: string }, targetDay: DayOfWeek, targetSlot: TimeSlot) => {
-    if (dragData.name) {
-      const generic = ClinicalInteractionEngine.resolveGenericName(dragData.name);
-      localVault.addMedication(
-        {
-          id: `med_${dragData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
-          patientId: effectivePatientId,
-          brandName: dragData.name,
-          genericName: generic,
-          dosage: dragData.dosage || dragData.dose || 'Standard',
-          frequency: 'Once daily',
-          timingSlots: [targetSlot],
-          withFood: false,
-          status: 'active'
-        },
-        { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
-      );
-
+  const handleDropPill = async (dragData: { name?: string; dosage?: string; dose?: string }, targetDay: DayOfWeek, targetSlot: TimeSlot) => {
+    if (!dragData.name) return;
+    let generic: string;
+    try {
+      generic = await ClinicalInteractionEngine.resolveGenericName(dragData.name);
+    } catch {
       eventBus.dispatchToast({
-        type: 'success',
-        title: 'Medication Added',
-        message: `Placed ${dragData.name} on ${targetDay.toUpperCase()} ${targetSlot.toUpperCase()}.`
+        type: 'error',
+        title: 'Could not add medication',
+        message: 'The AI service is unavailable, so the medication could not be classified. Please retry.',
       });
-      loadMedicationsFromVault();
+      return;
     }
+    localVault.addMedication(
+      {
+        id: `med_${dragData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`,
+        patientId: effectivePatientId,
+        brandName: dragData.name,
+        genericName: generic,
+        dosage: dragData.dosage || dragData.dose || 'Standard',
+        frequency: 'Once daily',
+        timingSlots: [targetSlot],
+        withFood: false,
+        status: 'active'
+      },
+      { userId: activeProfile.userId, userName: activeProfile.name, role: activeProfile.role as 'patient' | 'caregiver' | 'doctor' }
+    );
+
+    eventBus.dispatchToast({
+      type: 'success',
+      title: 'Medication Added',
+      message: `Placed ${dragData.name} on ${targetDay.toUpperCase()} ${targetSlot.toUpperCase()}.`
+    });
+    loadMedicationsFromVault();
   };
 
   const handleRemovePill = (pillId: string) => {
@@ -331,19 +321,20 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       currentSlot: m.timingSlots[0] || 'morning'
     }));
 
-    const useAI = (() => { try { return isAIEnabled(getAIConfig()); } catch { return false; } })();
-    const engineAI2 = ClinicalInteractionEngine as unknown as { suggestScheduleAI?: (list: typeof medList, c: Chronotype) => Promise<ScheduleSuggestionResult> };
-    const shouldShowChecking = useAI && typeof engineAI2.suggestScheduleAI === 'function';
-    if (shouldShowChecking) setIsChecking(true);
+    setIsChecking(true);
     try {
-      const suggestion = useAI && typeof engineAI2.suggestScheduleAI === 'function'
-        ? await engineAI2.suggestScheduleAI(medList, chronotype)
-        : ClinicalInteractionEngine.suggestSchedule(medList, chronotype);
+      const suggestion = await ClinicalInteractionEngine.suggestSchedule(medList, chronotype);
       setActiveSuggestion(suggestion);
       setGhostShifts(suggestion.proposedShifts);
       setIsShiftModalOpen(true);
+    } catch {
+      eventBus.dispatchToast({
+        type: 'error',
+        title: 'Could not optimize schedule',
+        message: 'The AI service is unavailable. Please retry.',
+      });
     } finally {
-      if (shouldShowChecking) setIsChecking(false);
+      setIsChecking(false);
     }
   };
 
@@ -607,6 +598,22 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
         >
           <div className="w-5 h-5 rounded-full border-2 border-sky-200 border-t-sky-600 animate-spin shrink-0" aria-hidden="true" />
           <span className="font-semibold text-sm">Checking what doesn't mix well...</span>
+        </div>
+      )}
+
+      {/* AI evaluation error — honest empty state with retry, never fabricated warnings */}
+      {evalError && interactionArcs.length === 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm">
+          <span className="font-semibold text-sm text-amber-900">
+            Couldn't check interactions — the AI service is unavailable.
+          </span>
+          <button
+            type="button"
+            onClick={() => loadMedicationsFromVault()}
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold min-h-[44px] shrink-0"
+          >
+            Retry
+          </button>
         </div>
       )}
 

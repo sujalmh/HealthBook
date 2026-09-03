@@ -37,6 +37,8 @@ interface ReconciliationWalkProps {
   aiExplanation?: string;
   aiQuestions?: string[];
   aiLoading?: boolean;
+  aiError?: boolean;
+  onRetryAi?: () => void;
 }
 
 export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
@@ -50,7 +52,9 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
   onOpenTeachBack,
   aiExplanation,
   aiQuestions,
-  aiLoading = false
+  aiLoading = false,
+  aiError = false,
+  onRetryAi
 }) => {
   const currentItem = items[currentIndex] || items[0];
   const [showNoteInput, setShowNoteInput] = useState(false);
@@ -237,7 +241,7 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
           </div>
         </div>
 
-        {/* Conversational Explanation Card — AI pipeline when available, template fallback */}
+        {/* Conversational Explanation Card — AI pipeline with honest loading/error states */}
         <div className="p-5 rounded-2xl bg-canvas-card border border-canvas-border shadow-sm space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-sky-50 text-clinical-blue flex items-center justify-center border border-sky-200">
@@ -254,6 +258,21 @@ export const ReconciliationWalk: React.FC<ReconciliationWalkProps> = ({
             <div className="bg-canvas-muted p-4 rounded-xl border border-canvas-border flex items-center gap-2 text-body-sm text-muted" role="status">
               <span className="w-4 h-4 rounded-full border-2 border-sky-200 border-t-sky-600 animate-spin shrink-0" aria-hidden="true" />
               Getting the AI explanation for {currentItem.medName}…
+            </div>
+          ) : aiError && !aiExplanation && !currentItem.plainLanguageExplanation ? (
+            <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-2.5">
+              <p className="text-body-sm text-amber-900 font-medium">
+                Couldn't load the explanation — the AI service is unavailable and nothing was fabricated.
+              </p>
+              {onRetryAi && (
+                <button
+                  type="button"
+                  onClick={onRetryAi}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-body-sm font-bold min-h-[44px]"
+                >
+                  Retry
+                </button>
+              )}
             </div>
           ) : (
             <p className="text-body font-medium text-slate-900 leading-relaxed bg-canvas-muted p-4 rounded-xl border border-canvas-border">

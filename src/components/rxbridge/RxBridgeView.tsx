@@ -38,7 +38,6 @@ import type {
 import { ClinicalReconciliationEngine } from '../../core/knowledge/reconciliationEngine.ts';
 import { localVault } from '../../core/vault/LocalVault.ts';
 import { eventBus } from '../../core/events/eventBus.ts';
-import { getAIConfig, isAIEnabled } from '../../core/ai/config.ts';
 import { webMCPEngine } from '../../core/webmcp/WebMCPEngine.ts';
 import { resolvePatientId } from '@/components/common/resolvePatientId';
 import { ThreeListTable } from './ThreeListTable.tsx';
@@ -89,13 +88,15 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
 
   // AI narratives — per-med explanations from the AI pipeline (explain_med_change
   // tool). Fetched lazily, one call per med the patient actually opens in the
-  // walkthrough, cached for the session. Falls back to the reconciled template.
+  // walkthrough, cached for the session, with inline error + retry.
   const [aiNarratives, setAiNarratives] = useState<Record<string, { explanation: string; questions: string[] }>>({});
   const [aiLoadingMeds, setAiLoadingMeds] = useState<Record<string, boolean>>({});
-  const aiTriedMeds = useRef<Set<string>>(new Set());
+  const [aiNarrativeErrors, setAiNarrativeErrors] = useState<Record<string, boolean>>({});
+  const [aiRetryNonce, setAiRetryNonce] = useState(0);
+  const aiInflightMeds = useRef<Set<string>>(new Set());
 
   const loadReconciliation = async (dataset: Patient3ListDischargeDataset) => {
-    // Instant rule-based render first — the list must never show empty/zeros
+    // Instant deterministic render first — the list must never show empty/zeros
     // while the AI batch is still in flight (production AI takes seconds).
     try {
       setReconciledItems(ClinicalReconciliationEngine.reconcileThreeLists(dataset));
@@ -107,21 +108,13 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     // New dataset → drop cached AI narratives so explanations match current meds
     setAiNarratives({});
     setAiLoadingMeds({});
-    aiTriedMeds.current.clear();
+    setAiNarrativeErrors({});
+    aiInflightMeds.current.clear();
 
-    // Upgrade with AI enrichment when available; merge by medId so approvals
-    // and notes the patient already made are never clobbered.
-    let useAI = false;
+    // Upgrade with AI enrichment; merge by medId (deterministic across both
+    // passes) so approvals and notes the patient already made are never clobbered.
     try {
-      const engineAI = ClinicalReconciliationEngine as unknown as { reconcileThreeListsAI?: (d: Patient3ListDischargeDataset) => Promise<ReconciledMedChangeItem[]> };
-      useAI = isAIEnabled(getAIConfig()) && typeof engineAI.reconcileThreeListsAI === 'function';
-    } catch {
-      useAI = false;
-    }
-    if (!useAI) return;
-    try {
-      const engineAI = ClinicalReconciliationEngine as unknown as { reconcileThreeListsAI: (d: Patient3ListDischargeDataset) => Promise<ReconciledMedChangeItem[]> };
-      const aiItems = await engineAI.reconcileThreeListsAI(dataset);
+      const aiItems = await ClinicalReconciliationEngine.reconcileThreeListsAI(dataset);
       const aiMap = new Map(aiItems.map((i) => [i.medId, i]));
       setReconciledItems((prev) => {
         if (prev.length === 0) return aiItems;
@@ -138,7 +131,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         });
       });
     } catch {
-      // Sync render stands — AI is enhancement only
+      // Sync render stands — the walkthrough shows per-med loading/error states
     }
   };
 
@@ -170,21 +163,15 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   }, [effectivePatientId, activeDataset]);
 
   // Attach the walkthrough to the AI pipeline: when the patient opens a med in
-  // Step-by-Step, fetch its AI explanation via explain_med_change (AI when
-  // enabled, template fallback inside the tool). One call per med, cached.
+  // Step-by-Step, fetch its AI explanation via explain_med_change. One call
+  // per med, cached; failures surface an inline error with retry.
   useEffect(() => {
     if (viewMode !== 'walk' || reconciledItems.length === 0) return;
     const item = reconciledItems[walkIndex] || reconciledItems[0];
-    if (!item || aiTriedMeds.current.has(item.medId) || aiNarratives[item.medId]) return;
-    let enabled = false;
-    try {
-      enabled = isAIEnabled(getAIConfig());
-    } catch {
-      enabled = false;
-    }
-    if (!enabled) return;
-    aiTriedMeds.current.add(item.medId);
+    if (!item || aiNarratives[item.medId] || aiInflightMeds.current.has(item.medId)) return;
+    aiInflightMeds.current.add(item.medId);
     setAiLoadingMeds((prev) => ({ ...prev, [item.medId]: true }));
+    setAiNarrativeErrors((prev) => ({ ...prev, [item.medId]: false }));
     webMCPEngine
       .execute(
         'explain_med_change',
@@ -198,9 +185,8 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         { patientId: effectivePatientId }
       )
       .then((res) => {
-        const d = (res as { success?: boolean; data?: { plainLanguageExplanation?: string; suggestedQuestions?: string[]; aiGenerated?: boolean } })?.data;
-        // Only real AI output replaces the template — honest labeling
-        if ((res as { success?: boolean })?.success && d?.aiGenerated && d?.plainLanguageExplanation) {
+        const d = (res as { success?: boolean; data?: { plainLanguageExplanation?: string; suggestedQuestions?: string[] } })?.data;
+        if ((res as { success?: boolean })?.success && d?.plainLanguageExplanation) {
           setAiNarratives((prev) => ({
             ...prev,
             [item.medId]: {
@@ -208,15 +194,29 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
               questions: Array.isArray(d.suggestedQuestions) ? (d.suggestedQuestions as string[]) : [],
             },
           }));
+        } else {
+          setAiNarrativeErrors((prev) => ({ ...prev, [item.medId]: true }));
         }
       })
       .catch(() => {
-        // Template explanation stays visible — AI is enhancement only
+        setAiNarrativeErrors((prev) => ({ ...prev, [item.medId]: true }));
       })
       .finally(() => {
+        aiInflightMeds.current.delete(item.medId);
         setAiLoadingMeds((prev) => ({ ...prev, [item.medId]: false }));
       });
-  }, [viewMode, walkIndex, reconciledItems, effectivePatientId, aiNarratives]);
+  }, [viewMode, walkIndex, reconciledItems, effectivePatientId, aiNarratives, aiRetryNonce]);
+
+  const handleRetryAiNarrative = (medId: string) => {
+    setAiNarratives((prev) => {
+      const next = { ...prev };
+      delete next[medId];
+      return next;
+    });
+    setAiNarrativeErrors((prev) => ({ ...prev, [medId]: false }));
+    aiInflightMeds.current.delete(medId);
+    setAiRetryNonce((n) => n + 1);
+  };
 
   // Handle Per-Med Approval
   const handleToggleApproval = (medId: string) => {
@@ -613,6 +613,11 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           aiExplanation={(reconciledItems[walkIndex] && aiNarratives[reconciledItems[walkIndex].medId]?.explanation) || undefined}
           aiQuestions={(reconciledItems[walkIndex] && aiNarratives[reconciledItems[walkIndex].medId]?.questions) || undefined}
           aiLoading={!!(reconciledItems[walkIndex] && aiLoadingMeds[reconciledItems[walkIndex].medId])}
+          aiError={!!(reconciledItems[walkIndex] && aiNarrativeErrors[reconciledItems[walkIndex].medId])}
+          onRetryAi={() => {
+            const item = reconciledItems[walkIndex];
+            if (item) handleRetryAiNarrative(item.medId);
+          }}
           onFinishWalk={() => {
             setViewMode('table');
             if (!teachBackRecord) {

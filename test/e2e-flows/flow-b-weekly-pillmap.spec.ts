@@ -32,23 +32,24 @@ export async function runFlowBTests(): Promise<{ passed: number; failed: number;
     const activeMeds = vault.getMedications('p_jenkins_72', 'active');
     assertEquals(activeMeds.length, 4, 'Step B.1: Baseline medications loaded');
 
-    // Step B.2: Drag OTC supplement (St. John's Wort) onto morning slot -> triggers red/orange SVG conflict arcs
+    // Step B.2: Drag OTC supplement (St. John's Wort) onto morning slot -> triggers orange MAJOR SVG conflict arcs
     await engine.execute('add_medication', { name: 'St. John\'s Wort', dose: '300mg', slot: 'morning' }, context);
 
     const activeNames = vault.getMedications('p_jenkins_72', 'active').map(m => m.genericName);
     const ddiRes = await engine.execute('check_interactions', { medList: activeNames }, context);
     assert(ddiRes.success, 'Step B.2: Interaction evaluation must succeed');
 
-    const redArc = ddiRes.data.find((a: any) => a.severity === 'CONTRAINDICATED');
-    assert(!!redArc, 'Step B.2: Red CONTRAINDICATED SVG arc must be drawn between St. John\'s Wort and Sertraline');
-    assertEquals(redArc.arcColor, '#EF4444');
+    const serotoninArc = ddiRes.data.find((a: any) => /sertraline/i.test(`${a.drugA} ${a.drugB}`));
+    assert(!!serotoninArc, 'Step B.2: Orange MAJOR SVG arc must be drawn between St. John\'s Wort and Sertraline (FDA warning-level, not contraindication)');
+    assertEquals(serotoninArc.severity, 'MAJOR');
+    assertEquals(serotoninArc.arcColor, '#F97316');
 
-    const orangeArc = ddiRes.data.find((a: any) => a.severity === 'MAJOR');
+    const orangeArc = ddiRes.data.find((a: any) => a.severity === 'MAJOR' && /apixaban/i.test(`${a.drugA} ${a.drugB}`));
     assert(!!orangeArc, 'Step B.2: Orange MAJOR SVG arc must be drawn for Apixaban interaction');
 
-    // Step B.3: Click Red SVG arc to view plain-language clinical mechanism
-    assertContains(redArc.mechanism, 'Serotonin Syndrome', 'Step B.3: Bottom sheet mechanism must detail Serotonin Syndrome');
-    assertContains(redArc.clinicalGuidance, 'discontinue', 'Step B.3: Guidance must advise discontinuing St. John\'s Wort');
+    // Step B.3: Click serotonin SVG arc to view plain-language clinical mechanism
+    assertContains(serotoninArc.mechanism, 'Serotonin Syndrome', 'Step B.3: Bottom sheet mechanism must detail Serotonin Syndrome');
+    assertContains(serotoninArc.clinicalGuidance, 'discontinue', 'Step B.3: Guidance must advise discontinuing St. John\'s Wort');
 
     // Step B.4: Schedule optimization request -> generates ghost previews
     const schedRes = await engine.execute('suggest_schedule', {
