@@ -1,7 +1,8 @@
 {
-  "name": "carecanvas",
-  "private": true,
+  "name": "healthbook",
+  "private": false,
   "version": "1.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
