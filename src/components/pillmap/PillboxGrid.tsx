@@ -74,6 +74,13 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
     }
   };
 
+  // Open on today's column so the highlighted day matches visible content
+  useEffect(() => {
+    const t = setTimeout(() => scrollToDay(activeDay), 80);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const times = CHRONOTYPE_TIMES[chronotype] || CHRONOTYPE_TIMES.standard;
 
   const slotMeta: Record<

@@ -95,22 +95,12 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   const aiTriedMeds = useRef<Set<string>>(new Set());
 
   const loadReconciliation = async (dataset: Patient3ListDischargeDataset) => {
+    // Instant rule-based render first — the list must never show empty/zeros
+    // while the AI batch is still in flight (production AI takes seconds).
     try {
-      let useAI = false;
-      try {
-        const engineAI = ClinicalReconciliationEngine as unknown as { reconcileThreeListsAI?: (d: Patient3ListDischargeDataset) => Promise<ReconciledMedChangeItem[]> };
-        useAI = isAIEnabled(getAIConfig()) && typeof engineAI.reconcileThreeListsAI === 'function';
-        const items = useAI && engineAI.reconcileThreeListsAI
-          ? await engineAI.reconcileThreeListsAI(dataset)
-          : ClinicalReconciliationEngine.reconcileThreeLists(dataset);
-        setReconciledItems(items);
-      } catch {
-        const items = ClinicalReconciliationEngine.reconcileThreeLists(dataset);
-        setReconciledItems(items);
-      }
+      setReconciledItems(ClinicalReconciliationEngine.reconcileThreeLists(dataset));
     } catch {
-      const items = ClinicalReconciliationEngine.reconcileThreeLists(dataset);
-      setReconciledItems(items);
+      // boundary — AI upgrade below still attempts
     }
     setWalkIndex(0);
     setTeachBackRecord(null);
@@ -118,6 +108,38 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     setAiNarratives({});
     setAiLoadingMeds({});
     aiTriedMeds.current.clear();
+
+    // Upgrade with AI enrichment when available; merge by medId so approvals
+    // and notes the patient already made are never clobbered.
+    let useAI = false;
+    try {
+      const engineAI = ClinicalReconciliationEngine as unknown as { reconcileThreeListsAI?: (d: Patient3ListDischargeDataset) => Promise<ReconciledMedChangeItem[]> };
+      useAI = isAIEnabled(getAIConfig()) && typeof engineAI.reconcileThreeListsAI === 'function';
+    } catch {
+      useAI = false;
+    }
+    if (!useAI) return;
+    try {
+      const engineAI = ClinicalReconciliationEngine as unknown as { reconcileThreeListsAI: (d: Patient3ListDischargeDataset) => Promise<ReconciledMedChangeItem[]> };
+      const aiItems = await engineAI.reconcileThreeListsAI(dataset);
+      const aiMap = new Map(aiItems.map((i) => [i.medId, i]));
+      setReconciledItems((prev) => {
+        if (prev.length === 0) return aiItems;
+        return prev.map((item) => {
+          const ai = aiMap.get(item.medId);
+          if (!ai) return item;
+          return {
+            ...item,
+            plainLanguageExplanation: ai.plainLanguageExplanation || item.plainLanguageExplanation,
+            suggestedQuestions: ai.suggestedQuestions && ai.suggestedQuestions.length > 0 ? ai.suggestedQuestions : item.suggestedQuestions,
+            interactions: ai.interactions && ai.interactions.length > 0 ? ai.interactions : item.interactions,
+            dietInteractions: ai.dietInteractions && ai.dietInteractions.length > 0 ? ai.dietInteractions : item.dietInteractions,
+          };
+        });
+      });
+    } catch {
+      // Sync render stands — AI is enhancement only
+    }
   };
 
   useEffect(() => {

@@ -109,9 +109,11 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold tracking-tight text-slate-900">Get Help</h2>
-              <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200">
-                Urgent
-              </span>
+              {activeAlerts.length > 0 && (
+                <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200">
+                  Urgent
+                </span>
+              )}
             </div>
             <p className="text-body-sm text-muted">
               Tell your care team quickly if something feels wrong — and see what happens next.
@@ -135,7 +137,7 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
           </button>
           {isViewOnly && <span className="text-caption text-amber-700 font-semibold hidden sm:inline">Permission denied — View-only (PERMISSION_DENIED)</span>}
 
-          <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border overflow-x-auto scrollbar-none max-w-full shadow-xs">
+          <div className="flex flex-wrap items-center gap-1.5 bg-canvas-muted p-1 rounded-xl border border-canvas-border max-w-full shadow-xs">
             <button
               onClick={() => handleTabChange('patient_safety')}
               className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
