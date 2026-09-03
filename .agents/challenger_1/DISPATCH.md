@@ -1,7 +1,7 @@
 ## 2026-08-28T21:31:06Z
-You are challenger_1 for CareCanvas.
+You are challenger_1 for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/challenger_1.
-Your task is to conduct empirical stress testing, boundary condition verification, and adversarial challenges against CareCanvas.
+Your task is to conduct empirical stress testing, boundary condition verification, and adversarial challenges against Healthbook.
 
 Files to inspect:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md

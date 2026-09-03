@@ -114,8 +114,8 @@ beforeEach(async () => {
         VITE_AI_MODEL: 'mock-model',
         VITE_AI_STRUCTURED_OUTPUTS: 'true'
       });
-      localStorage.setItem('carecanvas_settings', mockAIConfig);
-      localStorage.setItem('carecanvas_ai_settings', mockAIConfig);
+      localStorage.setItem('healthbook_settings', mockAIConfig);
+      localStorage.setItem('healthbook_ai_settings', mockAIConfig);
     }
   } catch {}
 

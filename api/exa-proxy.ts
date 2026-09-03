@@ -1,5 +1,5 @@
 /**
- * CareCanvas Serverless Exa Search Proxy
+ * Healthbook Serverless Exa Search Proxy
  * POST https://api.exa.ai/search — Auth via Authorization: Bearer <EXA_API_KEY>
  * Server injects key from EXA_API_KEY / VITE_EXA_API_KEY so browser never exposes it.
  */

@@ -19,7 +19,7 @@ if (typeof import.meta !== 'undefined' && (import.meta as unknown as { hot?: { d
 
 function getStoredUserId(): string | null {
   try {
-    const raw = localStorage.getItem('carecanvas_active_user');
+    const raw = localStorage.getItem('healthbook_active_user');
     if (raw) {
       const parsed = JSON.parse(raw) as { userId?: unknown; id?: unknown };
       const pid = parsed?.userId ?? parsed?.id;
@@ -42,11 +42,11 @@ function isToolsPolicyAllowed(): boolean {
     if (doc.permissionsPolicy?.allowsFeature) {
       const allowed = doc.permissionsPolicy.allowsFeature('tools');
       if (!allowed) {
-        console.warn('[CareCanvas] tools Permissions-Policy blocked');
+        console.warn('[Healthbook] tools Permissions-Policy blocked');
         return false;
       }
     }
-  } catch (e) { console.warn('[CareCanvas] permissionsPolicy check failed', e); }
+  } catch (e) { console.warn('[Healthbook] permissionsPolicy check failed', e); }
   return true;
 }
 
@@ -71,7 +71,7 @@ async function registerAllTools(): Promise<void> {
           } catch (e: unknown) {
             const errName = (e as { name?: string })?.name || '';
             if (errName === 'NotAllowedError' || errName === 'SecurityError' || errName === 'InvalidStateError') {
-              console.warn(`[CareCanvas] native register blocked for ${tool.name}: ${errName}`);
+              console.warn(`[Healthbook] native register blocked for ${tool.name}: ${errName}`);
               try { (await import('./core/webmcp/WebMCPEngine.ts')).webMCPEngine.register(tool); } catch {}
               return;
             }
@@ -84,7 +84,7 @@ async function registerAllTools(): Promise<void> {
       } catch (e: unknown) {
         const errName = (e as { name?: string })?.name || '';
         if (errName === 'NotAllowedError' || errName === 'SecurityError' || errName === 'InvalidStateError') return;
-        console.warn(`[CareCanvas] WebMCP register failed for ${tool.name}`, e);
+        console.warn(`[Healthbook] WebMCP register failed for ${tool.name}`, e);
         throw e;
       }
     })
@@ -94,7 +94,7 @@ async function registerAllTools(): Promise<void> {
 
 async function hydrateFromLocalSnapshotIfNeeded(): Promise<void> {
   try {
-    const raw = localStorage.getItem('carecanvas_vault_asthma_snapshot');
+    const raw = localStorage.getItem('healthbook_vault_asthma_snapshot');
     if (!raw) return;
     const blob = JSON.parse(raw) as Record<string, { conditions?: unknown[]; allergies?: unknown[]; medications?: unknown[]; labs?: unknown[]; dueCards?: unknown[]; proposals?: unknown[]; calendarEvents?: unknown[]; dangerReports?: unknown[]; questionBank?: unknown[] }>;
     let totalInjected = 0;
@@ -110,11 +110,11 @@ async function hydrateFromLocalSnapshotIfNeeded(): Promise<void> {
         for (const e of (bundle.calendarEvents as unknown[]) || []) { try { localVault.addCalendarEvent(e as never); totalInjected++; } catch {} }
         for (const r of (bundle.dangerReports as unknown[]) || []) { try { localVault.addDangerReport(r as never); totalInjected++; } catch {} }
         for (const q of (bundle.questionBank as unknown[]) || []) { try { localVault.addQuestion(q as never); totalInjected++; } catch {} }
-      } catch (e) { console.warn('[CareCanvas] snapshot inject failed for', patientId, e); }
+      } catch (e) { console.warn('[Healthbook] snapshot inject failed for', patientId, e); }
     }
     // also hydrate doctor links if present in separate key
     try {
-      const linkRaw = localStorage.getItem('carecanvas_doctor_links');
+      const linkRaw = localStorage.getItem('healthbook_doctor_links');
       if (linkRaw) {
         const links = JSON.parse(linkRaw) as unknown[];
         for (const lk of links) {
@@ -122,15 +122,26 @@ async function hydrateFromLocalSnapshotIfNeeded(): Promise<void> {
         }
       }
     } catch {}
-    if (totalInjected > 0) console.log(`[CareCanvas] Hydrated ${totalInjected} asthma seed records from localStorage snapshot`);
-  } catch (e) { console.warn('[CareCanvas] local snapshot hydration failed', e); }
+    if (totalInjected > 0) console.log(`[Healthbook] Hydrated ${totalInjected} asthma seed records from localStorage snapshot`);
+  } catch (e) { console.warn('[Healthbook] local snapshot hydration failed', e); }
 }
 
 async function bootstrap(): Promise<void> {
   await localVault.init();
   if (!localVault.isEventBusConnected()) wireLocalVaultToEventBus(eventBus);
 
-  // 0) Local snapshot fallback — seeds 10 asthma patients + 2 doctors when Supabase disabled (dev localStorage-only)
+  // 0) Validate stored session — a stale/expired login must not open any vault.
+  //    Server is the source of truth; without a valid session the gate takes over.
+  try {
+    const { loadSession, resolveSessionProfile, clearSession, isAuthConfigured } = await import('./core/supabase/auth.ts');
+    if (isAuthConfigured() && loadSession()) {
+      const sp = await resolveSessionProfile();
+      if (!sp) clearSession();
+    }
+  } catch { /* ignore — auth gate handles signed-out state */ }
+
+  // 1) Offline gap-fill cache — fills ONLY patients with zero rows (server wins).
+  //    Used when Supabase is unreachable/offline; never overwrites server data.
   await hydrateFromLocalSnapshotIfNeeded();
 
   const storedUserId = getStoredUserId();
@@ -141,21 +152,21 @@ async function bootstrap(): Promise<void> {
         try {
           const { hydrateFromSupabase } = await import('./core/vault/supabaseSync.ts');
           await hydrateFromSupabase(storedUserId, localVault);
-        } catch (e) { console.warn('[CareCanvas] Hydration failed — empty vault, no mock seed', e); }
+        } catch (e) { console.warn('[Healthbook] Hydration failed — empty vault, no mock seed', e); }
       }
-    } catch (e) { console.warn('[CareCanvas] Bootstrap hydration check failed — empty vault, no mock seed', e); }
+    } catch (e) { console.warn('[Healthbook] Bootstrap hydration check failed — empty vault, no mock seed', e); }
   }
   // If no stored user but snapshot exists, pre-warm one patient so cold start still shows seeded vault availability check — keep lazy (no active user override)
 
-  if (!isSecureContextCheck()) console.warn('[CareCanvas] WebMCP requires SecureContext (https:// or localhost)');
+  if (!isSecureContextCheck()) console.warn('[Healthbook] WebMCP requires SecureContext (https:// or localhost)');
   isToolsPolicyAllowed();
 
   try {
     await registerAllTools();
   } catch (e: unknown) {
     const name = (e as { name?: string })?.name || '';
-    if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'InvalidStateError') console.warn('[CareCanvas] WebMCP bulk registration blocked', e);
-    else console.warn('[CareCanvas] WebMCP bootstrap registration failed — fallback to polyfill, still mounting', e);
+    if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'InvalidStateError') console.warn('[Healthbook] WebMCP bulk registration blocked', e);
+    else console.warn('[Healthbook] WebMCP bootstrap registration failed — fallback to polyfill, still mounting', e);
     try {
       const { webMCPEngine } = await import('./core/webmcp/WebMCPEngine.ts');
       for (const tool of allWebMCPTools) try { webMCPEngine.register(tool); } catch {}
@@ -167,8 +178,8 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch(async (e: unknown) => {
-  console.error('[CareCanvas] Bootstrap failed', e);
-  if (!isSecureContextCheck()) console.warn('[CareCanvas] WebMCP requires SecureContext — fallback');
+  console.error('[Healthbook] Bootstrap failed', e);
+  if (!isSecureContextCheck()) console.warn('[Healthbook] WebMCP requires SecureContext — fallback');
   isToolsPolicyAllowed();
   try { await registerAllTools(); } catch {}
   const rootElement = document.getElementById('root');

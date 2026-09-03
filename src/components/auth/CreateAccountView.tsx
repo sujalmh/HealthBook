@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HeartPulse, Sparkles } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
-import { getSeededForEmail, isRateLimitError, isEmailInvalidError } from '@/core/auth/seededMap';
 
 export interface CreatedProfile {
   userId: string;
@@ -46,7 +45,7 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
     };
     // Cold start: check pending storage (AI called before mount)
     try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('carecanvas_mcp_auth_pending') : null;
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('healthbook_mcp_auth_pending') : null;
       if (raw) {
         const p = JSON.parse(raw) as { mode?: string; name?: string; email?: string; role?: string };
         if (p && (p.mode === 'create' || !p.mode) && p.email) applyPrefill(p);
@@ -54,12 +53,12 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
     } catch { /* ignore */ }
     const onWindow = (e: Event) => applyPrefill((e as CustomEvent).detail);
     const onBus = (payload: unknown) => applyPrefill(payload);
-    window.addEventListener('carecanvas_mcp_auth_pending', onWindow as EventListener);
-    window.addEventListener('carecanvas_mcp_prefill', onWindow as EventListener);
+    window.addEventListener('healthbook_mcp_auth_pending', onWindow as EventListener);
+    window.addEventListener('healthbook_mcp_prefill', onWindow as EventListener);
     const off1 = eventBus.on('mcp_auth_pending' as unknown as string, onBus as unknown as () => void);
     return () => {
-      window.removeEventListener('carecanvas_mcp_auth_pending', onWindow as EventListener);
-      window.removeEventListener('carecanvas_mcp_prefill', onWindow as EventListener);
+      window.removeEventListener('healthbook_mcp_auth_pending', onWindow as EventListener);
+      window.removeEventListener('healthbook_mcp_prefill', onWindow as EventListener);
       off1();
     };
   }, []);
@@ -92,119 +91,76 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
       if (!displayName) displayName = 'Anonymous';
       displayName = truncateName(displayName, 64);
 
-      let userId: string | null = null;
-      let supabaseUsed = false;
-      let supabaseRateLimited = false;
-
-      // Try Supabase Auth if configured (graceful fallback to local)
-      const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
-      const supabaseAnon = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
-      if (supabaseUrl && supabaseAnon && emailTrim && passwordTrim) {
-        try {
-          const { getSupabaseClient } = await import('@/core/supabase/client');
-          const client = getSupabaseClient() as unknown as { auth?: { signUp?: (opts: unknown) => Promise<{ data?: { user?: { id: string } }; error?: { message?: string; code?: string } }> } };
-          if (client?.auth?.signUp) {
-            const res = await client.auth.signUp({
-              email: emailTrim,
-              password: passwordTrim,
-              options: { data: { display_name: displayName } },
-            } as unknown as never);
-            const dataUserId = (res as { data?: { user?: { id: string } } })?.data?.user?.id;
-            const errMsg = (res as { error?: { message?: string; code?: string } })?.error?.message;
-            const errCode = (res as { error?: { code?: string } })?.error?.code;
-            if (dataUserId) {
-              userId = dataUserId;
-              supabaseUsed = true;
-            } else if (errMsg) {
-              const isRate = isRateLimitError(errMsg) || isRateLimitError(errCode) || errMsg.includes('429');
-              const isInvalid = isEmailInvalidError(errMsg);
-              if (isRate) {
-                supabaseRateLimited = true;
-                console.warn('[CreateAccount] Supabase rate-limited (429) — disallowed, fallback to local demo (production fix):', errMsg);
-              } else if (isInvalid) {
-                console.warn('[CreateAccount] Supabase email invalid — fallback to local (any pattern allowed locally):', errMsg);
-              } else {
-                console.warn('[CreateAccount] Supabase signUp failed, fallback to local:', errMsg);
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('[CreateAccount] Supabase unavailable, fallback to local', e);
+      // Server truth: Supabase Auth creates the account. No local fallback —
+      // passwords go to the server only and are never stored on this device.
+      const { supabaseSignUp, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } = await import('@/core/supabase/auth.ts');
+      const { session, user, error } = await supabaseSignUp(emailTrim, passwordTrim, { name: displayName, role });
+      if (error) {
+        if (error.code === 'ACCOUNT_EXISTS') {
+          eventBus.dispatchToast({ type: 'error', title: 'Account exists', message: 'An account with this email already exists. Please sign in.' });
+          if (onSwitchToSignIn) onSwitchToSignIn();
+          return;
         }
+        const msg = error.code === 'WEAK_PASSWORD'
+          ? 'Password does not meet requirements (min 6 characters).'
+          : error.code === 'RATE_LIMITED'
+            ? 'Too many attempts. Please wait a minute and try again.'
+            : error.message || 'Unable to create account. Please try again.';
+        eventBus.dispatchToast({ type: 'error', title: 'Sign-up failed', message: msg });
+        return;
       }
-
-      if (!userId) {
-        // Production fix: seeded demo users get deterministic patientId so vault labs match; any email pattern allowed locally (disallow rate limit)
-        const seeded = getSeededForEmail(emailTrim);
-        if (seeded) {
-          userId = seeded.userId;
-          if (!name.trim() || seeded.name) displayName = seeded.name;
-          if (seeded.role) setRole(seeded.role);
-        } else {
-          try {
-            userId = (globalThis as unknown as { crypto?: { randomUUID?: () => string } }).crypto?.randomUUID?.() || `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-          } catch {
-            userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-          }
-        }
-        if (supabaseRateLimited) {
-          console.log('[CreateAccount] Rate limit bypassed via local demo — production fix active');
-        }
+      if (!user) {
+        eventBus.dispatchToast({ type: 'error', title: 'Sign-up failed', message: 'Account creation returned no user. Please try again.' });
+        return;
       }
-
-      const profile: CreatedProfile = {
-        userId: userId!,
-        name: displayName,
+      if (!session) {
+        // Email confirmation required: account staged server-side; human confirms via email link.
+        eventBus.dispatchToast({ type: 'info', title: 'Check your email', message: `Account created for ${displayName}. Please confirm via the email link, then sign in.` });
+        if (onSwitchToSignIn) onSwitchToSignIn();
+        return;
+      }
+      storeSession(session);
+      const { profile: userProfile, error: profileError } = await ensureProfile({
+        token: session.access_token,
+        authUserId: user.id,
         email: emailTrim,
+        name: displayName,
         role,
+      });
+      if (profileError || !userProfile) {
+        eventBus.dispatchToast({ type: 'error', title: 'Sign-up failed', message: `Account created, but profile setup failed: ${profileError || 'unknown error'}` });
+        return;
+      }
+      purgeLegacyCredentialStores();
+      const profile: CreatedProfile = {
+        userId: userProfile.patientId,
+        name: userProfile.name,
+        email: userProfile.email,
+        role: userProfile.role,
         isProxy: false,
-        permissionLevel: role === 'doctor' ? 'view_only' : undefined,
+        permissionLevel: userProfile.role === 'doctor' ? 'view_only' : undefined,
         createdAt: new Date().toISOString(),
       };
-
-      // Persist active user (auth token)
-      try {
-        localStorage.setItem('carecanvas_active_user', JSON.stringify(profile));
-        // Also persist password for local sign-in verification (stored separately, not in active token display)
-        localStorage.setItem(`carecanvas_cred_${profile.userId}`, passwordTrim);
-        if (profile.email) localStorage.setItem(`carecanvas_cred_email_${profile.email.toLowerCase()}`, JSON.stringify({ userId: profile.userId, password: passwordTrim }));
-      } catch { /* intentionally empty */ }
-
-      // Maintain users array for future sign-in
-      try {
-        const raw = localStorage.getItem('carecanvas_users');
-        const arr: Array<{ userId?: string; email?: string; password?: string }> = raw ? (JSON.parse(raw) as Array<{ userId?: string; email?: string; password?: string }>) : [];
-        // Avoid duplicates by userId or email
-        const exists = arr.find((u) => u.userId === profile.userId || (profile.email && u.email === profile.email));
-        if (!exists) {
-          arr.push({ ...profile, password: passwordTrim });
-          localStorage.setItem('carecanvas_users', JSON.stringify(arr));
-        } else if (profile.email) {
-          // Update password if account recreated
-          const idx = arr.findIndex((u) => u.email === profile.email);
-          if (idx !== -1) arr[idx].password = passwordTrim;
-          localStorage.setItem('carecanvas_users', JSON.stringify(arr));
-        }
-      } catch { /* intentionally empty */ }
+      persistActiveProfile(userProfile);
 
       eventBus.dispatchToast({
         type: 'success',
-        title: supabaseUsed ? 'Account Created' : 'Welcome to CareCanvas',
-        message: supabaseUsed ? `Account created for ${displayName}` : `Account created for ${displayName}`,
+        title: 'Account Created',
+        message: `Account created for ${displayName}`,
       });
 
       // Clear MCP pending if this completion was via AI-assisted flow
       try {
         if (typeof localStorage !== 'undefined') {
-          const raw = localStorage.getItem('carecanvas_mcp_auth_pending');
+          const raw = localStorage.getItem('healthbook_mcp_auth_pending');
           if (raw) {
             const p = JSON.parse(raw) as { mode?: string; email?: string };
             if (p?.email?.toLowerCase() === emailTrim.toLowerCase() && (p.mode === 'create' || !p.mode)) {
               const pid = (p as { pendingId?: string }).pendingId;
-              if (pid) try { localStorage.removeItem(`carecanvas_mcp_auth_pending_${pid}`); } catch { /* ignore */ }
-              localStorage.removeItem('carecanvas_mcp_auth_pending');
-              try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_cleared')); } catch { /* ignore */ }
-              try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
+              if (pid) try { localStorage.removeItem(`healthbook_mcp_auth_pending_${pid}`); } catch { /* ignore */ }
+              localStorage.removeItem('healthbook_mcp_auth_pending');
+              try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_cleared')); } catch { /* ignore */ }
+              try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
             }
           }
         }
@@ -229,7 +185,7 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
         </div>
         <div>
           <h1 className="text-lg font-bold tracking-tight text-slate-900">Create Account</h1>
-          <p className="text-body-sm text-muted mt-1">Your health, all in one place — private on this device</p>
+            <p className="text-body-sm text-muted mt-1">Your health, all in one place — secured by your server account</p>
         </div>
       </div>
 

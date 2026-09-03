@@ -1,4 +1,4 @@
-# Progress Log — CareCanvas Project Orchestration
+# Progress Log — Healthbook Project Orchestration
 
 ## Current Status
 Last visited: 2026-08-28T21:31:00Z

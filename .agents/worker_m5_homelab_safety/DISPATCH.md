@@ -1,7 +1,7 @@
 ## 2026-08-28T21:15:16Z
-You are worker_m5_homelab_safety for CareCanvas.
+You are worker_m5_homelab_safety for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/worker_m5_homelab_safety.
-Your task is to implement Milestone 5 (HomeLab Remote Loop, Safety Escalation & Family Care Circle) for CareCanvas per the specifications in:
+Your task is to implement Milestone 5 (HomeLab Remote Loop, Safety Escalation & Family Care Circle) for Healthbook per the specifications in:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md
 2. /Users/sujal/Projects/proj1/PROJECT.md
 3. /Users/sujal/Projects/proj1/.agents/spec_miner_survey_2/clinical_modules_spec.md

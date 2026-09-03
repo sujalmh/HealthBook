@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T17:19:00Z
 
 ## Mission
-Conduct empirical verification of interactive components on mobile screens (320px–430px) across CareCanvas modules, execute test suites, and deliver an explicit verdict.
+Conduct empirical verification of interactive components on mobile screens (320px–430px) across Healthbook modules, execute test suites, and deliver an explicit verdict.
 
 ## 🔒 My Identity
 - Archetype: empirical_challenger

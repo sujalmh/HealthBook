@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: TeachBackModal
+ * Healthbook Component: TeachBackModal
  * Interactive teach-back prompt ("Can you tell me in your words what you'll take tomorrow morning and with food or without?")
  * validating patient comprehension before finalizing post-discharge handoff.
  */

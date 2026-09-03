@@ -1,5 +1,5 @@
 /**
- * CareCanvas AI Core — Types
+ * Healthbook AI Core — Types
  */
 
 import type { Fact } from '../../types/vault.ts';

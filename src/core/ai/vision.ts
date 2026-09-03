@@ -1,5 +1,5 @@
 /**
- * CareCanvas AI Core — Vision & Multimodal Message Composition
+ * Healthbook AI Core — Vision & Multimodal Message Composition
  */
 
 import type {

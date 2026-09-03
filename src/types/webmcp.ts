@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types: WebMCP Protocol & Tool Definitions
+ * Healthbook Types: WebMCP Protocol & Tool Definitions
  * Spec: W3C WebMCP Draft 26 Aug 2026 §4.1-4.5 — ModelContext IDL
  * Canonical surface: document.modelContext only (SecureContext)
  */

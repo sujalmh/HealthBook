@@ -1,11 +1,11 @@
 /**
- * CareCanvas Component: PillboxGrid
+ * Healthbook Component: PillboxGrid
  * 7x4 weekly drag-and-drop grid (Mon–Sun × Morning, Noon, Evening, Bedtime) with accessible typography,
  * chronotype-aware timing headers, drop target animations, and conflict arc anchoring.
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, CloudSun, Sunset, Moon, Plus, AlertCircle, Utensils } from 'lucide-react';
+import { Sun, CloudSun, Sunset, Moon, Plus, Utensils } from 'lucide-react';
 import type {
   PillboxGrid as IPillboxGrid,
   PillSlotItem,
@@ -300,31 +300,7 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         />
       </div>
 
-      {/* Mobile Conflict Indicator (< 640px) */}
-      {(interactionArcs.length > 0 || duplicateAlerts.length > 0) && (
-        <div className="sm:hidden mb-2.5 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span className="font-bold truncate">
-              {interactionArcs.length} conflict{interactionArcs.length === 1 ? '' : 's'} on weekly schedule
-            </span>
-          </div>
-          <span className="text-[10px] text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full font-semibold shrink-0">
-            Swipe to review
-          </span>
-        </div>
-      )}
-
-      {/* Mobile Scroll Affordance Cue */}
-      <div className="sm:hidden flex items-center justify-between px-1 pb-2 text-[11px] text-muted font-medium">
-        <span>👈 Mon</span>
-        <span className="text-slate-700 font-semibold bg-canvas-muted px-2.5 py-0.5 rounded-full border border-canvas-border">
-          Swipe horizontally for full week
-        </span>
-        <span>Sun 👉</span>
-      </div>
-
-      {/* Day Scroller — tappable mobile nav Mon..Sun, hidden ≥sm, 44px tappable, uses scrollToDay + data-day anchors */}
+      {/* Day Scroller — drives the mobile day view and desktop scroll */}
       <div className="sm:hidden flex items-center gap-1.5 overflow-x-auto scrollbar-none py-2 -mx-1 px-1" role="tablist" aria-label="Days of week">
         {DAYS_OF_WEEK.map((day) => (
           <button
@@ -344,8 +320,74 @@ export const PillboxGrid: React.FC<PillboxGridProps> = ({
         ))}
       </div>
 
-      {/* Main Responsive Grid Container — smooth horizontal scroll on mobile, not clipped */}
-      <div ref={scrollRef} className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Mobile single-day view — stacked time slots, no horizontal scroll */}
+      <div className="sm:hidden space-y-2">
+        {TIME_SLOTS.map((slot) => {
+          const meta = slotMeta[slot];
+          const pillsInSlot = (grid[activeDay] && grid[activeDay][slot]) || [];
+          const ghostsInSlot = ghostShifts.filter((g) => {
+            if (g.toSlot !== slot) return false;
+            if (g.toDay && g.toDay !== activeDay) return false;
+            return true;
+          });
+          return (
+            <div key={slot} className="rounded-xl border border-canvas-border overflow-hidden">
+              <div className={`flex items-center gap-2 px-3 py-2 border-b border-canvas-border ${meta.headerBg}`}>
+                {meta.icon}
+                <span className="font-bold text-sm text-slate-900">{meta.label}</span>
+                <span className="text-xs font-mono font-semibold text-primary-text ml-auto">{meta.time}</span>
+              </div>
+              <div className="p-2 space-y-2 bg-white">
+                {pillsInSlot.map((pill) => (
+                  <PillCard
+                    key={pill.id}
+                    pill={pill}
+                    day={activeDay}
+                    slot={slot}
+                    dietBadges={dietBadges}
+                    isDuplicate={isDuplicateIngredient(pill.name)}
+                    onRemove={onRemovePill}
+                    onSimulate={(p, d, s) =>
+                      onSimulateMissedDose?.(p, (d || activeDay) as DayOfWeek, (s || slot) as TimeSlot)
+                    }
+                  />
+                ))}
+                {ghostsInSlot.map((ghost, gIdx) => (
+                  <PillCard
+                    key={`ghost_${ghost.medId}_${gIdx}`}
+                    pill={{
+                      id: `ghost_${ghost.medId}`,
+                      medId: ghost.medId,
+                      name: ghost.medName,
+                      dosage: 'Proposed',
+                      color: '#10B981',
+                      shape: 'capsule',
+                      withFood: false,
+                      status: 'ghost_preview'
+                    }}
+                    day={activeDay}
+                    slot={slot}
+                    isGhostPreview={true}
+                  />
+                ))}
+                {pillsInSlot.length === 0 && ghostsInSlot.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onQuickAdd?.(activeDay, slot)}
+                    className="w-full min-h-[44px] flex items-center justify-center gap-1.5 p-2 rounded-xl border border-dashed border-canvas-border text-muted text-xs font-semibold"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add medicine</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Main Responsive Grid Container — desktop/tablet 7-day table */}
+      <div ref={scrollRef} className="hidden sm:block overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="min-w-[720px] sm:min-w-[960px]">
         {/* Table Structure */}
         <table className="w-full border-collapse">

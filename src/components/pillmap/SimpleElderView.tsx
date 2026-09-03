@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: SimpleElderView
+ * Healthbook Component: SimpleElderView
  * Accessible, oversized, distraction-free elder mode showing the immediate next dose,
  * large high-contrast typography, and voice narration via Web Speech API.
  */

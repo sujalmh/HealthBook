@@ -11,7 +11,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('carecanvas_active_user');
+      const raw = localStorage.getItem('healthbook_active_user');
       if (raw) {
         const parsed = JSON.parse(raw) as CreatedProfile;
         if (parsed?.userId) setProfile(parsed);

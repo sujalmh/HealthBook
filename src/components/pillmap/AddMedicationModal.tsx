@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: AddMedicationModal
+ * Healthbook Component: AddMedicationModal
  * Modal allowing patients and caregivers to add a custom prescription drug or OTC supplement to PillMap.
  */
 

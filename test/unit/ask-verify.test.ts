@@ -11,7 +11,7 @@ describe('Ask #4 — delete presetQueries + gate auto-add — probe', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    localStorage.setItem('carecanvas_active_user', JSON.stringify({ userId: probePatient, name: 'Probe', role: 'patient' }));
+    localStorage.setItem('healthbook_active_user', JSON.stringify({ userId: probePatient, name: 'Probe', role: 'patient' }));
     localVault.clear();
     // ensure vault empty
     await new Promise(r => setTimeout(r, 10));

@@ -1,7 +1,7 @@
-# Project: CareCanvas — Agent-Native Patient-Facing Health Companion
+# Project: Healthbook — Agent-Native Patient-Facing Health Companion
 
 ## Architecture
-CareCanvas is a privacy-first, client-side web application and WebMCP agent environment.
+Healthbook is a privacy-first, client-side web application and WebMCP agent environment.
 All clinical knowledge and patient data reside locally in an append-only LocalVault (IndexedDB).
 All 40 client-side cognitive and operational tools are registered via `document.modelContext.registerTool` (with a high-fidelity WebMCP mock fallback adapter for standard browsers).
 The user interface features interactive, high-contrast accessible visual canvases:
@@ -14,7 +14,7 @@ The user interface features interactive, high-contrast accessible visual canvase
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                       CareCanvas Web App                                       │
+│                                       Healthbook Web App                                       │
 │                                                                                                │
 │  ┌─────────────────────────┐  ┌─────────────────────────┐  ┌────────────────────────────────┐  │
 │  │   Approved Fact Vault   │  │        LabStory         │  │            PillMap             │  │
@@ -130,7 +130,7 @@ The user interface features interactive, high-contrast accessible visual canvase
 
 ## Interface Contracts
 ### WebMCP Engine & Tool Registry
-- `window.__CareCanvas_WebMCP__`:
+- `window.__Healthbook_WebMCP__`:
   - `registerTool(toolDefinition: ToolDefinition): void`
   - `getRegisteredTools(): ToolDefinition[]`
   - `executeTool(name: string, params: any, context?: ExecutionContext): Promise<ToolResult>`

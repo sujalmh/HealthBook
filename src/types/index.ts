@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types Index
+ * Healthbook Types Index
  */
 
 export * from './vault.ts';

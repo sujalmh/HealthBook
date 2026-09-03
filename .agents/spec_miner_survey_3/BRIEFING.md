@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T02:16:45Z
 
 ## Mission
-Conduct an exhaustive specification analysis of the Test Architecture, E2E Test Suite (Tiers 1-4 & Flows A-E), and mock fixture datasets for CareCanvas.
+Conduct an exhaustive specification analysis of the Test Architecture, E2E Test Suite (Tiers 1-4 & Flows A-E), and mock fixture datasets for Healthbook.
 
 ## 🔒 My Identity
 - Archetype: Specification Miner

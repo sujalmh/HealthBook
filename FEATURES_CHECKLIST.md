@@ -1,4 +1,4 @@
-# CareCanvas — Features Checklist for Agent Implementation
+# Healthbook — Features Checklist for Agent Implementation
 
 > **Project:** WebMCP Hackathon — Patient-facing health companion
 > **Modules:** LabStory + PillMap + RxBridge + HomeLab Loop + Continuity Dossier + Safety Alerts + Family Care Circle

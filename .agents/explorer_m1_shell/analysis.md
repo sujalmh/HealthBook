@@ -1,4 +1,4 @@
-# CareCanvas Mobile UI & Shell Architecture Specification Mining Report
+# Healthbook Mobile UI & Shell Architecture Specification Mining Report
 
 **Agent**: Explorer 1 (`explorer_m1_shell` — teamwork_preview_spec_miner)  
 **Date**: 2026-08-29  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary & Scope of Audit
 
-This report provides a comprehensive technical analysis of the application shell, layout, header, navigation, modals, drawers, CSS viewport constraints, and touch targets across CareCanvas on mobile screen sizes (320px–430px).
+This report provides a comprehensive technical analysis of the application shell, layout, header, navigation, modals, drawers, CSS viewport constraints, and touch targets across Healthbook on mobile screen sizes (320px–430px).
 
 The investigation analyzed:
 1. **Top Application Bar & Header**: Header actions, caregiver proxy switcher, question bank trigger, WebMCP inspector trigger, sign out, and responsive spacing under narrow widths down to 320px.
@@ -27,14 +27,14 @@ The investigation analyzed:
 | 2 | Shell / Header | Caregiver Proxy Switcher | Toggle between Primary Patient and Caregiver Proxy (Raj) | Click 'patient' / 'caregiver' | Updates `activeProfile`, dispatches toast | Graceful fallback to default patient profile | `src/App.tsx:299-320` |
 | 3 | Shell / Header | Question Bank Header Trigger | Button with badge showing count of active unaddressed doctor questions | Click button | Opens QuestionBank modal | Shows 0 badge / hidden badge when empty | `src/App.tsx:322-334` |
 | 4 | Shell / Header | WebMCP Inspector Header Trigger | Button with live pulse badge showing pending approval count | Click button | Opens WebMCPInspector slide-over modal | None | `src/App.tsx:337-350` |
-| 5 | Shell / Header | Sign Out Trigger | Clears `carecanvas_active_user` and resets session | Click button | Redirects to Auth Gate | Dispatches info toast | `src/App.tsx:353-362` |
+| 5 | Shell / Header | Sign Out Trigger | Clears `healthbook_active_user` and resets session | Click button | Redirects to Auth Gate | Dispatches info toast | `src/App.tsx:353-362` |
 | 6 | Navigation | Mobile Bottom Navigation Bar | Fixed bottom navigation bar with 8 module tabs and badge counters | Active module state, user tap | Switches view, smooth scrolls to top | Safe-area padded bottom | `src/App.tsx:454-489` |
 | 7 | Navigation | Desktop Navigation Pill Bar | Horizontal scrolling tab list for `>=md` viewports | Active module state, click | Switches active module | Accessible pill active styles | `src/App.tsx:367-394` |
 | 8 | Auth Gate | Create Account View | On-device user profile creation with optional Supabase Auth integration | Name, Email, Password | Emits `onCreated` profile | Dispatches validation error toast | `src/components/auth/CreateAccountView.tsx` |
 | 9 | Auth Gate | Sign In View | LocalVault / Supabase credential verification | Email, Password | Emits `onSignedIn` profile | Dispatches "Incorrect password" / "Not found" toast | `src/components/auth/SignInView.tsx` |
 | 10 | Global Common | WebMCP Inspector Modal | W3C WebML Tool Catalog, Telemetry Stream, Playground & Human Approval Gate | Active tab, param JSON | Tool execution result | Shows error badge and execution stack | `src/components/common/WebMCPInspector.tsx` |
 | 11 | Global Common | Doctor Question Bank Modal | Aggregated question list from reconciliation and manual entry | Category filter, question text, priority | Appends `QuestionBankItem` | Prevents empty question submission | `src/components/common/QuestionBank.tsx` |
-| 12 | Global Common | Privacy Badge Modal | Local data guarantee modal and FHIR R4 Bundle JSON export | Click export | Downloads `CareCanvas_FHIR_Export_*.json` | Safe fallback if no data | `src/components/common/PrivacyBadge.tsx` |
+| 12 | Global Common | Privacy Badge Modal | Local data guarantee modal and FHIR R4 Bundle JSON export | Click export | Downloads `Healthbook_FHIR_Export_*.json` | Safe fallback if no data | `src/components/common/PrivacyBadge.tsx` |
 | 13 | Global Common | Bounding Box Document Viewer | Visual OCR grounding document viewer with zoom & pan controls | `documentId`, `boundingBox` | Scaled highlight box over document canvas | Shows "No Document Selected" placeholder | `src/components/common/BoundingBoxViewer.tsx` |
 | 14 | Global Common | Floating Toast Notifications | Clinical toast stack positioned above bottom navigation bar | `eventBus.dispatchToast` | Floating auto-dismiss alert cards | Dismissible on tap (44px target) | `src/components/common/ToastContainer.tsx` |
 | 15 | Module 0: Vault | Document Dropzone | File drop target (PDF, JPG, PNG) with on-device text / OCR extraction | File drag/drop / file input | Emits `extract_fact` WebMCP tool call | Validates file type, throws toast error | `src/components/vault/DocumentDropzone.tsx` |
@@ -93,7 +93,7 @@ The investigation analyzed:
   - **Issue**: Too many header actions horizontally on mobile viewports (<430px). Total minimum width of items exceeds 360px.
   - **CSS Classes**: `<div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4">`
   - **Elements present**:
-    1. Logo + "CareCanvas" title (`min-w-0 flex-1 sm:flex-none`)
+    1. Logo + "Healthbook" title (`min-w-0 flex-1 sm:flex-none`)
     2. Proxy Switcher (2 buttons with `min-h-[32px]`)
     3. Question Bank button (icon + badge + optional text)
     4. WebMCP Activity button (icon + badge + optional text)

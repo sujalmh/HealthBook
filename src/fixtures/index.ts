@@ -1,5 +1,5 @@
 /**
- * CareCanvas Fixtures Index — CLEAN (M1 Mock Removal + AI-native knowledge)
+ * Healthbook Fixtures Index — CLEAN (M1 Mock Removal + AI-native knowledge)
  * drug_knowledge exports clinical *shapes* only (no bundled drug tables).
  * User mock fixtures removed; CANONICAL_PATIENT_ID remains for migration fallback only.
  */

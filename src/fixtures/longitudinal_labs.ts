@@ -1,5 +1,5 @@
 /**
- * CareCanvas Fixtures: Longitudinal Lab Helpers — CLEAN (M1 Mock Removal)
+ * Healthbook Fixtures: Longitudinal Lab Helpers — CLEAN (M1 Mock Removal)
  * Mock datasets removed; real data comes from vault for context.patientId.
  * Keeps convertToLabRecords helper for real-data transforms.
  */
@@ -49,7 +49,7 @@ export function convertToLabRecords(patientId: string, dataPoints: LongitudinalL
       const maybeGlobal = globalThis as unknown as { localStorage?: Storage };
       const ls = maybeGlobal?.localStorage ?? (typeof localStorage !== 'undefined' ? localStorage : undefined);
       if (ls) {
-        const raw = ls.getItem('carecanvas_active_user');
+        const raw = ls.getItem('healthbook_active_user');
         if (raw) {
           const parsed: unknown = JSON.parse(raw);
           const obj = parsed as { userId?: unknown; id?: unknown; patientId?: unknown };

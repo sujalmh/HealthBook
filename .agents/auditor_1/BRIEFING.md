@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T03:01:06+05:30
 
 ## Mission
-Conduct an exhaustive forensic integrity audit of the entire CareCanvas implementation to detect any cheating, hardcoded facades, or integrity violations, and verify genuine algorithmic logic, WebMCP registration, HITL safety gating, local privacy, and test suite execution.
+Conduct an exhaustive forensic integrity audit of the entire Healthbook implementation to detect any cheating, hardcoded facades, or integrity violations, and verify genuine algorithmic logic, WebMCP registration, HITL safety gating, local privacy, and test suite execution.
 
 ## 🔒 My Identity
 - Archetype: forensic_auditor
@@ -22,7 +22,7 @@ Conduct an exhaustive forensic integrity audit of the entire CareCanvas implemen
 - Updated: 2026-08-29T03:01:06+05:30
 
 ## Audit Scope
-- **Work product**: CareCanvas client application (HTML/CSS/JS in `src/`, WebMCP tools, test suites in `test/`, build config)
+- **Work product**: Healthbook client application (HTML/CSS/JS in `src/`, WebMCP tools, test suites in `test/`, build config)
 - **Profile loaded**: General Project
 - **Audit type**: forensic integrity check
 

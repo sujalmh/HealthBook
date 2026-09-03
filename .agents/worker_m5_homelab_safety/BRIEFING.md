@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-28T21:30:00Z
 
 ## Mission
-Implement Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circle for CareCanvas, complete with WebMCP tools, interactive canvases, App integration, and comprehensive test suite.
+Implement Milestone 5: HomeLab Remote Loop, Safety Escalation & Family Care Circle for Healthbook, complete with WebMCP tools, interactive canvases, App integration, and comprehensive test suite.
 
 ## 🔒 My Identity
 - Archetype: worker_m5_homelab_safety

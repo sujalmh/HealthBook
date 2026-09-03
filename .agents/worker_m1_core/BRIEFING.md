@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-28T21:03:30Z
 
 ## Mission
-Implement Milestone 1 (Core Foundation, LocalVault, WebMCP Engine, Inspector & Shell) for CareCanvas with pristine code quality, high-fidelity WebMCP integration, robust IndexedDB storage with in-memory fallback, and full test suite passing.
+Implement Milestone 1 (Core Foundation, LocalVault, WebMCP Engine, Inspector & Shell) for Healthbook with pristine code quality, high-fidelity WebMCP integration, robust IndexedDB storage with in-memory fallback, and full test suite passing.
 
 ## 🔒 My Identity
 - Archetype: implementer, qa, specialist
@@ -12,7 +12,7 @@ Implement Milestone 1 (Core Foundation, LocalVault, WebMCP Engine, Inspector & S
 
 ## 🔒 Key Constraints
 - Append-only LocalVault with 11 object stores and in-memory fallback for Node/headless.
-- WebMCP standard conforming engine with `document.modelContext` / `navigator.modelContext` and `window.__CareCanvas_WebMCP__` mock adapter.
+- WebMCP standard conforming engine with `document.modelContext` / `navigator.modelContext` and `window.__Healthbook_WebMCP__` mock adapter.
 - Schema validation, execution telemetry, human approval interception.
 - Complete inventory of 40 WebMCP tools registered.
 - Interactive WebMCP Inspector with 4 tabs (Catalog, Telemetry, Playground, Approvals).

@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-28T20:46:30Z
 
 ## Mission
-Conduct an exhaustive specification analysis of the 7 Clinical Modules (plus Approved Fact Vault foundation) and their Interactive Visual Canvases for CareCanvas, outputting clinical_modules_spec.md and handoff.md. [COMPLETED]
+Conduct an exhaustive specification analysis of the 7 Clinical Modules (plus Approved Fact Vault foundation) and their Interactive Visual Canvases for Healthbook, outputting clinical_modules_spec.md and handoff.md. [COMPLETED]
 
 ## 🔒 My Identity
 - Archetype: Specification Miner

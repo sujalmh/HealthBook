@@ -14,7 +14,7 @@ Status: Investigating
   - [ ] Catmull-Rom spline path generation & SVG canvas rendering
   - [ ] 3-list reconciliation matching logic
 - [ ] Forensic Audit Checklist 2: WebMCP Protocol & Registration Authenticity
-  - [ ] 40 WebMCP tools registered via `document.modelContext.registerTool` or `window.__CareCanvas_WebMCP__`
+  - [ ] 40 WebMCP tools registered via `document.modelContext.registerTool` or `window.__Healthbook_WebMCP__`
   - [ ] Schema validation against JSON schemas
   - [ ] Structured tool responses & DOM event emissions
 - [ ] Forensic Audit Checklist 3: Human-in-the-Loop Trust & Gating Authenticity

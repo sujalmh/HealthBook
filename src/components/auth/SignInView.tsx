@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { HeartPulse, Sparkles } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
 import type { CreatedProfile } from './CreateAccountView';
-import { getSeededForEmail, isRateLimitError, isEmailInvalidError } from '@/core/auth/seededMap';
 
 interface SignInViewProps {
   onSignedIn: (profile: CreatedProfile) => void;
@@ -25,7 +24,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
       setMcpPrefill(true);
     };
     try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('carecanvas_mcp_auth_pending') : null;
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('healthbook_mcp_auth_pending') : null;
       if (raw) {
         const p = JSON.parse(raw) as { mode?: string; email?: string };
         if (p && p.mode === 'signin' && p.email) applyPrefill(p);
@@ -33,12 +32,12 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
     } catch { /* ignore */ }
     const onWindow = (e: Event) => applyPrefill((e as CustomEvent).detail);
     const onBus = (payload: unknown) => applyPrefill(payload);
-    window.addEventListener('carecanvas_mcp_auth_pending', onWindow as EventListener);
-    window.addEventListener('carecanvas_mcp_prefill', onWindow as EventListener);
+    window.addEventListener('healthbook_mcp_auth_pending', onWindow as EventListener);
+    window.addEventListener('healthbook_mcp_prefill', onWindow as EventListener);
     const off1 = eventBus.on('mcp_auth_pending' as unknown as string, onBus as unknown as () => void);
     return () => {
-      window.removeEventListener('carecanvas_mcp_auth_pending', onWindow as EventListener);
-      window.removeEventListener('carecanvas_mcp_prefill', onWindow as EventListener);
+      window.removeEventListener('healthbook_mcp_auth_pending', onWindow as EventListener);
+      window.removeEventListener('healthbook_mcp_prefill', onWindow as EventListener);
       off1();
     };
   }, []);
@@ -57,164 +56,63 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
     }
     setIsSigningIn(true);
     try {
-      // Try Supabase first if configured
-      const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
-      const supabaseAnon = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
-      if (supabaseUrl && supabaseAnon) {
-        try {
-          const { getSupabaseClient } = await import('@/core/supabase/client');
-          const client = getSupabaseClient() as unknown as { auth?: { signInWithPassword?: (opts: unknown) => Promise<{ data?: { user?: { id: string; user_metadata?: { role?: string; display_name?: string } } }; error?: { message?: string; code?: string } }> } };
-          if (client?.auth?.signInWithPassword) {
-            const res = await client.auth.signInWithPassword({ email: emailTrim, password: passwordTrim } as unknown as never);
-            const dataUser = (res as { data?: { user?: { id: string; user_metadata?: { role?: string; display_name?: string } } } })?.data?.user;
-            const errMsg = (res as { error?: { message?: string; code?: string } })?.error?.message;
-            const errCode = (res as { error?: { code?: string } })?.error?.code;
-            if (dataUser?.id) {
-              const supaRole = (dataUser.user_metadata?.role as unknown as string) || 'patient';
-              const profile: CreatedProfile = {
-                userId: dataUser.id,
-                name: dataUser.user_metadata?.display_name || emailTrim.split('@')[0],
-                email: emailTrim,
-                role: supaRole === 'doctor' ? 'doctor' : 'patient',
-                isProxy: false,
-                permissionLevel: supaRole === 'doctor' ? 'view_only' : undefined,
-                createdAt: new Date().toISOString(),
-              };
-              try {
-                localStorage.setItem('carecanvas_active_user', JSON.stringify(profile));
-                // Clear MCP pending if sign-in completed via AI-assisted flow
-                try {
-                  const raw2 = localStorage.getItem('carecanvas_mcp_auth_pending');
-                  if (raw2) {
-                    const p2 = JSON.parse(raw2) as { mode?: string; email?: string; pendingId?: string };
-                    if (p2?.email?.toLowerCase() === emailTrim.toLowerCase() && p2.mode === 'signin') {
-                      if (p2.pendingId) try { localStorage.removeItem(`carecanvas_mcp_auth_pending_${p2.pendingId}`); } catch { /* ignore */ }
-                      localStorage.removeItem('carecanvas_mcp_auth_pending');
-                      try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_cleared')); } catch { /* ignore */ }
-                      try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
-                    }
-                  }
-                } catch { /* ignore */ }
-              } catch { /* intentionally empty */ }
-              eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${profile.name}` });
-              onSignedIn(profile);
-              return;
-            } else if (errMsg) {
-              const isRate = isRateLimitError(errMsg) || isRateLimitError(errCode) || errMsg.includes('429');
-              const isInvalid = isEmailInvalidError(errMsg);
-              if (isRate) {
-                console.warn('[SignIn] Supabase rate-limited (429) — disallowed, fallback to local demo (production fix):', errMsg);
-              } else if (isInvalid) {
-                console.warn('[SignIn] Supabase email invalid — fallback to local (any pattern allowed):', errMsg);
-              } else if (errMsg.toLowerCase().includes('invalid')) {
-                // silent for invalid credentials — let local fallback handle
-              } else {
-                console.warn('[SignIn] Supabase signIn failed, trying local:', errMsg);
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('[SignIn] Supabase unavailable, trying local', e);
-        }
-      }
-
-      // Local fallback: check carecanvas_users — production fix: seeded demo users bypass rate limit and any email pattern allowed locally
-      try {
-        const raw = localStorage.getItem('carecanvas_users');
-        const users: Array<{ userId?: string; email?: string; password?: string; name?: string; role?: string; createdAt?: string }> = raw ? (JSON.parse(raw) as Array<{ userId?: string; email?: string; password?: string; name?: string; role?: string; createdAt?: string }>) : [];
-        let found = users.find((u) => (u.email || '').toLowerCase() === emailTrim);
-        // Production fix: if not found but email is seeded demo, auto-create from seeded map (disallow rate limit, allow any pattern)
-        const seeded = getSeededForEmail(emailTrim);
-        if (!found && seeded) {
-          if (seeded.password !== passwordTrim) {
-            eventBus.dispatchToast({ type: 'error', title: 'Incorrect password', message: 'Password is incorrect.' });
-            return;
-          }
-          const seededProfile: CreatedProfile = {
-            userId: seeded.userId,
-            name: seeded.name,
-            email: emailTrim,
-            role: seeded.role,
-            isProxy: false,
-            permissionLevel: seeded.role === 'doctor' ? 'view_only' : undefined,
-            createdAt: new Date().toISOString(),
-          };
-          try {
-            localStorage.setItem('carecanvas_active_user', JSON.stringify(seededProfile));
-            localStorage.setItem(`carecanvas_cred_${seeded.userId}`, passwordTrim);
-            localStorage.setItem(`carecanvas_cred_email_${emailTrim}`, JSON.stringify({ userId: seeded.userId, password: passwordTrim }));
-            users.push({ ...seededProfile, password: passwordTrim });
-            localStorage.setItem('carecanvas_users', JSON.stringify(users));
-          } catch { /* ignore */ }
-          eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${seeded.name} (demo)` });
-          onSignedIn(seededProfile);
-          return;
-        }
-        if (!found) {
-          eventBus.dispatchToast({ type: 'error', title: 'Account not found', message: 'No account found for this email. Please create an account.' });
-          return;
-        }
-        // Check password via stored users array or cred email map
-        let storedPassword: string | null = null;
-        if (found.password) storedPassword = found.password;
-        else {
-          try {
-            const credRaw = localStorage.getItem(`carecanvas_cred_email_${emailTrim}`);
-            if (credRaw) {
-              const cred = JSON.parse(credRaw);
-              storedPassword = cred.password;
-            } else if (found.userId) {
-              storedPassword = localStorage.getItem(`carecanvas_cred_${found.userId}`);
-            }
-          } catch { /* intentionally empty */ }
-        }
-        if (storedPassword !== null && storedPassword !== passwordTrim) {
-          eventBus.dispatchToast({ type: 'error', title: 'Incorrect password', message: 'Password is incorrect.' });
-          return;
-        }
-        // If no stored password (legacy optional), allow sign-in but migrate password
-        const storedRole = found.role === 'doctor' ? 'doctor' : 'patient';
-        const profile: CreatedProfile = {
-          userId: String(found.userId),
-          name: String(found.name || emailTrim.split('@')[0]),
-          email: emailTrim,
-          role: storedRole as unknown as 'patient' | 'doctor',
-          isProxy: false,
-          permissionLevel: storedRole === 'doctor' ? 'view_only' : undefined,
-          createdAt: found.createdAt || new Date().toISOString(),
-        };
-        try {
-          localStorage.setItem('carecanvas_active_user', JSON.stringify(profile));
-          // Persist cred for future
-          localStorage.setItem(`carecanvas_cred_${profile.userId}`, passwordTrim);
-          localStorage.setItem(`carecanvas_cred_email_${emailTrim}`, JSON.stringify({ userId: profile.userId, password: passwordTrim }));
-          // Update users array if missing password
-          if (!found.password) {
-            found.password = passwordTrim;
-            localStorage.setItem('carecanvas_users', JSON.stringify(users));
-          }
-          // Clear MCP pending if matched
-          try {
-            const raw2 = localStorage.getItem('carecanvas_mcp_auth_pending');
-            if (raw2) {
-              const p2 = JSON.parse(raw2) as { mode?: string; email?: string; pendingId?: string };
-              if (p2?.email?.toLowerCase() === emailTrim.toLowerCase() && p2.mode === 'signin') {
-                if (p2.pendingId) try { localStorage.removeItem(`carecanvas_mcp_auth_pending_${p2.pendingId}`); } catch { /* ignore */ }
-                localStorage.removeItem('carecanvas_mcp_auth_pending');
-                try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_cleared')); } catch { /* ignore */ }
-                try { window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
-              }
-            }
-          } catch { /* ignore */ }
-        } catch { /* intentionally empty */ }
-        eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${profile.name}` });
-        onSignedIn(profile);
+      // Server truth: Supabase Auth is the only identity provider. No local fallback —
+      // passwords are verified server-side and never stored on this device.
+      const { supabaseSignIn, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } = await import('@/core/supabase/auth.ts');
+      const { session, error } = await supabaseSignIn(emailTrim, passwordTrim);
+      if (error || !session) {
+        const msg = error?.code === 'INVALID_CREDENTIALS'
+          ? 'Incorrect email or password.'
+          : error?.code === 'EMAIL_NOT_CONFIRMED'
+            ? 'Please confirm your email, then sign in.'
+            : error?.code === 'RATE_LIMITED'
+              ? 'Too many attempts. Please wait a minute and try again.'
+              : error?.message || 'Unable to sign in. Please try again.';
+        eventBus.dispatchToast({ type: 'error', title: 'Sign in failed', message: msg });
         return;
-      } catch (e) {
-        console.warn('[SignIn] local lookup failed', e);
       }
+      storeSession(session);
+      const authUser = session.user;
+      const serverRole = authUser.user_metadata?.role === 'doctor' ? 'doctor' : 'patient';
+      const { profile: userProfile, error: profileError } = await ensureProfile({
+        token: session.access_token,
+        authUserId: authUser.id,
+        email: emailTrim,
+        name: authUser.user_metadata?.display_name || emailTrim.split('@')[0],
+        role: serverRole as 'patient' | 'doctor',
+      });
+      if (profileError || !userProfile) {
+        eventBus.dispatchToast({ type: 'error', title: 'Sign in failed', message: `Signed in, but profile setup failed: ${profileError || 'unknown error'}` });
+        return;
+      }
+      purgeLegacyCredentialStores();
+      const profile: CreatedProfile = {
+        userId: userProfile.patientId,
+        name: userProfile.name,
+        email: userProfile.email,
+        role: userProfile.role,
+        isProxy: false,
+        permissionLevel: userProfile.role === 'doctor' ? 'view_only' : undefined,
+        createdAt: new Date().toISOString(),
+      };
+      persistActiveProfile(userProfile);
+      try {
+        const raw2 = localStorage.getItem('healthbook_mcp_auth_pending');
+        if (raw2) {
+          const p2 = JSON.parse(raw2) as { mode?: string; email?: string; pendingId?: string };
+          if (p2?.email?.toLowerCase() === emailTrim.toLowerCase() && p2.mode === 'signin') {
+            if (p2.pendingId) try { localStorage.removeItem(`healthbook_mcp_auth_pending_${p2.pendingId}`); } catch { /* ignore */ }
+            localStorage.removeItem('healthbook_mcp_auth_pending');
+            try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_cleared')); } catch { /* ignore */ }
+            try { window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_completed', { detail: profile })); } catch { /* ignore */ }
+          }
+        }
+      } catch { /* ignore */ }
+      eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${profile.name}` });
+      onSignedIn(profile);
+      return;
 
-      eventBus.dispatchToast({ type: 'error', title: 'Sign in failed', message: 'Unable to sign in. Please try again.' });
+      // No local fallback: Supabase Auth is the only identity provider (server truth).
     } finally {
       setIsSigningIn(false);
     }
@@ -303,7 +201,7 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
         </div>
 
         <p className="text-caption text-muted text-center leading-relaxed">
-          Data stays on this device. Sign in to access your health records.
+          Your records live on the secure server. Sign in to access them.
         </p>
       </div>
     </div>

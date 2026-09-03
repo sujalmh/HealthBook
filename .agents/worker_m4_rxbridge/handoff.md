@@ -35,10 +35,10 @@
 
 ## 3. Caveats
 - Browser Print Styling: The 1-page summary is optimized for standard 8.5x11 printable sheets and modern browser print dialogs; margins may vary slightly across printer hardware.
-- No External PHI Transmission: In alignment with CareCanvas's privacy architecture, all reconciliation calculations, WebMCP tools, and teach-back evaluations run 100% locally in the browser runtime.
+- No External PHI Transmission: In alignment with Healthbook's privacy architecture, all reconciliation calculations, WebMCP tools, and teach-back evaluations run 100% locally in the browser runtime.
 
 ## 4. Conclusion
-Milestone 4 (RxBridge Post-Discharge 3-List Reconciliation Walk) is fully implemented, verified, and integrated into CareCanvas with zero facade code, comprehensive test coverage, clean TypeScript compilation, and production build readiness.
+Milestone 4 (RxBridge Post-Discharge 3-List Reconciliation Walk) is fully implemented, verified, and integrated into Healthbook with zero facade code, comprehensive test coverage, clean TypeScript compilation, and production build readiness.
 
 ## 5. Verification Method
 To independently verify this milestone:

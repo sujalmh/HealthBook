@@ -13,7 +13,7 @@ describe('Family #7 — Name + ≥12 relationships — probe 2 cases + a11y', ()
 
   beforeEach(async () => {
     localStorage.clear();
-    localStorage.setItem('carecanvas_active_user', JSON.stringify({ userId: pid, name: 'Probe Patient', role: 'patient' }));
+    localStorage.setItem('healthbook_active_user', JSON.stringify({ userId: pid, name: 'Probe Patient', role: 'patient' }));
     localVault.clear();
     // ensure tools registered
     try { registerAllWebMCPTools(webMCPEngine); } catch {}

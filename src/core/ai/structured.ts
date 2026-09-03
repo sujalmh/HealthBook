@@ -1,5 +1,5 @@
 /**
- * CareCanvas AI Core — Structured Outputs & Response Parsing
+ * Healthbook AI Core — Structured Outputs & Response Parsing
  */
 
 import type { AIConfig, AIExtractedFact } from './types.ts';

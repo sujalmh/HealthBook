@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: Reconciliation Engine — AI-native.
+ * Healthbook Core: Reconciliation Engine — AI-native.
  * Deterministic 3-list matching and change classification run locally;
  * all clinical narratives, questions, and interaction screening come from the
  * AI pipeline (no bundled drug tables). Failures throw — never templates.

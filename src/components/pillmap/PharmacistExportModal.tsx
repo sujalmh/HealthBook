@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: PharmacistExportModal
+ * Healthbook Component: PharmacistExportModal
  * 1-Page visual schedule and clinical crosswalk export bundle for pharmacist review.
  */
 
@@ -73,7 +73,7 @@ export const PharmacistExportModal: React.FC<PharmacistExportModalProps> = ({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-heading-md sm:text-heading-lg tracking-tight text-slate-900 print:text-black font-bold">
-                  CareCanvas — Clinical Pharmacist Regimen Map
+                  Healthbook — Clinical Pharmacist Regimen Map
                 </h1>
                 <span className="px-2 py-0.5 rounded-full bg-primary-light text-primary-text text-caption font-semibold border border-primary-border print:hidden">
                   Verified LocalVault Snapshot

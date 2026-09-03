@@ -2,7 +2,7 @@
 
 ## 2026-08-29T16:44:31Z
 
-This is a single self-contained fix; keep it small and focused. Perform an end-to-end mobile UI overhaul of CareCanvas driven by live visual inspection. First, start the application and systematically capture live mobile viewport screenshots across every screen, module, subview, modal, drawer, and interactive state on phone viewports (320px–430px). Conduct an exhaustive visual audit of these images to discover all layout defects—including hidden/clipped buttons, menu bar crowding, horizontal overflows, weirdly sized sections, awkward navigation, squished charts, and broken typography—and fix every issue found without restricting scope.
+This is a single self-contained fix; keep it small and focused. Perform an end-to-end mobile UI overhaul of Healthbook driven by live visual inspection. First, start the application and systematically capture live mobile viewport screenshots across every screen, module, subview, modal, drawer, and interactive state on phone viewports (320px–430px). Conduct an exhaustive visual audit of these images to discover all layout defects—including hidden/clipped buttons, menu bar crowding, horizontal overflows, weirdly sized sections, awkward navigation, squished charts, and broken typography—and fix every issue found without restricting scope.
 
 Working directory: /Users/sujal/Projects/proj1
 Integrity mode: development

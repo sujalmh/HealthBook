@@ -1,6 +1,6 @@
 # Comprehensive Mobile UI & Visual Defect Catalog (R1 Audit)
 
-**Audit Target:** CareCanvas Mobile Application  
+**Audit Target:** Healthbook Mobile Application  
 **Viewports Audited:** 320px (iPhone SE 1st Gen), 375px (iPhone SE 2/3, iPhone 8), 390px (iPhone 12/13/14), 414px (iPhone 11 / XR / Plus)  
 **Date of Audit:** 2026-08-29  
 **Auditor:** Explorer 3 (`teamwork_preview_explorer`)
@@ -9,9 +9,9 @@
 
 ## 1. Executive Summary
 
-A comprehensive visual, structural, and layout discovery audit was conducted across all 8 clinical modules, authentication screens, global navigation bars, and 12+ modals/dialogs of the CareCanvas patient application across mobile phone viewports (320px–414px).
+A comprehensive visual, structural, and layout discovery audit was conducted across all 8 clinical modules, authentication screens, global navigation bars, and 12+ modals/dialogs of the Healthbook patient application across mobile phone viewports (320px–414px).
 
-While CareCanvas provides clean typography and clinical contrast, several mobile layout anomalies and usability defects were uncovered:
+While Healthbook provides clean typography and clinical contrast, several mobile layout anomalies and usability defects were uncovered:
 1. **Header Crowding & Clipping (320px–375px):** The top navigation header packs logo, title, proxy switcher, question bank button, activity log button, and sign-out button into a single horizontal row (~315px content width), causing text clipping, wrapping, and crowding on 320px screens.
 2. **Bottom Navigation Affordance:** 8 module tabs span ~560px requiring horizontal scrolling, but lack edge gradient fades or visual scroll affordance, leaving key modules (Get Help, Family, For My Doctor) hidden off-screen without obvious scroll cues.
 3. **Horizontal Viewport Overflows (`overflow-x`):** Fixed sub-tab button strips in `DossierView.tsx` (~400px width) and `CareCircleView.tsx` (~320px width), as well as tables in `PharmacistExportModal.tsx` lack `overflow-x-auto`, pushing against right screen boundaries.
@@ -120,4 +120,4 @@ While CareCanvas provides clean typography and clinical contrast, several mobile
 
 ## 5. Conclusion & Verification
 
-This defect catalog covers 28 specific visual, structural, and interaction defects across 18 source files. Applying the blueprint will ensure CareCanvas meets the highest standards for mobile ergonomics, WCAG 2.2 touch target criteria (>=44×44px), zero horizontal overflow, and crystal-clear clinical readability on all mobile phones.
+This defect catalog covers 28 specific visual, structural, and interaction defects across 18 source files. Applying the blueprint will ensure Healthbook meets the highest standards for mobile ergonomics, WCAG 2.2 touch target criteria (>=44×44px), zero horizontal overflow, and crystal-clear clinical readability on all mobile phones.

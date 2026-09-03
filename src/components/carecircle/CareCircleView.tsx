@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users,
-  Shield,
   UserPlus,
   KeyRound,
   FileCheck2,
-  Lock,
-  UserCheck,
   Activity,
-  Layers,
-  Settings,
-  Sparkles,
   Stethoscope
 } from 'lucide-react';
 import { CaregiverSwitcher } from './CaregiverSwitcher';
 import { ScopedPermissionsModal } from './ScopedPermissionsModal';
 import { AuditLogViewer } from './AuditLogViewer';
 import { MultiPatientDashboard } from './MultiPatientDashboard';
-import { ProfileIndicator } from './ProfileIndicator';
 import { DoctorLinkModal } from '../doctor/DoctorLinkModal';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
@@ -96,49 +88,17 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
   }, [effectivePatientId]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header — tokenized */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-primary-light text-primary flex items-center justify-center border border-primary-border shadow-sm">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">Family</h2>
-            <p className="text-body-sm text-muted">
-              Family and caregivers who can help — see who has access and what they did.
-            </p>
-          </div>
-        </div>
-
-        {/* View Mode Navigation */}
-        <div className="flex items-center gap-2.5">
-          {activeProfile.role !== 'doctor' && (
-            <button
-              onClick={() => setIsDoctorModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm"
-            >
-              <Stethoscope className="w-4 h-4" />
-              <span>My Doctors ({doctorLinks.length})</span>
-            </button>
-          )}
-          <button
-            onClick={() => setIsPermissionsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-sm"
-          >
-            <KeyRound className="w-4 h-4" />
-            <span>Manage Access</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Profile status */}
-      <div className="bg-white border border-canvas-border rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-primary" aria-hidden="true" />
-          <h3 className="text-sm font-bold text-slate-900">Profile status</h3>
-        </div>
-        <ProfileIndicator activeProfile={activeProfile} />
+    <div className="space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between gap-3">
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">Family</h2>
+        <button
+          onClick={() => setIsPermissionsModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-sm min-h-[44px]"
+        >
+          <KeyRound className="w-4 h-4" />
+          <span>Manage Access</span>
+        </button>
       </div>
 
       {/* Profile Switcher Component (G1) */}
@@ -167,8 +127,9 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
               ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
               : 'text-muted hover:text-slate-900 border border-transparent'
           }`}
+          title="Everyone I care for"
         >
-          Everyone I Care For
+          In My Care
         </button>
 
         <button
@@ -185,26 +146,16 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
 
       {/* Tab Content */}
       {activeTab === 'overview' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Left Column: Active Linked Caregivers */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-canvas-border pb-3">
-                <div className="flex items-center gap-2">
-                  <UserCheck className="w-5 h-5 text-primary" />
-                  <h3 className="text-heading-md text-slate-900">People who can help</h3>
-                </div>
-                <span className="text-caption text-muted">
-                  {caregiverLinks.length} helper{caregiverLinks.length === 1 ? '' : 's'}
-                </span>
+          <div className="lg:col-span-7 space-y-4">
+            <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-canvas-border pb-2.5">
+                <h3 className="text-heading-md text-slate-900">Helpers ({caregiverLinks.length})</h3>
               </div>
 
               {caregiverLinks.length === 0 ? (
-                <div className="bg-canvas-muted rounded-xl p-6 text-center border border-canvas-border">
-                  <Users className="w-8 h-8 text-muted-light mx-auto mb-2" />
-                  <p className="text-body-sm font-semibold text-slate-900">No helpers yet</p>
-                  <p className="text-body-sm text-muted">Add a family member who helps with your health.</p>
-                </div>
+                <p className="text-body-sm text-muted">No helpers yet — add one via Manage Access.</p>
               ) : (
                 <div className="space-y-3">
                   {caregiverLinks.map((link) => (
@@ -241,7 +192,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
           </div>
 
           {/* Right Column: Proxy Audit Trail + My Doctors */}
-          <div className="lg:col-span-5 space-y-6">
+          <div className="lg:col-span-5 space-y-4">
             {/* My Doctors — patient links doctors (RBAC doctor ↔ patient) */}
             {activeProfile.role !== 'doctor' && (
               <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
@@ -253,11 +204,9 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
                   <button onClick={() => setIsDoctorModalOpen(true)} className="text-body-sm text-emerald-700 hover:underline font-semibold">Manage</button>
                 </div>
                 {doctorLinks.length === 0 ? (
-                  <div className="bg-canvas-muted rounded-xl p-6 text-center border border-canvas-border">
-                    <Stethoscope className="w-8 h-8 text-muted-light mx-auto mb-2" />
+                  <div className="bg-canvas-muted rounded-xl p-4 text-center border border-canvas-border">
                     <p className="text-body-sm font-semibold text-slate-900">No doctors linked</p>
-                    <p className="text-body-sm text-muted">Link your doctor for remote review.</p>
-                    <button onClick={() => setIsDoctorModalOpen(true)} className="inline-flex items-center gap-1.5 text-body-sm text-emerald-700 font-bold hover:underline mt-2"><UserPlus className="w-3.5 h-3.5" /> Link a doctor</button>
+                    <button onClick={() => setIsDoctorModalOpen(true)} className="inline-flex items-center gap-1.5 text-body-sm text-emerald-700 font-bold hover:underline mt-1 min-h-[44px]"><UserPlus className="w-3.5 h-3.5" /> Link a doctor</button>
                   </div>
                 ) : (
                   <div className="space-y-2.5">
@@ -266,8 +215,9 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm border border-emerald-200 shrink-0">{d.doctorName.charAt(0)}</div>
                           <div className="min-w-0">
-                            <p className="font-bold text-slate-900 truncate">{d.doctorName} <span className="text-caption text-muted">• {d.specialty || 'Doctor'}</span></p>
-                            <p className="text-caption text-muted font-mono truncate">{d.doctorEmail}</p>
+                            <p className="font-bold text-slate-900 truncate text-sm">{d.doctorName}</p>
+                            <p className="text-caption text-muted truncate">{d.specialty || 'Doctor'}</p>
+                            <p className="hidden sm:block text-caption text-muted font-mono truncate">{d.doctorEmail}</p>
                           </div>
                         </div>
                         <span className="text-caption px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold uppercase shrink-0">{d.permissionLevel}</span>

@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: ReconciliationWalk
+ * Healthbook Component: ReconciliationWalk
  * Step-by-step conversational med-by-med walkthrough wizard displaying
  * plain-language explanations, interaction badges, and per-med Approve/Edit actions.
  */

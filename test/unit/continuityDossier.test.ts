@@ -1,5 +1,5 @@
 /**
- * CareCanvas Unit & Integration Tests: Milestone 6 — Continuity Dossier & Cross-Module Integration
+ * Healthbook Unit & Integration Tests: Milestone 6 — Continuity Dossier & Cross-Module Integration
  * Tests: compile_health_record, view_timeline, grant_doctor_access, revoke_access, FHIR export,
  *        source bounding-box deep links, and cross-module lifetime record compilation (INT1-INT9).
  */

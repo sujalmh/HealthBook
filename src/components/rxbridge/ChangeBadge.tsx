@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: ChangeBadge
+ * Healthbook Component: ChangeBadge
  * Visual status badge for the 5 reconciliation states:
  * - CONTINUED (Green)
  * - DOSE_CHANGED (Blue)

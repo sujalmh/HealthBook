@@ -1,6 +1,6 @@
 ## 2026-08-28T20:47:39Z
 
-Implement Milestone 1 (Core Foundation, LocalVault, WebMCP Engine, Inspector & Shell) for CareCanvas per:
+Implement Milestone 1 (Core Foundation, LocalVault, WebMCP Engine, Inspector & Shell) for Healthbook per:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md
 2. /Users/sujal/Projects/proj1/PROJECT.md
 3. /Users/sujal/Projects/proj1/.agents/spec_miner_survey_1/webmcp_engine_spec.md

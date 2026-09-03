@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Calendar as CalendarIcon,
-  Clock,
   Download,
   Share2,
   AlertTriangle,
@@ -37,7 +35,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     let icsString = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//CareCanvas Health Companion//EN',
+      'PRODID:-//Healthbook Health Companion//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH'
     ].join('\r\n');
@@ -51,21 +49,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       const veventLines = [
         'BEGIN:VEVENT',
-        `UID:carecanvas-event-${evt.id}@carecanvas.app`,
+        `UID:healthbook-event-${evt.id}@healthbook.app`,
         `DTSTAMP:${dtstamp}`,
         `DTSTART:${dtstart}`,
         ...(dtend ? [`DTEND:${dtend}`] : []),
         `SUMMARY:${evt.title}`,
-        `DESCRIPTION:${evt.reason || 'CareCanvas Prescribed Milestone'}`,
+        `DESCRIPTION:${evt.reason || 'Healthbook Prescribed Milestone'}`,
         'BEGIN:VALARM',
         'TRIGGER:-P1D',
         'ACTION:DISPLAY',
-        'DESCRIPTION:Reminder: 24 hours prior to CareCanvas appointment',
+        'DESCRIPTION:Reminder: 24 hours prior to Healthbook appointment',
         'END:VALARM',
         'BEGIN:VALARM',
         'TRIGGER:-PT2H',
         'ACTION:DISPLAY',
-        'DESCRIPTION:Reminder: 2 hours prior to CareCanvas appointment',
+        'DESCRIPTION:Reminder: 2 hours prior to Healthbook appointment',
         'END:VALARM',
         'END:VEVENT'
       ];
@@ -79,7 +77,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `carecanvas_prescribed_schedule_${new Date().toISOString().split('T')[0]}.ics`);
+    link.setAttribute('download', `healthbook_prescribed_schedule_${new Date().toISOString().split('T')[0]}.ics`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -93,42 +91,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Calendar Header & Actions — tokenized */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-sky-50 text-clinical-blue flex items-center justify-center border border-sky-200 shadow-sm">
-            <CalendarIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-heading-md text-slate-900">Prescribed clinical calendar</h3>
-              <span className="text-caption px-2 py-0.5 rounded-full bg-sky-50 text-clinical-blue font-bold border border-sky-200">
-                24h & 2h alerts
-              </span>
-            </div>
-            <p className="text-body-sm text-muted">
-              Synchronized follow-up visits, lab due cadences, and reminder windows.
-            </p>
-          </div>
-        </div>
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+        <h3 className="text-heading-md text-slate-900">Appointments</h3>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={generateAndDownloadICS}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all min-h-[44px]"
           >
             <Download className="w-4 h-4" />
-            <span>Export iCal (.ics)</span>
+            <span>Export</span>
           </button>
 
           {onAddEventClick && (
             <button
               onClick={onAddEventClick}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors min-h-[44px]"
             >
               <Plus className="w-4 h-4 text-sky-400" />
-              <span>Book Visit</span>
+              <span>Book visit</span>
             </button>
           )}
         </div>
@@ -137,10 +120,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Filter Chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {[
-          { id: 'all', label: 'All Scheduled Events' },
-          { id: 'doctor_followup', label: 'Doctor Follow-Ups' },
-          { id: 'lab_due', label: 'Prescribed Labs' },
-          { id: 'med_reminder', label: 'Daily Reminders' }
+          { id: 'all', label: 'All' },
+          { id: 'doctor_followup', label: 'Visits' },
+          { id: 'lab_due', label: 'Labs' },
+          { id: 'med_reminder', label: 'Reminders' }
         ].map((tab) => (
           <button
             key={tab.id}
@@ -158,11 +141,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Events Stream */}
       {filteredEvents.length === 0 ? (
-        <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-8 text-center space-y-2">
-          <Clock className="w-8 h-8 text-muted-light mx-auto" />
-          <p className="text-body-sm font-semibold text-slate-900">No scheduled events</p>
-          <p className="text-body-sm text-muted">No events in this category — try another filter or book a visit.</p>
-        </div>
+        <p className="text-body-sm text-muted">No appointments in this view.</p>
       ) : (
         <div className="space-y-3">
           {filteredEvents.map((evt) => {

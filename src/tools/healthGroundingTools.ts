@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: Health Grounding — Web Intelligence AFTER Extraction
+ * Healthbook WebMCP Tools: Health Grounding — Web Intelligence AFTER Extraction
  * Optional tools that use Exa search to ground vault facts with citations.
  * These are NOT auto-registered in allWebMCPTools (keeps 40-tool count for M7).
  * Register explicitly via registerGroundingTools(engine) if you want them as WebMCP tools.

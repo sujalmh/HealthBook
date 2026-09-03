@@ -1,8 +1,8 @@
 ## 2026-08-29T02:33:34Z
 
-You are worker_m3_pillmap for CareCanvas.
+You are worker_m3_pillmap for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/worker_m3_pillmap.
-Your task is to implement Milestone 3 (PillMap & Polypharmacy Negotiator 7x4 Canvas) for CareCanvas per the specifications in:
+Your task is to implement Milestone 3 (PillMap & Polypharmacy Negotiator 7x4 Canvas) for Healthbook per the specifications in:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md
 2. /Users/sujal/Projects/proj1/PROJECT.md
 3. /Users/sujal/Projects/proj1/.agents/spec_miner_survey_2/clinical_modules_spec.md

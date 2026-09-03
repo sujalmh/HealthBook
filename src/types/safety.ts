@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types: Safety Alerts, Doctor Remote Pillbox & Calendar
+ * Healthbook Types: Safety Alerts, Doctor Remote Pillbox & Calendar
  */
 
 export type DangerSymptomTag =

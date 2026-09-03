@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Adapter — Spec Mapping & Validation
+ * Healthbook WebMCP Adapter — Spec Mapping & Validation
  * Protocol-correct bridging: parameters → inputSchema, name/description validation,
  * patientId vault bridging, DOMString serialization, annotations.
  * Spec: W3C WebMCP Draft 26 Aug 2026 §4.1-4.5
@@ -63,12 +63,12 @@ export function serializeInputSchema(schema: unknown): string {
   }
 }
 
-/** Derive patientId/activeProfile from localStorage carecanvas_active_user same as WebMCPEngine.ts:187-200 */
+/** Derive patientId/activeProfile from localStorage healthbook_active_user same as WebMCPEngine.ts:187-200 */
 export function derivePatientContext(): { patientId: string; activeProfile: unknown; storedProfile: unknown } {
   const storedProfile = (() => {
     try {
       if (typeof localStorage !== 'undefined') {
-        const raw = localStorage.getItem('carecanvas_active_user');
+        const raw = localStorage.getItem('healthbook_active_user');
         if (raw) {
           const p = JSON.parse(raw);
           if (p?.userId) return p;

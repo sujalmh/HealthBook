@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T17:23:00Z
 
 ## Mission
-Orchestrate and monitor the end-to-end mobile UI overhaul of CareCanvas driven by live visual inspection.
+Orchestrate and monitor the end-to-end mobile UI overhaul of Healthbook driven by live visual inspection.
 
 ## 🔒 My Identity
 - Archetype: sentinel
@@ -14,7 +14,7 @@ Orchestrate and monitor the end-to-end mobile UI overhaul of CareCanvas driven b
 - Victory Audit is MANDATORY before reporting completion
 
 ## User Context
-- **Last user request**: End-to-end mobile UI overhaul of CareCanvas across all modules, modals, and viewports (320px–430px) with automated screenshot audits and fixes.
+- **Last user request**: End-to-end mobile UI overhaul of Healthbook across all modules, modals, and viewports (320px–430px) with automated screenshot audits and fixes.
 - **Pending clarifications**: none
 - **Delivered results**: Complete mobile UI overhaul verified with live mobile visual audits and independent 3-phase victory audit (VICTORY CONFIRMED).
 

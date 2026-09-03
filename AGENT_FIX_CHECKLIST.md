@@ -1,4 +1,4 @@
-# CareCanvas — Agent Fix Checklist (Found Issues)
+# Healthbook — Agent Fix Checklist (Found Issues)
 
 > Generated: 2026-08-31 — Based on live codebase audit via grep/read of 110+ source files.
 > How to use: Pick one Issue at a time. Follow `Evidence -> Root Cause -> Checklist -> Acceptance`. All fixes must be Simple English, simple UI for common users (no jargon), and tested (`npm run lint && npm run build && npm test`).

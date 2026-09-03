@@ -81,22 +81,16 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
   };
 
   return (
-    <div className="w-full space-y-4 relative">
-      {/* Header — simple English */}
-      <div className="bg-white border border-canvas-border rounded-2xl p-3 sm:p-4 shadow-sm">
-        <h2 className="text-sm font-bold text-slate-900">Your health papers</h2>
-        <p className="text-xs text-slate-500 mt-0.5">Add a paper, see what we read, then review what we found.</p>
-      </div>
-
+    <div className="w-full space-y-3 relative">
       {/* Top Dropzone — compact */}
       <DocumentDropzone patientId={effectivePatientId} onDocumentAdded={handleDocumentAdded} onExtracted={loadDocuments} onBusyChange={handleBusyChange} />
 
       {/* Viewer with doc gallery */}
       <div className="space-y-3">
-        {documents.length > 0 ? (
+        {documents.length > 0 && (
           <div className="bg-white border border-canvas-border rounded-2xl p-3 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-bold text-slate-900">Your papers ({documents.length}) — tap to view</h4>
+              <h4 className="text-sm font-bold text-slate-900">Papers ({documents.length})</h4>
             </div>
             <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
               {documents.map((doc) => (
@@ -116,10 +110,6 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
                 </button>
               ))}
             </div>
-          </div>
-        ) : (
-          <div className="bg-white border border-canvas-border rounded-2xl p-4 text-center">
-            <p className="text-xs text-slate-500">No papers yet — add one above to see it here.</p>
           </div>
         )}
 

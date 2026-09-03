@@ -1,15 +1,15 @@
-# CareCanvas: 7 Clinical Modules & Interactive Visual Canvases Specification
+# Healthbook: 7 Clinical Modules & Interactive Visual Canvases Specification
 
 **Document Version:** 1.0.0-PROD-SPEC  
-**Author:** spec_miner_survey_2 (CareCanvas Clinical Modules Spec Mining Specialist)  
+**Author:** spec_miner_survey_2 (Healthbook Clinical Modules Spec Mining Specialist)  
 **Date:** 2026-08-28T20:45:00Z  
-**Scope:** Exhaustive Functional, Visual Canvas, Data Model, State Machine, and WebMCP Tool Specification for the 7 Clinical Modules and Shared Approved Fact Vault of CareCanvas.
+**Scope:** Exhaustive Functional, Visual Canvas, Data Model, State Machine, and WebMCP Tool Specification for the 7 Clinical Modules and Shared Approved Fact Vault of Healthbook.
 
 ---
 
 ## 1. Executive Summary & Architectural Philosophy
 
-CareCanvas is an agent-native, patient-facing health companion engineered for **The WebMCP Challenge** (OpenAI, Google, Microsoft, W3C WebML). The platform bridges the deep post-discharge and chronic illness gap by transforming complex clinical data into interactive, human-negotiable visual canvases backed by client-side WebMCP cognitive tools operating over a strictly local, privacy-first IndexedDB vault (`LocalVault`).
+Healthbook is an agent-native, patient-facing health companion engineered for **The WebMCP Challenge** (OpenAI, Google, Microsoft, W3C WebML). The platform bridges the deep post-discharge and chronic illness gap by transforming complex clinical data into interactive, human-negotiable visual canvases backed by client-side WebMCP cognitive tools operating over a strictly local, privacy-first IndexedDB vault (`LocalVault`).
 
 ### Core Architectural Tenets
 1. **The Patient as Editor, Not Subject (Human-in-the-Loop Trust Gate):** No AI-extracted clinical fact, medication reconciliation item, or doctor dosage change automatically alters patient records or schedules without an explicit `Approve / Edit / Reject` human decision.
@@ -53,7 +53,7 @@ CareCanvas is an agent-native, patient-facing health companion engineered for **
 ## 2. Module 0: Shared Foundation — Approved Fact Vault (F0.1 – F0.5)
 
 ### 2.1 Overview & Functional Mandate
-The Approved Fact Vault is the immutable foundation of CareCanvas. It replaces fragmented silo architectures with a single, toggleable, append-only repository hosted inside the browser's IndexedDB. Unapproved extractions remain in an ephemeral "Staging State" and are barred from downstream calculations until explicitly verified.
+The Approved Fact Vault is the immutable foundation of Healthbook. It replaces fragmented silo architectures with a single, toggleable, append-only repository hosted inside the browser's IndexedDB. Unapproved extractions remain in an ephemeral "Staging State" and are barred from downstream calculations until explicitly verified.
 
 ### 2.2 Feature Specifications
 
@@ -594,7 +594,7 @@ Family Care Circle empowers family members and caregivers to manage healthcare w
 - **UI Attribution:** Displayed in doctor review views and dossier timelines: `"Approved by Raj Sharma (son) on behalf of S. Devi"`.
 
 #### G4: Full End-to-End Remote Loop on Behalf
-- **Capability:** Authorized caregivers can execute the complete CareCanvas loop from afar:
+- **Capability:** Authorized caregivers can execute the complete Healthbook loop from afar:
   - Upload smartphone photos of local lab slips when due cards alert.
   - Review and confirm medication reconciliation walk-throughs.
   - Approve doctor dosage adjustment cards with animated PillMap feedback.
@@ -689,11 +689,11 @@ Continuity Dossier solves the dangerous information loss that occurs when patien
 
 ## 10. Cross-Module Integration Architecture (INT1 – INT9)
 
-The true moat of CareCanvas lies in the seamless, reactive integration between its modules, powered by the single Approved Fact Vault.
+The true moat of Healthbook lies in the seamless, reactive integration between its modules, powered by the single Approved Fact Vault.
 
 ```
 +----------------------------------------------------------------------------------------------------+
-| CROSS-MODULE REACTIVE INTEGRATION GRAPH (CareCanvas Moat)                                          |
+| CROSS-MODULE REACTIVE INTEGRATION GRAPH (Healthbook Moat)                                          |
 +----------------------------------------------------------------------------------------------------+
 |                                                                                                    |
 |   +-------------------+                     INT1: Lab Context                  +-----------------+ |
@@ -1303,4 +1303,4 @@ export interface DoctorAccessGrant {
 
 ## 18. Conclusion
 
-This specification provides the exhaustive, unambiguous architectural blueprint for CareCanvas's 7 Clinical Modules, Shared Approved Fact Vault, and Interactive Visual Canvases. Every feature code from `F0.1` through `CD6` and `INT1` through `INT9` is fully articulated with precise inputs, outputs, UI state transitions, TypeScript schemas, and failure recovery protocols, ready for downstream implementation and testing teams.
+This specification provides the exhaustive, unambiguous architectural blueprint for Healthbook's 7 Clinical Modules, Shared Approved Fact Vault, and Interactive Visual Canvases. Every feature code from `F0.1` through `CD6` and `INT1` through `INT9` is fully articulated with precise inputs, outputs, UI state transitions, TypeScript schemas, and failure recovery protocols, ready for downstream implementation and testing teams.

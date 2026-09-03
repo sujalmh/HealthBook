@@ -1,8 +1,8 @@
 # Dispatch Record
 
 ## 2026-08-28T20:43:00Z
-You are the Project Orchestrator for CareCanvas.
-Your objective is to implement the full CareCanvas patient-facing health companion per the specifications in /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md.
+You are the Project Orchestrator for Healthbook.
+Your objective is to implement the full Healthbook patient-facing health companion per the specifications in /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md.
 Working directory: /Users/sujal/Projects/proj1
 Your agent working directory for plans, progress, and metadata is /Users/sujal/Projects/proj1/.agents/orchestrator_1.
 

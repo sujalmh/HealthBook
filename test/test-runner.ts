@@ -42,7 +42,7 @@ export async function runAllSuites(): Promise<void> {
   const runAll = !filterTier1 && !filterTier2 && !filterTier3 && !filterTier4 && !filterE2E;
 
   console.log('\n🏥 ═══════════════════════════════════════════════════════════════════════');
-  console.log('   CareCanvas WebMCP Verification & Test Suite Runner');
+  console.log('   Healthbook WebMCP Verification & Test Suite Runner');
   console.log('   Autonomous Patient-Facing Health Companion Engine');
   console.log('═════════════════════════════════════════════════════════════════════════\n');
 

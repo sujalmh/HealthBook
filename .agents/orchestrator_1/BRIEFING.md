@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-28T21:31:00Z
 
 ## Mission
-Implement the full CareCanvas patient-facing health companion unifying all 7 clinical modules and 30+ WebMCP tools with complete interactive canvases and automated verification.
+Implement the full Healthbook patient-facing health companion unifying all 7 clinical modules and 30+ WebMCP tools with complete interactive canvases and automated verification.
 
 ## 🔒 My Identity
 - Archetype: Project Orchestrator

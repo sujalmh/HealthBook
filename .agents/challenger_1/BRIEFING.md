@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T03:01:20+05:30
 
 ## Mission
-Conduct empirical stress testing, boundary condition verification, and adversarial challenges across CareCanvas (Vault, LabStory, PillMap, RxBridge, HomeLab, Safety, Care Circle, Dossier).
+Conduct empirical stress testing, boundary condition verification, and adversarial challenges across Healthbook (Vault, LabStory, PillMap, RxBridge, HomeLab, Safety, Care Circle, Dossier).
 
 ## 🔒 My Identity
 - Archetype: empirical_challenger

@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { LogOut, Mail, ShieldCheck, CalendarDays, User as UserIcon, KeyRound } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { LogOut, Mail, CalendarDays } from 'lucide-react';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
-import { calculateCompleteness } from './profileCompleteness';
 import type { ActiveProfile } from '@/App';
 
 interface ProfilePageProps {
@@ -11,9 +10,9 @@ interface ProfilePageProps {
 }
 
 const PERMISSION_LABELS: Record<ActiveProfile['permissionLevel'], string> = {
-  view_only: 'View only — can look, cannot approve',
-  manage: 'Manage — can add and approve on your behalf',
-  full: 'Full — owns this account',
+  view_only: 'View only',
+  manage: 'Can add and approve',
+  full: 'Full access',
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -35,7 +34,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
     docs: 0,
     meds: 0,
     labs: 0,
-    factsConfirmed: 0,
     caregiverLinks: 0,
   });
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
@@ -48,136 +46,85 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
         docs: localVault.getDocuments(pid).length,
         meds: localVault.getMedications(pid).length,
         labs: localVault.getLabs(pid).length,
-        factsConfirmed: localVault.getConfirmedFacts(pid).length,
         caregiverLinks: localVault.getCaregiverLinks(pid).length,
       });
     } catch { /* boundary */ }
   }, [activeProfile.userId]);
 
-  const completeness = useMemo(
-    () => calculateCompleteness(activeProfile, vaultStats),
-    [activeProfile.name, activeProfile.email, activeProfile.userId, vaultStats]
-  );
-
   const initials = (activeProfile.name || 'P').trim().charAt(0).toUpperCase() || 'P';
   const roleLabel = ROLE_LABELS[activeProfile.role] || (activeProfile.role || 'Patient');
   const memberSince = activeProfile.createdAt
-    ? new Date(activeProfile.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+    ? new Date(activeProfile.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })
     : null;
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     if (!confirmingSignOut) {
       setConfirmingSignOut(true);
       return;
     }
     try {
-      localStorage.removeItem('carecanvas_active_user');
+      // Consistency first: push any in-flight vault writes to the server truth.
+      try {
+        const { flushSync } = localVault as unknown as { flushSync?: () => Promise<{ pending: number; lastError: string | null }> };
+        if (typeof flushSync === 'function') {
+          const report = await flushSync();
+          if (report.lastError) {
+            eventBus.dispatchToast({ type: 'warning', title: 'Sync incomplete', message: 'Some changes may not have reached the server. They remain on this device.' });
+          }
+        }
+      } catch { /* boundary */ }
+      try {
+        const { loadSession, supabaseSignOut, clearSession } = await import('@/core/supabase/auth.ts');
+        const s = loadSession();
+        if (s) await supabaseSignOut(s.access_token);
+        else clearSession();
+      } catch { /* boundary */ }
+      try {
+        localStorage.removeItem('healthbook_active_user');
+      } catch { /* boundary */ }
     } catch { /* boundary */ }
-    eventBus.dispatchToast({ type: 'info', title: 'Signed out', message: 'This device no longer holds an active session. Your data stays on it.' });
+    eventBus.dispatchToast({ type: 'info', title: 'Signed out', message: 'Server session ended. Your records stay safe on the server.' });
     onSignOut();
   };
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-3 max-w-2xl">
       {/* Identity */}
       <section className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5" aria-label="Account identity">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl bg-primary-light border border-primary-border flex items-center justify-center text-primary-text font-bold text-xl shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-primary-light border border-primary-border flex items-center justify-center text-primary-text font-bold text-lg shrink-0">
             {initials}
           </div>
           <div className="min-w-0">
             <h2 className="text-heading-lg text-slate-900 truncate">{activeProfile.name}</h2>
             <p className="text-body-sm text-muted">
-              {roleLabel}
-              {activeProfile.isProxy && activeProfile.onBehalfOf
-                ? ` — acting on behalf of ${activeProfile.onBehalfOf}`
-                : ''}
+              {roleLabel} • {PERMISSION_LABELS[activeProfile.permissionLevel]}
+              {activeProfile.isProxy && activeProfile.onBehalfOf ? ` • for ${activeProfile.onBehalfOf}` : ''}
             </p>
           </div>
         </div>
-        <dl className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-body-sm">
+        <div className="mt-3 flex flex-col gap-1.5 text-body-sm text-slate-800">
           <div className="flex items-center gap-2 min-w-0">
             <Mail className="w-4 h-4 text-muted shrink-0" aria-hidden="true" />
-            <dt className="sr-only">Email</dt>
-            <dd className="truncate text-slate-800">{activeProfile.email || '— no email on file'}</dd>
+            <span className="truncate">{activeProfile.email || '— no email on file'}</span>
           </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <CalendarDays className="w-4 h-4 text-muted shrink-0" aria-hidden="true" />
-            <dt className="sr-only">Member since</dt>
-            <dd className="text-slate-800">{memberSince ? `Joined ${memberSince}` : 'Joining date not recorded'}</dd>
-          </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <UserIcon className="w-4 h-4 text-muted shrink-0" aria-hidden="true" />
-            <dt className="sr-only">User ID</dt>
-            <dd className="truncate font-mono text-xs text-slate-600">{activeProfile.userId}</dd>
-          </div>
-        </dl>
-      </section>
-
-      {/* Access & permissions */}
-      <section className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5" aria-label="Access and permissions">
-        <h3 className="text-heading-md text-slate-900 flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-primary-text" aria-hidden="true" />
-          Access &amp; permissions
-        </h3>
-        <div className="mt-3 space-y-2.5 text-body-sm">
-          <div className="flex items-start justify-between gap-3">
-            <span className="text-muted">Role</span>
-            <span className="font-semibold text-slate-800 text-right">{roleLabel}</span>
-          </div>
-          {activeProfile.isProxy && (
-            <div className="flex items-start justify-between gap-3">
-              <span className="text-muted">Acting on behalf of</span>
-              <span className="font-semibold text-slate-800 text-right">
-                {activeProfile.onBehalfOf || '—'}
-                {activeProfile.relationship ? ` (${activeProfile.relationship})` : ''}
-              </span>
+          {memberSince && (
+            <div className="flex items-center gap-2 min-w-0">
+              <CalendarDays className="w-4 h-4 text-muted shrink-0" aria-hidden="true" />
+              <span>Joined {memberSince}</span>
             </div>
           )}
-          <div className="flex items-start justify-between gap-3">
-            <span className="text-muted">Permission level</span>
-            <span className={`font-semibold text-right ${activeProfile.permissionLevel === 'view_only' ? 'text-amber-800' : 'text-slate-800'}`}>
-              {PERMISSION_LABELS[activeProfile.permissionLevel]}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* Your data */}
-      <section className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5" aria-label="Your data">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-heading-md text-slate-900">Your data</h3>
-          <span className="text-body-sm font-semibold text-slate-700">{completeness}% complete</span>
-        </div>
-        <div
-          className="mt-3 h-2 bg-canvas-muted rounded-full overflow-hidden border border-canvas-border"
-          role="progressbar"
-          aria-valuenow={completeness}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Profile completeness"
-        >
-          <div
-            className={`h-full transition-all duration-500 ${completeness >= 80 ? 'bg-emerald-500' : completeness >= 40 ? 'bg-amber-500' : 'bg-rose-400'}`}
-            style={{ width: `${completeness}%` }}
-          />
         </div>
         <p className="mt-3 text-body-sm text-muted">
-          {vaultStats.docs} papers • {vaultStats.meds} medicines • {vaultStats.labs} lab results • {vaultStats.factsConfirmed} confirmed facts
-          {vaultStats.caregiverLinks > 0 ? ` • ${vaultStats.caregiverLinks} family helper${vaultStats.caregiverLinks === 1 ? '' : 's'}` : ''}
+          {vaultStats.docs} papers • {vaultStats.meds} medicines • {vaultStats.labs} lab results
+          {vaultStats.caregiverLinks > 0 ? ` • ${vaultStats.caregiverLinks} helper${vaultStats.caregiverLinks === 1 ? '' : 's'}` : ''}
         </p>
       </section>
 
       {/* Session */}
       <section className="bg-white border border-canvas-border rounded-xl p-4 sm:p-5" aria-label="Session">
-        <h3 className="text-heading-md text-slate-900 flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-primary-text" aria-hidden="true" />
-          Session
-        </h3>
-        <p className="mt-2 text-body-sm text-muted">
-          You are signed in on this device. Your health data stays on this device — signing out does not delete it.
-        </p>
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <p className="text-body-sm text-muted">Signed in — your records live on the secure server and sync here.</p>
+        <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
           <button
             type="button"
             onClick={handleSignOut}

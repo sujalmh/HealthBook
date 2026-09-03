@@ -2,17 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert,
   AlertTriangle,
-  Calendar,
-  PhoneCall,
   Activity,
-  HeartPulse,
-  UserCheck,
-  Stethoscope,
-  PlusCircle,
-  FileText,
   Clock,
-  CheckCircle2,
-  Download
+  Info,
+  Stethoscope,
+  Calendar,
 } from 'lucide-react';
 import { DangerSignModal } from './DangerSignModal';
 import { TriagePanel } from './TriagePanel';
@@ -99,60 +93,50 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
   const activeAlerts = dangerReports.filter((r) => r.triagePriority === 'URGENT' || r.triagePriority === 'EMERGENCY');
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Safety Header — tokenized, clinical urgency cohesive */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-rose-50 text-clinical-red flex items-center justify-center border border-rose-200 shadow-sm">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">Get Help</h2>
-              {activeAlerts.length > 0 && (
-                <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200">
-                  Urgent
-                </span>
-              )}
-            </div>
-            <p className="text-body-sm text-muted">
-              Tell your care team quickly if something feels wrong — and see what happens next.
-            </p>
-          </div>
+    <div className="space-y-4 animate-fade-in">
+      {/* Safety Header */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex items-center gap-2.5">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">Get Help</h2>
+          {activeAlerts.length > 0 && (
+            <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200">
+              Urgent
+            </span>
+          )}
         </div>
 
         {/* Emergency Trigger & Mode Tabs — RBAC: view_only disables I need help now, doctor_triage gated doctor/full */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={handleHelpNow}
-            disabled={false}
-            aria-disabled={isViewOnly}
-            title={isViewOnly ? 'View-only: cannot report — Permission denied (PERMISSION_DENIED)' : undefined}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md min-h-[44px] w-full sm:w-auto ${
-              isViewOnly ? 'bg-slate-300 text-slate-600 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-700 text-white'
-            }`}
-          >
-            <AlertTriangle className="w-4 h-4" />
-            <span>I need help now</span>
-          </button>
-          {isViewOnly && <span className="text-caption text-amber-700 font-semibold hidden sm:inline">Permission denied — View-only (PERMISSION_DENIED)</span>}
+        <button
+          onClick={handleHelpNow}
+          disabled={false}
+          aria-disabled={isViewOnly}
+          title={isViewOnly ? 'View-only: cannot report — Permission denied (PERMISSION_DENIED)' : undefined}
+          className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md min-h-[44px] w-full ${
+            isViewOnly ? 'bg-slate-300 text-slate-600 cursor-not-allowed opacity-60 shadow-none' : 'bg-rose-600 hover:bg-rose-700 text-white'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          <span>I need help now</span>
+        </button>
 
-          <div className="flex flex-wrap items-center gap-1.5 bg-canvas-muted p-1 rounded-xl border border-canvas-border max-w-full shadow-xs">
+        <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border max-w-full shadow-xs overflow-x-auto scrollbar-none">
             <button
               onClick={() => handleTabChange('patient_safety')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
+              title="What to do"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[40px] shrink-0 ${
                 activeTab === 'patient_safety'
                   ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
                   : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
-              What to do
+              <Info className="w-4 h-4 shrink-0" />
+              <span>Guide</span>
             </button>
             <button
               onClick={() => handleTabChange('doctor_triage')}
               aria-disabled={!canAccessDoctorTriage}
-              title={!canAccessDoctorTriage ? 'Doctor actions — requires clinician login (PERMISSION_DENIED)' : undefined}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
+              title={!canAccessDoctorTriage ? 'Doctor actions — requires clinician login (PERMISSION_DENIED)' : 'Doctor actions'}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[40px] shrink-0 ${
                 activeTab === 'doctor_triage' && canAccessDoctorTriage
                   ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
                   : !canAccessDoctorTriage
@@ -160,20 +144,22 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
                     : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
-              Doctor's Actions
+              <Stethoscope className="w-4 h-4 shrink-0" />
+              <span>Doctor</span>
             </button>
             <button
               onClick={() => handleTabChange('calendar')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
+              title="My appointments"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[40px] shrink-0 ${
                 activeTab === 'calendar'
                   ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border'
                   : 'text-muted hover:text-slate-900 border border-transparent'
               }`}
             >
-              My Appointments
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span>Visits</span>
             </button>
           </div>
-        </div>
       </div>
 
       {/* Active Danger Warning Banner — light clinical amber/red */}
@@ -219,14 +205,14 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
             <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-canvas-border pb-3">
                 <ShieldAlert className="w-5 h-5 text-clinical-red" />
-                <h3 className="text-heading-md text-slate-900">Immediate Escalation & First-Aid Guidance</h3>
+                <h3 className="text-heading-md text-slate-900">Emergencies & warning signs</h3>
               </div>
 
               <div className="space-y-3">
                 <div className="bg-rose-50 rounded-xl p-4 border border-rose-200 space-y-2">
-                  <span className="text-body-sm font-bold text-clinical-red flex items-center gap-1.5">
+                  <span className="text-sm font-bold text-clinical-red flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-clinical-red" />
-                    When to call 911 or visit nearest ER immediately:
+                    Call 911 or go to ER now:
                   </span>
                   <ul className="text-body-sm text-slate-700 space-y-1 list-disc list-inside">
                     <li>Crushing chest pain, tightness, or pain spreading to arm/jaw</li>
@@ -237,9 +223,9 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
                 </div>
 
                 <div className="bg-canvas-muted rounded-xl p-4 border border-canvas-border space-y-2">
-                  <span className="text-body-sm font-bold text-accent flex items-center gap-1.5">
+                  <span className="text-sm font-bold text-accent flex items-center gap-1.5">
                     <Clock className="w-4 h-4 text-accent" />
-                    When to report danger sign (Clinician review):
+                    Report to your clinician:
                   </span>
                   <ul className="text-body-sm text-slate-700 space-y-1 list-disc list-inside">
                     <li>Sudden swelling in both feet, ankles, or legs (edema)</li>
@@ -264,9 +250,8 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
               <div className="flex items-center justify-between border-b border-canvas-border pb-3">
                 <div className="flex items-center gap-2">
                   <Activity className="w-5 h-5 text-clinical-blue" />
-                  <h3 className="text-heading-md text-slate-900">Safety Dossier Trail</h3>
+                  <h3 className="text-heading-md text-slate-900">My reports</h3>
                 </div>
-                <span className="text-caption text-muted font-mono">Immutable</span>
               </div>
 
               {dangerReports.length === 0 ? (
@@ -295,7 +280,6 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
 
                     <div className="flex items-center justify-between text-caption text-muted pt-2 border-t border-canvas-border">
                       <span>Severity: <strong className="text-clinical-red uppercase">{report.severityRating}</strong></span>
-                      <span className="text-clinical-emerald font-medium">Logged to Dossier</span>
                     </div>
                   </div>
                   ))}

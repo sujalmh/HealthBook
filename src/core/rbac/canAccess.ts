@@ -1,5 +1,5 @@
 /**
- * CareCanvas RBAC: Central permission checks — R8 Global
+ * Healthbook RBAC: Central permission checks — R8 Global
  * Mirrors carecircle.ts:8 tiers view_only|manage|full + App.tsx:53 role patient|caregiver|doctor
  * Used by App nav gate + all tool preambles to enforce view_only => PERMISSION_DENIED
  * Do not change permissionLevel enum tiers — keep exactly view_only|manage|full

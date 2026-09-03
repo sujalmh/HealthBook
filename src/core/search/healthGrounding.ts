@@ -1,5 +1,5 @@
 /**
- * CareCanvas Health Grounding Layer — web-grounded medical intelligence via Exa.
+ * Healthbook Health Grounding Layer — web-grounded medical intelligence via Exa.
  */
 
 import { searchExa, type ExaSearchResponse, type ExaCategory, type ExaSearchType } from './exaClient.ts';

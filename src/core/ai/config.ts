@@ -1,11 +1,11 @@
 /**
- * CareCanvas AI Core — Config
+ * Healthbook AI Core — Config
  * Runtime configuration with SettingsStore > Environment variables precedence.
  */
 
 import type { AIConfig, AIProvider } from './types.ts';
 
-const SETTINGS_STORE_KEYS = ['carecanvas_settings', 'carecanvas_ai_settings', 'carecanvas_ai_config'] as const;
+const SETTINGS_STORE_KEYS = ['healthbook_settings', 'healthbook_ai_settings', 'healthbook_ai_config'] as const;
 const VALID_PROVIDERS: AIProvider[] = ['chat', 'responses'];
 
 const SETTINGS_KEYS = [
@@ -42,7 +42,7 @@ function readSettingsStoreOverrides(): Record<string, unknown> {
 
   for (const k of SETTINGS_KEYS) {
     try {
-      const v = localStorage.getItem(k) ?? localStorage.getItem(`carecanvas_${k}`);
+      const v = localStorage.getItem(k) ?? localStorage.getItem(`healthbook_${k}`);
       if (v !== null && v !== '' && overrides[k] === undefined) {
         overrides[k] = v;
       }

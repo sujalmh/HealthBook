@@ -1,4 +1,4 @@
-# CareCanvas — Project Handoff & Developer Continuity Guide
+# Healthbook — Project Handoff & Developer Continuity Guide
 
 > **Date:** August 29, 2026 — Reconciled 2026-08-29 (ws-12 Deployment & Checklist Reconciliation)  
 > **Status:** Production build passing cleanly (`npm run build` — 1658 modules, 733kB / 182kB gzip), 121 vitest unit/integration tests passing (`npm test` canonical) + 231 tests via `test/test-runner.ts` (Tier 1–4 + E2E Flows A–E), 40 WebMCP tools registered. See §3 and §4a for divergence notes.  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Project Vision
 
-**CareCanvas** is an agent-native, patient-facing health companion that integrates 7 clinical modules into a unified, local-first reactive web application.
+**Healthbook** is an agent-native, patient-facing health companion that integrates 7 clinical modules into a unified, local-first reactive web application.
 
 ### Key Architectural Principle
 - **Human Interface**: The web application remains rich, tactile, and visual for everyday patient & caregiver interactions:
@@ -249,4 +249,4 @@ The application has pre-populated mock scenarios (under `src/engine/MockDataProv
    - Run `npm run build` and connect the `dist/` directory.
 
 ---
-*CareCanvas is fully scaffolded, tested, and ready for deployment or demo recording.*
+*Healthbook is fully scaffolded, tested, and ready for deployment or demo recording.*

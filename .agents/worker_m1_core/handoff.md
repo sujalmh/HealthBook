@@ -20,7 +20,7 @@
   - Immutable audit logging creates SHA-256 style hash signatures with proxy actor metadata (`userId`, `userName`, `role`, `onBehalfOf`).
 
 - **WebMCP Core Engine (`src/core/webmcp/WebMCPEngine.ts`):**
-  - Dual-mode environment detection: checks native `document.modelContext` / `navigator.modelContext` and seamlessly attaches polyfill mock adapter to `globalThis.modelContext` and `window.__CareCanvas_WebMCP__`.
+  - Dual-mode environment detection: checks native `document.modelContext` / `navigator.modelContext` and seamlessly attaches polyfill mock adapter to `globalThis.modelContext` and `window.__Healthbook_WebMCP__`.
   - Full parameter schema validation (types, required fields, enums), timing telemetry logging (`invocationHistory`), and human-in-the-loop approval interception queue (`queueApproval`, `resolveApproval`, `confirmStagedInvocation`).
   - Side-effect event dispatcher emits reactive toasts and canvas rerender triggers to `WebMCPEventBus`.
 
@@ -52,7 +52,7 @@
 ## 2. Logic Chain
 1. **Scaffolding and Type Foundation:** A medical companion operating over decentralized local records requires strict TypeScript typing for clinical entities. The data contracts in `src/types/` define all 11 object stores, bounding box coordinate geometry `[x, y, width, height]`, and WebMCP protocol payloads.
 2. **Privacy-First Data Store:** `LocalVaultManager` was designed with multi-store isolation and in-memory Map fallbacks, ensuring instant zero-latency query response and seamless execution under headless test environments without external browser IndexedDB dependencies.
-3. **WebMCP Protocol Compliance:** The emergent W3C WebML model context standard was implemented in `WebMCPEngine.ts` via dual-mode feature detection. When browser native context is absent, the engine injects a standards-conforming polyfill mock adapter (`window.__CareCanvas_WebMCP__`), validating schemas and capturing telemetry.
+3. **WebMCP Protocol Compliance:** The emergent W3C WebML model context standard was implemented in `WebMCPEngine.ts` via dual-mode feature detection. When browser native context is absent, the engine injects a standards-conforming polyfill mock adapter (`window.__Healthbook_WebMCP__`), validating schemas and capturing telemetry.
 4. **Safety & Human-in-the-Loop Interception:** Clinical AI operations (such as medication extraction and dosage adjustments) must not blindly mutate records. The engine and tools stage unconfirmed facts and proposals into a pending queue until approved by patient or authenticated caregiver proxy, with immutable audit logs recording the exact proxy context.
 5. **Tool Inventory and Inspector:** All 40 WebMCP tools across 7 modules were wired into the central registry. The `WebMCPInspector` provides live observability and debugging capability, allowing forensic auditing of execution timing, parameters, schemas, and pending approvals.
 

@@ -1,7 +1,7 @@
-# Plan: CareCanvas Patient-Facing Health Companion
+# Plan: Healthbook Patient-Facing Health Companion
 
 ## Architectural Vision
-CareCanvas is an agent-native, patient-facing health companion built for The WebMCP Challenge.
+Healthbook is an agent-native, patient-facing health companion built for The WebMCP Challenge.
 It unifies 7 clinical modules around a single Approved Fact Vault (IndexedDB/LocalVault) with 30+ client-side WebMCP tools, interactive visual canvases, and strict human approval gating.
 
 ## Phase 0: Survey & Specification Extraction

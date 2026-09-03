@@ -1,7 +1,7 @@
 /**
- * CareCanvas Supabase Client — Env-only persistence layer (M1)
+ * Healthbook Supabase Client — Env-only persistence layer (M1)
  *
- * Domain: Supabase Postgres persistence for CareCanvas single-patient vault.
+ * Domain: Supabase Postgres persistence for Healthbook single-patient vault.
  * Host (comment-only, never with password): db.vcgnjsxmigcaboayemmj.supabase.co
  * Connection is via DATABASE_URL env only — never hard-coded password literal.
  *
@@ -268,6 +268,23 @@ class LightweightTableClient implements SupabaseTableClient {
     return toRestBaseUrl(this.baseUrl);
   }
 
+  /**
+   * Authenticated headers: signed-in user JWT when available (RLS policies
+   * evaluate auth.uid()), else anon key. Dynamic import avoids module cycles.
+   */
+  private async buildHeaders(extra?: Record<string, string>): Promise<{ [key: string]: string }> {
+    const headers: { [key: string]: string } = { 'Content-Type': 'application/json', ...(extra || {}) };
+    if (this.anonKey) headers.apikey = this.anonKey;
+    let bearer: string | null = null;
+    try {
+      const { getAccessToken } = await import('./auth.ts');
+      bearer = await getAccessToken();
+    } catch { /* ignore — fall back to anon */ }
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
+    else if (this.anonKey) headers.Authorization = `Bearer ${this.anonKey}`;
+    return headers;
+  }
+
   async selectByPatient<T = unknown>(patientId: string): Promise<SupabaseResult<T[]>> {
     if (!patientId) return { data: [], error: 'patientId required' };
     return this.select<T>({ patient_id: patientId });
@@ -455,16 +472,7 @@ class LightweightTableClient implements SupabaseTableClient {
     if (!base) return { data: [], error: null, skipped: true };
     try {
       const url = `${base}/rest/v1/${this.table}?${query}`;
-      const headers: { [key: string]: string } = {
-        apikey: this.anonKey || '',
-        Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      };
-      if (!this.anonKey) {
-        delete headers.apikey;
-        delete headers.Authorization;
-      }
+      const headers = await this.buildHeaders({ Prefer: 'return=representation' });
       const res = await fetch(url, { headers, method: 'GET' });
       if (!res.ok) {
         const text = await res.text().catch(() => res.statusText);
@@ -493,16 +501,7 @@ class LightweightTableClient implements SupabaseTableClient {
         }
       }
       const url = `${base}/rest/v1/${this.table}${params.toString() ? `?${params.toString()}` : ''}`;
-      const headers: { [key: string]: string } = {
-        apikey: this.anonKey || '',
-        Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      };
-      if (!this.anonKey) {
-        delete headers.apikey;
-        delete headers.Authorization;
-      }
+      const headers = await this.buildHeaders({ Prefer: 'return=representation' });
       const res = await fetch(url, { headers, method: 'GET' });
       if (!res.ok) {
         const text = await res.text().catch(() => res.statusText);
@@ -521,16 +520,7 @@ class LightweightTableClient implements SupabaseTableClient {
     if (!base) return { data: null, error: null, skipped: true };
     try {
       const url = `${base}/rest/v1/${this.table}`;
-      const headers: { [key: string]: string } = {
-        apikey: this.anonKey || '',
-        Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-      };
-      if (!this.anonKey) {
-        delete headers.apikey;
-        delete headers.Authorization;
-      }
+      const headers = await this.buildHeaders({ Prefer: 'return=representation' });
       const dbRecord = this.toDbRecord(record);
       const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(dbRecord) });
       if (!res.ok) {
@@ -551,16 +541,7 @@ class LightweightTableClient implements SupabaseTableClient {
     if (!base) return { data: null, error: null, skipped: true };
     try {
       const url = `${base}/rest/v1/${this.table}`;
-      const headers: { [key: string]: string } = {
-        apikey: this.anonKey || '',
-        Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates,return=representation',
-      };
-      if (!this.anonKey) {
-        delete headers.apikey;
-        delete headers.Authorization;
-      }
+      const headers = await this.buildHeaders({ Prefer: 'resolution=merge-duplicates,return=representation' });
       const dbRecord = this.toDbRecord(record);
       const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(dbRecord) });
       if (!res.ok) {
@@ -581,15 +562,7 @@ class LightweightTableClient implements SupabaseTableClient {
     if (!base) return { data: null, error: null, skipped: true };
     try {
       const url = `${base}/rest/v1/${this.table}?id=eq.${encodeURIComponent(id)}`;
-      const headers: { [key: string]: string } = {
-        apikey: this.anonKey || '',
-        Authorization: this.anonKey ? `Bearer ${this.anonKey}` : '',
-        'Content-Type': 'application/json',
-      };
-      if (!this.anonKey) {
-        delete headers.apikey;
-        delete headers.Authorization;
-      }
+      const headers = await this.buildHeaders();
       const res = await fetch(url, { method: 'DELETE', headers });
       if (!res.ok) {
         const text = await res.text().catch(() => res.statusText);

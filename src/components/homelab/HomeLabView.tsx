@@ -2,18 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   HeartPulse,
   Calendar,
-  UploadCloud,
-  FileText,
-  Clock,
-  Sparkles,
-  Shield,
-  UserCheck,
   Stethoscope,
-  Activity,
-  AlertTriangle,
-  RefreshCw,
-  Plus,
-  CheckCircle2
 } from 'lucide-react';
 import { DueCardList } from './DueCardList';
 import { UploadLabModal } from './UploadLabModal';
@@ -109,7 +98,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
   const activeDueCards = dueCards.filter((c) => c.status !== 'completed');
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Top Banner & Mode Toggle — consistent card style */}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -119,13 +108,12 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold tracking-tight text-slate-900">Tests to Do</h2>
-              <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
-                From your doctor
-              </span>
+              {activeDueCards.length > 0 && (
+                <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">
+                  {activeDueCards.length} waiting
+                </span>
+              )}
             </div>
-            <p className="text-body-sm text-muted">
-              Tests your doctor asked you to do at home — upload a photo and see dose changes.
-            </p>
           </div>
         </div>
 
@@ -169,7 +157,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
 
       {/* Main Tab Content */}
       {activeTab === 'patient_loop' ? (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Section 1: Prescribed Due Cards */}
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
             <DueCardList
@@ -180,25 +168,13 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
           </div>
 
           {/* Section 2: Active Doctor Dosage Proposals */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <HeartPulse className="w-5 h-5 text-rose-500" />
-                <h3 className="text-heading-md text-slate-900">Dose Changes From Your Doctor</h3>
-              </div>
-              <span className="text-body-sm text-muted">
-                {pendingProposals.length} waiting for your okay
-              </span>
+              <h3 className="text-heading-md text-slate-900">Dose changes {pendingProposals.length > 0 && <span className="text-body-sm text-muted font-semibold">({pendingProposals.length} waiting)</span>}</h3>
             </div>
 
             {proposals.length === 0 ? (
-              <div className="bg-canvas-muted border border-canvas-border rounded-2xl p-8 text-center space-y-2">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <p className="text-body-sm font-semibold text-slate-800">You're all caught up!</p>
-                <p className="text-body-sm text-muted">No dose changes right now.</p>
-              </div>
+              <p className="text-body-sm text-muted">No dose changes right now.</p>
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {proposals.map((proposal) => (

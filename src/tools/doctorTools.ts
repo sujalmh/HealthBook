@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: Doctor ↔ Patient RBAC Linking
+ * Healthbook WebMCP Tools: Doctor ↔ Patient RBAC Linking
  * Tools: link_doctor, revoke_doctor_link, list_doctor_patients, list_patient_doctors,
  *        view_patient_as_doctor
  * Provides persistent doctor-patient linkage + scoped access + doctor dashboard queries

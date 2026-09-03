@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: RxBridgeView
+ * Healthbook Component: RxBridgeView
  * Main module container for Milestone 4 (RxBridge Post-Discharge 3-List Reconciliation).
  * Features:
  * - 3-list comparative overview
@@ -12,21 +12,11 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  FileCheck2,
-  Sparkles,
   ShieldCheck,
   Printer,
-  ArrowRight,
   Bot,
-  Layers,
   Table as TableIcon,
-  CheckCircle2,
-  AlertTriangle,
-  HelpCircle,
   Pill,
-  Send,
-  Calendar,
-  RotateCcw
 } from 'lucide-react';
 import type {
   Patient3ListDischargeDataset,
@@ -453,24 +443,13 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   const isPatientReadOnly = activeProfile.role!=='doctor' && !activeProfile.isProxy;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Top Controls & Module Banner — tokenized */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Module Title */}
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
-              <FileCheck2 className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                Medicine Review
-              </h2>
-              <p className="text-xs text-muted">
-                Check what changed after your hospital stay — approve each medicine in plain language before it goes to your weekly box.
-              </p>
-            </div>
-          </div>
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">
+            Medicine Review
+          </h2>
 
           {/* Doctor source + Last updated */}
           <div className="flex flex-col gap-2">
@@ -479,116 +458,97 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           </div>
         </div>
 
-        {/* Statistical Overview Strip — tokenized light */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-canvas-border">
-          <div className="p-3 rounded-xl bg-canvas-muted border border-canvas-border">
-            <div className="text-caption font-mono text-muted uppercase font-bold">Total meds</div>
-            <div className="text-xl font-bold text-slate-900 mt-0.5">{reconciledItems.length}</div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-canvas-muted border border-canvas-border">
-            <div className="text-caption font-mono text-muted uppercase font-bold">New meds</div>
-            <div className="text-xl font-bold text-slate-900 mt-0.5">{newCount}</div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-canvas-muted border border-canvas-border">
-            <div className="text-caption font-mono text-muted uppercase font-bold">Dose changed</div>
-            <div className="text-xl font-bold text-slate-900 mt-0.5">{changedCount}</div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
-            <div className="text-caption font-mono text-clinical-red uppercase font-bold">Stopped / Omitted</div>
-            <div className="text-xl font-bold text-clinical-red mt-0.5">{stoppedCount}</div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
-            <div className="text-caption font-mono text-clinical-amber uppercase font-bold">Conflicts flagged</div>
-            <div className="text-xl font-bold text-clinical-amber mt-0.5">{interactionsCount}</div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-            <div className="text-caption font-mono text-clinical-emerald uppercase font-bold">Approved</div>
-            <div className="text-xl font-bold text-clinical-emerald mt-0.5">{totalApproved}/{reconciledItems.length}</div>
-          </div>
+        {/* Summary Strip — compact counts */}
+        <div className="pt-3 border-t border-canvas-border">
+          <p className="text-sm text-slate-700">
+            <strong className="text-slate-900">{reconciledItems.length}</strong> medicines
+            {newCount > 0 && <span> • <strong className="text-slate-900">{newCount}</strong> new</span>}
+            {changedCount > 0 && <span> • <strong className="text-slate-900">{changedCount}</strong> dose changed</span>}
+            {stoppedCount > 0 && <span> • <strong className="text-clinical-red">{stoppedCount}</strong> stopped</span>}
+            {interactionsCount > 0 && <span> • <strong className="text-clinical-amber">{interactionsCount}</strong> conflicts</span>}
+            <span> • <strong className="text-clinical-emerald">{totalApproved}/{reconciledItems.length}</strong> approved</span>
+          </p>
         </div>
         {isPatientReadOnly && reconciledItems.length > 0 && (
           <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 text-sm text-sky-800">This is your doctor's list — review and tap Approve for each medicine</div>
         )}
         {reconciledItems.length === 0 && (
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-6 text-center space-y-3">
-            <p className="text-sm font-semibold text-slate-900">No hospital list yet — your doctor can share one, or add medicines in Weekly Planner</p>
+            <p className="text-sm font-semibold text-slate-900">No hospital list yet</p>
             <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold cursor-pointer"><span>Upload discharge paper</span><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleDischargeUpload} /></label>
-            <p className="text-caption text-muted">or add medicines in Weekly Planner</p>
           </div>
         )}
       </div>
 
-      {/* Main Mode Switcher + Action Bar */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Table vs Walk mode toggle */}
-          <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm shadow-xs">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold transition-all min-h-[36px] ${
-                viewMode === 'table' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
-              }`}
-            >
-              <TableIcon className="w-4 h-4" />
-              <span>Compare Lists</span>
-            </button>
-            <button
-              onClick={() => setViewMode('walk')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg font-bold transition-all min-h-[36px] ${
-                viewMode === 'walk' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
-              }`}
-            >
-              <Bot className="w-4 h-4" />
-              <span>Step-by-Step</span>
-            </button>
-          </div>
+      {/* Main Mode Switcher + Action Bar — one scrollable line on phone */}
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-4 shadow-sm flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        {/* Table vs Walk mode toggle */}
+        <div className="flex items-center gap-0.5 bg-canvas-muted p-0.5 rounded-xl border border-canvas-border text-xs shadow-xs shrink-0">
+          <button
+            onClick={() => setViewMode('table')}
+            title="Compare lists"
+            aria-label="Compare lists"
+            className={`flex items-center gap-1 px-2.5 py-2 rounded-lg font-bold transition-all min-h-[40px] ${
+              viewMode === 'table' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
+            }`}
+          >
+            <TableIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Compare</span>
+          </button>
+          <button
+            onClick={() => setViewMode('walk')}
+            title="Step-by-step"
+            aria-label="Step-by-step"
+            className={`flex items-center gap-1 px-2.5 py-2 rounded-lg font-bold transition-all min-h-[40px] ${
+              viewMode === 'walk' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
+            }`}
+          >
+            <Bot className="w-4 h-4" />
+            <span className="hidden sm:inline">Steps</span>
+          </button>
         </div>
 
-        {/* Key Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-            {/* Teach-Back Button */}
-            <button
-              onClick={() => setIsTeachBackOpen(true)}
-              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all min-h-[40px] ${
-                teachBackRecord?.comprehensionScore === 'accurate'
-                  ? 'bg-emerald-600/30 text-emerald-700 border-emerald-500/50'
-                  : 'bg-teal-700/20 hover:bg-teal-700/30 text-teal-800 border-teal-500/40'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-teal-500" />
-              <span>{teachBackRecord ? 'Checked ✓' : 'Check My Understanding'}</span>
-            </button>
+        {/* Teach-Back Button */}
+        <button
+          onClick={() => setIsTeachBackOpen(true)}
+          title="Check my understanding"
+          aria-label="Check my understanding"
+          className={`flex items-center justify-center gap-1 p-2 rounded-xl border transition-all min-h-[44px] min-w-[44px] shrink-0 ${
+            teachBackRecord?.comprehensionScore === 'accurate'
+              ? 'bg-emerald-600/30 text-emerald-700 border-emerald-500/50'
+              : 'bg-teal-700/20 hover:bg-teal-700/30 text-teal-800 border-teal-500/40'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-teal-500" />
+          <span className="hidden sm:inline text-xs font-bold">{teachBackRecord ? 'Checked ✓' : 'Check understanding'}</span>
+        </button>
 
-            {/* 1-Page Summary Export */}
-            <button
-              onClick={handleOpenExportSummary}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-semibold transition-all min-h-[40px]"
-            >
-              <Printer className="w-4 h-4 text-sky-500" />
-              <span>Print Summary</span>
-            </button>
+        {/* 1-Page Summary Export */}
+        <button
+          onClick={handleOpenExportSummary}
+          title="Print summary"
+          aria-label="Print summary"
+          className="flex items-center justify-center gap-1 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 transition-all min-h-[44px] min-w-[44px] shrink-0"
+        >
+          <Printer className="w-4 h-4 text-sky-500" />
+          <span className="hidden sm:inline text-xs font-semibold">Print</span>
+        </button>
 
-            {/* Cross-Module Handoff Button — RB4 gate */}
-            <button
-              onClick={handleFinalizeAndHandoffToPillMap}
-              disabled={totalApproved !== reconciledItems.length}
-              title={totalApproved !== reconciledItems.length ? `Approve all ${reconciledItems.length} medicines first (${totalApproved}/${reconciledItems.length})` : 'Add to my weekly medicines'}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-body-sm font-bold shadow-md transition-all min-h-[44px] ${
-                totalApproved !== reconciledItems.length
-                  ? 'bg-canvas-muted text-muted cursor-not-allowed border border-canvas-border'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
-            >
-              <Pill className="w-4 h-4" />
-              <span>Add to My Medicines{totalApproved !== reconciledItems.length ? ` (${totalApproved}/${reconciledItems.length})` : ''}</span>
-            </button>
-          </div>
-        </div>
+        {/* Cross-Module Handoff Button — RB4 gate */}
+        <button
+          onClick={handleFinalizeAndHandoffToPillMap}
+          disabled={totalApproved !== reconciledItems.length}
+          title={totalApproved !== reconciledItems.length ? `Approve all ${reconciledItems.length} medicines first (${totalApproved}/${reconciledItems.length})` : 'Add to my weekly medicines'}
+          className={`flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold shadow-md transition-all min-h-[44px] whitespace-nowrap shrink-0 ${
+            totalApproved !== reconciledItems.length
+              ? 'bg-canvas-muted text-muted cursor-not-allowed border border-canvas-border'
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+          }`}
+        >
+          <Pill className="w-4 h-4" />
+          <span>Add to Meds{totalApproved !== reconciledItems.length ? ` (${totalApproved}/${reconciledItems.length})` : ''}</span>
+        </button>
+      </div>
 
       {/* Main View Mode Component */}
       {viewMode === 'table' ? (

@@ -1,7 +1,7 @@
 ## 2026-08-28T21:31:06Z
-You are reviewer_1 for CareCanvas.
+You are reviewer_1 for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/reviewer_1.
-Your task is to conduct an independent, objective review and verification of CareCanvas.
+Your task is to conduct an independent, objective review and verification of Healthbook.
 
 Files to inspect:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md
@@ -17,7 +17,7 @@ Review & Verification Requirements:
    - Run `node --experimental-strip-types test/test-runner.ts` (Master 231-test suite)
    - Run `npm run build` (Production Vite build)
 2. Verify WebMCP Tool Engine & All 40 Registered Tools:
-   - Verify that all 40 tools register properly in the WebMCP tool catalog (`WebMCPEngine.ts` / `window.__CareCanvas_WebMCP__`).
+   - Verify that all 40 tools register properly in the WebMCP tool catalog (`WebMCPEngine.ts` / `window.__Healthbook_WebMCP__`).
    - Verify JSON schemas, parameter types, required fields, and structured return payloads with plain-language explanations.
    - Verify Human Approval Gating: ensure unconfirmed facts and dosage proposals do NOT silently mutate active records without explicit human/proxy approval.
 3. Verify LocalVault (IndexedDB) Architecture:

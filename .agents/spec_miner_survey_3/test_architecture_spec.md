@@ -1,7 +1,7 @@
-# CareCanvas — Comprehensive Test Architecture & E2E Verification Specification
+# Healthbook — Comprehensive Test Architecture & E2E Verification Specification
 
 > **Document Version:** 1.0.0-PROD-SPEC  
-> **Target System:** CareCanvas (WebMCP Patient-Facing Health Companion)  
+> **Target System:** Healthbook (WebMCP Patient-Facing Health Companion)  
 > **Author:** `spec_miner_survey_3`  
 > **Status:** Authoritative Test & Verification Specification  
 
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary & Verification Strategy
 
-CareCanvas is an agent-native, patient-facing health companion unifying seven clinical modules:
+Healthbook is an agent-native, patient-facing health companion unifying seven clinical modules:
 1. **Approved Fact Vault** (Shared privacy-first local source of truth)
 2. **LabStory** (Doctor-prescribed longitudinal biomarker causal engine)
 3. **PillMap** (Visual 7x4 polypharmacy negotiator with SVG conflict arcs and diet badges)
@@ -34,7 +34,7 @@ CareCanvas is an agent-native, patient-facing health companion unifying seven cl
 
 ```
 +----------------------------------------------------------------------------------------------------+
-|                                CARECANVAS POST-DISCHARGE LIFECYCLE                                 |
+|                                HEALTHBOOK POST-DISCHARGE LIFECYCLE                                 |
 +----------------------------------------------------------------------------------------------------+
 |                                                                                                    |
 |  [ FLOW A: Discharge Night ]                                                                       |
@@ -164,7 +164,7 @@ Verify caregiver proxy switching with fine-grained scoped permissions, audited a
 
 | Step # | User Action | WebMCP Tool Invocations | Expected System State & UI Assertions | Human Approval Gate |
 |---|---|---|---|---|
-| **E.1** | Caregiver (`Raj`, son) logs into CareCanvas. | `switch_profile(target_patient_id='p_devi_78')` | 1. Caregiver dashboard displays patient profile switcher: `[Self] | [S. Devi (Mother - 78yo)]`.<br>2. Active profile switches to `S. Devi`.<br>3. Header displays persistent proxy banner: `👁️ Managing Care for S. Devi (Mother) — Manage Permissions Active`. | Authenticated proxy session. |
+| **E.1** | Caregiver (`Raj`, son) logs into Healthbook. | `switch_profile(target_patient_id='p_devi_78')` | 1. Caregiver dashboard displays patient profile switcher: `[Self] | [S. Devi (Mother - 78yo)]`.<br>2. Active profile switches to `S. Devi`.<br>3. Header displays persistent proxy banner: `👁️ Managing Care for S. Devi (Mother) — Manage Permissions Active`. | Authenticated proxy session. |
 | **E.2** | Caregiver reviews pending Doctor Proposal (Metformin dose reduction from Flow C). | `act_on_behalf(action='approve_dosage_change', payload)` | 1. Caregiver taps `[Approve on Behalf]`.<br>2. Vault audit log records transaction metadata: `{"author": "Raj (Son)", "on_behalf_of": "S. Devi", "role": "caregiver_manage", "timestamp": "2026-08-28T13:40:00Z"}`.<br>3. UI shows: *"Approved by Raj (son) on behalf of S. Devi"*. | Audited Proxy Approval Gate. |
 | **E.3** | Patient/Caregiver prepares for consultation with a new Nephrologist (`Dr. Chen`). | `compile_health_record(patient_id='p_devi_78')` | 1. Continuity Dossier compiles all 7 modules into a unified longitudinal view:<br> - Demographics & Allergies (Penicillin - Anaphylaxis)<br> - 5-Year LabStory time-series with normal vs optimal bands<br> - RxBridge 3-list reconciliation diff history<br> - Current 7x4 PillMap regimen with meal badges<br> - HomeLab review timeline & pinned doctor comments<br> - Safety Alert incident log & danger sign photo<br> - Complete Caregiver Proxy audit trail. | Dynamic local compilation from IndexedDB. |
 | **E.4** | User clicks on source citation for historical diagnosis: *"CKD Stage 3b diagnosed on 2024-04-12"*. | `view_timeline(item_id)` | 1. Built-in PDF/document viewer splits screen.<br>2. Document automatically scrolls, zooms to 150%, and draws a translucent blue bounding box `[x: 120, y: 340, w: 220, h: 45]` around the text on the original scan `nephrology_consult_2024.pdf`. | Precise bounding-box coordinate matching verified. |
@@ -500,7 +500,7 @@ Verify caregiver proxy switching with fine-grained scoped permissions, audited a
 | **T2-09** | Expired Doctor Token | Doctor attempts to view dossier using token with `expiry_date` in the past. | Server/LocalVault rejects request with `401 Unauthorized: Access token expired on 2026-08-20. Please request fresh access from patient.` | `TOKEN_EXPIRED` |
 | **T2-10** | Unauthorized Role Escalation | Caregiver with `View Only` permission attempts to invoke `act_on_behalf('doctor_remove_medication')`. | Security middleware intercepts call, blocks execution, logs security violation attempt to audit trail, and returns `403 Forbidden`. | `PERMISSION_DENIED` |
 | **T2-11** | Local Storage Quota Exhaustion | IndexedDB approaches browser storage quota (e.g. 50MB of high-res photos). | System activates automatic image optimization (converts photos to compressed WebP 1200px max width) and warns user before storage rejection. | `STORAGE_OPTIMIZED` |
-| **T2-12** | Offline / Disconnected State | Network disconnects while using CareCanvas. | All core modules (Vault, PillMap, LabStory, RxBridge) continue functioning 100% offline via local IndexedDB and client-side WebMCP engine; sync queues for background flush. | `OFFLINE_MODE_ACTIVE` |
+| **T2-12** | Offline / Disconnected State | Network disconnects while using Healthbook. | All core modules (Vault, PillMap, LabStory, RxBridge) continue functioning 100% offline via local IndexedDB and client-side WebMCP engine; sync queues for background flush. | `OFFLINE_MODE_ACTIVE` |
 
 ---
 
@@ -961,7 +961,7 @@ All bounding boxes are normalized to a standard coordinate grid of $[0, 1000]$ r
 
 ```typescript
 /**
- * CareCanvas WebMCP Mock Test Harness Shim
+ * Healthbook WebMCP Mock Test Harness Shim
  * File: test/harness/webmcp-test-shim.ts
  */
 
@@ -1113,9 +1113,9 @@ export class WebMCPTestHarness {
 }
 ```
 
-#### GitHub Actions Automated CI Workflow Recipe (`.github/workflows/carecanvas-ci.yml`)
+#### GitHub Actions Automated CI Workflow Recipe (`.github/workflows/healthbook-ci.yml`)
 ```yaml
-name: CareCanvas Continuous Verification Pipeline
+name: Healthbook Continuous Verification Pipeline
 
 on:
   push:

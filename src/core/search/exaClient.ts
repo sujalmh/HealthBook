@@ -1,5 +1,5 @@
 /**
- * CareCanvas Search Core — Exa Client
+ * Healthbook Search Core — Exa Client
  * POST https://api.exa.ai/search with Authorization: Bearer <key>
  */
 
@@ -152,7 +152,7 @@ function resolveAuthHeader(config: ReturnType<typeof getExaConfig>, options?: Ex
     return `Bearer ${String(options.apiKeyOverride).trim()}`;
   }
   if (typeof localStorage !== 'undefined') {
-    const k = localStorage.getItem('VITE_EXA_API_KEY') || localStorage.getItem('carecanvas_VITE_EXA_API_KEY') || localStorage.getItem('EXA_API_KEY');
+    const k = localStorage.getItem('VITE_EXA_API_KEY') || localStorage.getItem('healthbook_VITE_EXA_API_KEY') || localStorage.getItem('EXA_API_KEY');
     if (k && k.trim()) return `Bearer ${k.trim()}`;
   }
   try {

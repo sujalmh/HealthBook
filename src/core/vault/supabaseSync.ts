@@ -1,11 +1,11 @@
 /**
- * CareCanvas Supabase Sync & Hydration Layer (M2)
+ * Healthbook Supabase Sync & Hydration Layer (M2)
  *
  * Domain: LocalVault <-> Supabase Postgres persistence
  * - syncToSupabase: fire-and-forget upsert after local Map.set + EventBus emit (non-blocking, no event duplication)
  * - hydrateFromSupabase / hydrateFromSupabaseToVault: pull Postgres rows -> Map.set silently without emitting duplicate `added` inflation
  *
- * Patient isolation: exact `patientId ===` per-account (never includes, never prefix) — real userId from carecanvas_active_user.
+ * Patient isolation: exact `patientId ===` per-account (never includes, never prefix) — real userId from healthbook_active_user.
  * CANONICAL_PATIENT_ID retained only as legacy migration constant re-export (see seed.ts), not as default activeProfile.
  * Offline graceful: missing URL or Supabase down => {hydrated:0, skipped:true} without throw, no throw to bootstrap
  * EventBus relevance matrix: hydration does NOT emit added/updated events; only optional silent meta, no spurious rerender

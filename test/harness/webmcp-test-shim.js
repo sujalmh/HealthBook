@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Test Harness & Assertion Engine
+ * Healthbook WebMCP Test Harness & Assertion Engine
  */
 import { WebMCPEngine } from '../../src/core/webmcp/WebMCPEngine.ts';
 import { LocalVaultManager } from '../../src/core/vault/LocalVault.ts';

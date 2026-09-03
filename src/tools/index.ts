@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools Catalog & Registration — Protocol-Correct Catalog Bridge
+ * Healthbook WebMCP Tools Catalog & Registration — Protocol-Correct Catalog Bridge
  * W3C WebMCP Spec Draft 26 Aug 2026 §4.2.1 Dictionary Conformance
  * Catalog: 42 tools snake_case Q5 (vault3+labstory2+pillmap8+rxbridge5+homelab5+safety9+carecircle8+auth2)
  *   Auth: create_account, sign_in — human-only password (AI prefills name/email/role, human types password in browser)

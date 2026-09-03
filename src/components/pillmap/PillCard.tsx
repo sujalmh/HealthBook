@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: PillCard
+ * Healthbook Component: PillCard
  * Accessible, high-contrast draggable pill card displaying dosage, shape icon, meal badges, and conflict indicators.
  */
 
@@ -164,7 +164,7 @@ export const PillCard: React.FC<PillCardProps> = ({
               </button>
             )}
             <div
-              className="cursor-grab active:cursor-grabbing text-muted hover:text-slate-700 min-h-[44px] min-w-[36px] flex items-center justify-center p-1 rounded-lg"
+              className="hidden sm:flex cursor-grab active:cursor-grabbing text-muted hover:text-slate-700 min-h-[44px] min-w-[36px] items-center justify-center p-1 rounded-lg"
               title="Drag to move"
               aria-label="Drag handle"
             >

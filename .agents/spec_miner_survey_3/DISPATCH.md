@@ -1,7 +1,7 @@
 ## 2026-08-28T20:44:06Z
-You are spec_miner_survey_3 for CareCanvas.
+You are spec_miner_survey_3 for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/spec_miner_survey_3.
-Your task is to conduct an exhaustive specification analysis of the Test Architecture, E2E Test Suite (Tiers 1-4 & Flows A-E), and mock fixture datasets for CareCanvas.
+Your task is to conduct an exhaustive specification analysis of the Test Architecture, E2E Test Suite (Tiers 1-4 & Flows A-E), and mock fixture datasets for Healthbook.
 
 Authoritative source documents to read:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md

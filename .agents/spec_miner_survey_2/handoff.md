@@ -1,4 +1,4 @@
-# Handoff Report: CareCanvas Clinical Modules & Interactive Visual Canvases Specification
+# Handoff Report: Healthbook Clinical Modules & Interactive Visual Canvases Specification
 
 **Agent:** spec_miner_survey_2  
 **Date:** 2026-08-28T20:46:00Z  

@@ -96,7 +96,7 @@ To independently verify the implementation:
    ```
    *Expected result: 9 test files passed (105 tests passed, 0 failed).*
 
-4. **CareCanvas Master Test Suite Runner (Tier 1–4 & E2E Flows)**:
+4. **Healthbook Master Test Suite Runner (Tier 1–4 & E2E Flows)**:
    ```bash
    node --experimental-strip-types test/test-runner.ts
    ```

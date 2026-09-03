@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: Safety Alerts, Doctor Remote Pillbox & Calendar (M5) — AI Triage Enhanced
+ * Healthbook WebMCP Tools: Safety Alerts, Doctor Remote Pillbox & Calendar (M5) — AI Triage Enhanced
  * Tools: report_danger_sign, notify_doctor, doctor_add_medication, doctor_remove_medication, doctor_change_dose,
  *        approve_pillmap_change, schedule_followup, schedule_lab, sync_to_calendar
  * AI triage via AI vision+text assessment (send freeText + photoBlob data URL single multimodal request to AI when enabled, return severity assessment).
@@ -580,9 +580,9 @@ export const syncToCalendarTool: WebMCPToolDefinition = {
     const icsContent = `
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//CareCanvas Health Companion//EN
+PRODID:-//Healthbook Health Companion//EN
 BEGIN:VEVENT
-UID:event-${params.eventId}@carecanvas.app
+UID:event-${params.eventId}@healthbook.app
 DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
 DTSTART:${dtstartICS}
 ${dtendLine}SUMMARY:Clinic Follow-Up

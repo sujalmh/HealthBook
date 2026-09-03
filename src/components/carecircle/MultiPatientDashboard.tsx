@@ -37,7 +37,7 @@ export const MultiPatientDashboard: React.FC<MultiPatientDashboardProps> = ({
     // Vault-derived family patients — no hardcoded Mother/Father/Child mocks.
     let primaryId = '';
     try {
-      const raw = localStorage.getItem('carecanvas_active_user');
+      const raw = localStorage.getItem('healthbook_active_user');
       if (raw) primaryId = JSON.parse(raw)?.userId || '';
     } catch { /* intentionally empty */ }
     if (!primaryId) return [];

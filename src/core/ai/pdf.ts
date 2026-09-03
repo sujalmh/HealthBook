@@ -1,5 +1,5 @@
 /**
- * CareCanvas AI — Client-side PDF Text Extraction (stub)
+ * Healthbook AI — Client-side PDF Text Extraction (stub)
  * Prod pipeline is Mistral OCR only (see ocr.ts); this module preserved for API compat.
  * Why stub: manual pdfjs-dist fallback disabled per client.ts:248 — OCR-only pipeline avoids inaccurate extraction.
  */

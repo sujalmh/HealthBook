@@ -60,13 +60,13 @@ describe('Auth MCP Tools — human-only password onboarding', () => {
     expect(res.humanApprovalRequired).toBe(true);
     expect(res.pendingApprovalId).toBeTruthy();
     expect(res.data.status).toBe('awaiting_human_password');
-    expect(res.data.pendingStorageKey).toBe('carecanvas_mcp_auth_pending');
+    expect(res.data.pendingStorageKey).toBe('healthbook_mcp_auth_pending');
     expect(res.plainLanguageSummary.toLowerCase()).toContain('password');
     expect(res.plainLanguageSummary.toLowerCase()).toContain('human');
     // no password in data
     expect(JSON.stringify(res.data).toLowerCase()).not.toContain('"password"');
     // pending stored
-    const pendingRaw = localStorage.getItem('carecanvas_mcp_auth_pending');
+    const pendingRaw = localStorage.getItem('healthbook_mcp_auth_pending');
     expect(pendingRaw).toBeTruthy();
     const pending = JSON.parse(pendingRaw!);
     expect(pending.email).toBe('alice@example.com');
@@ -74,31 +74,30 @@ describe('Auth MCP Tools — human-only password onboarding', () => {
     expect(pending).not.toHaveProperty('password');
   });
 
-  it('sign_in stages pending for existing account', async () => {
-    localStorage.setItem('carecanvas_users', JSON.stringify([{ userId: 'u1', email: 'existing@example.com', name: 'Existing', role: 'patient', password: 'CorrectPass123' }]));
+  it('sign_in stages pending without local lookup (server validates at completion)', async () => {
     engine.register(signInTool);
     const res = await engine.execute('sign_in', { email: 'existing@example.com' });
     expect(res.success).toBe(true);
     expect(res.humanApprovalRequired).toBe(true);
     expect(res.data.mode).toBe('signin');
     expect(res.data.email).toBe('existing@example.com');
-    const pendingRaw = localStorage.getItem('carecanvas_mcp_auth_pending');
+    expect(res.data.status).toBe('awaiting_human_password');
+    const pendingRaw = localStorage.getItem('healthbook_mcp_auth_pending');
     expect(pendingRaw).toBeTruthy();
   });
 
-  it('sign_in fails for unknown email', async () => {
+  it('sign_in stages pending even for unknown email (server validates at completion)', async () => {
     engine.register(signInTool);
     const res = await engine.execute('sign_in', { email: 'unknown@example.com' });
-    expect(res.success).toBe(false);
-    expect(res.error?.code).toBe('ACCOUNT_NOT_FOUND');
+    expect(res.success).toBe(true);
+    expect(res.data.status).toBe('awaiting_human_password');
   });
 
-  it('create_account fails for duplicate email', async () => {
-    localStorage.setItem('carecanvas_users', JSON.stringify([{ userId: 'u1', email: 'dup@example.com', name: 'Dup', role: 'patient', password: 'x' }]));
+  it('create_account stages pending without local duplicate check (server validates)', async () => {
     engine.register(createAccountTool);
     const res = await engine.execute('create_account', { email: 'dup@example.com', name: 'Dup2' });
-    expect(res.success).toBe(false);
-    expect(res.error?.code).toBe('ACCOUNT_EXISTS');
+    expect(res.success).toBe(true);
+    expect(res.data.status).toBe('awaiting_human_password');
   });
 
   it('native getTools exposes 42 with auth tools and inputSchema parseable', async () => {

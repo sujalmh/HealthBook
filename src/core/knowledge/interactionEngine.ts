@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: Interaction Engine & Schedule Negotiator — AI-native.
+ * Healthbook Core: Interaction Engine & Schedule Negotiator — AI-native.
  *
  * There is no bundled drug database in this app. Every evaluation below calls
  * the configured AI pipeline (callAI) with verified clinical rubrics embedded

@@ -1,14 +1,11 @@
 import React from 'react';
 import {
-  Calendar,
   Clock,
   AlertTriangle,
   CheckCircle2,
   UploadCloud,
-  FileText,
   User,
   Info,
-  ChevronRight
 } from 'lucide-react';
 import type { DueCardRecord } from '@/types/vault';
 
@@ -35,16 +32,8 @@ export const DueCardList: React.FC<DueCardListProps> = ({
 
   if (dueCards.length === 0) {
     return (
-      <div className="bg-white border border-canvas-border rounded-2xl p-8 text-center space-y-4 shadow-sm">
-        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
-          <CheckCircle2 className="w-6 h-6" />
-        </div>
-        <div className="space-y-1">
-          <h3 className="text-heading-md text-slate-900">All caught up!</h3>
-          <p className="text-body-sm text-muted max-w-md mx-auto">
-            No tests waiting — you're up to date. When your doctor asks for a new test, it will appear here.
-          </p>
-        </div>
+      <div className="bg-white border border-canvas-border rounded-2xl p-6 text-center space-y-3 shadow-sm">
+        <p className="text-body-sm font-semibold text-slate-800">No tests waiting.</p>
         <button
           onClick={() => onUploadClick()}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border text-body-sm font-semibold transition-colors min-h-[44px]"
@@ -57,16 +46,8 @@ export const DueCardList: React.FC<DueCardListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-primary" />
-          <h3 className="text-heading-md text-slate-900">Your Tests</h3>
-        </div>
-        <span className="text-body-sm text-muted">
-          {dueCards.filter((c) => c.status !== 'completed').length} waiting
-        </span>
-      </div>
+    <div className="space-y-3">
+      <h3 className="text-heading-md text-slate-900">Your tests {dueCards.filter((c) => c.status !== 'completed').length > 0 && <span className="text-body-sm text-muted font-semibold">({dueCards.filter((c) => c.status !== 'completed').length} waiting)</span>}</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {dueCards.map((card) => {

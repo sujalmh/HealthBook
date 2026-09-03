@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: ReminderConfigModal
+ * Healthbook Component: ReminderConfigModal
  * Configures persistent time-slot notifications for daily medications and saves them to LocalVault.
  */
 

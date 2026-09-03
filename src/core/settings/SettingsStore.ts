@@ -1,8 +1,8 @@
 /**
- * CareCanvas Settings Store — Generic configurable LLM config via Settings page OR .env without hardcoding (R3).
+ * Healthbook Settings Store — Generic configurable LLM config via Settings page OR .env without hardcoding (R3).
  * Persists VITE_AI_* generically via localStorage with Settings>env precedence.
  * Never hardcode provider/model/baseURL literals — all via generic keys.
- * Keys: carecanvas_settings JSON blob + individual VITE_AI_* keys + carecanvas_VITE_AI_*.
+ * Keys: healthbook_settings JSON blob + individual VITE_AI_* keys + healthbook_VITE_AI_*.
  * 13 VITE_AI_* example keys documented in .env.example:14-51 — all configurable.
  * Validates baseURL/model not empty when enabled, never commits .env (.gitignore .env PASS).
  * Uses generic keys, no hardcoded provider literals.
@@ -73,12 +73,12 @@ export const SETTINGS_VITE_KEYS: (keyof SettingsState)[] = [
 
 // Storage blob keys — SettingsStore writes via same keys read by src/core/ai/config.ts:68-139
 export const SETTINGS_BLOB_KEYS = [
-  'carecanvas_settings',
-  'carecanvas_ai_settings',
-  'carecanvas_ai_config',
+  'healthbook_settings',
+  'healthbook_ai_settings',
+  'healthbook_ai_config',
 ] as const;
 
-export const SETTINGS_PRIMARY_BLOB = 'carecanvas_settings';
+export const SETTINGS_PRIMARY_BLOB = 'healthbook_settings';
 
 function isBrowser(): boolean {
   return typeof localStorage !== 'undefined';
@@ -130,7 +130,7 @@ export function validateSettings(state: Partial<SettingsState>): { valid: boolea
 export function loadSettings(): Partial<SettingsState> {
   const merged: Partial<SettingsState> = {};
   if (!isBrowser()) return merged;
-  // 1) Read JSON blob stores — carecanvas_settings primary, others fallback
+  // 1) Read JSON blob stores — healthbook_settings primary, others fallback
   for (const blobKey of SETTINGS_BLOB_KEYS) {
     try {
       const raw = localStorage.getItem(blobKey);
@@ -178,7 +178,7 @@ export function loadSettings(): Partial<SettingsState> {
       if (v !== null && v !== '' && v !== undefined) {
         (merged as any)[k] = v;
       }
-      const alt = localStorage.getItem(`carecanvas_${k}`);
+      const alt = localStorage.getItem(`healthbook_${k}`);
       if (alt !== null && alt !== '' && merged[k] === undefined) {
         (merged as any)[k] = alt;
       }
@@ -207,7 +207,7 @@ export function saveSettings(state: Partial<SettingsState>): void {
   }
 
   // Validate baseURL/model not empty if enabled — still save but caller can check valid
-  // Persist to primary blob carecanvas_settings JSON blob + individual VITE_AI_* keys + carecanvas_VITE_AI_*
+  // Persist to primary blob healthbook_settings JSON blob + individual VITE_AI_* keys + healthbook_VITE_AI_*
   const toPersist: Record<string, string> = {};
   for (const k of SETTINGS_VITE_KEYS) {
     if ((normalized as any)[k] !== undefined) toPersist[k] = String((normalized as any)[k]);
@@ -245,17 +245,17 @@ export function saveSettings(state: Partial<SettingsState>): void {
     // ignore quota errors
   }
 
-  // Also write individual VITE_AI_* keys and carecanvas_VITE_AI_* for Settings>env precedence robust
+  // Also write individual VITE_AI_* keys and healthbook_VITE_AI_* for Settings>env precedence robust
   try {
     for (const k of SETTINGS_VITE_KEYS) {
       const v = (normalized as any)[k];
       if (v !== undefined && v !== '') {
         localStorage.setItem(k, v);
-        localStorage.setItem(`carecanvas_${k}`, v);
+        localStorage.setItem(`healthbook_${k}`, v);
       } else if ((state as any)[k] === '') {
         // Explicit clear
         localStorage.removeItem(k);
-        localStorage.removeItem(`carecanvas_${k}`);
+        localStorage.removeItem(`healthbook_${k}`);
         // Also remove from blob handled above
       }
     }
@@ -272,7 +272,7 @@ export function clearSettings(): void {
     }
     for (const k of SETTINGS_VITE_KEYS) {
       localStorage.removeItem(k);
-      localStorage.removeItem(`carecanvas_${k}`);
+      localStorage.removeItem(`healthbook_${k}`);
     }
   } catch {
     // ignore

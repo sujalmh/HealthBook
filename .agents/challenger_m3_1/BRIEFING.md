@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T22:49:00Z
 
 ## Mission
-Conduct empirical and programmatic stress tests for mobile viewport responsiveness across 320px, 375px, 390px, 414px, and 430px widths on all 8 modules, shell navigation, and 12+ modal dialogs in CareCanvas. Deliver verified findings with explicit verdict APPROVE / REQUEST_CHANGES.
+Conduct empirical and programmatic stress tests for mobile viewport responsiveness across 320px, 375px, 390px, 414px, and 430px widths on all 8 modules, shell navigation, and 12+ modal dialogs in Healthbook. Deliver verified findings with explicit verdict APPROVE / REQUEST_CHANGES.
 
 ## 🔒 My Identity
 - Archetype: challenger

@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: PillMapView
+ * Healthbook Component: PillMapView
  * Main module container for Milestone 3 (PillMap & Polypharmacy Negotiator 7x4 Canvas).
  * Features: Chronotype selector, OTC drag palette, SVG conflict arcs, meal badges,
  * schedule optimizer ghost preview, missed dose adherence simulator, and pharmacist export.
@@ -15,13 +15,7 @@ import {
   Plus,
   HelpCircle,
   ShieldAlert,
-  RotateCcw,
-  Sun,
-  Moon,
-  Clock,
-  Layers,
-  ArrowRight,
-  GripVertical
+  Clock
 } from 'lucide-react';
 import type {
   PillboxGrid as IPillboxGrid,
@@ -100,7 +94,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   }
 
   // Load and refresh grid from LocalVault — read-only, no per-view seeding (centralized seed.ts via main.tsx owns baseline).
-  // Uses effectivePatientId derived via globalThis localStorage carecanvas_active_user for isolation never '' leak
+  // Uses effectivePatientId derived via globalThis localStorage healthbook_active_user for isolation never '' leak
   const loadMedicationsFromVault = () => {
     const pid = effectivePatientId;
     const vaultMeds = pid ? localVault.getMedications(pid, 'active') : [];
@@ -477,112 +471,99 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const activeMedNames = useMemo(() => effectivePatientId ? localVault.getMedications(effectivePatientId, 'active').map((m) => m.brandName || m.genericName) : [], [effectivePatientId, grid]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-3 animate-fade-in">
       {/* Top Controls Bar */}
-      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Module Title & Badge */}
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-primary-light text-primary border border-primary-border flex items-center justify-center shadow-sm shrink-0">
-              <Pill className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                My Medicines
-              </h2>
-              <p className="text-body-sm text-muted">
-                Your medicines for the week — drag to change times, see warnings, and check food rules.
-              </p>
-            </div>
+      <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-sm space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-bold tracking-tight text-slate-900 truncate">
+            My Medicines {activeMedsCount > 0 && <span className="text-sm font-semibold text-muted">({activeMedsCount})</span>}
+          </h2>
+          {activeMedsCount > 0 && (
+          <button
+            onClick={() => setIsAddMedOpen(true)}
+            className="flex items-center justify-center gap-1 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-sm font-bold shadow-sm transition-all min-h-[44px] shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add</span>
+          </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle (Full Grid vs Elder Mode) */}
+          <div className="flex items-center gap-0.5 bg-canvas-muted p-0.5 rounded-xl border border-canvas-border text-xs shadow-xs shrink-0">
+            <button
+              onClick={() => setViewMode('canvas')}
+              className={`px-2.5 py-2 rounded-lg font-bold transition-all min-h-[40px] flex items-center justify-center ${
+                viewMode === 'canvas' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
+              }`}
+            >
+              Week
+            </button>
+            <button
+              onClick={() => setViewMode('elder')}
+              className={`px-2.5 py-2 rounded-lg font-bold transition-all min-h-[40px] flex items-center justify-center ${
+                viewMode === 'elder' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
+              }`}
+            >
+              Simple
+            </button>
           </div>
 
-          {/* Right Toolbar: View Toggle, Chronotype, Actions */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* View Mode Toggle (Full Grid vs Elder Mode) */}
-            <div className="flex items-center gap-1 bg-canvas-muted p-1 rounded-xl border border-canvas-border text-body-sm shadow-xs">
-              <button
-                onClick={() => setViewMode('canvas')}
-                className={`px-3.5 py-1.5 rounded-lg font-bold transition-all min-h-[36px] flex items-center justify-center ${
-                  viewMode === 'canvas' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
-                }`}
-              >
-                Week View
-              </button>
-              <button
-                onClick={() => setViewMode('elder')}
-                className={`px-3.5 py-1.5 rounded-lg font-bold transition-all min-h-[36px] flex items-center justify-center ${
-                  viewMode === 'elder' ? 'bg-white text-primary font-bold shadow-xs border border-canvas-border' : 'text-muted hover:text-slate-900 border border-transparent'
-                }`}
-              >
-                Simple View
-              </button>
-            </div>
-
-            {/* Chronotype Selector */}
-            <div className="flex items-center bg-canvas-muted px-3 py-1.5 rounded-xl border border-canvas-border text-body-sm gap-2 min-h-[36px] shadow-xs">
-              <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-              <select
-                value={chronotype}
-                onChange={(e) => setChronotype(e.target.value as Chronotype)}
-                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer py-1"
-                title="Select sleep/wake chronotype"
-              >
-                <option value="standard">Standard (08:00–22:00)</option>
-                <option value="early_bird">Early Lark (06:30–21:00) 🌅</option>
-                <option value="night_owl">Night Owl (10:00–00:30)</option>
-              </select>
-            </div>
+          {/* Chronotype Selector */}
+          <div className="flex items-center bg-canvas-muted px-2.5 py-1 rounded-xl border border-canvas-border text-xs gap-1.5 min-h-[40px] shadow-xs flex-1 min-w-0">
+            <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+            <select
+              value={chronotype}
+              onChange={(e) => setChronotype(e.target.value as Chronotype)}
+              className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer py-1 w-full truncate"
+              title="Select sleep/wake chronotype"
+            >
+              <option value="standard">Standard</option>
+              <option value="early_bird">Early Lark</option>
+              <option value="night_owl">Night Owl</option>
+            </select>
           </div>
         </div>
 
-        {/* Action Button Strip — only when medicines exist; the empty state owns the Add CTA */}
+        {/* Action Button Strip — icon-only on phone, labeled on desktop; the empty state owns the Add CTA */}
         {activeMedsCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-canvas-border">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Schedule Optimizer */}
-            <button
-              onClick={handleOptimizeSchedule}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-body-sm font-bold shadow-sm transition-all min-h-[44px]"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>Find Best Times</span>
-            </button>
-
-            {/* Missed Dose Simulator */}
-            <button
-              onClick={() => handleOpenSimulator()}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-body-sm font-semibold transition-all min-h-[44px]"
-            >
-              <HelpCircle className="w-4 h-4 text-amber-600" />
-              <span>What if I miss a dose?</span>
-            </button>
-
-            {/* Pharmacist Export */}
-            <button
-              onClick={handleOpenExport}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border text-body-sm font-semibold transition-all min-h-[44px]"
-            >
-              <FileText className="w-4 h-4 text-primary" />
-              <span>Print for Pharmacist</span>
-            </button>
-
-            {/* Set Reminders */}
-            <button
-              onClick={() => setIsReminderModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border text-body-sm font-semibold transition-all min-h-[44px]"
-            >
-              <Bell className="w-4 h-4 text-primary" />
-              <span>Reminders</span>
-            </button>
-          </div>
-
-          {/* Add Medication Button */}
+        <div className="flex items-center gap-1.5 pt-2.5 border-t border-canvas-border">
           <button
-            onClick={() => setIsAddMedOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm transition-all min-h-[44px]"
+            onClick={handleOptimizeSchedule}
+            title="Find best times"
+            aria-label="Find best times"
+            className="flex items-center justify-center gap-1 p-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all min-h-[44px] min-w-[44px]"
           >
-            <Plus className="w-4 h-4" />
-            <span>Add Medication</span>
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs font-bold">Best times</span>
+          </button>
+          <button
+            onClick={() => handleOpenSimulator()}
+            title="What if I miss a dose?"
+            aria-label="What if I miss a dose?"
+            className="flex items-center justify-center gap-1 p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-all min-h-[44px] min-w-[44px]"
+          >
+            <HelpCircle className="w-4 h-4 text-amber-600" />
+            <span className="hidden sm:inline text-xs font-semibold">Missed dose</span>
+          </button>
+          <button
+            onClick={handleOpenExport}
+            title="Print for pharmacist"
+            aria-label="Print for pharmacist"
+            className="flex items-center justify-center gap-1 p-2 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border transition-all min-h-[44px] min-w-[44px]"
+          >
+            <FileText className="w-4 h-4 text-primary" />
+            <span className="hidden sm:inline text-xs font-semibold">Print</span>
+          </button>
+          <button
+            onClick={() => setIsReminderModalOpen(true)}
+            title="Reminders"
+            aria-label="Reminders"
+            className="flex items-center justify-center gap-1 p-2 rounded-xl bg-white hover:bg-canvas-muted text-slate-700 border border-canvas-border transition-all min-h-[44px] min-w-[44px]"
+          >
+            <Bell className="w-4 h-4 text-primary" />
+            <span className="hidden sm:inline text-xs font-semibold">Reminders</span>
           </button>
         </div>
         )}
@@ -621,25 +602,20 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
       <div className="space-y-3">
         {/* Contraindicated / Major Interactions Banner — light, high contrast */}
         {interactionArcs.length > 0 && (
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-rose-100 text-rose-600 border border-rose-200">
-                <ShieldAlert className="w-5 h-5" />
+          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-rose-100 text-rose-600 border border-rose-200">
+                <ShieldAlert className="w-4 h-4" />
               </div>
-              <div>
-                <h4 className="font-bold text-rose-900 text-sm">
-                  {interactionArcs.length} Warning{interactionArcs.length === 1 ? '' : 's'} — medicines that don't mix well
-                </h4>
-                <p className="text-rose-700 text-[11px] mt-0.5">
-                  Tap the red or orange lines between pills to see why they clash.
-                </p>
-              </div>
+              <h4 className="font-bold text-rose-900 text-sm">
+                {interactionArcs.length} warning{interactionArcs.length === 1 ? '' : 's'}
+              </h4>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {interactionArcs.map((arc, idx) => (
                 <span
                   key={idx}
-                  className={`px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase border ${
+                  className={`px-2 py-0.5 rounded-lg font-bold text-[10px] uppercase border ${
                     arc.severity === 'CONTRAINDICATED'
                       ? 'bg-rose-100 text-rose-700 border-rose-200'
                       : 'bg-amber-100 text-amber-800 border-amber-200'
@@ -654,11 +630,11 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
 
         {/* Duplicate Active Ingredient Warning Banner — light */}
         {duplicateAlerts.length > 0 && (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex items-start gap-3 text-xs text-amber-800">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex items-start gap-2.5 text-xs text-amber-800">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h4 className="font-bold text-amber-900 text-sm">
-                Duplicate ingredient — you have the same medicine twice
+                Same ingredient twice
               </h4>
               {duplicateAlerts.map((dup, idx) => (
                 <p key={idx} className="text-amber-800 text-[11px]">
@@ -710,20 +686,12 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
           />
 
           {/* Interactive OTC & Supplement Drag Palette */}
-          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-muted" />
-                <h3 className="text-caption uppercase tracking-wider text-slate-800">
-                  Shop medicines — drag onto your week
-                </h3>
-              </div>
-              <span className="text-caption text-muted">
-                Drag any store-bought medicine or vitamin onto a day to check for warnings.
-              </span>
-            </div>
+          <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-sm space-y-3">
+            <h3 className="text-sm font-bold text-slate-800">
+              Store medicines — tap to add
+            </h3>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+            <div className="flex sm:grid sm:grid-cols-4 lg:grid-cols-8 gap-2 overflow-x-auto scrollbar-none sm:overflow-visible">
               {COMMON_OTCS.map((otc) => (
                 <div
                   key={otc.name}
@@ -743,10 +711,10 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                   onClick={() => {
                     handleDropPill({ name: otc.name, dosage: otc.dose }, 'monday', 'morning');
                   }}
-                  className="p-3 rounded-xl bg-canvas-muted border border-canvas-border hover:border-primary-border hover:bg-primary-light/30 cursor-grab active:cursor-grabbing transition-all select-none shadow-sm group min-h-[72px]"
-                  title={`Drag ${otc.name} (${otc.dose}) onto any pillbox slot, or click to add to Monday Morning`}
+                  className="p-2.5 rounded-xl bg-canvas-muted border border-canvas-border hover:border-primary-border hover:bg-primary-light/30 cursor-grab active:cursor-grabbing transition-all select-none shadow-sm group min-h-[44px] min-w-[132px] sm:min-w-0 flex sm:flex-col items-center sm:items-start gap-1.5 sm:gap-0"
+                  title={`Drag ${otc.name} (${otc.dose}) onto any pillbox slot, or tap to add to Monday Morning`}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
                     <span
                       className="w-3 h-3 rounded-full shrink-0 border border-white shadow-sm"
                       style={{ backgroundColor: otc.color }}
@@ -755,11 +723,8 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
                       {otc.name}
                     </span>
                   </div>
-                  <div className="mt-1 text-caption font-mono text-muted font-semibold truncate">
+                  <div className="text-caption font-mono text-muted font-semibold truncate shrink-0">
                     {otc.dose}
-                  </div>
-                  <div className="text-caption text-muted truncate mt-0.5">
-                    {otc.desc}
                   </div>
                 </div>
               ))}

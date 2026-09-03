@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: Vault Seeder — CLEAN (M1 Mock Removal)
+ * Healthbook Core: Vault Seeder — CLEAN (M1 Mock Removal)
  * CANONICAL_PATIENT_ID retained ONLY as legacy migration fallback for existing Supabase rows.
  * NOT used as default activeProfile — Create Account (M2) supplies real patientId.
  * Seeding is now NO-OP for new patients: seedVault/seedIfEmpty return empty counts and insert nothing.
@@ -10,7 +10,7 @@
 import type { LocalVaultManager } from './LocalVault.ts';
 
 // Legacy migration fallback — documented not to be used as default activeProfile.
-// Real patientId comes from authenticated session (localStorage carecanvas_active_user, Supabase auth).
+// Real patientId comes from authenticated session (localStorage healthbook_active_user, Supabase auth).
 export const CANONICAL_PATIENT_ID = 'patient-s-devi';
 
 export interface SeedResult {

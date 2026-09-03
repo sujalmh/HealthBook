@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types: Drug Knowledge Shapes (NO bundled data).
+ * Healthbook Types: Drug Knowledge Shapes (NO bundled data).
  *
  * Clinical content comes exclusively from the AI pipeline
  * (ClinicalInteractionEngine + verified prompt rubrics). This module keeps

@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types: RxBridge Post-Discharge 3-List Reconciliation Engine
+ * Healthbook Types: RxBridge Post-Discharge 3-List Reconciliation Engine
  */
 
 export type ChangeStatusBadge = 'CONTINUED' | 'DOSE_CHANGED' | 'STOPPED' | 'NEW' | 'HELD_AND_RESUMED';

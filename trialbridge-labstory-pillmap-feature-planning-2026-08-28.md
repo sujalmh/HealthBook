@@ -41,7 +41,7 @@ Sponsor: Netlify/Render for PWA offline.
 *Aug 28, 2026, 19:35 (opencode/muse-spark-1.2-contributor-free)*
 
 # WebMCP Hackathon — Feature Plan: `TrialBridge + LabStory + PillMap`
-**Unified Product Name Proposal: `CareCanvas` — Your Health, Narrated Back To You**
+**Unified Product Name Proposal: `Healthbook` — Your Health, Narrated Back To You**
 
 > Scope of this pass: Feature planning only. No technical architecture / implementation.
 
@@ -62,7 +62,7 @@ Thorough search completed 2026-08-28 on WebMCP Challenge, clinical trial, labs, 
 
 **Problem:** Trials, labs, and meds live in 3 silos. Patient uploads same PDF 3 times, repeats story, gets contradictory advice.
 
-**CareCanvas thesis:** One **Patient-Approved Fact Vault**. Every fact extracted from PDFs is narrated in plain language ("EGFR 32 = stage 3b kidney disease") and requires explicit `confirm_fact` tap. Once confirmed, that fact powers **all three modules**. No re-extraction, no re-trust.
+**Healthbook thesis:** One **Patient-Approved Fact Vault**. Every fact extracted from PDFs is narrated in plain language ("EGFR 32 = stage 3b kidney disease") and requires explicit `confirm_fact` tap. Once confirmed, that fact powers **all three modules**. No re-extraction, no re-trust.
 
 > Trial eligibility becomes accurate because labs are confirmed. Lab trends become meaningful because meds are known. Med timing becomes safe because lab contraindications are known.
 
@@ -179,7 +179,7 @@ Why novel: Existing med rec tools (PharmD, Medact) are static checkers. None wal
 
 *Aug 28, 2026, 20:56 (opencode/muse-spark-1.2-contributor-free)*
 
-# CareCanvas — Revised Feature Plan
+# Healthbook — Revised Feature Plan
 **Integrating 3 modules: `LabStory + PillMap + RxBridge`**
 *No TrialBridge. No technical architecture — features only.*
 
@@ -191,7 +191,7 @@ Why novel: Existing med rec tools (PharmD, Medact) are static checkers. None wal
 | **LabStory** | `PostVisit.ai` (Anthropic winner Feb 2026 — transcript → guidance), `MyLabcorp` (May 2026, OpenAI chat on trends), `Rupa Health Trends`, `FxMedSupport Health Insight` (Cerbo, 15 markers + intervention bands), `Health3`, `zlnsk/lab`, `Koshika` | Upload PDF → extract → single-marker chart. MyLabcorp/Rupa add AI explainer but in isolation. | No **5-year cross-PDF timeline with meds overlay** + **"Why is my A1c up?" → `correlate_meds`**. No on-device privacy as a *feature* (PHI never leaves browser). No question generation for doctor from trend. |
 | **PillMap** | `Medact`, `WellbieRx`, `Drugibly`, `MediMitra Care`, `EasyMed`, `Pilldora`, `ABiMed` (BMC 2025 — radial graph for pharmacists) | Text list checker: scan → list → severity tags. ABiMed radial graph is clinician-only. | No **visual pillbox canvas** (drag pills onto 7x4 week grid) → red arcs drawn *between pills* for interactions → `suggest_timing_shift` → patient approves. No `simulate_adherence(missedDose)` or `check_duplicate_ingredient` visually. |
 
-> All competitors are static checkers/dashboards for clinicians. CareCanvas is a **patient-at-home co-pilot with approval gate** — WebMCP human-in-loop.
+> All competitors are static checkers/dashboards for clinicians. Healthbook is a **patient-at-home co-pilot with approval gate** — WebMCP human-in-loop.
 
 ### 2. Unified Product Vision
 

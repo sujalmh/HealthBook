@@ -1,4 +1,4 @@
-# E2E Test Infra: CareCanvas Patient-Facing Health Companion
+# E2E Test Infra: Healthbook Patient-Facing Health Companion
 
 ## Test Philosophy
 - Opaque-box, requirement-driven, and client-side verifiable.

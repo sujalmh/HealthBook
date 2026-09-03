@@ -78,14 +78,14 @@ export const EmergencySnapshotCard: React.FC<EmergencySnapshotCardProps> = ({
       generatedAt: '2026-08-29T02:00:00Z',
       hash: 'sha256_8f4b23c91d8a245f7823e',
       signature: 'ECDSA_SHA256_LOCALVAULT_VERIFIED',
-      issuer: 'CareCanvas LocalVault Security Authority',
-      qrPayload: 'https://carecanvas.local/verify?code=CC-EMRG-8834A'
+      issuer: 'Healthbook LocalVault Security Authority',
+      qrPayload: 'https://healthbook.local/verify?code=CC-EMRG-8834A'
     }
   };
 
   const handleCopySummary = () => {
     const text = `
-CARECANVAS EMERGENCY CLINICAL SNAPSHOT
+HEALTHBOOK EMERGENCY CLINICAL SNAPSHOT
 Patient: ${data.patientName} (${data.age}${data.gender}) | DOB: ${data.dob} | MRN: ${data.mrn} | Blood: ${data.bloodType} | Code: ${data.codeStatus}
 
 ALLERGIES:
@@ -113,24 +113,24 @@ SECURITY VALIDATION:
   };
 
   return (
-    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-6 text-slate-900 print:bg-white print:text-black print:border-none print:shadow-none animate-fade-in">
+    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6 text-slate-900 print:bg-white print:text-black print:border-none print:shadow-none animate-fade-in">
       {/* Top Banner: Emergency Priority Header & Action Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-canvas-border pb-6 print:border-black">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl bg-rose-600 flex items-center justify-center text-white shadow-md">
-            <AlertOctagon className="w-7 h-7" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 border-b border-canvas-border pb-4 sm:pb-6 print:border-black">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-rose-600 flex items-center justify-center text-white shadow-md shrink-0">
+            <AlertOctagon className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-heading-lg text-slate-900 print:text-black">
-                Emergency clinical snapshot
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-heading-lg text-slate-900 print:text-black">
+                Emergency snapshot
               </h2>
-              <span className="text-caption px-2.5 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200 uppercase tracking-wider">
-                High priority quick-card
+              <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-clinical-red font-bold border border-rose-200 uppercase tracking-wider">
+                Quick-card
               </span>
             </div>
-            <p className="text-body-sm text-muted print:text-gray-600">
-              One-page high-yield clinical overview for emergency physicians, paramedics, and specialists.
+            <p className="text-xs sm:text-body-sm text-muted print:text-gray-600">
+              Key info for emergency care.
             </p>
           </div>
         </div>
@@ -159,18 +159,18 @@ SECURITY VALIDATION:
       </div>
 
       {/* Patient Demographics Bar — tokenized */}
-      <div className="bg-canvas-muted rounded-xl p-5 border border-canvas-border grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 text-body-sm">
-        <div>
+      <div className="bg-canvas-muted rounded-xl p-4 border border-canvas-border grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-body-sm">
+        <div className="min-w-0">
           <span className="text-caption text-muted uppercase font-bold tracking-wider">Patient name</span>
-          <p className="text-heading-md text-slate-900">{data.patientName}</p>
+          <p className="text-heading-md text-slate-900 truncate">{data.patientName}</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">DOB / Age</span>
-          <p className="text-sm font-bold text-slate-800">{data.dob} ({data.age}y / {data.gender})</p>
+          <p className="text-[13px] font-bold text-slate-800 break-words">{data.dob} ({data.age}y)</p>
         </div>
-        <div>
+        <div className="min-w-0">
           <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">MRN / ID</span>
-          <p className="text-sm font-mono font-bold text-sky-400">{data.mrn}</p>
+          <p className="text-[13px] font-mono font-bold text-sky-400 truncate" title={data.mrn}>{data.mrn}</p>
         </div>
         <div>
           <span className="text-[10px] text-slate-600 uppercase font-bold tracking-wider">Blood Type</span>
@@ -203,8 +203,8 @@ SECURITY VALIDATION:
                   Verified Severe Allergies
                 </h3>
               </div>
-              <span className="text-[10px] px-2 py-0.2 rounded-full bg-rose-500/20 text-rose-700 font-bold">
-                {data.verifiedAllergies.length} Critical Alert(s)
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-700 font-bold whitespace-nowrap">
+                {data.verifiedAllergies.length} critical
               </span>
             </div>
 
@@ -239,8 +239,8 @@ SECURITY VALIDATION:
                   Most Recent Key Labs
                 </h3>
               </div>
-              <span className="text-[10px] text-slate-600 font-mono">
-                {data.mostRecentCriticalLabs[0]?.drawDate}
+              <span className="text-[10px] text-slate-600 font-mono whitespace-nowrap">
+                {(() => { try { return new Date(data.mostRecentCriticalLabs[0]?.drawDate || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch { return ''; } })()}
               </span>
             </div>
 
@@ -270,7 +270,7 @@ SECURITY VALIDATION:
                             (Ref: {lab.referenceRange?.low}-{lab.referenceRange?.high})
                           </span>
                         </div>
-                        <span className="text-[10px] text-slate-600 font-mono">{lab.drawDate}</span>
+                        <span className="text-[10px] text-slate-600 font-mono">{(() => { try { return new Date(lab.drawDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch { return ''; } })()}</span>
                       </div>
 
                       <div className="text-right">

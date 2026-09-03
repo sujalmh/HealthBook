@@ -1,5 +1,5 @@
 /**
- * CareCanvas Serverless Mistral OCR Proxy
+ * Healthbook Serverless Mistral OCR Proxy
  * Dual-runtime: Node.js Serverless + Web Request.
  */
 

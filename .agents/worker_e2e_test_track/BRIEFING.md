@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T02:34:00Z
 
 ## Mission
-Implement CareCanvas comprehensive mock fixtures, 4-tier test suites (Tier 1-4), Acceptance Flows A-E automated test scripts, and standalone test runner.
+Implement Healthbook comprehensive mock fixtures, 4-tier test suites (Tier 1-4), Acceptance Flows A-E automated test scripts, and standalone test runner.
 
 ## 🔒 My Identity
 - Archetype: worker

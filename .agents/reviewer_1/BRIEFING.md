@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-28T21:31:06Z
 
 ## Mission
-Conduct comprehensive, objective review, verification, and adversarial stress-testing of CareCanvas codebase and WebMCP tool suite.
+Conduct comprehensive, objective review, verification, and adversarial stress-testing of Healthbook codebase and WebMCP tool suite.
 
 ## 🔒 My Identity
 - Archetype: reviewer

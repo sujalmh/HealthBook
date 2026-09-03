@@ -1,8 +1,8 @@
 ## 2026-08-29T03:01:06+05:30
 
-You are auditor_1 for CareCanvas.
+You are auditor_1 for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/auditor_1.
-Your task is to perform an exhaustive FORENSIC INTEGRITY AUDIT of the entire CareCanvas implementation.
+Your task is to perform an exhaustive FORENSIC INTEGRITY AUDIT of the entire Healthbook implementation.
 
 Authoritative source files to inspect:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md
@@ -15,7 +15,7 @@ Forensic Audit Verification Checklist:
 1. Authentic Clinical Algorithms vs Hardcoding:
    - Verify that drug-drug interaction detection, drug-diet checks, duplicate active ingredient searches, unit normalizations, Catmull-Rom spline computations, and 3-list reconciliation matching execute genuine algorithmic logic rather than hardcoded pattern-matching against specific test strings.
 2. WebMCP Protocol & Registration Authenticity:
-   - Verify that all 40 WebMCP tools genuinely register via `document.modelContext.registerTool` or the standard fallback mock adapter `window.__CareCanvas_WebMCP__`.
+   - Verify that all 40 WebMCP tools genuinely register via `document.modelContext.registerTool` or the standard fallback mock adapter `window.__Healthbook_WebMCP__`.
    - Verify that tools validate inputs against declared JSON schemas, produce structured responses, and emit reactive DOM/state events.
 3. Human-in-the-Loop Trust & Gating Authenticity:
    - Verify that unconfirmed extracted facts remain strictly segregated in the staging queue until explicitly confirmed via `confirm_fact` or UI Approve button.

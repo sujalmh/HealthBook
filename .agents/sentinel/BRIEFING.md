@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-28T20:43:10Z
 
 ## Mission
-Sentinel monitoring and orchestration dispatch for CareCanvas health companion web application.
+Sentinel monitoring and orchestration dispatch for Healthbook health companion web application.
 
 ## 🔒 My Identity
 - Archetype: sentinel
@@ -14,7 +14,7 @@ Sentinel monitoring and orchestration dispatch for CareCanvas health companion w
 - Victory Audit is MANDATORY before reporting completion
 
 ## User Context
-- **Last user request**: Build CareCanvas WebMCP health companion with 7 clinical modules, 30+ client-side WebMCP tools, 5 end-to-end demo flows, reactive visual canvases, and human approval gating.
+- **Last user request**: Build Healthbook WebMCP health companion with 7 clinical modules, 30+ client-side WebMCP tools, 5 end-to-end demo flows, reactive visual canvases, and human approval gating.
 - **Pending clarifications**: none
 - **Delivered results**: []
 

@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types: Family Care Circle & Continuity Dossier
+ * Healthbook Types: Family Care Circle & Continuity Dossier
  */
 
 import { BoundingBox, Fact, MedicationRecord, LabRecord, AllergyRecord, ConditionRecord, AuditLogEntry } from './vault.ts';

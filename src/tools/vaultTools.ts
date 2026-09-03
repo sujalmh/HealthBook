@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: Approved Fact Vault Module — AI Intelligence (M1)
+ * Healthbook WebMCP Tools: Approved Fact Vault Module — AI Intelligence (M1)
  * Tools: extract_fact, confirm_fact, compile_health_record
  * Generic AI extraction via extractWithAI vision+text single response + grounded bbox.
  * Fallback heuristic only when disabled (Q10 for text never for images).
@@ -163,7 +163,7 @@ export const confirmFactTool: WebMCPToolDefinition = {
     canvasRerenders: ['pillmap', 'labstory', 'dossier', 'question_bank', 'homelab', 'calendar'],
     toastNotification: {
       type: 'success',
-      messageTemplate: 'Facts updated and propagated across CareCanvas.'
+      messageTemplate: 'Facts updated and propagated across Healthbook.'
     }
   },
   execute: async (params: { factId: string; action: 'approve' | 'reject' | 'edit'; edits?: unknown }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
@@ -415,12 +415,12 @@ export const confirmFactTool: WebMCPToolDefinition = {
       else if (cat.includes('demograph') || cat.includes('patient')) {
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
-            const raw = window.localStorage.getItem('carecanvas_active_user');
+            const raw = window.localStorage.getItem('healthbook_active_user');
             if (raw) {
               const user = JSON.parse(raw);
               if (name && (!user.name || user.name === 'Patient' || user.name === 'User')) {
                 user.name = name;
-                window.localStorage.setItem('carecanvas_active_user', JSON.stringify(user));
+                window.localStorage.setItem('healthbook_active_user', JSON.stringify(user));
               }
             }
           }
@@ -543,7 +543,7 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
   },
   execute: async (params: { patientId: string; sections?: string[]; format?: string; includeAuditTrail?: boolean }, context: WebMCPExecutionContext): Promise<WebMCPToolResult> => {
     const { patientId: requestedPatientId, sections = ['all'], format = 'json_dossier' } = params;
-    // AuthZ: only allow reading own patientId via carecanvas_active_user unless caregiver/doctor grant (RBAC doctor ↔ patient)
+    // AuthZ: only allow reading own patientId via healthbook_active_user unless caregiver/doctor grant (RBAC doctor ↔ patient)
     let patientId = requestedPatientId;
     if (requestedPatientId !== context.patientId) {
       let hasCaregiverGrant = false;
@@ -729,7 +729,7 @@ export const compileHealthRecordTool: WebMCPToolDefinition = {
       generatedAt: stampTimestamp,
       hash,
       signature: 'ECDSA_SHA256_LOCALVAULT_VERIFIED',
-      issuer: 'CareCanvas LocalVault Security Authority',
+      issuer: 'Healthbook LocalVault Security Authority',
       qrPayload: JSON.stringify({
         pid: patientId,
         mrn: patientMrn,

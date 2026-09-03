@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: PillMap Polypharmacy Negotiator (M3) — AI-native.
+ * Healthbook WebMCP Tools: PillMap Polypharmacy Negotiator (M3) — AI-native.
  * Tools: add_medication, check_interactions, check_diet_interactions, check_duplicate_ingredient, suggest_schedule, simulate_adherence, export_for_pharmacist, set_reminder
  * All clinical reasoning flows through the AI pipeline (no bundled drug tables).
  * When the pipeline is unavailable the tools return honest AI_UNAVAILABLE/AI_FAILED

@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: SummaryExportModal
+ * Healthbook Component: SummaryExportModal
  * 1-page printable patient discharge summary card with medication schedule,
  * food instructions, red flags, doctor questions, and clinic contacts.
  */
@@ -119,7 +119,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
           <div className="border-b-2 border-slate-200 print:border-black pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-xl text-slate-900 print:text-black tracking-tight">CareCanvas</span>
+                <span className="font-bold text-xl text-slate-900 print:text-black tracking-tight">Healthbook</span>
                 <span className="text-caption px-2 py-0.5 rounded bg-sky-50 text-clinical-blue print:text-black print:border-black font-bold uppercase border border-sky-200">
                   Discharge handoff document
                 </span>
@@ -272,7 +272,7 @@ export const SummaryExportModal: React.FC<SummaryExportModalProps> = ({
 
             <div className="flex items-center gap-3">
               <div className="text-caption text-muted print:text-gray-500 font-mono text-right">
-                <div>CareCanvas reconciled hash</div>
+                <div>Healthbook reconciled hash</div>
                 <div className="text-caption truncate max-w-[140px]">SHA256: 0x8f4b...3a91</div>
               </div>
               <div className="p-1 rounded-xl bg-canvas-card border border-canvas-border text-slate-900">

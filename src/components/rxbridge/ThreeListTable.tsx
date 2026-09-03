@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: ThreeListTable
+ * Healthbook Component: ThreeListTable
  * Side-by-side comparative table of Pre-admission vs In-Hospital vs Discharge medications
  * with color-coded diff highlights, search/filtering, and quick actions.
  */
@@ -83,23 +83,16 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
   };
 
   return (
-    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+    <div className="bg-canvas-card border border-canvas-border rounded-2xl p-3 sm:p-5 shadow-sm space-y-3">
       {/* Header & Filter Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-heading-md text-slate-900 flex items-center gap-2">
-            <span>3-list comparative reconciliation table</span>
-            <span className="text-caption px-2 py-0.5 rounded-full bg-canvas-muted text-muted font-mono border border-canvas-border">
-              {filteredItems.length} of {items.length} items
-            </span>
-          </h3>
-          <p className="text-body-sm text-muted mt-0.5">
-            Side-by-side verification of pre-admission (home), in-hospital chart, and final discharge orders.
-          </p>
-        </div>
-
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-slate-900">
+          Compare lists <span className="text-muted font-semibold">({filteredItems.length}/{items.length})</span>
+        </h3>
+      </div>
+      <div>
         {/* Search Input */}
-        <div className="relative w-full md:w-72">
+        <div className="relative w-full">
           <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -115,12 +108,12 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-2 border-b border-canvas-border max-w-full">
         {(
           [
-            { id: 'ALL', label: 'All Medications' },
+            { id: 'ALL', label: 'All' },
             { id: 'NEW', label: 'New' },
-            { id: 'DOSE_CHANGED', label: 'Dose Changed' },
+            { id: 'DOSE_CHANGED', label: 'Changed' },
             { id: 'STOPPED', label: 'Stopped' },
             { id: 'CONTINUED', label: 'Continued' },
-            { id: 'HELD_AND_RESUMED', label: 'Held & Resumed' }
+            { id: 'HELD_AND_RESUMED', label: 'Held' }
           ] as { id: ReconciliationFilter; label: string }[]
         ).map((tab) => {
           const count = counts[tab.id];
@@ -129,7 +122,8 @@ export const ThreeListTable: React.FC<ThreeListTableProps> = ({
             <button
               key={tab.id}
               onClick={() => setFilterStatus(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
+              title={tab.id === 'ALL' ? 'All medications' : tab.id === 'DOSE_CHANGED' ? 'Dose changed' : tab.id === 'HELD_AND_RESUMED' ? 'Held and resumed' : tab.label}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 min-h-[40px] ${
                 isActive
                   ? 'bg-sky-600 text-white shadow-sm'
                   : 'bg-slate-50 text-slate-600 hover:text-slate-800 border border-slate-200'

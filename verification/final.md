@@ -114,7 +114,7 @@ All 6 viewports gate centered `Create Account` max-w-md, `Email *` + `Password *
 
 Gate bodyText at 1280: `Create Account\nYour health, all in one place — private on this device\nName\nEmail *\nPassword *\nAt least 6 characters\nCreate Account\nSign In\nData stays on this device...` — **PASS gate required at all 6 no gaps**.
 
-### Vault empty generic header (after creating account via localStorage injection `carecanvas_active_user` Success Auditor):
+### Vault empty generic header (after creating account via localStorage injection `healthbook_active_user` Success Auditor):
 All 6 viewports vault empty shows **MEDICAL DOCUMENT Document Preview Date: — Ref: — Patient: — Attending: — No document selected No records here yet** generic, no ST. JUDE, no Raj, no Patel, Proxy generic not Raj, no gaps overflow false:
 
 | Viewport | File | Size | Dimensions | Valid | Checks |
@@ -126,7 +126,7 @@ All 6 viewports vault empty shows **MEDICAL DOCUMENT Document Preview Date: — 
 | 1280 | `.teamwork/snapshots/success-auditor/success-auditor-vault-1280.jpg` | 272827 | 2560x2082 JFIF 1.01 | valid | hasMedicalDoc true hasStJude false hasPatel false hasRaj false overflow false |
 | 1440 | `.teamwork/snapshots/success-auditor/success-auditor-vault-1440.jpg` | 283904 | 2880x2040 JFIF 1.01 | valid | hasMedicalDoc true hasNoRecords true hasStJude false |
 
-Vault bodyText at 1280: `CareCanvas Private & Secure ... Add Your Health Papers ... Your Saved Records (0) No records here yet ... No Document Selected ID: — • Page 1 of 1 100% MEDICAL DOCUMENT Document Preview Date: — Ref: — Patient: — Attending: — No document selected Drop a PDF...` — **PASS vault empty generic header MEDICAL DOCUMENT not ST. JUDE, auto sign-in still works via token**.
+Vault bodyText at 1280: `Healthbook Private & Secure ... Add Your Health Papers ... Your Saved Records (0) No records here yet ... No Document Selected ID: — • Page 1 of 1 100% MEDICAL DOCUMENT Document Preview Date: — Ref: — Patient: — Attending: — No document selected Drop a PDF...` — **PASS vault empty generic header MEDICAL DOCUMENT not ST. JUDE, auto sign-in still works via token**.
 Total success-auditor snapshots: 12 files 1905350 bytes total, all `file` reports JPEG JFIF standard 1.01 baseline precision 8, all >5K (min 57943), no 0-byte — **PASS 6 viewports no gaps proven via overflow false at all**.
 Prior milestone snapshots corroborate: `.teamwork/snapshots/milestone-01/` 53 JPEGs, `milestone-02/` 68 JPEGs, `milestone-03/` 33 JPEGs plus `success-auditor/` 12 = 166 total, all JFIF valid >5K, min 21688 `m2-gate-320.jpg`, max 674K `auditor-m02-pillmap-1280.jpg`. Every milestone ≥2 desktop+mobile +768 verified:
 - M1: `ws-m1-hospital-seed-gate-desktop-1280.jpg 86668` + `vault-desktop-1280.jpg 272999` + auditor `auditor-m01-vault-desktop-1280.jpg 266K` gate hasCreateAccount vault hasMedicalDoc — PASS
@@ -177,7 +177,7 @@ All 3 gates follow `critic→challenger→auditor` per `verification.ts#evaluate
 - **No Shanti/Harold hard-codes in UI** `grep -R "Shanti Devi|Harold Jenkins|Aarav Sharma" src/components src/App.tsx` → 0 — **PASS** (comments in tools that say no hardcoded Shanti allowed as docs not display, verified 7 Shanti comment hits only in src/tools/* as docs)
 - **Functional generic replacements clean at 6 viewports 320/375/768/1024/1280/1440 no gaps** — **PASS** via 12 success-auditor captures + 17 M3 polish captures at 6 viewports, overflow false at all, truncate hygiene, fallback trim ensures pills never blank
 - **Live screenshots every milestone ≥2 desktop+mobile under snapshots +768, auditor re-captures, at least one shows vault empty generic header MEDICAL DOCUMENT not ST. JUDE, one shows gate Create Account required+auto sign-in still works** — **PASS** (M1 53 JPEGs, M2 68, M3 33, success-auditor 12; each milestone has gate 1280 gate 375 +768; auditor re-captures at 1280/375/768 per milestone with file JFIF valid >5K; at least one milestone M1 auditor-m01-vault-desktop-1280 272K shows MEDICAL DOCUMENT true ST_JUDE false, plus gate hasCreateAccount true at all 6, vault empty No records here yet)
-- **No regression** `grep p_devi_78 0, mockShanti 0, sampleDocuments 0, we 0 in src/components, slop 0, 40 tools intact (3+2+8+5+5+9+8), hidden wrappers 8 intact (10 =8+2 isActive), CreateAccount/SignIn required+auto sign-in still works via carecanvas_active_user` — **PASS** verified via grep 0s + file:line reads CreateAccountView required + token check + build 1660 modules dist built tokens/direct voice
+- **No regression** `grep p_devi_78 0, mockShanti 0, sampleDocuments 0, we 0 in src/components, slop 0, 40 tools intact (3+2+8+5+5+9+8), hidden wrappers 8 intact (10 =8+2 isActive), CreateAccount/SignIn required+auto sign-in still works via healthbook_active_user` — **PASS** verified via grep 0s + file:line reads CreateAccountView required + token check + build 1660 modules dist built tokens/direct voice
 - **Tests & build** `npm run lint 0, npm test 172 PASS (142+ required), npx tsx test/test-runner.ts 231 PASS, npm run build 1660 modules` — **PASS** re-ran fresh EXIT 0 logs `/tmp/success-audit-logs/lint.log:test.log:runner.log:build.log`
 - **Gates** each milestone `critic→challenger→auditor` PASS with visual+grep review, documented in GATE_STATUS.md + reviews — **PASS** verified auditor artifacts exist, re-verified independently
 

@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types: HomeLab Remote Prescribed Loop
+ * Healthbook Types: HomeLab Remote Prescribed Loop
  */
 
 import { LabRecord, ProposalRecord } from './vault.ts';

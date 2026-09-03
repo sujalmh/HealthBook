@@ -1,8 +1,8 @@
 ## 2026-08-29T02:17:39Z
 
-You are worker_e2e_test_track for CareCanvas.
+You are worker_e2e_test_track for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/worker_e2e_test_track.
-Your task is to implement the E2E Testing Track infrastructure, comprehensive mock fixtures, 4-tier test suites (Tiers 1-4), and Acceptance Flows A through E automated test scripts for CareCanvas per the specifications in:
+Your task is to implement the E2E Testing Track infrastructure, comprehensive mock fixtures, 4-tier test suites (Tiers 1-4), and Acceptance Flows A through E automated test scripts for Healthbook per the specifications in:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md
 2. /Users/sujal/Projects/proj1/PROJECT.md
 3. /Users/sujal/Projects/proj1/TEST_INFRA.md

@@ -49,7 +49,7 @@ export const FollowupScheduler: React.FC<FollowupSchedulerProps> = ({
   const [providerName, setProviderName] = useState('Your doctor');
   const [reason, setReason] = useState('Urgent follow-up evaluation for peripheral edema & blood pressure control');
   const [clinicAddress, setClinicAddress] = useState('Clinic, Suite 402, 100 Medical Plaza');
-  const [telehealthLink, setTelehealthLink] = useState('https://carecanvas.telehealth.live/clinic/room-901');
+  const [telehealthLink, setTelehealthLink] = useState('https://healthbook.telehealth.live/clinic/room-901');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;

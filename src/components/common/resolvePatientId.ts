@@ -5,7 +5,7 @@ export function resolvePatientId(primary?: string, fallback?: string): string {
   const f = trim(fallback);
   if (f && f !== 'patient-s-devi') return f;
   try {
-    const raw = localStorage.getItem('carecanvas_active_user');
+    const raw = localStorage.getItem('healthbook_active_user');
     if (raw) {
       const parsed = JSON.parse(raw) as unknown as { userId?: unknown; id?: unknown; patientId?: unknown };
       const pid = (parsed as { userId?: unknown })?.userId ?? (parsed as { id?: unknown })?.id ?? (parsed as { patientId?: unknown })?.patientId;

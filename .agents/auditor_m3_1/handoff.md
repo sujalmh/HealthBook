@@ -1,4 +1,4 @@
-# Forensic Audit Report: CareCanvas Mobile UI Overhaul
+# Forensic Audit Report: Healthbook Mobile UI Overhaul
 
 **Work Product**: Full codebase mobile UI responsiveness overhaul (`src/`, `test/`, `src/index.css`)
 **Profile**: General Project
@@ -27,7 +27,7 @@ Direct inspection via `git status` and `git diff` showed modifications across th
 Command: `npm run lint` (`tsc --noEmit`)
 Result:
 ```
-> carecanvas@1.0.0 lint
+> healthbook@1.0.0 lint
 > tsc --noEmit
 
 (Exited with code 0, 0 errors)
@@ -80,7 +80,7 @@ dist/assets/index-B_w-E1YA.js         792.74 kB │ gzip: 191.10 kB
 
 ## 2. Logic Chain
 
-1. **Premise 1 (Ground-Truth Specification)**: `ORIGINAL_REQUEST.md` requires an end-to-end mobile UI overhaul across all 8 CareCanvas modules, eliminating horizontal overflows, providing >=44px touch targets, mobile navigation with active scroll indicators, responsive modal bounds, and clean builds/tests under `development` integrity mode.
+1. **Premise 1 (Ground-Truth Specification)**: `ORIGINAL_REQUEST.md` requires an end-to-end mobile UI overhaul across all 8 Healthbook modules, eliminating horizontal overflows, providing >=44px touch targets, mobile navigation with active scroll indicators, responsive modal bounds, and clean builds/tests under `development` integrity mode.
 2. **Premise 2 (Genuine Layout Implementation)**:
    - In `src/App.tsx`, the top header adapts between compact mobile single-tap avatar buttons (`<sm`) and tablet/desktop segmented controls (`>=sm`). The bottom navigation bar incorporates `env(safe-area-inset-bottom)`, scroll fade indicators, automatic `scrollIntoView` for active tabs, and min 48px touch targets.
    - In `src/index.css`, root containment (`max-width: 100vw; overflow-x: hidden; width: 100%;`) guarantees zero horizontal page blowout, and WCAG AA 44px touch targets are enforced globally for primary interactive elements with exemptions for compact chips.
@@ -104,7 +104,7 @@ No caveats. All modified source files, test suites, and build scripts were direc
 
 **Verdict: CLEAN**
 
-The CareCanvas Mobile UI Overhaul has successfully passed all forensic integrity checks. The responsive adaptations are genuine, robust, and correctly solve all mobile layout defects across all modules, modals, and navigation elements while preserving full test suite compliance.
+The Healthbook Mobile UI Overhaul has successfully passed all forensic integrity checks. The responsive adaptations are genuine, robust, and correctly solve all mobile layout defects across all modules, modals, and navigation elements while preserving full test suite compliance.
 
 ---
 

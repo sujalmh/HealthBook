@@ -81,7 +81,7 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
       try {
         let pid = '';
         try {
-          const raw = localStorage.getItem('carecanvas_active_user');
+          const raw = localStorage.getItem('healthbook_active_user');
           if (raw) pid = JSON.parse(raw)?.userId || '';
         } catch { /* intentionally empty */ }
         let pending = webMCPEngine.getPendingApprovals();
@@ -167,7 +167,7 @@ export const ConnectWebMCPModal: React.FC<ConnectWebMCPModalProps> = ({ isOpen, 
 
   if (!isOpen) return null;
 
-  const pageUrl = href || origin || 'https://carecanvas.local';
+  const pageUrl = href || origin || 'https://healthbook.local';
   const mcpEndpoint = pageUrl;
   const globalObjects = ['document.modelContext'];
   const codeList = `if (typeof document !== 'undefined' && document.modelContext) {
@@ -217,7 +217,7 @@ console['log'](JSON.parse(raw));`;
                 )}
               </div>
               <p className="text-body-sm text-muted hidden sm:block">
-                CareCanvas exposes every action as a local WebMCP tool — no cloud, no API key. Activity nested inside.
+                Healthbook exposes every action as a local WebMCP tool — no cloud, no API key. Activity nested inside.
               </p>
             </div>
           </div>
@@ -315,7 +315,7 @@ console['log'](JSON.parse(raw));`;
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 space-y-2 shadow-sm">
                 <div className="w-7 h-7 rounded-lg bg-primary-light border border-primary-border text-primary flex items-center justify-center font-bold text-xs">1</div>
-                <p className="text-body-sm font-bold text-slate-900">Open CareCanvas</p>
+                <p className="text-body-sm font-bold text-slate-900">Open Healthbook</p>
                 <p className="text-caption text-muted leading-relaxed">Navigate to the link above. No login beyond your local account.</p>
               </div>
               <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 space-y-2 shadow-sm">

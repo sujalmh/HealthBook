@@ -1,5 +1,5 @@
 /**
- * CareCanvas Automated Test Runner
+ * Healthbook Automated Test Runner
  * Standalone verification runner for Tiers 1-4 Test Suites and Acceptance Flows A through E.
  */
 // Tier 1 Feature Suites
@@ -57,7 +57,7 @@ async function main() {
     const filterE2E = args.includes('--e2e');
     const runAll = !filterTier1 && !filterTier2 && !filterTier3 && !filterTier4 && !filterE2E;
     console.log('\n' + '='.repeat(80));
-    console.log('  CareCanvas Automated Test Runner — Comprehensive E2E Verification');
+    console.log('  Healthbook Automated Test Runner — Comprehensive E2E Verification');
     console.log('='.repeat(80) + '\n');
     const suiteResults = [];
     const globalStart = performance.now();
@@ -121,7 +121,7 @@ async function main() {
         process.exit(1);
     }
     else {
-        console.log('\n🎉 ALL CARECANVAS TEST SUITES AND E2E ACCEPTANCE FLOWS PASSED (100% SUCCESS)\n');
+        console.log('\n🎉 ALL HEALTHBOOK TEST SUITES AND E2E ACCEPTANCE FLOWS PASSED (100% SUCCESS)\n');
         process.exit(0);
     }
 }

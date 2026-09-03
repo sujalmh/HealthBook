@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T02:39:00Z
 
 ## Mission
-Complete Milestone 3 (PillMap & Polypharmacy Negotiator 7x4 Canvas) for CareCanvas with genuine clinical tools, accessible 7x4 visual grid, interactive SVG conflict arcs, meal badges, chronotype shifts, missed-dose adherence simulation, and LocalVault persistence.
+Complete Milestone 3 (PillMap & Polypharmacy Negotiator 7x4 Canvas) for Healthbook with genuine clinical tools, accessible 7x4 visual grid, interactive SVG conflict arcs, meal badges, chronotype shifts, missed-dose adherence simulation, and LocalVault persistence.
 
 ## 🔒 My Identity
 - Archetype: worker_m3_pillmap

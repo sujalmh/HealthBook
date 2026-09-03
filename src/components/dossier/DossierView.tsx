@@ -60,7 +60,25 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
   const [activePage, setActivePage] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewerOpen, setViewerOpen] = useState(false);
-  const [snapshotExpanded, setSnapshotExpanded] = useState(true);
+  const [snapshotExpanded, setSnapshotExpanded] = useState(false);
+  // Long category groups (e.g. 24 lab draws in one report) collapse to first few items
+  const CAT_LIMIT = 4;
+  const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({});
+  const isCatExpanded = (key: string) => !!expandedCats[key];
+  const toggleCat = (key: string) => setExpandedCats((s) => ({ ...s, [key]: !s[key] }));
+  const renderCatToggle = (catKey: string, total: number) => {
+    if (total <= CAT_LIMIT) return null;
+    const open = isCatExpanded(catKey);
+    return (
+      <button
+        type="button"
+        onClick={() => toggleCat(catKey)}
+        className="w-full py-2 rounded-lg bg-white border border-canvas-border text-xs font-bold text-slate-600 hover:bg-canvas-muted min-h-[40px]"
+      >
+        {open ? 'Show less' : `Show all ${total}`}
+      </button>
+    );
+  };
 
   const loadCompiledDossier = async () => {
     setIsLoading(true);
@@ -182,10 +200,9 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
   }, [dossier, searchQuery]);
 
   const totalReports = groupedReports.length;
-  const totalEvents = dossier?.timelineItems?.length || 0;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Header Banner */}
       <div className="bg-canvas-card border border-canvas-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -195,21 +212,19 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl font-bold tracking-tight text-slate-900">For My Doctor</h2>
-              <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border">Share all at once</span>
-              {totalReports > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-canvas-muted text-muted font-semibold border border-canvas-border">{totalReports} report{totalReports !== 1 ? 's' : ''} • {totalEvents} events</span>}
+              {totalReports > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-canvas-muted text-muted font-semibold border border-canvas-border">{totalReports} report{totalReports !== 1 ? 's' : ''}</span>}
             </div>
-            <p className="text-body-sm text-muted">Everything your doctor needs — grouped by report, separated by category, one page to share.</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button onClick={loadCompiledDossier} disabled={isLoading} className="p-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted border border-canvas-border transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center" title="Refresh">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <button onClick={loadCompiledDossier} disabled={isLoading} className="p-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-muted border border-canvas-border transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0" title="Refresh" aria-label="Refresh">
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
-          <button onClick={() => setIsDoctorAccessModalOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-slate-800 text-body-sm font-bold border border-canvas-border shadow-sm min-h-[44px]">
+          <button onClick={() => setIsDoctorAccessModalOpen(true)} className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-border text-slate-800 text-body-sm font-bold border border-canvas-border shadow-sm min-h-[44px] shrink-0">
             <KeyRound className="w-4 h-4 text-primary" />
             <span>Share ({activeGrantsCount})</span>
           </button>
-          <button onClick={() => setIsExportModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm min-h-[44px]">
+          <button onClick={() => setIsExportModalOpen(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold shadow-sm min-h-[44px] shrink-0">
             <Download className="w-4 h-4" />
             <span>Download PDF</span>
           </button>
@@ -217,22 +232,18 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-canvas-card border border-canvas-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="p-3 rounded-xl bg-sky-50 text-clinical-blue border border-sky-200"><Pill className="w-5 h-5" /></div>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
+          <div className="p-2.5 rounded-xl bg-sky-50 text-clinical-blue border border-sky-200"><Pill className="w-4 h-4" /></div>
           <div><span className="text-caption text-muted uppercase font-bold tracking-wider">Medicines</span><p className="text-heading-md text-slate-900">{activeMedsCount}</p></div>
         </div>
-        <div className="bg-canvas-card border border-canvas-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="p-3 rounded-xl bg-emerald-50 text-clinical-emerald border border-emerald-200"><Activity className="w-5 h-5" /></div>
+        <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
+          <div className="p-2.5 rounded-xl bg-emerald-50 text-clinical-emerald border border-emerald-200"><Activity className="w-4 h-4" /></div>
           <div><span className="text-caption text-muted uppercase font-bold tracking-wider">Labs</span><p className="text-heading-md text-slate-900">{labsCount}</p></div>
         </div>
-        <div className="bg-canvas-card border border-canvas-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="p-3 rounded-xl bg-amber-50 text-clinical-amber border border-amber-200"><FileText className="w-5 h-5" /></div>
-          <div><span className="text-caption text-muted uppercase font-bold tracking-wider">Proof</span><p className="text-heading-md text-slate-900">{citationsCount}</p></div>
-        </div>
-        <div className="bg-canvas-card border border-canvas-border rounded-xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="p-3 rounded-xl bg-primary-light text-primary border border-primary-border"><ShieldCheck className="w-5 h-5" /></div>
-          <div><span className="text-caption text-muted uppercase font-bold tracking-wider">Reports</span><p className="text-heading-md text-slate-900">{totalReports || 0} grouped</p></div>
+        <div className="bg-canvas-card border border-canvas-border rounded-xl p-3 flex items-center gap-2.5 shadow-sm">
+          <div className="p-2.5 rounded-xl bg-primary-light text-primary border border-primary-border"><ShieldCheck className="w-4 h-4" /></div>
+          <div><span className="text-caption text-muted uppercase font-bold tracking-wider">Reports</span><p className="text-heading-md text-slate-900">{totalReports || 0}</p></div>
         </div>
       </div>
 
@@ -243,15 +254,11 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search across reports — meds, labs, notes, dates…"
+            placeholder="Search reports — meds, labs, notes…"
             className="w-full bg-canvas-muted border border-canvas-border rounded-xl pl-10 pr-4 py-2.5 text-body-sm text-slate-900 placeholder:text-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px]"
           />
         </div>
-        <div className="flex items-center gap-2 text-caption text-muted whitespace-nowrap">
-          <Layers className="w-4 h-4" />
-          <span><strong className="text-slate-900">{totalReports}</strong> report{totalReports !== 1 ? 's' : ''} • <strong className="text-slate-900">{totalEvents}</strong> events grouped</span>
-          {searchQuery && <button onClick={() => setSearchQuery('')} className="px-3 py-1.5 rounded-lg bg-white border border-canvas-border text-caption font-semibold hover:bg-canvas-muted min-h-[32px]">Clear</button>}
-        </div>
+        {searchQuery && <button onClick={() => setSearchQuery('')} className="px-3 py-1.5 rounded-lg bg-white border border-canvas-border text-caption font-semibold hover:bg-canvas-muted min-h-[32px] self-end">Clear</button>}
       </div>
 
       {/* Emergency Snapshot — integrated as collapsible categorical section, not separate tab */}
@@ -266,7 +273,6 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
             </div>
             <div>
               <h3 className="text-body-sm font-bold text-slate-900 flex items-center gap-2">Emergency Snapshot <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold uppercase">At a glance</span></h3>
-              <p className="text-caption text-muted">One-page high-yield overview for emergency clinicians — tap to {snapshotExpanded ? 'collapse' : 'expand'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -306,8 +312,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         <div className="space-y-5">
           <div className="flex items-center gap-2 px-1">
             <FileText className="w-4 h-4 text-muted" />
-            <h3 className="text-caption font-bold uppercase tracking-wider text-muted">Clinical Reports — grouped by source document</h3>
-            <span className="text-caption text-muted">• categories separated within each report</span>
+            <h3 className="text-caption font-bold uppercase tracking-wider text-muted">Reports</h3>
           </div>
 
           {groupedReports.map((report) => {
@@ -341,11 +346,11 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                    {byCategory.meds.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 font-bold">{byCategory.meds.length} meds</span>}
-                    {byCategory.labs.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">{byCategory.labs.length} labs</span>}
-                    {byCategory.proposals.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold">{byCategory.proposals.length} notes</span>}
-                    {byCategory.visits.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 font-bold">{byCategory.visits.length} visits</span>}
-                    {byCategory.danger.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold">{byCategory.danger.length} alerts</span>}
+                    {byCategory.meds.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 font-bold">{byCategory.meds.length} med{byCategory.meds.length === 1 ? '' : 's'}</span>}
+                    {byCategory.labs.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">{byCategory.labs.length} lab{byCategory.labs.length === 1 ? '' : 's'}</span>}
+                    {byCategory.proposals.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold">{byCategory.proposals.length} note{byCategory.proposals.length === 1 ? '' : 's'}</span>}
+                    {byCategory.visits.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 font-bold">{byCategory.visits.length} visit{byCategory.visits.length === 1 ? '' : 's'}</span>}
+                    {byCategory.danger.length > 0 && <span className="text-caption px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold">{byCategory.danger.length} alert{byCategory.danger.length === 1 ? '' : 's'}</span>}
                   </div>
                 </div>
 
@@ -360,7 +365,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                         <span className="text-caption text-muted">• {byCategory.meds.length}</span>
                       </div>
                       <div className="space-y-2">
-                        {byCategory.meds.map((it) => (
+                        {byCategory.meds.slice(0, isCatExpanded(`${report.key}:meds`) ? byCategory.meds.length : CAT_LIMIT).map((it) => (
                           <div key={it.id} className="rounded-xl border border-sky-100 bg-sky-50/40 p-3 space-y-1.5">
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-body-sm font-bold text-slate-900 leading-snug">{it.title}</p>
@@ -381,6 +386,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                             )}
                           </div>
                         ))}
+                        {renderCatToggle(`${report.key}:meds`, byCategory.meds.length)}
                       </div>
                     </div>
                   )}
@@ -394,7 +400,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                         <span className="text-caption text-muted">• {byCategory.labs.length}</span>
                       </div>
                       <div className="space-y-2">
-                        {byCategory.labs.map((it) => (
+                        {byCategory.labs.slice(0, isCatExpanded(`${report.key}:labs`) ? byCategory.labs.length : CAT_LIMIT).map((it) => (
                           <div key={it.id} className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-3 space-y-1">
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-body-sm font-bold text-slate-900">{it.title}</p>
@@ -414,6 +420,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                             )}
                           </div>
                         ))}
+                        {renderCatToggle(`${report.key}:labs`, byCategory.labs.length)}
                       </div>
                     </div>
                   )}
@@ -427,12 +434,13 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                         <span className="text-caption text-muted">• {byCategory.conditions.length}</span>
                       </div>
                       <div className="space-y-1.5">
-                        {byCategory.conditions.map((it) => (
+                        {byCategory.conditions.slice(0, isCatExpanded(`${report.key}:conditions`) ? byCategory.conditions.length : CAT_LIMIT).map((it) => (
                           <div key={it.id} className="rounded-xl border border-amber-100 bg-amber-50/30 p-3">
                             <p className="text-body-sm font-semibold text-slate-900">{it.title}</p>
                             <p className="text-caption text-slate-600">{it.description}</p>
                           </div>
                         ))}
+                        {renderCatToggle(`${report.key}:conditions`, byCategory.conditions.length)}
                       </div>
                     </div>
                   )}
@@ -446,12 +454,13 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                         <span className="text-caption text-muted">• {byCategory.allergies.length}</span>
                       </div>
                       <div className="space-y-1.5">
-                        {byCategory.allergies.map((it) => (
+                        {byCategory.allergies.slice(0, isCatExpanded(`${report.key}:allergies`) ? byCategory.allergies.length : CAT_LIMIT).map((it) => (
                           <div key={it.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3">
                             <p className="text-body-sm font-bold text-rose-900">{it.title}</p>
                             <p className="text-caption text-rose-700">{it.description}</p>
                           </div>
                         ))}
+                        {renderCatToggle(`${report.key}:allergies`, byCategory.allergies.length)}
                       </div>
                     </div>
                   )}
@@ -465,7 +474,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                         <span className="text-caption text-muted">• {byCategory.proposals.length}</span>
                       </div>
                       <div className="space-y-2">
-                        {byCategory.proposals.map((it) => (
+                        {byCategory.proposals.slice(0, isCatExpanded(`${report.key}:proposals`) ? byCategory.proposals.length : CAT_LIMIT).map((it) => (
                           <div key={it.id} className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 space-y-1.5">
                             <p className="text-body-sm font-bold text-slate-900">{it.title}</p>
                             <p className="text-caption text-slate-700">{it.description}</p>
@@ -481,6 +490,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                             )}
                           </div>
                         ))}
+                        {renderCatToggle(`${report.key}:proposals`, byCategory.proposals.length)}
                       </div>
                     </div>
                   )}
@@ -494,13 +504,14 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                         <span className="text-caption text-muted">• {byCategory.visits.length}</span>
                       </div>
                       <div className="space-y-2">
-                        {byCategory.visits.map((it) => (
+                        {byCategory.visits.slice(0, isCatExpanded(`${report.key}:visits`) ? byCategory.visits.length : CAT_LIMIT).map((it) => (
                           <div key={it.id} className="rounded-xl border border-teal-100 bg-teal-50/30 p-3 space-y-1">
                             <p className="text-body-sm font-bold text-slate-900">{it.title}</p>
                             <p className="text-caption text-slate-600">{it.description}</p>
                             <span className="inline-flex text-caption px-2 py-0.5 rounded-full bg-white border border-teal-200 font-bold uppercase">{it.statusBadge}</span>
                           </div>
                         ))}
+                        {renderCatToggle(`${report.key}:visits`, byCategory.visits.length)}
                       </div>
                     </div>
                   )}
@@ -514,13 +525,14 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                         <span className="text-caption text-muted">• {byCategory.danger.length}</span>
                       </div>
                       <div className="space-y-2">
-                        {byCategory.danger.map((it) => (
+                        {byCategory.danger.slice(0, isCatExpanded(`${report.key}:danger`) ? byCategory.danger.length : CAT_LIMIT).map((it) => (
                           <div key={it.id} className="rounded-xl border border-rose-200 bg-rose-50 p-3 space-y-1">
                             <p className="text-body-sm font-bold text-rose-900">{it.title}</p>
                             <p className="text-caption text-rose-700">{it.description}</p>
                             <span className="inline-flex text-caption px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold uppercase">{it.statusBadge}</span>
                           </div>
                         ))}
+                        {renderCatToggle(`${report.key}:danger`, byCategory.danger.length)}
                       </div>
                     </div>
                   )}
@@ -534,12 +546,13 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
                         <span className="text-caption text-muted">• {byCategory.other.length}</span>
                       </div>
                       <div className="space-y-1.5">
-                        {byCategory.other.map((it) => (
+                        {byCategory.other.slice(0, isCatExpanded(`${report.key}:other`) ? byCategory.other.length : CAT_LIMIT).map((it) => (
                           <div key={it.id} className="rounded-xl border border-canvas-border bg-canvas-muted p-3">
                             <p className="text-body-sm font-semibold text-slate-900">{it.title}</p>
                             <p className="text-caption text-slate-600">{it.description}</p>
                           </div>
                         ))}
+                        {renderCatToggle(`${report.key}:other`, byCategory.other.length)}
                       </div>
                     </div>
                   )}
@@ -573,7 +586,7 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
         <div id="dossier-source-viewer" className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-body-sm font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-amber-600" /> Source Pages — verified ground truth
+              <FileText className="w-4 h-4 text-amber-600" /> Source pages
             </h3>
             <button onClick={() => setViewerOpen(false)} className="px-3 py-1.5 rounded-xl bg-white border border-canvas-border text-caption font-bold hover:bg-canvas-muted min-h-[36px]">Close viewer</button>
           </div>

@@ -179,7 +179,7 @@ describe('WebMCP Core Engine & Dual-Mode Dispatcher', () => {
     expect(extractFact).toBeDefined();
 
     try {
-      localStorage.setItem('carecanvas_active_user', JSON.stringify({ userId: 'probe-patient-001', name: 'Probe', role: 'patient', isProxy: false }));
+      localStorage.setItem('healthbook_active_user', JSON.stringify({ userId: 'probe-patient-001', name: 'Probe', role: 'patient', isProxy: false }));
     } catch {}
     const domStr = await (document as unknown as { modelContext: { executeTool: (tool: unknown, input: unknown) => Promise<string> } }).modelContext.executeTool(extractFact as unknown as object, { documentId: 'probe-doc-001', rawText: 'Apixaban 5mg twice daily' });
     expect(typeof domStr).toBe('string');
@@ -200,6 +200,6 @@ describe('WebMCP Core Engine & Dual-Mode Dispatcher', () => {
 
     (document as unknown as { modelContext: { removeEventListener: (t: string, h: () => void) => void } }).modelContext.removeEventListener('toolchange', handler);
     (document as unknown as { modelContext: { ontoolchange: unknown } }).modelContext.ontoolchange = prev;
-    try { localStorage.removeItem('carecanvas_active_user'); } catch {}
+    try { localStorage.removeItem('healthbook_active_user'); } catch {}
   });
 });

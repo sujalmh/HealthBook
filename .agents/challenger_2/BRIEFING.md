@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-28T21:31:06Z
 
 ## Mission
-Conduct Tier 5 white-box adversarial coverage hardening and clinical safety stress testing against CareCanvas, identifying any safety flaws, coordinate boundary bugs, or audit vulnerabilities.
+Conduct Tier 5 white-box adversarial coverage hardening and clinical safety stress testing against Healthbook, identifying any safety flaws, coordinate boundary bugs, or audit vulnerabilities.
 
 ## 🔒 My Identity
 - Archetype: EMPIRICAL CHALLENGER

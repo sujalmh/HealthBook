@@ -1,5 +1,5 @@
 ## 2026-08-29T02:52:46+05:30
-Task: Implement Milestone 6 (Continuity Dossier & Cross-Module Integration) for CareCanvas per:
+Task: Implement Milestone 6 (Continuity Dossier & Cross-Module Integration) for Healthbook per:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md
 2. /Users/sujal/Projects/proj1/PROJECT.md
 3. /Users/sujal/Projects/proj1/.agents/spec_miner_survey_2/clinical_modules_spec.md

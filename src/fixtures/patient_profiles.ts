@@ -1,5 +1,5 @@
 /**
- * CareCanvas Fixtures: Patient Profiles — CLEAN (M1 Mock Removal)
+ * Healthbook Fixtures: Patient Profiles — CLEAN (M1 Mock Removal)
  * Mock profiles removed — real data comes from authenticated vault (Create Account).
  * Keeps type export for compile-time use; no mock constants remain.
  */

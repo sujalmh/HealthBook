@@ -1,7 +1,7 @@
 ## 2026-08-28T20:44:06Z
-You are spec_miner_survey_1 for CareCanvas.
+You are spec_miner_survey_1 for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/spec_miner_survey_1.
-Your task is to conduct an exhaustive specification analysis of the WebMCP Core Engine, Tool Registration protocols, and all 30+ WebMCP Tools inventory required by CareCanvas.
+Your task is to conduct an exhaustive specification analysis of the WebMCP Core Engine, Tool Registration protocols, and all 30+ WebMCP Tools inventory required by Healthbook.
 
 Authoritative source documents to read:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md

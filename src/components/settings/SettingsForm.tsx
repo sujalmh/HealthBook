@@ -55,7 +55,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
       setStatus({ type: 'error', msg: validation.errors.join('; ') });
       return;
     }
-    // Persist via SettingsStore — writes to carecanvas_settings JSON blob + individual VITE_AI_* keys + carecanvas_VITE_AI_*
+    // Persist via SettingsStore — writes to healthbook_settings JSON blob + individual VITE_AI_* keys + healthbook_VITE_AI_*
     saveSettings(form);
     refreshSource();
     setStatus({ type: 'success', msg: `Saved ${Object.keys(form).filter((k) => (form as unknown as Record<string, unknown>)[k]).length} keys to SettingsStore — Settings>env precedence active.` });
@@ -330,7 +330,7 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
             type="text"
             value={form.VITE_AI_EXTRA_HEADERS || ''}
             onChange={(e) => handleChange('VITE_AI_EXTRA_HEADERS', e.target.value)}
-            placeholder='{"X-Title":"CareCanvas"}'
+            placeholder='{"X-Title":"Healthbook"}'
             className="w-full px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[44px] font-mono text-xs"
           />
           <p className="text-[11px] text-muted">Optional — any extra headers generically.</p>
@@ -555,8 +555,8 @@ export const SettingsForm: React.FC<Props> = ({ onSaved }) => {
         </div>
 
         <p className="text-[11px] text-muted text-center">
-          Persisted via localStorage keys <span className="font-mono">carecanvas_settings</span> JSON blob + individual{' '}
-          <span className="font-mono">VITE_AI_*</span> + <span className="font-mono">carecanvas_VITE_AI_*</span> — read by{' '}
+          Persisted via localStorage keys <span className="font-mono">healthbook_settings</span> JSON blob + individual{' '}
+          <span className="font-mono">VITE_AI_*</span> + <span className="font-mono">healthbook_VITE_AI_*</span> — read by{' '}
           <span className="font-mono">src/core/ai/config.ts</span> with Settings&gt;env precedence. Never commit <span className="font-mono">.env</span> — .gitignore .env PASS.
         </p>
       </div>

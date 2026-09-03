@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types: PillMap Visual Polypharmacy Negotiator (M3)
+ * Healthbook Types: PillMap Visual Polypharmacy Negotiator (M3)
  */
 
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';

@@ -1,5 +1,5 @@
 /**
- * CareCanvas Fact Verification — web-evidence verification inside the AI pipeline.
+ * Healthbook Fact Verification — web-evidence verification inside the AI pipeline.
  *
  * Runs as the step AFTER text extraction (extract_fact): for each clinically
  * verifiable fact (lab, medication, condition, allergy) it fetches authoritative

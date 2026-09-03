@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: LabStory Longitudinal Biomarker Causal Engine — AI Intelligence (M1)
+ * Healthbook WebMCP Tools: LabStory Longitudinal Biomarker Causal Engine — AI Intelligence (M1)
  * Tools: extract_labs, correlate_meds
  * AI panel extraction via generic AI when enabled, preserving BIOMARKER_STANDARDS normalization.
  * Fallback regex only when disabled (Q10).

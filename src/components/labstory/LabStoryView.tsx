@@ -3,7 +3,6 @@ import {
   Activity,
   UploadCloud,
   Plus,
-  RefreshCw,
   ChevronRight,
 } from 'lucide-react';
 import { IndicatorTable } from './IndicatorTable';
@@ -176,16 +175,6 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
             <Plus className="w-4 h-4 text-primary shrink-0" />
             <span>Add Manually</span>
           </button>
-
-          <button
-            type="button"
-            onClick={loadLabs}
-            className="p-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-bg text-muted hover:text-slate-900 border border-canvas-border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0"
-            title="Refresh results"
-            aria-label="Refresh results"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -199,7 +188,7 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
             <Activity className="w-6 h-6" />
           </div>
           <h3 className="text-heading-md text-slate-900">No lab results yet</h3>
-          <p className="text-body-sm text-muted max-w-md mx-auto leading-relaxed">Upload past results or add one manually — they'll appear in the table above and fill your other sections automatically.</p>
+          <p className="text-body-sm text-muted max-w-md mx-auto leading-relaxed">Add results manually or from past reports — they fill your other sections too.</p>
           <div className="flex items-center justify-center gap-2.5 flex-wrap">
             <button type="button" onClick={() => setIsDropzoneOpen(true)} className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-body-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center">Add Past Results</button>
             <button type="button" onClick={() => setIsManualAddOpen(true)} className="px-4 py-2.5 rounded-xl bg-canvas-muted hover:bg-canvas-bg border border-canvas-border text-slate-900 text-body-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-h-[44px] flex items-center justify-center">Add Manually</button>

@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: ShiftPreviewModal
+ * Healthbook Component: ShiftPreviewModal
  * Animated ghost preview modal displaying chronotype-aware timing shifts with side-by-side comparison
  * and patient Approve / Reject gate.
  */

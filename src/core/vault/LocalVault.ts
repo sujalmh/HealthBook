@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: LocalVault Manager — write-through cache over Supabase.
+ * Healthbook Core: LocalVault Manager — write-through cache over Supabase.
  *
  * Storage policy (single source of truth):
  * - Supabase Postgres is the system-of-record. Every typed `add*`/`update*`/
@@ -40,7 +40,7 @@ import type { StoredInteractionEvaluation } from '../knowledge/interactionCache.
 import { clearMemoEvaluation, interactionCacheId } from '../knowledge/interactionCache.ts';
 
 /**
- * Derive active patientId from globalThis localStorage carecanvas_active_user — never '' nor patient-s-devi leak.
+ * Derive active patientId from globalThis localStorage healthbook_active_user — never '' nor patient-s-devi leak.
  * Used for patient isolation fallback when caller passes empty or missing patientId.
  */
 function derivePatientId(): string {
@@ -48,7 +48,7 @@ function derivePatientId(): string {
     const maybeGlobal = globalThis as unknown as { localStorage?: Storage };
     const ls = maybeGlobal?.localStorage ?? (typeof localStorage !== 'undefined' ? localStorage : undefined);
     if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
+      const raw = ls.getItem('healthbook_active_user');
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         const obj = parsed as { userId?: unknown; id?: unknown; patientId?: unknown };
@@ -237,7 +237,7 @@ export class LocalVaultManager {
         bus.emit('toast', {
           id: `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
           type: 'warning',
-          message: 'Saved locally, Supabase sync failed',
+          message: 'Server sync failed — change kept on this device and will retry',
           timestamp: new Date().toISOString(),
         });
       }
@@ -246,27 +246,57 @@ export class LocalVaultManager {
     }
   }
 
-  // --- Supabase fire-and-forget sync (non-blocking, no event duplication, toast on failure) ---
+  // --- Supabase write-through sync (tracked; Supabase is the source of truth) ---
+  // Local memory is a cache: every mutation is mirrored to Supabase and tracked.
+  // Callers stay synchronous; await flushSync() where consistency matters (sign-out, export).
+  private pendingSync: Set<Promise<unknown>> = new Set();
+  private lastSyncError: string | null = null;
+
   private syncFireAndForget(table: string, record: unknown): void {
     try {
       if (!isSupabaseEnabled()) return;
       if (!record || typeof record !== 'object') return;
       const rec = record as { patientId?: unknown };
       if (typeof rec.patientId !== 'string' || rec.patientId.trim() === '') return;
-      upsertSupabaseRecord(table as unknown as string, record as { patientId?: string })
+      let tracked: Promise<unknown> | null = null;
+      tracked = upsertSupabaseRecord(table as unknown as string, record as { patientId?: string })
         .then((res: unknown) => {
-          const r = res as { skipped?: boolean; ok?: boolean };
+          const r = res as { skipped?: boolean; ok?: boolean; error?: string };
           if (r && r.skipped) return;
           if (r && !r.ok) {
+            this.lastSyncError = r.error || 'sync failed';
             this.notifySyncFailure();
           }
         })
-        .catch(() => {
+        .catch((e: unknown) => {
+          this.lastSyncError = e instanceof Error ? e.message : 'sync failed';
           this.notifySyncFailure();
+        })
+        .finally(() => {
+          if (tracked) this.pendingSync.delete(tracked);
         });
+      this.pendingSync.add(tracked);
     } catch {
-      // never throw — local-only fallback
+      // never throw
     }
+  }
+
+  /**
+   * Barrier: resolves when all in-flight server writes settle.
+   * Returns pending count (should be 0) and the last sync error, if any.
+   */
+  public async flushSync(): Promise<{ pending: number; lastError: string | null }> {
+    const inflight = Array.from(this.pendingSync);
+    if (inflight.length) {
+      try {
+        await Promise.allSettled(inflight);
+      } catch { /* tracked individually */ }
+    }
+    return { pending: this.pendingSync.size, lastError: this.lastSyncError };
+  }
+
+  public getSyncStatus(): { pending: number; lastError: string | null } {
+    return { pending: this.pendingSync.size, lastError: this.lastSyncError };
   }
 
   // --- Typed Event Helpers (M2 relevance matrix) ---
@@ -483,7 +513,7 @@ export class LocalVaultManager {
 
   // --- Meds Store ---
   public addMedication(med: MedicationRecord, performedBy?: AuditLogEntry['performedBy']): MedicationRecord {
-    // Patient isolation: derive via carecanvas_active_user if missing/empty, never '' nor patient-s-devi leak (trim-aware)
+    // Patient isolation: derive via healthbook_active_user if missing/empty, never '' nor patient-s-devi leak (trim-aware)
     if (!med.patientId || med.patientId.trim() === '' || med.patientId.trim() === 'patient-s-devi') {
       const derived = derivePatientId();
       if (derived && derived.trim() !== '' && derived.trim() !== 'patient-s-devi') med.patientId = derived;

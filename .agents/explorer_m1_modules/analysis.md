@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-This investigation is an exhaustive, component-by-component audit across all 8 CareCanvas modules (**Vault**, **LabStory**, **PillMap**, **RxBridge**, **HomeLab**, **Safety & Alerts**, **CareCircle**, **Dossier**), the application Shell/Header, and Authentication screens.
+This investigation is an exhaustive, component-by-component audit across all 8 Healthbook modules (**Vault**, **LabStory**, **PillMap**, **RxBridge**, **HomeLab**, **Safety & Alerts**, **CareCircle**, **Dossier**), the application Shell/Header, and Authentication screens.
 
 ### Core Architectural Findings:
 1. **The Global 44px Min-Width Blast Radius (`src/index.css`)**:
@@ -297,7 +297,7 @@ This investigation is an exhaustive, component-by-component audit across all 8 C
 - **Location**: Lines 274–365.
 - **Defects at 320px–375px**:
   - Top header contains: Logo/Brand, Profile Switcher (Mother / Child / Self), Question Bank button with badge, Activity Log button, and Sign Out button.
-  - On a 320px screen, the profile switcher + 3 icon buttons take ~220px, colliding with the "CareCanvas" logo and causing horizontal blowout.
+  - On a 320px screen, the profile switcher + 3 icon buttons take ~220px, colliding with the "Healthbook" logo and causing horizontal blowout.
 - **Recommended Fix**:
   - Collapse secondary header actions into an overflow menu (`...`) or compact icon strip on `<640px`.
 

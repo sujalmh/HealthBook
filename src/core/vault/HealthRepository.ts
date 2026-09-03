@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: HealthRepository — single access façade over persistence.
+ * Healthbook Core: HealthRepository — single access façade over persistence.
  *
  * Storage policy: Supabase Postgres is the system-of-record.
  * `LocalVaultManager` is the write-through cache (in-memory Maps +

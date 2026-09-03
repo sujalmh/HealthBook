@@ -1,5 +1,5 @@
 /**
- * CareCanvas AI Core — Document & Image OCR Pre-Processor
+ * Healthbook AI Core — Document & Image OCR Pre-Processor
  * Uses Mistral OCR (mistral-ocr-latest) to convert PDFs and images into structured Markdown.
  */
 
@@ -28,15 +28,15 @@ function resolveOCRApiKey(): string {
   try {
     if (typeof localStorage !== "undefined") {
       const stored =
-        localStorage.getItem("carecanvas_VITE_OCR_API_KEY") ||
+        localStorage.getItem("healthbook_VITE_OCR_API_KEY") ||
         localStorage.getItem("VITE_OCR_API_KEY") ||
-        localStorage.getItem("carecanvas_OCR_API_KEY") ||
+        localStorage.getItem("healthbook_OCR_API_KEY") ||
         localStorage.getItem("OCR_API_KEY") ||
-        localStorage.getItem("carecanvas_MISTRAL_API_KEY") ||
+        localStorage.getItem("healthbook_MISTRAL_API_KEY") ||
         localStorage.getItem("MISTRAL_API_KEY");
       if (stored && stored.trim() !== "") return stored.trim();
 
-      const blob = localStorage.getItem("carecanvas_settings");
+      const blob = localStorage.getItem("healthbook_settings");
       if (blob) {
         const parsed = JSON.parse(blob) as unknown as Record<string, unknown>;
         if (typeof parsed.VITE_OCR_API_KEY === 'string' && parsed.VITE_OCR_API_KEY) return parsed.VITE_OCR_API_KEY;

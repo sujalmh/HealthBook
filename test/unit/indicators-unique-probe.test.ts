@@ -10,7 +10,7 @@ describe('R3 — Indicators unique one table details on click — probe 3 cases'
   const pid = 'indicators-probe-patient';
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('carecanvas_active_user', JSON.stringify({ userId: pid, name: 'Probe', role: 'patient' }));
+    localStorage.setItem('healthbook_active_user', JSON.stringify({ userId: pid, name: 'Probe', role: 'patient' }));
     localVault.clear();
   });
 

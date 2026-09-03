@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: HomeLab Remote Prescribed Loop — AI Intelligence (M1)
+ * Healthbook WebMCP Tools: HomeLab Remote Prescribed Loop — AI Intelligence (M1)
  * Tools: upload_lab_image, doctor_review_comment, propose_dosage_change, approve_dosage_change, sync_pillmap_from_proposal
  * AI vision extraction via extractWithAI(imageDataUrl, rawText) single request when enabled, fallback only when disabled for text never image (Q10).
  * Never hardcoded literals — reads via config generically.

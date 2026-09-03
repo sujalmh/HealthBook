@@ -52,7 +52,7 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
     const rows: string[] = [];
 
     // Header
-    rows.push('CareCanvas Lifetime Clinical Export');
+    rows.push('Healthbook Lifetime Clinical Export');
     rows.push(`Patient,${dossier.patientProfile?.name || 'Patient'},MRN,${dossier.patientProfile?.mrn || 'N/A'},ExportDate,${new Date().toISOString()}`);
     rows.push('');
 
@@ -110,12 +110,12 @@ export const DossierExportModal: React.FC<DossierExportModalProps> = ({
   const handleDownloadFHIR = () => {
     if (!dossier?.fhirBundle) return;
     const jsonStr = JSON.stringify(dossier.fhirBundle, null, 2);
-    handleDownloadFile(jsonStr, `carecanvas-fhir-r4-${dossier.patientId || 'patient'}.json`, 'application/json');
+    handleDownloadFile(jsonStr, `healthbook-fhir-r4-${dossier.patientId || 'patient'}.json`, 'application/json');
   };
 
   const handleDownloadCSV = () => {
     const csvContent = generateCSV();
-    handleDownloadFile(csvContent, `carecanvas-clinical-history-${dossier?.patientId || 'patient'}.csv`, 'text/csv');
+    handleDownloadFile(csvContent, `healthbook-clinical-history-${dossier?.patientId || 'patient'}.csv`, 'text/csv');
   };
 
   const handleCopyFHIR = () => {

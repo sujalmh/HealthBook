@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: WebMCP Engine & Registry — Spec-Correct Protocol Adapter
+ * Healthbook Core: WebMCP Engine & Registry — Spec-Correct Protocol Adapter
  * W3C WebMCP Spec Draft 26 Aug 2026 §4.1-4.5
  * Canonical surface ONLY document.modelContext (SecureContext, EventTarget, Promise-based)
  * Polyfill/shim ONLY for jsdom/tests, production never overwrites native document.modelContext
@@ -564,11 +564,11 @@ export class WebMCPEngine {
     }
 
     // Derive patientId/activeProfile from explicit context or stored session — no hardcoded Shanti fallback.
-    // Priority: explicit context.patientId/activeProfile > localStorage carecanvas_active_user > empty
+    // Priority: explicit context.patientId/activeProfile > localStorage healthbook_active_user > empty
     const storedProfile = (() => {
       try {
         if (typeof localStorage !== 'undefined') {
-          const raw = localStorage.getItem('carecanvas_active_user');
+          const raw = localStorage.getItem('healthbook_active_user');
           if (raw) {
             const p = JSON.parse(raw);
             if (p?.userId) return p;

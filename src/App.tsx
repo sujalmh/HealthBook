@@ -86,7 +86,7 @@ export const App: React.FC = () => {
   // Restore session from localStorage on mount
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('carecanvas_active_user');
+      const raw = localStorage.getItem('healthbook_active_user');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed?.userId) {
@@ -135,7 +135,7 @@ export const App: React.FC = () => {
           setActiveProfile(normalized);
         } else {
           // Fallback: re-read from localStorage
-          const raw = localStorage.getItem('carecanvas_active_user');
+          const raw = localStorage.getItem('healthbook_active_user');
           if (raw) {
             const parsed = JSON.parse(raw);
             if (parsed?.userId) handleCreated(parsed);
@@ -143,17 +143,17 @@ export const App: React.FC = () => {
         }
       } catch { /* ignore */ }
     };
-    window.addEventListener('carecanvas_mcp_auth_pending', onPending as EventListener);
-    window.addEventListener('carecanvas_mcp_prefill', onPending as EventListener);
-    window.addEventListener('carecanvas_mcp_auth_completed', onCompleted as EventListener);
-    window.addEventListener('carecanvas_auth_completed', onCompleted as EventListener);
+    window.addEventListener('healthbook_mcp_auth_pending', onPending as EventListener);
+    window.addEventListener('healthbook_mcp_prefill', onPending as EventListener);
+    window.addEventListener('healthbook_mcp_auth_completed', onCompleted as EventListener);
+    window.addEventListener('healthbook_auth_completed', onCompleted as EventListener);
     const off1 = eventBus.on('mcp_auth_pending' as unknown as string, onPending as unknown as () => void);
     const off2 = eventBus.on('mcp_auth_completed' as unknown as string, onCompleted as unknown as () => void);
     return () => {
-      window.removeEventListener('carecanvas_mcp_auth_pending', onPending as EventListener);
-      window.removeEventListener('carecanvas_mcp_prefill', onPending as EventListener);
-      window.removeEventListener('carecanvas_mcp_auth_completed', onCompleted as EventListener);
-      window.removeEventListener('carecanvas_auth_completed', onCompleted as EventListener);
+      window.removeEventListener('healthbook_mcp_auth_pending', onPending as EventListener);
+      window.removeEventListener('healthbook_mcp_prefill', onPending as EventListener);
+      window.removeEventListener('healthbook_mcp_auth_completed', onCompleted as EventListener);
+      window.removeEventListener('healthbook_auth_completed', onCompleted as EventListener);
       off1();
       off2();
     };
@@ -199,10 +199,10 @@ export const App: React.FC = () => {
     };
     const off1 = eventBus.on('navigate_ask' as unknown as string, onNavigateAsk as unknown as () => void);
     const onWindow = (e: Event) => onNavigateAsk((e as CustomEvent).detail);
-    window.addEventListener('carecanvas_navigate_ask', onWindow as EventListener);
+    window.addEventListener('healthbook_navigate_ask', onWindow as EventListener);
     return () => {
       off1();
-      window.removeEventListener('carecanvas_navigate_ask', onWindow as EventListener);
+      window.removeEventListener('healthbook_navigate_ask', onWindow as EventListener);
     };
   }, []);
 
@@ -263,7 +263,7 @@ export const App: React.FC = () => {
       return;
     }
     try {
-      const raw = localStorage.getItem('carecanvas_active_user');
+      const raw = localStorage.getItem('healthbook_active_user');
       if (raw) {
         const stored = JSON.parse(raw) as { userId?: string; name?: string; email?: string; createdAt?: string };
         const restored: ActiveProfile = { userId: String(stored.userId), name: String(stored.name || 'Anonymous').slice(0, 64) || 'Anonymous', role: 'patient', isProxy: false, relationship: undefined, onBehalfOf: undefined, permissionLevel: 'manage', email: stored.email, createdAt: stored.createdAt };
@@ -377,7 +377,7 @@ export const App: React.FC = () => {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-display text-sm sm:text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap leading-none">CareCanvas</h1>
+                <h1 className="font-display text-sm sm:text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap leading-none">Healthbook</h1>
                 <span className="text-caption px-2 py-0.5 rounded-full bg-primary-light text-primary-text font-bold border border-primary-border hidden sm:inline-flex items-center leading-none">
                   Private & Secure
                 </span>
@@ -393,33 +393,16 @@ export const App: React.FC = () => {
           {/* Right Action Bar: MCP grouped, Settings, Profile (top right) — proxy moved to Family page, Ask centered in bottom nav */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
 
-            {/* MCP single Connect — header single entry, tools & logs nested inside Connect modal */}
-            {/* Mobile single Connect (grouped trigger simplified to single Connect) */}
+            {/* MCP single Connect — desktop only; mobile header stays clinical */}
             <button
               onClick={() => setIsConnectOpen(true)}
-              className="flex sm:hidden relative items-center justify-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold border border-slate-800 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
+              className="hidden sm:flex relative items-center justify-center gap-1 min-h-[44px] min-w-[44px] px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold border border-slate-800 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-1"
               aria-label={`Connect${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
               title="Connect to WebMCP — tools & logs inside"
             >
               <Plug className="w-4 h-4 text-emerald-300 shrink-0" aria-hidden="true" />
               {pendingCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1 rounded-full flex items-center justify-center font-bold border-2 border-white leading-none shadow-xs">
-                  {pendingCount > 99 ? '99+' : pendingCount}
-                </span>
-              )}
-            </button>
-
-            {/* Desktop single Connect with pending badge preserved */}
-            <button
-              onClick={() => setIsConnectOpen(true)}
-              className="hidden sm:flex relative items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-emerald-500"
-              title="Connect to WebMCP — tools & logs inside"
-              aria-label={`Connect${pendingCount > 0 ? `, ${pendingCount} pending` : ''}`}
-            >
-              <Plug className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden="true" />
-              <span className="hidden md:inline">Connect</span>
-              {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 md:static md:top-auto md:right-auto bg-rose-500 text-white text-[10px] min-w-[18px] h-4 px-1.5 rounded-full font-bold shrink-0 flex items-center justify-center leading-none shadow-xs">
                   {pendingCount > 99 ? '99+' : pendingCount}
                 </span>
               )}
@@ -501,14 +484,14 @@ export const App: React.FC = () => {
         <div className={activeModule === 'health' ? 'block space-y-4' : 'hidden'} aria-hidden={activeModule !== 'health'}>
           {/* Sub-navigation — 4 tabs, responsive grid, 44px targets, accessible */}
           <div className="bg-canvas-card border border-canvas-border rounded-2xl p-1.5 shadow-sm" role="tablist" aria-label="Health sections">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            <div className="flex sm:grid sm:grid-cols-4 gap-1.5 overflow-x-auto scrollbar-none">
               <button
                 role="tab"
                 aria-selected={healthSub === 'vault'}
                 aria-controls="health-vault-panel"
                 id="health-vault-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('vault'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                   healthSub === 'vault' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >
@@ -524,7 +507,7 @@ export const App: React.FC = () => {
                 aria-controls="health-labstory-panel"
                 id="health-labstory-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('labstory'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                   healthSub === 'labstory' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >
@@ -537,7 +520,7 @@ export const App: React.FC = () => {
                 aria-controls="health-homelab-panel"
                 id="health-homelab-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('homelab'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                   healthSub === 'homelab' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >
@@ -550,7 +533,7 @@ export const App: React.FC = () => {
                 aria-controls="health-dossier-panel"
                 id="health-dossier-tab"
                 onClick={() => { if (isVaultBusy) { eventBus.dispatchToast({ type: 'info', title: 'Please wait', message: 'Still reading your paper — please wait.' }); return; } setHealthSub('dossier'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
+                className={`shrink-0 sm:shrink flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none ${
                   healthSub === 'dossier' ? 'bg-primary-light text-primary-text border border-primary-border shadow-sm' : 'text-muted hover:text-slate-900 hover:bg-canvas-muted border border-transparent'
                 }`}
               >

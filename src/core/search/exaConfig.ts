@@ -1,5 +1,5 @@
 /**
- * CareCanvas Search Core — Exa Config
+ * Healthbook Search Core — Exa Config
  */
 
 export interface ExaConfig {
@@ -15,7 +15,7 @@ export interface ExaConfig {
 function readSettingsOverrides(): Record<string, unknown> {
   const o: Record<string, unknown> = {};
   if (typeof localStorage === 'undefined') return o;
-  const keys = ['carecanvas_settings', 'carecanvas_ai_settings', 'carecanvas_ai_config'];
+  const keys = ['healthbook_settings', 'healthbook_ai_settings', 'healthbook_ai_config'];
   for (const blob of keys) {
     try {
       const raw = localStorage.getItem(blob);
@@ -31,7 +31,7 @@ function readSettingsOverrides(): Record<string, unknown> {
   const exaKeys = ['VITE_EXA_API_KEY', 'VITE_EXA_ENABLED', 'VITE_EXA_BASE_URL', 'EXA_API_KEY', 'VITE_EXA_NUM_RESULTS', 'VITE_EXA_SEARCH_TYPE', 'VITE_EXA_TIMEOUT_MS', 'VITE_EXA_MAX_AGE_HOURS'];
   for (const k of exaKeys) {
     try {
-      const v = localStorage.getItem(k) ?? localStorage.getItem(`carecanvas_${k}`);
+      const v = localStorage.getItem(k) ?? localStorage.getItem(`healthbook_${k}`);
       if (v !== null && v !== '' && o[k] === undefined) o[k] = v;
     } catch { /* intentionally empty */ }
   }

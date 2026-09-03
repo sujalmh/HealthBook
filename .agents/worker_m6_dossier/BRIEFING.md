@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T03:00:00Z
 
 ## Mission
-Implement Milestone 6 (Continuity Dossier & Cross-Module Integration) for CareCanvas, providing lifetime health record compilation, emergency snapshot card, deep bounding-box source citations, time-bound clinician access delegation, and standards-compliant FHIR R4 exports.
+Implement Milestone 6 (Continuity Dossier & Cross-Module Integration) for Healthbook, providing lifetime health record compilation, emergency snapshot card, deep bounding-box source citations, time-bound clinician access delegation, and standards-compliant FHIR R4 exports.
 
 ## 🔒 My Identity
 - Archetype: worker_m6_dossier

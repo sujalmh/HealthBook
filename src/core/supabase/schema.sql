@@ -1,4 +1,4 @@
--- CareCanvas Supabase Schema — mirrors LocalVault 13 stores (M1)
+-- Healthbook Supabase Schema — mirrors LocalVault 13 stores (M1)
 -- Single-patient cohesion: every table has patient_id column indexed for
 -- exact patient isolation (patient_id === CANONICAL_PATIENT_ID 'patient-s-devi').
 -- Host comment only (no password): db.vcgnjsxmigcaboayemmj.supabase.co

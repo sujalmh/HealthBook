@@ -1,7 +1,7 @@
 ## 2026-08-28T21:31:06Z
-You are reviewer_2 for CareCanvas.
+You are reviewer_2 for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/reviewer_2.
-Your task is to conduct an independent review and verification of the Visual Canvases and End-to-End Acceptance Flows (Flows A through E) for CareCanvas.
+Your task is to conduct an independent review and verification of the Visual Canvases and End-to-End Acceptance Flows (Flows A through E) for Healthbook.
 
 Files to inspect:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md

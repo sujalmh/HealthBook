@@ -1,5 +1,5 @@
 /**
- * CareCanvas Supabase Proxy — Vercel Serverless Handler
+ * Healthbook Supabase Proxy — Vercel Serverless Handler
  * Enables Supabase persistence using DATABASE_URL (postgres) directly,
  * bypassing the need for VITE_SUPABASE_ANON_KEY.
  * Mirrors Supabase REST API for the 13 vault tables: supports

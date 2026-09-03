@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: MealBadges
+ * Healthbook Component: MealBadges
  * Interactive meal-time badges and food interaction flags attached to medications.
  * Badges: Take with Food, Empty Stomach, No Grapefruit, Vit K, Separate Calcium, Zero Alcohol, K+ Salt.
  */

@@ -66,7 +66,7 @@ export const PrivacyBadge: React.FC<{ patientId?: string }> = ({ patientId = '' 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CareCanvas_FHIR_Export_${patientId}_${Date.now()}.json`;
+    a.download = `Healthbook_FHIR_Export_${patientId}_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
 

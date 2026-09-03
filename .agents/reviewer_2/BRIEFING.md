@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-28T21:31:06Z
 
 ## Mission
-Conduct independent review, adversarial verification, integrity check, and stress-testing of Visual Canvases (PillMap, LabStory, RxBridge, HomeLab & Safety, Care Circle & Continuity Dossier) and End-to-End Acceptance Flows (Flows A through E) for CareCanvas.
+Conduct independent review, adversarial verification, integrity check, and stress-testing of Visual Canvases (PillMap, LabStory, RxBridge, HomeLab & Safety, Care Circle & Continuity Dossier) and End-to-End Acceptance Flows (Flows A through E) for Healthbook.
 
 ## 🔒 My Identity
 - Archetype: reviewer_critic

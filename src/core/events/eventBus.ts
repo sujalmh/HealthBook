@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: Reactive Event Bus & Telemetry Logger
+ * Healthbook Core: Reactive Event Bus & Telemetry Logger
  * Relevant-only sync: views subscribe only to relevant events; aliases preserve backward compat.
  * Why alias groups: legacy emit names map to canonical events without duplicate subscriptions.
  */
@@ -11,7 +11,7 @@ function deriveBusPatientId(): string {
     const g = typeof globalThis !== 'undefined' ? (globalThis as unknown as { localStorage?: Storage }) : undefined;
     const ls = g?.localStorage || (typeof localStorage !== 'undefined' ? localStorage : undefined);
     if (ls) {
-      const raw = ls.getItem('carecanvas_active_user');
+      const raw = ls.getItem('healthbook_active_user');
       if (raw) {
         const parsed = JSON.parse(raw) as unknown as { userId?: unknown; id?: unknown; patientId?: unknown };
         const pid = (parsed as { userId?: unknown; id?: unknown; patientId?: unknown })?.userId

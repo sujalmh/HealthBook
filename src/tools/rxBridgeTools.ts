@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: RxBridge Post-Discharge Reconciliation Engine — AI-native (M2)
+ * Healthbook WebMCP Tools: RxBridge Post-Discharge Reconciliation Engine — AI-native (M2)
  * Tools: explain_med_change, flag_interaction, flag_diet_interaction, suggest_question_for_doctor, export_patient_summary
  * All clinical content flows through the AI pipeline (no bundled drug tables, no template fallbacks).
  * When the pipeline is unavailable the tools return honest AI_UNAVAILABLE/AI_FAILED errors.

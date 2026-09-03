@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: Interaction Cache — persistent derived-data store.
+ * Healthbook Core: Interaction Cache — persistent derived-data store.
  *
  * Problem it fixes:
  * - Pill interactions / diet badges / duplicate alerts were pure functions

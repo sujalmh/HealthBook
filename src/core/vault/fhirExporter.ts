@@ -1,5 +1,5 @@
 /**
- * CareCanvas Core: FHIR R4 Bundle Serializer & Exporter
+ * Healthbook Core: FHIR R4 Bundle Serializer & Exporter
  * Generates standards-compliant FHIR R4 Document Bundles from LocalVault stores
  */
 
@@ -30,7 +30,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     identifier: [
       {
         use: 'usual',
-        system: 'urn:oid:carecanvas:mrn',
+        system: 'urn:oid:healthbook:mrn',
         value: profile.mrn || fallbackMrn
       }
     ],
@@ -46,7 +46,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
     gender: (profile.gender?.toLowerCase().startsWith('m') ? 'male' : 'female') as 'male' | 'female',
     birthDate: profile.dob || '1950-01-01',
     meta: {
-      source: 'urn:carecanvas:localvault',
+      source: 'urn:healthbook:localvault',
       lastUpdated: now
     }
   };
@@ -255,7 +255,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
               ]
             : [
                 {
-                  system: 'urn:carecanvas:biomarkers',
+                  system: 'urn:healthbook:biomarkers',
                   code: (lab.marker ?? 'lab').toLowerCase().replace(/[^a-z0-9]/g, '_'),
                   display: lab.marker ?? 'Lab'
                 }
@@ -320,7 +320,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
           reference: `urn:uuid:${patientId}`,
           display: profile.name
         },
-        title: 'CareCanvas Chronic Disease Management & Post-Discharge Care Plan',
+        title: 'Healthbook Chronic Disease Management & Post-Discharge Care Plan',
         period: {
           start: now.slice(0, 10)
         },
@@ -378,7 +378,7 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
             ]
           },
           who: {
-            display: 'CareCanvas LocalVault Client Engine'
+            display: 'Healthbook LocalVault Client Engine'
           }
         }
       ],
@@ -396,8 +396,8 @@ export function buildFHIRR4Bundle(dossier: Partial<CompiledHealthRecord>): FHIRR
             display: profile.name
           },
           data: typeof btoa === 'function'
-            ? btoa(`CareCanvas_Valid_FHIR_R4_${patientId}_${now}`)
-            : Buffer.from(`CareCanvas_Valid_FHIR_R4_${patientId}_${now}`).toString('base64')
+            ? btoa(`Healthbook_Valid_FHIR_R4_${patientId}_${now}`)
+            : Buffer.from(`Healthbook_Valid_FHIR_R4_${patientId}_${now}`).toString('base64')
         }
       ]
     }

@@ -53,7 +53,7 @@
 ---
 
 ## 4. Conclusion
-The CareCanvas application has a robust structural foundation with responsive Tailwind tokenization, but mobile viewports (320px–430px) require targeted adjustments:
+The Healthbook application has a robust structural foundation with responsive Tailwind tokenization, but mobile viewports (320px–430px) require targeted adjustments:
 1. Header action bar consolidation / compacting on mobile widths (<640px).
 2. Addition of `max-h-[90vh] overflow-y-auto` and $44\times 44\text{px}$ close buttons to all 20 modal and overlay components.
 3. Conversion of rigid multi-column modal grids to responsive breakpoints.

@@ -175,7 +175,6 @@ export const CaregiverSwitcher: React.FC<CaregiverSwitcherProps> = ({
               </div>
               <p className="text-body-sm text-slate-700 font-medium pt-0.5">
                 Acting on behalf of <strong className="text-slate-900">{activeProfile.onBehalfOf || 'Patient'}</strong>.
-                All approved proposals and uploaded slips will be cryptographically signed to the audit trail.
               </p>
             </div>
           </div>

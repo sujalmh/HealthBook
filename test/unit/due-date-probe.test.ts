@@ -11,7 +11,7 @@ describe('Due-date R5 — local-noon + range — probe 4 cases', () => {
   let origNow: any;
   beforeEach(() => {
     localStorage.clear();
-    localStorage.setItem('carecanvas_active_user', JSON.stringify({ userId: pid, name: 'Probe', role: 'patient' }));
+    localStorage.setItem('healthbook_active_user', JSON.stringify({ userId: pid, name: 'Probe', role: 'patient' }));
     localVault.clear();
     origNow = Date.now;
   });

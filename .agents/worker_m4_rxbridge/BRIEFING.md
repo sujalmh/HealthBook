@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T02:44:45Z
 
 ## Mission
-Implement Milestone 4: RxBridge Post-Discharge 3-List Reconciliation Walk for CareCanvas.
+Implement Milestone 4: RxBridge Post-Discharge 3-List Reconciliation Walk for Healthbook.
 
 ## 🔒 My Identity
 - Archetype: worker_m4_rxbridge

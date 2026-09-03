@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T16:51:00Z
 
 ## Mission
-Comprehensive technical discovery and specification mining of CareCanvas application shell, layout, header, navigation, modals, drawers, viewport containment (`overflow-x`), and touch targets across mobile viewports (320px–430px).
+Comprehensive technical discovery and specification mining of Healthbook application shell, layout, header, navigation, modals, drawers, viewport containment (`overflow-x`), and touch targets across mobile viewports (320px–430px).
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_spec_miner (Explorer 1)

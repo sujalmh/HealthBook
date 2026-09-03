@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T17:20:00Z
 
 ## Mission
-Perform an end-to-end mobile UI overhaul of CareCanvas driven by live visual inspection across 320px–430px, fixing all layout/overflow/UX defects across all modules and verifying with live screenshots, lint, test, and build passes.
+Perform an end-to-end mobile UI overhaul of Healthbook driven by live visual inspection across 320px–430px, fixing all layout/overflow/UX defects across all modules and verifying with live screenshots, lint, test, and build passes.
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_orchestrator

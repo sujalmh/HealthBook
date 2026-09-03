@@ -1,16 +1,16 @@
-# CareCanvas WebMCP Core Engine & Tools Specification
+# Healthbook WebMCP Core Engine & Tools Specification
 
 > **Document Version:** 1.0.0-PROD-SPEC  
 > **Author:** WebMCP Survey Specialist (`spec_miner_survey_1`)  
 > **Date:** 2026-08-28 / 2026-08-29  
-> **Target System:** CareCanvas (Agent-Native Patient-Facing Health Companion for The WebMCP Challenge)  
+> **Target System:** Healthbook (Agent-Native Patient-Facing Health Companion for The WebMCP Challenge)  
 > **Standards Reference:** W3C WebML / WebMCP Spec (`document.modelContext.registerTool`, `navigator.modelContext`), W3C IndexedDB 3.0, JSON Schema Draft 2020-12, PDF.js Bounding Coordinates.
 
 ---
 
 ## 1. Executive Summary & Architectural Vision
 
-CareCanvas is an agent-native, patient-facing health companion engineered for **The WebMCP Challenge** (OpenAI, Google, Microsoft, W3C WebML). It bridges the post-discharge and chronic care gap by providing an interactive, accessible client-side UI across 7 clinical modules:
+Healthbook is an agent-native, patient-facing health companion engineered for **The WebMCP Challenge** (OpenAI, Google, Microsoft, W3C WebML). It bridges the post-discharge and chronic care gap by providing an interactive, accessible client-side UI across 7 clinical modules:
 1. **Approved Fact Vault & Core Foundation**
 2. **LabStory (Longitudinal Biomarker Causal Engine)**
 3. **PillMap (Visual Polypharmacy Negotiator)**
@@ -26,7 +26,7 @@ CareCanvas is an agent-native, patient-facing health companion engineered for **
 
 ```
  +---------------------------------------------------------------------------------------+
- |                                  CareCanvas Frontend Runtime                          |
+ |                                  Healthbook Frontend Runtime                          |
  |                                                                                       |
  |  +--------------------+   +---------------------+   +-------------------------------+ |
  |  |  PillMap 7x4 Grid  |   | LabStory DuckDB Wasm|   | RxBridge 3-List Recon Walk    | |
@@ -59,7 +59,7 @@ CareCanvas is an agent-native, patient-facing health companion engineered for **
 ## 2. WebMCP Core Engine & Registration Protocol
 
 ### 2.1 WebMCP Standard Contract & Detection
-CareCanvas implements the emergent WebMCP specification for in-browser tool registration and model context exposure.
+Healthbook implements the emergent WebMCP specification for in-browser tool registration and model context exposure.
 
 ```typescript
 /**
@@ -137,7 +137,7 @@ export interface WebMCPToolResult<T = any> {
 ### 2.2 Dual-Mode Registration Protocol
 When initialized, the WebMCP engine detects browser support:
 1. **Native WebMCP Mode:** If `window.document.modelContext?.registerTool` or `window.navigator.modelContext?.registerTool` is defined, registers tool manifests natively with the browser runtime.
-2. **Fallback Mock Adapter Mode:** If native WebMCP is absent, registers all tools into an in-memory client dispatcher (`window.__CareCanvas_WebMCP__`) that exposes the identical registration and invocation interface to client-side LLM wrappers (WebLLM, OpenAI Realtime, Claude in-browser sessions).
+2. **Fallback Mock Adapter Mode:** If native WebMCP is absent, registers all tools into an in-memory client dispatcher (`window.__Healthbook_WebMCP__`) that exposes the identical registration and invocation interface to client-side LLM wrappers (WebLLM, OpenAI Realtime, Claude in-browser sessions).
 
 ```typescript
 export class WebMCPEngine {
@@ -179,7 +179,7 @@ export class WebMCPEngine {
     };
 
     (document as any).modelContext = mockContext;
-    (window as any).__CareCanvas_WebMCP__ = mockContext;
+    (window as any).__Healthbook_WebMCP__ = mockContext;
   }
 
   public register(toolDef: WebMCPToolDefinition): void {
@@ -237,7 +237,7 @@ export class WebMCPEngine {
 
 ## 3. WebMCP In-App Inspector & Live Trigger Panel
 
-To satisfy the transparency, verification, and live demo criteria of The WebMCP Challenge, CareCanvas includes a built-in **WebMCP Inspector Drawer**:
+To satisfy the transparency, verification, and live demo criteria of The WebMCP Challenge, Healthbook includes a built-in **WebMCP Inspector Drawer**:
 
 ### 3.1 Inspector Functional Capabilities
 1. **Catalog Tab:**
@@ -260,11 +260,11 @@ To satisfy the transparency, verification, and live demo criteria of The WebMCP 
 
 ## 4. Privacy-First LocalVault Data Architecture
 
-### 4.1 LocalVault IndexedDB Schema (`CareCanvas_Vault_v1`)
+### 4.1 LocalVault IndexedDB Schema (`Healthbook_Vault_v1`)
 The LocalVault runs on client-side IndexedDB with 11 specialized object stores:
 
 ```
-Database Name: CareCanvas_Vault_v1
+Database Name: Healthbook_Vault_v1
 Version: 1
 ```
 
@@ -570,7 +570,7 @@ export interface DoctorGrantEntity {
 
 ### 4.3 Normalized Bounding-Box Coordinate System
 
-To power the **Source Highlight Link** feature (connecting every extracted fact, lab value, medication dose, or danger sign back to the visual bounding box on the original PDF or phone photo scan), CareCanvas uses a normalized coordinate format:
+To power the **Source Highlight Link** feature (connecting every extracted fact, lab value, medication dose, or danger sign back to the visual bounding box on the original PDF or phone photo scan), Healthbook uses a normalized coordinate format:
 
 ```typescript
 export interface BoundingBox {
@@ -625,7 +625,7 @@ export interface QuestionBankItem {
 
 ## 5. Complete WebMCP Tools Inventory (40 Tools across 7 Modules)
 
-Below is the exhaustive, rigorous specification for all WebMCP tools in CareCanvas.
+Below is the exhaustive, rigorous specification for all WebMCP tools in Healthbook.
 
 ```
 ========================================================================================
@@ -2422,7 +2422,7 @@ MODULE 6: FAMILY CARE CIRCLE & CONTINUITY DOSSIER (8 Tools)
 
 ## 8. Architectural Sign-Off & Verification Plan
 
-- **IndexedDB Conformance:** All 11 object stores validated with unique/multi-entry indexes matching `CareCanvas_Vault_v1`.
-- **WebMCP Tool Registration:** All 40 tools verified to register under both native `document.modelContext` and fallback mock adapter `window.__CareCanvas_WebMCP__`.
+- **IndexedDB Conformance:** All 11 object stores validated with unique/multi-entry indexes matching `Healthbook_Vault_v1`.
+- **WebMCP Tool Registration:** All 40 tools verified to register under both native `document.modelContext` and fallback mock adapter `window.__Healthbook_WebMCP__`.
 - **Reactive UI Flow:** State transitions trigger event-driven DOM updates and CSS animations without requiring page reload.
 - **End-to-End Flow Alignment:** Fully specifies capabilities required for Flows A, B, C, D, and E in `ORIGINAL_REQUEST.md`.

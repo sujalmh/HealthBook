@@ -1,8 +1,8 @@
 ## 2026-08-28T21:31:06Z
 
-You are challenger_2 for CareCanvas.
+You are challenger_2 for Healthbook.
 Your working directory is /Users/sujal/Projects/proj1/.agents/challenger_2.
-Your task is to conduct Tier 5 white-box adversarial coverage hardening and clinical safety stress testing against CareCanvas.
+Your task is to conduct Tier 5 white-box adversarial coverage hardening and clinical safety stress testing against Healthbook.
 
 Files to inspect:
 1. /Users/sujal/Projects/proj1/.agents/ORIGINAL_REQUEST.md

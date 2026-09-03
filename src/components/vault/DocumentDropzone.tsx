@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileText, ArrowRight, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, ArrowRight, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
@@ -152,17 +152,7 @@ export const DocumentDropzone: React.FC<{
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 text-slate-900">
-      <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-        <div className="p-2.5 bg-slate-900 text-white rounded-xl shrink-0 shadow-sm">
-          <UploadCloud className="w-5 h-5" />
-        </div>
-        <div className="space-y-0.5 min-w-0">
-          <h3 className="text-[15px] font-bold text-slate-900 tracking-tight">Add your papers</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">Drop a PDF or photo — we'll read it for you</p>
-        </div>
-      </div>
-
+    <div className="bg-white border border-slate-200 rounded-2xl p-2.5 sm:p-4 shadow-sm space-y-3 text-slate-900">
       <div
         onDrop={onDrop}
         onDragOver={onDragOver}
@@ -171,7 +161,7 @@ export const DocumentDropzone: React.FC<{
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-6 sm:p-7 text-center cursor-pointer transition-all ${
+        className={`border-2 border-dashed rounded-xl p-3.5 sm:p-6 text-center cursor-pointer transition-all ${
           isDragging ? 'border-slate-900 bg-slate-50 shadow-inner' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/70'
         } ${isExtracting ? 'opacity-60 pointer-events-none' : ''}`}
       >
@@ -182,15 +172,12 @@ export const DocumentDropzone: React.FC<{
           accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
           onChange={(e) => handleFiles(e.target.files)}
         />
-        <div className="flex flex-col items-center justify-center space-y-3">
-          <div className="p-3 bg-white rounded-xl text-slate-700 border border-slate-200 shadow-sm">
-            <FileText className="w-6 h-6" />
+        <div className="flex items-center justify-center gap-2.5">
+          <div className="p-2 bg-white rounded-lg text-slate-700 border border-slate-200 shadow-sm shrink-0">
+            <FileText className="w-4 h-4" />
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-slate-900">Drop a PDF or photo here, or tap to choose</p>
-            <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">We read your file and find medicines, tests and notes for you to review</p>
-          </div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-black px-4 py-2 rounded-full shadow-sm">
+          <p className="text-sm font-semibold text-slate-900 text-left leading-snug">Add a paper — PDF or photo</p>
+          <div className="inline-flex items-center gap-1 text-xs font-bold text-white bg-slate-900 hover:bg-black px-3.5 py-2 rounded-full shadow-sm shrink-0 ml-auto">
             <span>Choose file</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </div>

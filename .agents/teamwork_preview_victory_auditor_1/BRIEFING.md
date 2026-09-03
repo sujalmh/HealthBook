@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T17:22:15Z
 
 ## Mission
-Conduct an independent, rigorous 3-Phase Victory Audit to verify complete mobile responsiveness resolution (320px–430px) across CareCanvas frontend, check timeline/provenance, detect cheating/anti-patterns, and execute independent verification (lint, typecheck, tests, build).
+Conduct an independent, rigorous 3-Phase Victory Audit to verify complete mobile responsiveness resolution (320px–430px) across Healthbook frontend, check timeline/provenance, detect cheating/anti-patterns, and execute independent verification (lint, typecheck, tests, build).
 
 ## 🔒 My Identity
 - Archetype: victory_auditor
@@ -21,7 +21,7 @@ Conduct an independent, rigorous 3-Phase Victory Audit to verify complete mobile
 - Updated: 2026-08-29T17:22:15Z
 
 ## Audit Scope
-- **Work product**: Mobile responsiveness implementation across CareCanvas (all 8 modules, navigation, modals, charts, responsive tables, touch targets)
+- **Work product**: Mobile responsiveness implementation across Healthbook (all 8 modules, navigation, modals, charts, responsive tables, touch targets)
 - **Profile loaded**: General Project
 - **Audit type**: victory audit
 

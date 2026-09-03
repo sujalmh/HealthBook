@@ -1,5 +1,5 @@
 /**
- * CareCanvas Fixtures: Document Types — CLEAN (M1 Mock Removal)
+ * Healthbook Fixtures: Document Types — CLEAN (M1 Mock Removal)
  * Mock documents removed; real extraction uses rawText/documentId for context.patientId.
  */
 

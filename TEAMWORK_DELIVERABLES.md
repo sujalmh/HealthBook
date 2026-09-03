@@ -399,7 +399,7 @@ $ npm test -- test/unit/teamwork-orchestration.test.ts --reporter=verbose
    Duration  377ms (transform 44ms, setup 32ms, collect 37ms, tests 18ms, environment 122ms, prepare 29ms)
 ```
 
-### Full Suite (including existing CareCanvas tests)
+### Full Suite (including existing Healthbook tests)
 ```bash
 $ npm test
 ```

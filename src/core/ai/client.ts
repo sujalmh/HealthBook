@@ -1,5 +1,5 @@
 /**
- * CareCanvas AI Core — Client
+ * Healthbook AI Core — Client
  * Unified HTTP client for OpenAI-compatible endpoints (/chat/completions & /responses).
  */
 
@@ -339,7 +339,7 @@ function mapToVaultFacts(
 function derivePatientId(): string {
   try {
     if (typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem('carecanvas_active_user');
+      const raw = localStorage.getItem('healthbook_active_user');
       if (raw) {
         const parsed = JSON.parse(raw) as unknown as { userId?: unknown; id?: unknown; patientId?: unknown };
         const p = parsed as { userId?: unknown; id?: unknown; patientId?: unknown };

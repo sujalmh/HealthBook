@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: SVGArcOverlay
+ * Healthbook Component: SVGArcOverlay
  * Real-time dynamic SVG bezier curves between conflicting medications on the 7x4 PillMap grid.
  * Severity color hierarchy: Red (#EF4444: Contraindicated), Orange (#F97316: Major), Yellow (#EAB308: Moderate).
  */

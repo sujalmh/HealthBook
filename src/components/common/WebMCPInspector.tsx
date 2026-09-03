@@ -97,7 +97,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     try {
       let pid = '';
       try {
-        const raw = localStorage.getItem('carecanvas_active_user');
+        const raw = localStorage.getItem('healthbook_active_user');
         if (raw) pid = JSON.parse(raw)?.userId || '';
       } catch { /* intentionally empty */ }
       if (pid) {
@@ -174,7 +174,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
     // All IDs are generic placeholders; real execution uses context.patientId from session.
     const activeUserId = (() => {
       try {
-        const raw = localStorage.getItem('carecanvas_active_user');
+        const raw = localStorage.getItem('healthbook_active_user');
         if (raw) return JSON.parse(raw)?.userId || 'current-patient';
       } catch { /* intentionally empty */ }
       return 'current-patient';
@@ -321,7 +321,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="CareCanvas WebMCP Inspector"
+      aria-label="Healthbook WebMCP Inspector"
     >
       <div
         className="bg-white border border-canvas-border rounded-2xl w-full max-w-5xl h-[85vh] max-h-[90vh] shadow-2xl flex flex-col text-slate-900 overflow-hidden my-auto mx-0 sm:mx-4"
@@ -335,7 +335,7 @@ export const WebMCPInspector: React.FC<{ isOpen: boolean; onClose: () => void }>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-heading-md sm:text-lg font-bold text-slate-900">CareCanvas WebMCP Inspector</h2>
+                <h2 className="text-heading-md sm:text-lg font-bold text-slate-900">Healthbook WebMCP Inspector</h2>
                 <span className="text-caption px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
                   {(typeof document !== 'undefined' && (document as unknown as { modelContext?: { registerTool?: unknown } }).modelContext?.registerTool) ? 'Native WebMCP' : 'Polyfill Adapter'}
                 </span>

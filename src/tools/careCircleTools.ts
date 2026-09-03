@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: Family Care Circle & Continuity Dossier (M5 / M6) — AI Enhanced
+ * Healthbook WebMCP Tools: Family Care Circle & Continuity Dossier (M5 / M6) — AI Enhanced
  * Tools: link_patient, grant_caregiver_access, revoke_caregiver_access, switch_profile, act_on_behalf,
  *        grant_doctor_access, revoke_access, view_timeline
  * AI enrichment for patient linking via AI when enabled (generic configurable via Settings>env, never hardcoded literals).
@@ -227,7 +227,7 @@ export const revokeCaregiverAccessTool: WebMCPToolDefinition = {
 
 export const switchProfileTool: WebMCPToolDefinition = {
   name: 'switch_profile',
-  description: 'Switches active CareCanvas context between Self and linked family members with persistent proxy banner.',
+  description: 'Switches active Healthbook context between Self and linked family members with persistent proxy banner.',
   moduleOwner: 'carecircle',
   category: 'audit_proxy',
   requiresHumanApproval: false,

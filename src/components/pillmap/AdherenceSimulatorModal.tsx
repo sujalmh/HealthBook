@@ -1,5 +1,5 @@
 /**
- * CareCanvas Component: AdherenceSimulatorModal
+ * Healthbook Component: AdherenceSimulatorModal
  * Interactive missed-dose clinical risk calculator evaluating biomarker deltas and recovery protocols.
  */
 

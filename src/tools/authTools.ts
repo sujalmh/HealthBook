@@ -1,5 +1,5 @@
 /**
- * CareCanvas WebMCP Tools: Auth Onboarding — human-only password
+ * Healthbook WebMCP Tools: Auth Onboarding — human-only password
  * Tools: create_account, sign_in
  * Security: NO password field in parameters. AI must never receive or handle password.
  * Password entry is human-only via secure browser <input type="password">.
@@ -17,17 +17,6 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function getUsers(): Array<{ userId?: string; email?: string; name?: string; role?: string; password?: string }> {
-  try {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('carecanvas_users') : null;
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-
 function hasForbiddenPasswordField(params: unknown): string | null {
   if (!params || typeof params !== 'object') return null;
   const obj = params as Record<string, unknown>;
@@ -42,7 +31,7 @@ function hasForbiddenPasswordField(params: unknown): string | null {
 
 export const createAccountTool: WebMCPToolDefinition = {
   name: 'create_account',
-  description: 'Prepares a new CareCanvas account (name, email, role). Does NOT accept password — human must type password securely in the browser password field. AI should call this to prefill onboarding, then instruct human: "Please type your password in the browser to finish creating your account. Password is never shared with AI."',
+  description: 'Prepares a new Healthbook account (name, email, role). Does NOT accept password — human must type password securely in the browser password field. AI should call this to prefill onboarding, then instruct human: "Please type your password in the browser to finish creating your account. Password is never shared with AI."',
   moduleOwner: 'carecircle',
   category: 'audit_proxy',
   requiresHumanApproval: false,
@@ -109,39 +98,8 @@ export const createAccountTool: WebMCPToolDefinition = {
 
     const role = params.role === 'doctor' ? 'doctor' : 'patient';
 
-    // Check duplicate via local storage
-    const users = getUsers();
-    const exists = users.find((u) => (u.email || '').toLowerCase() === emailRaw);
-    if (exists) {
-      return {
-        success: false,
-        tool: 'create_account',
-        timestamp: new Date().toISOString(),
-        data: { existingEmail: emailRaw },
-        plainLanguageSummary: `An account with ${emailRaw} already exists. Use sign_in instead to sign in. AI should call sign_in and ask human to type password.`,
-        humanApprovalRequired: false,
-        error: { code: 'ACCOUNT_EXISTS', message: `Account ${emailRaw} already exists` },
-      };
-    }
-
-    // Also check cred email map
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const credRaw = localStorage.getItem(`carecanvas_cred_email_${emailRaw}`);
-        if (credRaw) {
-          return {
-            success: false,
-            tool: 'create_account',
-            timestamp: new Date().toISOString(),
-            data: { existingEmail: emailRaw },
-            plainLanguageSummary: `An account with ${emailRaw} already exists. Use sign_in.`,
-            humanApprovalRequired: false,
-            error: { code: 'ACCOUNT_EXISTS', message: `Account ${emailRaw} already exists` },
-          };
-        }
-      }
-    } catch { /* ignore */ }
-
+    // Server truth: account existence is validated by Supabase Auth at completion.
+    // This tool only stages the pending request — it never reads passwords or user stores.
     const pendingId = `mcp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
     const pendingPayload = { pendingId, mode: 'create' as const, name: displayName, email: emailRaw, role };
@@ -149,15 +107,15 @@ export const createAccountTool: WebMCPToolDefinition = {
     // Persist pending for UI bridge / gate views
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('carecanvas_mcp_auth_pending', JSON.stringify({ ...pendingPayload, timestamp: new Date().toISOString() }));
+        localStorage.setItem('healthbook_mcp_auth_pending', JSON.stringify({ ...pendingPayload, timestamp: new Date().toISOString() }));
       }
     } catch { /* ignore */ }
 
     try {
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_pending', { detail: pendingPayload }));
+        window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_pending', { detail: pendingPayload }));
         // Also store prefill for gate views to pick up synchronously
-        window.dispatchEvent(new CustomEvent('carecanvas_mcp_prefill', { detail: { name: displayName, email: emailRaw, role } }));
+        window.dispatchEvent(new CustomEvent('healthbook_mcp_prefill', { detail: { name: displayName, email: emailRaw, role } }));
       }
     } catch { /* ignore */ }
 
@@ -193,7 +151,7 @@ export const createAccountTool: WebMCPToolDefinition = {
         status: 'awaiting_human_password',
         humanActionRequired: true,
         nextStep: 'Ask human to type their password securely in the browser password field and click "Create Account" to complete. Do NOT ask AI for password. Password is human-only.',
-        pendingStorageKey: 'carecanvas_mcp_auth_pending',
+        pendingStorageKey: 'healthbook_mcp_auth_pending',
       },
       plainLanguageSummary: `Account prepared for ${displayName} (${emailRaw}) as ${role}. Awaiting human to type password in the browser to complete sign-up. Password is never shared with AI — human must enter it in the secure password field and click Create Account.`,
       plainLanguageExplanation: `Account prepared for ${displayName} (${emailRaw}) as ${role}. Awaiting human to type password in the browser to complete sign-up. Password is never shared with AI — human must enter it in the secure password field and click Create Account.`,
@@ -264,48 +222,23 @@ export const signInTool: WebMCPToolDefinition = {
       };
     }
 
-    const users = getUsers();
-    let found = users.find((u) => (u.email || '').toLowerCase() === emailRaw) || null;
-    // Fallback to cred email map for users not in array but in cred map
-    if (!found) {
-      try {
-        if (typeof localStorage !== 'undefined') {
-          const credRaw = localStorage.getItem(`carecanvas_cred_email_${emailRaw}`);
-          if (credRaw) {
-            const cred = JSON.parse(credRaw);
-            found = { email: emailRaw, name: emailRaw.split('@')[0], role: 'patient', userId: cred.userId } as unknown as typeof found;
-          }
-        }
-      } catch { /* ignore */ }
-    }
-
-    if (!found) {
-      return {
-        success: false,
-        tool: 'sign_in',
-        timestamp: new Date().toISOString(),
-        data: null,
-        plainLanguageSummary: `No account found for ${emailRaw}. Please create an account first — AI can call create_account to help, then human types password.`,
-        humanApprovalRequired: false,
-        error: { code: 'ACCOUNT_NOT_FOUND', message: `No account for ${emailRaw}` },
-      };
-    }
-
-    const displayName = (found.name || emailRaw.split('@')[0] || 'User').slice(0, 64);
-    const role = (found.role === 'doctor' ? 'doctor' : 'patient') as 'patient' | 'doctor';
+    // Server truth: account existence is validated by Supabase Auth at completion.
+    // This tool stages the pending request — the human completes it in the browser.
+    const displayName = emailRaw.split('@')[0] || 'User';
+    const role = 'patient' as const;
     const pendingId = `mcp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const pendingPayload = { pendingId, mode: 'signin' as const, name: displayName, email: emailRaw, role, userId: found.userId };
+    const pendingPayload = { pendingId, mode: 'signin' as const, name: displayName, email: emailRaw, role };
 
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('carecanvas_mcp_auth_pending', JSON.stringify({ ...pendingPayload, timestamp: new Date().toISOString() }));
+        localStorage.setItem('healthbook_mcp_auth_pending', JSON.stringify({ ...pendingPayload, timestamp: new Date().toISOString() }));
       }
     } catch { /* ignore */ }
 
     try {
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('carecanvas_mcp_auth_pending', { detail: pendingPayload }));
-        window.dispatchEvent(new CustomEvent('carecanvas_mcp_prefill', { detail: { email: emailRaw } }));
+        window.dispatchEvent(new CustomEvent('healthbook_mcp_auth_pending', { detail: pendingPayload }));
+        window.dispatchEvent(new CustomEvent('healthbook_mcp_prefill', { detail: { email: emailRaw } }));
       }
     } catch { /* ignore */ }
 
@@ -337,11 +270,10 @@ export const signInTool: WebMCPToolDefinition = {
         email: emailRaw,
         name: displayName,
         role,
-        userId: found.userId,
         status: 'awaiting_human_password',
         humanActionRequired: true,
         nextStep: 'Ask human to type their password securely in the browser password field and click "Sign In" to complete. Do NOT ask AI for password.',
-        pendingStorageKey: 'carecanvas_mcp_auth_pending',
+        pendingStorageKey: 'healthbook_mcp_auth_pending',
       },
       plainLanguageSummary: `Sign-in prepared for ${emailRaw}. Awaiting human to type password in the browser to complete. Password is never shared with AI — human must enter it in the secure password field and click Sign In.`,
       plainLanguageExplanation: `Sign-in prepared for ${emailRaw}. Awaiting human to type password in the browser to complete. Password is never shared with AI — human must enter it in the secure password field and click Sign In.`,

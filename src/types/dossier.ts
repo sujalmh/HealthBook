@@ -1,5 +1,5 @@
 /**
- * CareCanvas Types: Continuity Dossier & Lifetime Health Record (M6)
+ * Healthbook Types: Continuity Dossier & Lifetime Health Record (M6)
  */
 
 import type {

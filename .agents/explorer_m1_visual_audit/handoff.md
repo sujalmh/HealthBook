@@ -1,7 +1,7 @@
 # Handoff Report — R1: Systematic Live Mobile Screenshot Discovery Audit
 
 **Agent:** Explorer 3 (`teamwork_preview_explorer`)  
-**Target:** CareCanvas Mobile Viewport & Visual Layout Audit (R1)  
+**Target:** Healthbook Mobile Viewport & Visual Layout Audit (R1)  
 **Deliverable Artifact:** `/Users/sujal/Projects/proj1/.agents/explorer_m1_visual_audit/analysis.md`  
 **Date:** 2026-08-29  
 

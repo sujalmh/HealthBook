@@ -1,7 +1,7 @@
 # BRIEFING — 2026-08-29T16:58:30Z
 
 ## Mission
-Implement Mobile Shell, Navigation & Global CSS enhancements in CareCanvas (files: `src/index.css`, `src/App.tsx`) to resolve all header crowding, navigation scroll affordances, tap targets, and mobile viewport containment defects across 320px–430px viewports.
+Implement Mobile Shell, Navigation & Global CSS enhancements in Healthbook (files: `src/index.css`, `src/App.tsx`) to resolve all header crowding, navigation scroll affordances, tap targets, and mobile viewport containment defects across 320px–430px viewports.
 
 ## 🔒 My Identity
 - Archetype: teamwork_preview_worker

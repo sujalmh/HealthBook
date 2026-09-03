@@ -1,4 +1,4 @@
-# Handoff Report — CareCanvas End-to-End Mobile UI Overhaul
+# Handoff Report — Healthbook End-to-End Mobile UI Overhaul
 
 **Orchestrator**: `teamwork_preview_orchestrator_1`  
 **Workspace**: `/Users/sujal/Projects/proj1`  
@@ -79,7 +79,7 @@
 
 ## 5. Conclusion
 
-The end-to-end mobile UI overhaul of CareCanvas is **100% complete and fully verified** across all phone viewports (320px–430px). All 8 clinical modules, authentication gates, application shell, bottom navigation, biomarker charts, 7x4 pillbox grid, and 16 modals/drawers are fully responsive, accessible, and robust.
+The end-to-end mobile UI overhaul of Healthbook is **100% complete and fully verified** across all phone viewports (320px–430px). All 8 clinical modules, authentication gates, application shell, bottom navigation, biomarker charts, 7x4 pillbox grid, and 16 modals/drawers are fully responsive, accessible, and robust.
 
 ---
 

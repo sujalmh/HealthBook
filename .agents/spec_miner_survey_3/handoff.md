@@ -1,4 +1,4 @@
-# CareCanvas Test Architecture & E2E Verification Handoff Report
+# Healthbook Test Architecture & E2E Verification Handoff Report
 
 - **Agent:** `spec_miner_survey_3`
 - **Role:** Test Architecture & E2E Verification Specialist
@@ -23,7 +23,7 @@
 
 ## 2. Logic Chain
 
-1. **Step 1 (Scope Mapping)**: Based on the authoritative requirements in `ORIGINAL_REQUEST.md` and `FEATURES_CHECKLIST.md`, a successful hackathon and production delivery of CareCanvas requires deterministic verification of the 5 Golden Demo Flows (Flows A through E) and a rigorous 4-tier test pyramid.
+1. **Step 1 (Scope Mapping)**: Based on the authoritative requirements in `ORIGINAL_REQUEST.md` and `FEATURES_CHECKLIST.md`, a successful hackathon and production delivery of Healthbook requires deterministic verification of the 5 Golden Demo Flows (Flows A through E) and a rigorous 4-tier test pyramid.
 2. **Step 2 (Flow Formalization)**: Each of the 5 flows was formalized with granular, step-by-step execution matrices defining exact user actions, WebMCP tool calls, DOM assertions, state mutations, and explicit human approval gates.
 3. **Step 3 (Tier 1 Tool Coverage)**: To achieve $\ge 5$ test cases per feature across all 30+ WebMCP tools, we systematized functional test cases covering normal operation, parameter variations, plain-language narration verification, and error handling for all 7 modules.
 4. **Step 4 (Tier 2 Hardening)**: Boundary cases (empty regimens, extreme lab values like eGFR < 10, severe polypharmacy with 15+ drugs, simultaneous multi-arc conflict cascades, OCR blur/corruption, unauthorized proxy escalation) were defined with concrete expected recovery behaviors.
@@ -40,7 +40,7 @@
 
 ## 4. Conclusion
 
-The CareCanvas test architecture specification in `/Users/sujal/Projects/proj1/.agents/spec_miner_survey_3/test_architecture_spec.md` provides an exhaustive, mathematically precise, and actionable blueprint for verifying the entire platform. It provides deterministic test suites across all 30+ WebMCP tools and guarantees compliance with the human-in-the-loop trust paradigm and client-side privacy mandates.
+The Healthbook test architecture specification in `/Users/sujal/Projects/proj1/.agents/spec_miner_survey_3/test_architecture_spec.md` provides an exhaustive, mathematically precise, and actionable blueprint for verifying the entire platform. It provides deterministic test suites across all 30+ WebMCP tools and guarantees compliance with the human-in-the-loop trust paradigm and client-side privacy mandates.
 
 ---
 
