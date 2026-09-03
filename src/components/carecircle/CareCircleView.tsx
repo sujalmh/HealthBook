@@ -76,6 +76,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
     const u4 = eventBus.on('doctor_grant_revoked', mk(loadData));
     const u5 = eventBus.on('doctor_linked', mk(loadData));
     const u6 = eventBus.on('doctor_revoked', mk(loadData));
+    const u7 = eventBus.on('vault_synced', mk(loadData));
 
     return () => {
       u1();
@@ -84,6 +85,7 @@ export const CareCircleView: React.FC<CareCircleViewProps> = ({
       u4();
       u5();
       u6();
+      u7();
     };
   }, [effectivePatientId]);
 

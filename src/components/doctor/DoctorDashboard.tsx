@@ -53,7 +53,8 @@ export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ doctorId, doct
     const u1 = eventBus.on('doctor_linked', load);
     const u2 = eventBus.on('doctor_revoked', load);
     const u3 = eventBus.on('doctor_grant_added', load);
-    return () => { u1(); u2(); u3(); };
+    const u4 = eventBus.on('vault_synced', load);
+    return () => { u1(); u2(); u3(); u4(); };
   }, [doctorId, doctorProfile.email]);
 
   const filtered = useMemo(() => {

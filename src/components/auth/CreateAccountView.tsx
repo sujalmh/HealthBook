@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { HeartPulse, Sparkles } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
 import { supabaseSignUp, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } from '@/core/supabase/auth';
+import { hydrateFromSupabase } from '@/core/vault/supabaseSync';
+import { localVault } from '@/core/vault/LocalVault';
 
 export interface CreatedProfile {
   userId: string;
@@ -142,6 +144,9 @@ export const CreateAccountView: React.FC<CreateAccountViewProps> = ({ onCreated,
         createdAt: new Date().toISOString(),
       };
       persistActiveProfile(userProfile);
+      try {
+        await hydrateFromSupabase(userProfile.patientId, localVault);
+      } catch { /* non-blocking */ }
 
       eventBus.dispatchToast({
         type: 'success',

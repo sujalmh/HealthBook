@@ -126,7 +126,8 @@ export const DossierView: React.FC<DossierViewProps> = ({ patientId, activeProfi
     const u13 = eventBus.on('due_card_added', mk(loadCompiledDossier) as (p: unknown) => void);
     const u14 = eventBus.on('due_card_updated', mk(loadCompiledDossier) as (p: unknown) => void);
     const u15 = eventBus.on('question_added', mk(loadCompiledDossier) as (p: unknown) => void);
-    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9(); u10(); u11(); u12(); u13(); u14(); u15(); };
+    const u16 = eventBus.on('vault_synced', mk(loadCompiledDossier) as (p: unknown) => void);
+    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9(); u10(); u11(); u12(); u13(); u14(); u15(); u16(); };
   }, [effectivePatientId]);
 
   const handleOpenSourceViewer = async (item: DossierTimelineItem) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Shield,
   Activity,
@@ -40,6 +40,7 @@ import { DoctorDashboard } from '@/components/doctor/DoctorDashboard';
 import { DoctorPatientView } from '@/components/doctor/DoctorPatientView';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { hydrateFromSupabase } from '@/core/vault/supabaseSync';
 import { isViewOnly as isViewOnlyUtil } from '@/core/rbac/canAccess';
 
 // Merged navigation: Records+Labs → Health (4 sub-tabs), Ask (ex-Questions) centered + highlighted
@@ -172,6 +173,46 @@ export const App: React.FC = () => {
     setPendingCount(pendingFacts.length + pendingProps.length);
     setQuestionCount(questions.filter((q) => q.status === 'active').length);
   };
+
+  const syncDatabase = useCallback(async () => {
+    if (!activeProfile?.userId) return;
+    try {
+      if (activeProfile.role === 'doctor') {
+        const { hydrateDoctorLinksFromSupabase, hydratePatientsForDoctor } = await import('@/core/vault/supabaseSync');
+        const links = await hydrateDoctorLinksFromSupabase(activeProfile.userId, activeProfile.email, localVault);
+        if (links.length > 0) {
+          await hydratePatientsForDoctor(links.map((l) => l.patientId), localVault);
+        }
+      } else {
+        await hydrateFromSupabase(activeProfile.userId, localVault);
+      }
+      await refreshCounts();
+      eventBus.emit('vault_synced' as unknown as string, { patientId: activeProfile.userId } as never);
+    } catch (e) {
+      console.warn('[Healthbook] Database sync error', e);
+    }
+  }, [activeProfile?.userId, activeProfile?.role, activeProfile?.email]);
+
+  useEffect(() => {
+    if (!activeProfile?.userId) return;
+    syncDatabase();
+
+    const onFocus = () => syncDatabase();
+    window.addEventListener('focus', onFocus);
+    const offSync = eventBus.on('sync_requested' as unknown as string, syncDatabase as unknown as () => void);
+
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        syncDatabase();
+      }
+    }, 20000);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      offSync();
+      clearInterval(timer);
+    };
+  }, [activeProfile?.userId, syncDatabase]);
 
   useEffect(() => {
     refreshCounts();
@@ -359,6 +400,9 @@ export const App: React.FC = () => {
   };
 
   const handleSessionEnd = () => {
+    try {
+      localVault.clearAll();
+    } catch { /* boundary */ }
     setActiveProfile(null);
   };
 

@@ -65,11 +65,13 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
     const u1 = eventBus.on('lab_added', onLabAdded as (p: unknown) => void);
     const u2 = eventBus.on('fact_confirmed', onFactConfirmed as (p: unknown) => void);
     const u3 = eventBus.on('lab_status_changed', onLabAdded as (p: unknown) => void);
+    const u4 = eventBus.on('vault_synced' as unknown as string, loadLabs as unknown as () => void);
 
     return () => {
       u1();
       u2();
       u3();
+      u4();
     };
   }, [effectivePatientId]);
 

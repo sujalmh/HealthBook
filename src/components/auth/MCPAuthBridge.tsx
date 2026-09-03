@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { HeartPulse, ShieldCheck, LogIn, UserPlus, X } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
 import { supabaseSignUp, supabaseSignIn, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } from '@/core/supabase/auth';
+import { hydrateFromSupabase } from '@/core/vault/supabaseSync';
+import { localVault } from '@/core/vault/LocalVault';
 
 interface PendingAuth {
   pendingId: string;
@@ -210,6 +212,9 @@ export const MCPAuthBridge: React.FC = () => {
         createdAt: new Date().toISOString(),
       };
       persistActiveProfile(userProfile);
+      try {
+        await hydrateFromSupabase(userProfile.patientId, localVault);
+      } catch { /* non-blocking */ }
 
       eventBus.dispatchToast({
         type: 'success',
@@ -309,6 +314,9 @@ export const MCPAuthBridge: React.FC = () => {
         createdAt: new Date().toISOString(),
       };
       persistActiveProfile(userProfile);
+      try {
+        await hydrateFromSupabase(userProfile.patientId, localVault);
+      } catch { /* non-blocking */ }
         eventBus.dispatchToast({ type: 'success', title: 'Signed in', message: `Welcome back, ${profile.name}` });
         try {
           if (typeof window !== 'undefined') {

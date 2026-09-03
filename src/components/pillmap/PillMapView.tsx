@@ -203,11 +203,13 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     const u1 = eventBus.on('medication_added', onMedAdded as (p: unknown) => void);
     const u2 = eventBus.on('medication_updated', onMedUpdated as (p: unknown) => void);
     const u3 = eventBus.on('proposal_status_changed', onProposalStatus as (p: unknown) => void);
+    const u4 = eventBus.on('vault_synced' as unknown as string, onMedAdded as (p: unknown) => void);
 
     return () => {
       u1();
       u2();
       u3();
+      u4();
     };
   }, [effectivePatientId]);
 

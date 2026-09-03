@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { HeartPulse, Sparkles } from 'lucide-react';
 import { eventBus } from '@/core/events/eventBus';
 import { supabaseSignIn, storeSession, ensureProfile, persistActiveProfile, purgeLegacyCredentialStores } from '@/core/supabase/auth';
+import { hydrateFromSupabase } from '@/core/vault/supabaseSync';
+import { localVault } from '@/core/vault/LocalVault';
 import type { CreatedProfile } from './CreateAccountView';
 
 interface SignInViewProps {
@@ -96,6 +98,17 @@ export const SignInView: React.FC<SignInViewProps> = ({ onSignedIn, onSwitchToCr
         createdAt: new Date().toISOString(),
       };
       persistActiveProfile(userProfile);
+      try {
+        if (userProfile.role === 'doctor') {
+          const { hydrateDoctorLinksFromSupabase, hydratePatientsForDoctor } = await import('@/core/vault/supabaseSync');
+          const links = await hydrateDoctorLinksFromSupabase(userProfile.patientId, userProfile.email, localVault);
+          if (links.length > 0) {
+            await hydratePatientsForDoctor(links.map((l) => l.patientId), localVault);
+          }
+        } else {
+          await hydrateFromSupabase(userProfile.patientId, localVault);
+        }
+      } catch { /* non-blocking */ }
       try {
         const raw2 = localStorage.getItem('healthbook_mcp_auth_pending');
         if (raw2) {

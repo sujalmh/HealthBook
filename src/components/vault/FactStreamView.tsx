@@ -72,9 +72,11 @@ export const FactStreamView: React.FC<{ patientId?: string }> = ({ patientId }) 
     loadFacts();
     const u1 = eventBus.on('fact_extracted', loadFacts);
     const u2 = eventBus.on('fact_confirmed', loadFacts);
+    const u3 = eventBus.on('vault_synced' as unknown as string, loadFacts as unknown as () => void);
     return () => {
       u1();
       u2();
+      u3();
     };
   }, [effectivePatientId]);
 

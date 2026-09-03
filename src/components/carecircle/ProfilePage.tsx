@@ -73,6 +73,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ activeProfile, onSignO
       try {
         localStorage.removeItem('healthbook_active_user');
       } catch { /* boundary */ }
+      try {
+        localVault.clearAll();
+      } catch { /* boundary */ }
     } catch { /* boundary */ }
     eventBus.dispatchToast({ type: 'info', title: 'Signed out', message: 'Server session ended. Your records stay safe on the server.' });
     onSignOut();

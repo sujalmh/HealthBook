@@ -82,11 +82,13 @@ export const SafetyView: React.FC<SafetyViewProps> = ({
     const u1 = eventBus.on('danger_report_added', mk(loadData) as (p: unknown) => void);
     const u2 = eventBus.on('calendar_event_added', mk(loadData) as (p: unknown) => void);
     const u3 = eventBus.on('proposal_created', mk(loadData) as (p: unknown) => void);
+    const u4 = eventBus.on('vault_synced' as unknown as string, loadData as unknown as () => void);
 
     return () => {
       u1();
       u2();
       u3();
+      u4();
     };
   }, [effectivePatientId]);
 

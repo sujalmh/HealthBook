@@ -63,6 +63,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
     const u4 = eventBus.on('proposal_status_changed', mk(loadData) as (p: unknown) => void);
     const u5 = eventBus.on('lab_added', mk(loadData) as (p: unknown) => void);
     const u6 = eventBus.on('fact_confirmed', mk(loadData) as (p: unknown) => void);
+    const u7 = eventBus.on('vault_synced' as unknown as string, loadData as unknown as () => void);
 
     return () => {
       u1();
@@ -71,6 +72,7 @@ export const HomeLabView: React.FC<HomeLabViewProps> = ({
       u4();
       u5();
       u6();
+      u7();
     };
   }, [effectivePatientId]);
 

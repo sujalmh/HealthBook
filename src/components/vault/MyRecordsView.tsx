@@ -51,10 +51,12 @@ export const MyRecordsView: React.FC<MyRecordsViewProps> = ({ patientId, onBusyC
     const u1 = eventBus.on('fact_extracted', loadDocuments);
     const u2 = eventBus.on('fact_confirmed', loadDocuments);
     const u3 = eventBus.on('fact_status_changed', loadDocuments);
+    const u4 = eventBus.on('vault_synced' as unknown as string, loadDocuments as unknown as () => void);
     return () => {
       u1();
       u2();
       u3();
+      u4();
     };
   }, [effectivePatientId]);
 

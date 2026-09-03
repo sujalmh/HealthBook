@@ -148,8 +148,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     const u3 = eventBus.on('lab_added', onLab as (p: unknown) => void);
     const u4 = eventBus.on('medication_added', onMed as (p: unknown) => void);
     const u5 = eventBus.on('medication_updated', onMed as (p: unknown) => void);
+    const u6 = eventBus.on('vault_synced' as unknown as string, onMed as (p: unknown) => void);
 
-    return () => { u1(); u2(); u3(); u4(); u5(); };
+    return () => { u1(); u2(); u3(); u4(); u5(); u6(); };
   }, [effectivePatientId, activeDataset]);
 
   // Attach the walkthrough to the AI pipeline: when the patient opens a med in
