@@ -43,8 +43,7 @@ function categoryFor(canonical: string): (typeof CATEGORY_ORDER)[number] {
 }
 
 // How each test is best performed — practical prep guidance, one line per marker
-const BEST_DONE_AS: Record<string, string> = {
-  Creatinine: 'Blood draw — no fasting',
+const BEST_DONE_AS: Record<string, string> = {  Creatinine: 'Blood draw — no fasting',
   eGFR: 'Blood draw — no fasting',
   HbA1c: 'Blood draw — no fasting',
   'Glucose Fasting': 'Blood draw — fast 8–12 h first',
@@ -63,6 +62,45 @@ interface IndicatorTableProps {
   selectedMarker?: string;
   onMarkerSelect?: (marker: string) => void;
   className?: string;
+}
+
+interface IndicatorGroup {
+  key: string;
+  canonical: string;
+  category: string;
+  method: string;
+  labs: LabRecord[];
+  latest: LabRecord;
+  count: number;
+  flag: string;
+  isBorderline: boolean;
+  isCritical: boolean;
+  referenceRange: { low: number; high: number };
+  optimalRange: { low: number; high: number };
+  unit: string;
+  value: string | number;
+}
+
+function dotClassFor(g: Pick<IndicatorGroup, 'isCritical' | 'isBorderline' | 'flag'>): string {
+  if (g.isCritical) return 'bg-rose-500';
+  if (g.isBorderline) return 'bg-amber-500';
+  if (g.flag === 'HIGH' || g.flag === 'LOW' || g.flag === 'BORDERLINE') return 'bg-amber-400';
+  return 'bg-emerald-500';
+}
+
+function badgeClassFor(g: Pick<IndicatorGroup, 'isCritical' | 'isBorderline' | 'flag'>): string {
+  if (g.isCritical) return 'bg-rose-50 text-rose-700 border-rose-200';
+  if (g.isBorderline || g.flag === 'HIGH' || g.flag === 'LOW' || g.flag === 'BORDERLINE') {
+    return 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+  return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+}
+
+function statusLabelFor(g: Pick<IndicatorGroup, 'isCritical' | 'isBorderline' | 'flag'>): string {
+  let label = g.flag;
+  if (g.isBorderline && g.flag !== 'BORDERLINE') label += ' • BORDERLINE';
+  if (g.isCritical) label += ' • CRITICAL';
+  return label;
 }
 
 export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMarker, onMarkerSelect, className = '' }) => {
@@ -172,7 +210,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
         </div>
       </div>
 
-      <div className="overflow-x-auto -mx-1 scrollbar-none">
+      <div className="hidden sm:block overflow-x-auto -mx-1 scrollbar-none">
         <table className="w-full text-left text-body-sm min-w-[540px] sm:min-w-[760px]">
           <thead>
             <tr className="border-b border-canvas-border text-caption text-muted uppercase tracking-wider">
@@ -197,18 +235,8 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                 </tr>
                 {catGroups.map((g) => {
                 const isSelected = (selectedMarker ?? '').toLowerCase().trim() === g.canonical.toLowerCase().trim();
-                const dotColor = g.isCritical
-                  ? 'bg-rose-500'
-                  : g.isBorderline
-                  ? 'bg-amber-500'
-                  : g.flag === 'HIGH' || g.flag === 'LOW' || g.flag === 'BORDERLINE'
-                  ? 'bg-amber-400'
-                  : 'bg-emerald-500';
-                const badgeClass = g.isCritical
-                  ? 'bg-rose-50 text-rose-700 border-rose-200'
-                  : g.isBorderline || g.flag === 'HIGH' || g.flag === 'LOW' || g.flag === 'BORDERLINE'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                const dotColor = dotClassFor(g);
+                const badgeClass = badgeClassFor(g);
                 return (
                   <tr
                     key={g.key}
@@ -237,9 +265,7 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
                     </td>
                     <td className="py-3 px-3">
                       <span className={`text-caption px-2 py-0.5 rounded-full font-bold uppercase border whitespace-nowrap ${badgeClass}`}>
-                        {g.flag}
-                        {g.isBorderline && g.flag !== 'BORDERLINE' ? ' • BORDERLINE' : ''}
-                        {g.isCritical ? ' • CRITICAL' : ''}
+                        {statusLabelFor(g)}
                       </span>
                     </td>
                     <td className="py-3 px-3 whitespace-nowrap text-slate-900 font-medium hidden md:table-cell">
@@ -257,6 +283,49 @@ export const IndicatorTable: React.FC<IndicatorTableProps> = ({ labs, selectedMa
             );
           })}
         </table>
+      </div>
+
+      {/* Mobile compact rows (< sm) — same data, no horizontal scrolling */}
+      <div className="sm:hidden divide-y divide-canvas-border">
+        {CATEGORY_ORDER.map((category) => {
+          const catGroups = groups.filter((g) => g.category === category);
+          if (catGroups.length === 0) return null;
+          return (
+            <div key={category}>
+              <div className="pt-2.5 pb-0.5 text-caption font-semibold uppercase tracking-wider text-slate-600">
+                {category}
+              </div>
+              {catGroups.map((g) => {
+                const isSelected = (selectedMarker ?? '').toLowerCase().trim() === g.canonical.toLowerCase().trim();
+                return (
+                  <button
+                    key={g.key}
+                    type="button"
+                    onClick={() => handleRowClick(g)}
+                    aria-label={`${g.canonical} ${g.value} ${g.unit} ${g.flag} — tap for details`}
+                    className={`w-full flex items-center gap-3 py-3 text-left min-h-[56px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset rounded-lg ${isSelected ? 'bg-primary-light/50' : ''}`}
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotClassFor(g)}`} aria-hidden="true" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-semibold text-slate-900 truncate">{g.canonical}</span>
+                      <span className="block text-caption text-muted">
+                        Ref {g.referenceRange?.low ?? 0}–{g.referenceRange?.high ?? 100} {g.unit}
+                      </span>
+                    </span>
+                    <span className="text-right shrink-0">
+                      <span className="block font-mono font-bold text-slate-900 whitespace-nowrap">
+                        {g.value as string | number} <span className="font-normal text-muted text-caption">{g.unit}</span>
+                      </span>
+                      <span className={`mt-1 inline-block text-caption px-2 py-0.5 rounded-full font-bold uppercase border ${badgeClassFor(g)}`}>
+                        {statusLabelFor(g)}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
 
       {/* Details drill-down: modal/sheet with value+ref+flag+history+chart+doctorComment+explanation */}

@@ -120,8 +120,8 @@ export const DueCardList: React.FC<DueCardListProps> = ({
                   <h4 className="text-body font-semibold text-slate-900">{card.testPanel}</h4>
                 </div>
 
-                <div className="text-right">
-                  <span className="text-body-sm font-medium text-muted">
+                <div className="text-right shrink-0">
+                  <span className="text-body-sm font-medium text-muted whitespace-nowrap">
                     {parseDueDate(card.dueDate).toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',

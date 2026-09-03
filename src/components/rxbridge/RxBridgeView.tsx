@@ -474,7 +474,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
 
           {/* Doctor source + Last updated */}
           <div className="flex flex-col gap-2">
-            <div className="text-caption text-muted">Shared by Dr {doctorSourceName} • Updated {lastUpdatedRaw.slice(0,10)}</div>
+            <div className="text-caption text-muted">Shared by {doctorSourceName} • Updated {lastUpdatedRaw.slice(0,10)}</div>
             {isOutdated && <div className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">This list may be outdated — ask your doctor for current list.</div>}
           </div>
         </div>
