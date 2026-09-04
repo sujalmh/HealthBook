@@ -114,7 +114,7 @@ export const DoctorPatientView: React.FC<DoctorPatientViewProps> = ({ patientId,
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-slate-900 truncate">{patientName}</h2>
             <p className="text-caption text-muted font-mono truncate">{patientId} • Linked • {permission} access • {meds.length} meds • {labs.length} labs</p>
-            <p className="text-caption text-emerald-700 font-semibold">Viewing as Dr. {doctorProfile.name} — read {permission==='view_only'?'only':permission} • patient’s vault isolation enforced</p>
+            <p className="text-caption text-emerald-700 font-semibold">Viewing as {doctorProfile.name?.startsWith('Dr.') ? doctorProfile.name : `Dr. ${doctorProfile.name}`} — read {permission==='view_only'?'only':permission} • patient’s vault isolation enforced</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
