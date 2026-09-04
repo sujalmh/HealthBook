@@ -132,25 +132,20 @@ export const ProfileIndicator: React.FC<ProfileIndicatorProps> = ({
       aria-label={`Profile ${activeProfile.name}, completeness ${completeness} percent, role ${roleLabel}`}
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2 rounded-xl bg-white border border-canvas-border shadow-sm min-h-[44px] min-w-[44px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 hover:bg-canvas-muted transition-colors ${className}`}
+      className={`relative flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] min-w-[44px] px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold border shadow-sm bg-white hover:bg-canvas-muted text-slate-700 border-canvas-border cursor-pointer transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${className}`}
+      title={`Profile completeness ${completeness}%`}
     >
-      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary-light border border-primary-border flex items-center justify-center text-primary font-bold text-sm shrink-0">
+      <span className="w-6 h-6 rounded-full bg-primary-light border border-primary-border flex items-center justify-center text-primary-text font-bold text-[10px] leading-none shrink-0">
         {initials}
-      </div>
-      <div className="hidden sm:block min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[110px] sm:max-w-[140px]">{activeProfile.name}</span>
-        </div>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="w-16 sm:w-20 h-1.5 bg-canvas-muted rounded-full overflow-hidden border border-canvas-border" role="progressbar" aria-valuenow={completeness} aria-valuemin={0} aria-valuemax={100} aria-label="Profile completeness">
-            <div
-              className={`h-full transition-all duration-500 ${completeness >= 80 ? 'bg-emerald-500' : completeness >= 40 ? 'bg-amber-500' : 'bg-rose-400'}`}
-              style={{ width: `${completeness}%` }}
-            />
-          </div>
-          <span className="text-caption font-bold text-slate-700">{completeness}%</span>
-        </div>
-      </div>
+      </span>
+      <span className="hidden md:inline font-bold text-slate-900 truncate max-w-[110px]">{activeProfile.name}</span>
+      <span className="hidden sm:inline text-caption font-bold text-slate-500 leading-none">{completeness}%</span>
+      <span className="absolute inset-x-3 bottom-[3px] h-[3px] bg-canvas-muted rounded-full overflow-hidden" role="progressbar" aria-valuenow={completeness} aria-valuemin={0} aria-valuemax={100} aria-label="Profile completeness">
+        <span
+          className={`h-full block transition-all duration-500 ${completeness >= 80 ? 'bg-emerald-500' : completeness >= 40 ? 'bg-amber-500' : 'bg-rose-400'}`}
+          style={{ width: `${completeness}%` }}
+        />
+      </span>
     </div>
   );
 };
