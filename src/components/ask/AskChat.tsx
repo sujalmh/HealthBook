@@ -5,6 +5,7 @@ import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
 import { groundHealthQuestion, type GroundedInsight } from '@/core/search/healthGrounding';
+import { findBiomarkerStandard } from '@/tools/labStoryTools';
 import type { QuestionBankItem } from '@/types/vault';
 
 interface AskChatProps {
@@ -28,8 +29,28 @@ interface ChatMessage {
   saved?: boolean;
 }
 
-function inferBiomarker(query: string): string {
+function inferBiomarker(query: string, patientId?: string): string {
   const q = query.toLowerCase();
+
+  // 1. Check patient's actual labs in the vault
+  if (patientId) {
+    try {
+      const patientLabs = localVault.getLabs(patientId) || [];
+      for (const lab of patientLabs) {
+        if (lab.marker && q.includes(lab.marker.toLowerCase())) {
+          return lab.marker;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // 2. Check standard biomarker catalog
+  const std = findBiomarkerStandard(query);
+  if (std) return std.canonicalName;
+
+  // 3. Check common synonym keywords
   if (q.includes('creatinine')) return 'Creatinine';
   if (q.includes('egfr') || q.includes('kidney') || q.includes('gfr')) return 'eGFR';
   if (q.includes('a1c') || q.includes('hba1c')) return 'HbA1c';
@@ -38,6 +59,19 @@ function inferBiomarker(query: string): string {
   if (q.includes('cholesterol')) return 'Cholesterol Total';
   if (q.includes('ldl')) return 'LDL';
   if (q.includes('tsh') || q.includes('thyroid')) return 'TSH';
+
+  // 4. Default to first lab in patient vault if available
+  if (patientId) {
+    try {
+      const patientLabs = localVault.getLabs(patientId) || [];
+      if (patientLabs.length > 0 && patientLabs[0].marker) {
+        return patientLabs[0].marker;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   return 'eGFR';
 }
 
@@ -117,7 +151,7 @@ export const AskChat: React.FC<AskChatProps> = ({ patientId, initialQuery, class
       };
       const [corr, grounded] = await Promise.all([
         webMCPEngine
-          .execute('correlate_meds', { biomarker: inferBiomarker(text), queryText: text, patientId }, context)
+          .execute('correlate_meds', { biomarker: inferBiomarker(text, patientId), queryText: text, patientId }, context)
           .catch(() => null),
         groundHealthQuestion(text, { contextFacts: vaultContextFor(patientId) || undefined, numResults: 3 }).catch(
           (): GroundedInsight | null => null,

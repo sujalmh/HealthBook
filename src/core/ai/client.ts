@@ -13,57 +13,53 @@ import {
 } from './structured.ts';
 
 const PROMPT_MEDICATIONS = `You are a clinical pharmacologist. Extract ALL active and discharge medications from this document.
-Extract each medication as an object with exactly these 6 fields:
-- name: Medication generic/brand name (e.g. Lisinopril, Atorvastatin, Sacubitril/valsartan, Carvedilol, Furosemide)
+Extract each medication as a structured fact object with exactly these fields:
+- name: Medication generic or brand name as documented.
 - category: "medication"
-- value: Exact dosage, route (PO/IV), frequency (BID, QD, twice daily, once nightly etc.), timing (morning, evening, bedtime, with dinner/lunch/breakfast), and food instructions (e.g. "10 mg tablet PO once daily", "24/26 mg PO twice daily", "3.125 mg PO twice daily with food", "500 mg PO once daily with dinner")
-- unit: Dosage unit (e.g. mg, mcg, mL, IU, "mg" for tablets, "IU" for vitamins)
-- date: "" (medications have no single date; empty string)
-- confidence: 0.95
-- plainExplanation: Concise plain-language summary of route, frequency, and instructions (e.g. "Take 10 mg by mouth once daily.", "Take 24/26 mg by mouth twice daily.")
-Return strictly JSON matching {"facts": [...]} where each fact has name/category/value/unit/confidence/plainExplanation. If none found, return {"facts": []}.
-Example: {"facts": [{"name":"Lisinopril","category":"medication","value":"10 mg tablet PO once daily","unit":"mg","confidence":0.95,"plainExplanation":"Take 10 mg by mouth once daily."}]}`;
+- value: Complete administration regimen including strength/dose, route (oral, parenteral, etc.), administration frequency, diurnal timing (morning, midday, evening, bedtime), and food/meal instructions.
+- unit: Standard dosage unit (e.g., mg, mcg, mL, IU, units).
+- date: "" (empty string for continuous or scheduled medication regimens).
+- confidence: Extraction confidence score between 0.00 and 1.00.
+- plainExplanation: Concise, clear plain-language summary explaining how and when the patient should take the medication.
+Return strictly JSON matching {"facts": [...]} where each fact has name, category, value, unit, confidence, plainExplanation. If no medications are found, return {"facts": []}.`;
 
-const PROMPT_LABS = `You are a clinical pathologist. Extract ALL laboratory tests and numeric biomarker values from this document.
-Extract each lab test as an object with exactly these 6 fields:
-- name: Standard lab name (e.g. HbA1c, Serum Creatinine, Creatinine, NT-proBNP, Sodium, Potassium, ALT, AST, Hemoglobin, LDL cholesterol, TSH, eGFR, Fasting glucose, Total cholesterol, Triglycerides, WBC)
+const PROMPT_LABS = `You are a clinical pathologist. Extract ALL laboratory diagnostic tests, panels, and numeric biomarker readings from this document.
+Extract each laboratory finding as a structured fact object with exactly these fields:
+- name: Standard clinical biomarker or panel name as documented.
 - category: "lab"
-- value: Measured numeric value or chronological readings (e.g. "1.1 mg/dL" or "06-Aug: 13.4, 11-Aug: 13.2" or "13.8 g/dL" or "196 mg/dL"). For tables with multiple dates, include all dates in value as "06-Aug: 13.4, 09-Aug: 13.1, 11-Aug: 13.2". Extract EVERY row in any lab table — do not omit cholesterol, triglycerides, creatinine, eGFR, ALT, AST, TSH, hemoglobin, glucose, HbA1c, NT-proBNP, sodium, potassium, WBC etc.
-- unit: Standard clinical unit (e.g. mg/dL, %, pg/mL, mmol/L, mEq/L, g/dL, U/L, mIU/L, x10^9/L)
-- date: The most recent reading date resolved to a full calendar date YYYY-MM-DD using document dates (e.g. admission/discharge date gives the year for "22-Aug"). Empty string if no date is given.
-- confidence: 0.95
-- plainExplanation: Clear explanation of reading and normal/abnormal status with reference range context (e.g. "Fasting glucose 102 mg/dL is mildly high (normal 70-99).", "LDL 118 mg/dL is above optimal <100.")
-IMPORTANT: Do NOT extract vital signs (blood pressure, heart rate, temperature, weight, BMI, SpO2, respiratory rate) — those are handled by the vital category. Only extract true laboratory biomarkers (blood tests).
-Return strictly JSON matching {"facts": [...]} where each fact has name/category/value/unit/confidence/plainExplanation. If none found, return {"facts": []}.
-Example: {"facts": [{"name":"Hemoglobin","category":"lab","value":"13.8 g/dL","unit":"g/dL","confidence":0.95,"plainExplanation":"Hemoglobin 13.8 g/dL is within normal range (13.0-17.0)."},{"name":"LDL cholesterol","category":"lab","value":"118 mg/dL","unit":"mg/dL","confidence":0.95,"plainExplanation":"LDL cholesterol 118 mg/dL is above optimal (<100 mg/dL)."}]}`;
+- value: Measured quantitative value, reference status, or chronological readings. For multi-date trend tables, record all chronological measurements in the value string. Extract all diagnostic blood, urine, and biochemical analyte rows.
+- unit: Standard clinical measurement unit.
+- date: The measurement date resolved to a full calendar date YYYY-MM-DD using document anchor dates. Empty string if no date is specified.
+- confidence: Extraction confidence score between 0.00 and 1.00.
+- plainExplanation: Clear explanation of the result, noting whether the value is within, above, or below standard physiological reference thresholds.
+Scope Distinction: Do NOT extract bedside vital signs (blood pressure, pulse, temperature, oxygen saturation, respiratory rate) under this category; extract only laboratory diagnostic analytes.
+Return strictly JSON matching {"facts": [...]} where each fact has name, category, value, unit, confidence, plainExplanation. If no laboratory findings are present, return {"facts": []}.`;
 
 const PROMPT_CONDITIONS_VITALS = `You are an internal medicine physician. Extract ALL diagnosed conditions, cardiovascular findings, allergies, patient demographics, and vitals from this document.
 
 Each fact MUST be a JSON object with exactly these fields:
-- name: Specific entity name (e.g. "Arjun Rao", "Essential hypertension", "Penicillin", "Blood pressure", "LVEF 35%")
-- category: One of "demographics", "condition", "allergy", "vital", "vital_sign" — use "demographics" for patient identifiers/dates/hospital/doctor, "condition" for diagnoses/history, "allergy" for allergies (use value "NKDA" if no allergies), "vital" or "vital_sign" for vitals ONLY (blood pressure, pulse/heart rate, SpO2, weight, BMI, temperature, respiratory rate) — NEVER extract laboratory biomarkers like eGFR, creatinine, glucose or HbA1c here, those belong to the "lab" category
-- value: Primary value string (e.g. "62 years / Male", "Acute worsening of chronic heart failure (HFrEF)", "rash", "128/78 mmHg", "72 bpm", "74 kg", "35%")
-- unit: Unit string or empty if not applicable (e.g. "mmHg", "bpm", "kg", "%", "")
-- date: Resolved concrete calendar date YYYY-MM-DD for the fact, or "" when not applicable. Resolve relative dates using document dates (e.g. admission/discharge date gives the year for "20-Aug").
-- confidence: 0.95
-- plainExplanation: One concise sentence in plain language explaining the fact (e.g. "Patient is Arjun Rao, 62-year-old male.", "History of essential hypertension diagnosed 2021.", "Allergy to penicillin causes rash.", "Blood pressure 128/78 mmHg is within normal range.")
+- name: Specific clinical entity name, diagnosis, allergy substance, or vital sign parameter.
+- category: One of "demographics", "condition", "allergy", "vital", "vital_sign" — use "demographics" for patient identifiers/dates/hospital/doctor, "condition" for clinical diagnoses and medical history, "allergy" for documented drug or environmental allergies (record "NKDA" if documented as no known drug allergies), and "vital" or "vital_sign" for physiological vital signs ONLY (blood pressure, pulse/heart rate, oxygen saturation, body weight, BMI, temperature, respiratory rate). Do NOT extract laboratory blood analytes under this category.
+- value: Clinical finding, stage, reaction description, or measured vital reading.
+- unit: Measurement unit string or empty string if not applicable.
+- date: Resolved calendar date YYYY-MM-DD for the observation or diagnosis, or empty string when not specified.
+- confidence: Extraction confidence score between 0.00 and 1.00.
+- plainExplanation: One concise sentence in plain language explaining the clinical finding or observation.
 
-Return strictly JSON matching {"facts": [...]} where each fact has name/category/value/unit/confidence/plainExplanation. Never use a field called "fact". If none found, return {"facts": []}.
-Example: {"facts": [{"name":"Alex Morgan","category":"demographics","value":"14 March 1981","unit":"","confidence":0.95,"plainExplanation":"Patient is Alex Morgan, born 14 March 1981."},{"name":"Essential hypertension","category":"condition","value":"diagnosed 2021","unit":"","confidence":0.95,"plainExplanation":"History of essential hypertension since 2021."},{"name":"Blood pressure","category":"vital","value":"128/78","unit":"mmHg","confidence":0.95,"plainExplanation":"Blood pressure is 128/78 mmHg, mildly elevated but controlled."}]}`;
+Return strictly JSON matching {"facts": [...]} where each fact has name, category, value, unit, confidence, plainExplanation. Never use a field called "fact". If none found, return {"facts": []}.`;
 
-const PROMPT_CARE_SAFETY = `You are a post-discharge care coordinator. Extract ALL diet/lifestyle rules, follow-up appointments, due tests, questions, and red-flag danger signs from this document.
+const PROMPT_CARE_SAFETY = `You are a post-discharge care coordinator. Extract ALL diet/lifestyle instructions, follow-up clinic appointments, future scheduled diagnostic tests, patient questions, and red-flag danger symptoms from this document.
 
 Each fact MUST be a JSON object with exactly these fields:
-- name: Short descriptive title (e.g. "Low-sodium diet", "Cardiology follow-up", "Repeat lab panel (Month 6)", "Sudden weight gain >1.5kg")
-- category: One of "diet_habit", "followup", "due_card", "question", "danger_sign" — use "diet_habit" for diet/fluid/activity rules, "followup" for scheduled clinic visits with dates, "due_card" for prescribed future lab tests with timing, "question" for any implied patient question, "danger_sign" for red-flag symptoms that require urgent care
-- value: Full detail string (e.g. "Avoid excessive processed/high-salt foods. Follow clinician's fluid plan.", "Cardiology review with renal function and electrolytes", "Repeat fasting lipid panel and HbA1c", "Chest pain or worsening shortness of breath")
-- unit: Empty string "" (unless a lab test panel specifies unit)
-- date: REQUIRED for every "due_card" and "followup" fact — the RESOLVED concrete calendar date YYYY-MM-DD when the test/visit is due. Resolve relative schedules against document dates: e.g. discharge date 22-Aug-2026 + "Month 6 post-discharge" = "2027-02-22"; "in 7-14 days" from discharge = "2026-09-05" (use mid-range). If a schedule has MULTIPLE dates (e.g. "every 6 months at Month 6, 12, and 18"), create ONE fact per date, each with its own resolved date. Use "" only when the document truly gives no anchor date.
-- confidence: 0.95
-- plainExplanation: One concise plain-language sentence (e.g. "Follow a low-sodium diet and limit fluids as advised.", "See your cardiologist within 1-2 weeks.", "Need to repeat HbA1c and lipid tests in 3 months.")
+- name: Short descriptive title for the care plan item, scheduled visit, diagnostic order, or symptom warning.
+- category: One of "diet_habit", "followup", "due_card", "question", "danger_sign" — use "diet_habit" for dietary, fluid, or activity restrictions; "followup" for scheduled or recommended clinic appointments; "due_card" for ordered future diagnostic tests or monitoring labs; "question" for unresolved patient inquiries; "danger_sign" for acute red-flag symptoms requiring emergency medical contact.
+- value: Comprehensive clinical instructions and details.
+- unit: Measurement unit if applicable, otherwise empty string "".
+- date: Required for every "due_card" and "followup" fact — calculate the resolved calendar date YYYY-MM-DD by applying documented time intervals relative to the document discharge or encounter anchor date. If a schedule specifies multiple recurring intervals, generate a distinct fact for each scheduled date. Use empty string "" only when no anchor date is documented.
+- confidence: Extraction confidence score between 0.00 and 1.00.
+- plainExplanation: One concise plain-language sentence explaining the action or warning for the patient.
 
-Return strictly JSON matching {"facts": [...]} where each fact has name/category/value/unit/confidence/plainExplanation. Never use a field called "fact". If none found, return {"facts": []}.
-Example: {"facts": [{"name":"Low-sodium diet","category":"diet_habit","value":"Avoid excessive processed/high-salt foods","unit":"","confidence":0.95,"plainExplanation":"Follow a low-sodium diet and avoid high-salt processed foods."},{"name":"Cardiology follow-up","category":"followup","value":"Cardiology/Internal Medicine review in 7–14 days","unit":"","confidence":0.95,"plainExplanation":"Follow up with cardiology in 1-2 weeks with blood tests."}]}`;
+Return strictly JSON matching {"facts": [...]} where each fact has name, category, value, unit, confidence, plainExplanation. Never use a field called "fact". If none found, return {"facts": []}.`;
 
 const CATEGORY_PROMPTS = [
   { name: 'Medications', prompt: PROMPT_MEDICATIONS },

@@ -30,15 +30,19 @@ interface MedOverlayBandsProps {
   onMedToggle?: (medId: string, visible: boolean) => void;
 }
 
+function classifyTimelineCategory(genericOrBrand: string): TimelineMedication['category'] {
+  const lower = (genericOrBrand ?? '').toLowerCase().trim();
+  if (/(pril|sartan|olol|lol|dipine|semide|thiazide|actone|hydralazine|clonidine)/i.test(lower)) return 'antihypertensive';
+  if (/(sone|olone|onide|predni|steroid)/i.test(lower)) return 'steroid';
+  if (/(profen|coxib|fenac|salicylate|naprox|aspirin|nsaid|advil|aleve)/i.test(lower)) return 'nsaid';
+  if (/(formin|gliptin|gliflozin|glitazone|glinide|insulin|tide)/i.test(lower)) return 'antidiabetic';
+  if (/(statin)/i.test(lower)) return 'statin';
+  if (/(xaban|parin|grel|gatran|warfarin|anticoag)/i.test(lower)) return 'anticoagulant';
+  return 'other';
+}
+
 function vaultMedToTimeline(med: MedicationRecord): TimelineMedication {
-  const lower = (med.genericName || med.brandName || '').toLowerCase();
-  let category: TimelineMedication['category'] = 'other';
-  if (lower.includes('lisinopril') || lower.includes('amlodipine') || lower.includes('carvedilol') || lower.includes('furosemide')) category = 'antihypertensive';
-  else if (lower.includes('prednisone') || lower.includes('steroid')) category = 'steroid';
-  else if (lower.includes('ibuprofen') || lower.includes('naproxen') || lower.includes('nsaid') || lower.includes('advil') || lower.includes('aleve')) category = 'nsaid';
-  else if (lower.includes('metformin') || lower.includes('glipizide') || lower.includes('jardiance')) category = 'antidiabetic';
-  else if (lower.includes('atorvastatin') || lower.includes('simvastatin')) category = 'statin';
-  else if (lower.includes('apixaban') || lower.includes('warfarin') || lower.includes('clopidogrel')) category = 'anticoagulant';
+  const category = classifyTimelineCategory(med.genericName || med.brandName || med.name || '');
   return {
     id: med.id,
     name: med.brandName || med.genericName || med.name || 'Medication',
@@ -186,14 +190,9 @@ export const MedOverlayBands: React.FC<MedOverlayBandsProps> = ({
   ];
 
   const effectiveTimelineMeds = vaultDerived && vaultDerived.length > 0 ? vaultDerived : fallbackTimelineMeds;
-  const [visibleMeds, setVisibleMeds] = useState<Record<string, boolean>>({
-    med_lisinopril: true,
-    med_metformin: true,
-    med_prednisone: true,
-    med_atorvastatin: true,
-    med_ibuprofen: true,
-    med_apixaban: true
-  });
+  const [visibleMeds, setVisibleMeds] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(effectiveTimelineMeds.map((m) => [m.id, true]))
+  );
 
   useEffect(() => {
     const ids = effectiveTimelineMeds.map(m => m.id);

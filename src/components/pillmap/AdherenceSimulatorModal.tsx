@@ -16,14 +16,15 @@ export interface AdherenceSimulatorModalProps {
 }
 
 export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = ({
-  initialMedName = 'Metformin',
+  initialMedName,
   initialDay = 'tuesday',
   initialSlot = 'morning',
   activeMedNames = [],
   onClose,
   onAddQuestionToBank
 }) => {
-  const [selectedMed, setSelectedMed] = useState<string>(initialMedName);
+  const defaultMed = initialMedName || activeMedNames[0] || 'Medication';
+  const [selectedMed, setSelectedMed] = useState<string>(defaultMed);
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(initialDay);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot>(initialSlot);
   const [questionAdded, setQuestionAdded] = useState<boolean>(false);
@@ -64,17 +65,9 @@ export const AdherenceSimulatorModal: React.FC<AdherenceSimulatorModalProps> = (
 
   const medOptions = Array.from(
     new Set([
-      initialMedName,
-      ...activeMedNames,
-      'Metformin',
-      'Apixaban',
-      'Warfarin',
-      'Lisinopril',
-      'Amlodipine',
-      'Atorvastatin',
-      'Carvedilol',
-      'Levothyroxine'
-    ])
+      defaultMed,
+      ...activeMedNames
+    ].filter(Boolean))
   );
 
   return (

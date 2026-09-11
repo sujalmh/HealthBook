@@ -68,22 +68,58 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
   const [aiNarrativeErrors, setAiNarrativeErrors] = useState<Record<string, boolean>>({});
   const [aiRetryNonce, setAiRetryNonce] = useState(0);
   const aiInflightMeds = useRef<Set<string>>(new Set());
+  const lastReconciledFingerprintRef = useRef<string>('');
+  const isReconcilingRef = useRef<boolean>(false);
 
-  const loadReconciliation = async (dataset: Patient3ListDischargeDataset) => {
+  const computeDatasetFingerprint = (dataset: Patient3ListDischargeDataset): string => {
+    const pre = (dataset.preAdmissionMeds || []).map((m) => `${m.medName}:${m.dose || ''}:${m.frequency || ''}:${m.isOTC || false}`).sort().join(';');
+    const hosp = (dataset.inHospitalMeds || []).map((m) => `${m.medName}:${m.dose || ''}:${m.reason || ''}`).sort().join(';');
+    const dis = (dataset.dischargeMeds || []).map((m) => `${m.medName}:${m.dose || ''}:${m.frequency || ''}:${m.status || ''}:${m.reason || ''}`).sort().join(';');
+    return `${pre}|${hosp}|${dis}`;
+  };
+
+  const loadReconciliation = async (dataset: Patient3ListDischargeDataset, force = false) => {
+    const fingerprint = `${effectivePatientId}:${computeDatasetFingerprint(dataset)}`;
+
+    // Skip if identical dataset already reconciled and not forced
+    if (!force && lastReconciledFingerprintRef.current === fingerprint && reconciledItems.length > 0) {
+      return;
+    }
+
+    if (isReconcilingRef.current) {
+      return;
+    }
+
+    // Preserve existing patient approval state across updates
+    const existingApprovals = new Map<string, boolean>();
+    reconciledItems.forEach((item) => {
+      if (item.isApprovedByPatient) {
+        existingApprovals.set(item.medId, true);
+      }
+    });
 
     try {
-      setReconciledItems(ClinicalReconciliationEngine.reconcileThreeLists(dataset));
+      const initial = ClinicalReconciliationEngine.reconcileThreeLists(dataset);
+      setReconciledItems(
+        initial.map((item) => ({
+          ...item,
+          isApprovedByPatient: existingApprovals.get(item.medId) ?? false,
+        }))
+      );
     } catch {
-
+      // Keep previous reconciledItems on failure
     }
-    setWalkIndex(0);
-    setTeachBackRecord(null);
 
-    setAiNarratives({});
+    if (!lastReconciledFingerprintRef.current) {
+      setWalkIndex(0);
+      setTeachBackRecord(null);
+    }
+
     setAiLoadingMeds({});
     setAiNarrativeErrors({});
     aiInflightMeds.current.clear();
 
+    isReconcilingRef.current = true;
     try {
       const aiItems = await ClinicalReconciliationEngine.reconcileThreeListsAI(dataset);
       const aiMap = new Map(aiItems.map((i) => [i.medId, i]));
@@ -94,6 +130,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           if (!ai) return item;
           return {
             ...item,
+            isApprovedByPatient: item.isApprovedByPatient || (existingApprovals.get(item.medId) ?? false),
             plainLanguageExplanation: ai.plainLanguageExplanation || item.plainLanguageExplanation,
             suggestedQuestions: ai.suggestedQuestions && ai.suggestedQuestions.length > 0 ? ai.suggestedQuestions : item.suggestedQuestions,
             interactions: ai.interactions && ai.interactions.length > 0 ? ai.interactions : item.interactions,
@@ -101,18 +138,44 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
           };
         });
       });
+      lastReconciledFingerprintRef.current = fingerprint;
     } catch {
-
+      // Keep existing reconciledItems on AI failure
+    } finally {
+      isReconcilingRef.current = false;
     }
   };
 
-  useEffect(() => {
+  const syncDatasetFromVault = (force = false) => {
     const meds = localVault.getMedications(effectivePatientId);
-    if (!meds.length) { setActiveDataset(emptyDataset); loadReconciliation(emptyDataset); return; }
-    const preAdmissionMeds = meds.map((m) => ({ medName: (m.genericName || m.brandName || 'Medication') as string, dose: (m.dosage || 'Standard') as string, frequency: (m.frequency || 'Once daily') as string, isOTC: false }));
-    const dischargeMeds = meds.map((m) => ({ medName: (m.genericName || m.brandName || 'Medication') as string, dose: (m.dosage || 'Standard') as string, frequency: (m.frequency || 'Once daily') as string, status: (m.status === 'stopped' ? 'STOPPED' : 'CONTINUED') as 'STOPPED' | 'CONTINUED', reason: 'Doctor order', timingSlots: m.timingSlots, dietInstructions: m.withFood ? 'Take with food' : undefined }));
+    if (!meds.length) {
+      setActiveDataset(emptyDataset);
+      loadReconciliation(emptyDataset, force);
+      return;
+    }
+    const preAdmissionMeds = meds.map((m) => ({
+      medName: (m.genericName || m.brandName || 'Medication') as string,
+      dose: (m.dosage || 'Standard') as string,
+      frequency: (m.frequency || 'Once daily') as string,
+      isOTC: false
+    }));
+    const dischargeMeds = meds.map((m) => ({
+      medName: (m.genericName || m.brandName || 'Medication') as string,
+      dose: (m.dosage || 'Standard') as string,
+      frequency: (m.frequency || 'Once daily') as string,
+      status: (m.status === 'stopped' ? 'STOPPED' : 'CONTINUED') as 'STOPPED' | 'CONTINUED',
+      reason: 'Doctor order',
+      timingSlots: m.timingSlots,
+      dietInstructions: m.withFood ? 'Take with food' : undefined
+    }));
     const dataset: Patient3ListDischargeDataset = { ...emptyDataset, preAdmissionMeds, dischargeMeds } as unknown as Patient3ListDischargeDataset;
-    setActiveDataset(dataset); loadReconciliation(dataset);
+    setActiveDataset(dataset);
+    loadReconciliation(dataset, force);
+  };
+
+  useEffect(() => {
+    lastReconciledFingerprintRef.current = '';
+    syncDatasetFromVault(true);
   }, [effectivePatientId, activeProfile.userId]);
 
   useEffect(() => {
@@ -120,9 +183,9 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
       const pid = (p as { patientId?: string })?.patientId;
       return !p || !pid || pid === effectivePatientId;
     };
-    const onProposal = (payload: unknown) => { if (guard(payload)) loadReconciliation(activeDataset); };
-    const onLab = (payload: unknown) => { if (guard(payload)) loadReconciliation(activeDataset); };
-    const onMed = (payload: unknown) => { if (guard(payload)) loadReconciliation(activeDataset); };
+    const onProposal = (payload: unknown) => { if (guard(payload)) syncDatasetFromVault(false); };
+    const onLab = (payload: unknown) => { if (guard(payload)) syncDatasetFromVault(false); };
+    const onMed = (payload: unknown) => { if (guard(payload)) syncDatasetFromVault(false); };
 
     const u1 = eventBus.on('proposal_created', onProposal as (p: unknown) => void);
     const u2 = eventBus.on('proposal_status_changed', onProposal as (p: unknown) => void);
@@ -132,12 +195,24 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
     const u6 = eventBus.on('vault_synced' as unknown as string, onMed as (p: unknown) => void);
 
     return () => { u1(); u2(); u3(); u4(); u5(); u6(); };
-  }, [effectivePatientId, activeDataset]);
+  }, [effectivePatientId]);
 
   useEffect(() => {
     if (viewMode !== 'walk' || reconciledItems.length === 0) return;
     const item = reconciledItems[walkIndex] || reconciledItems[0];
-    if (!item || aiNarratives[item.medId] || aiInflightMeds.current.has(item.medId)) return;
+    if (!item || aiNarratives[item.medId] || aiInflightMeds.current.has(item.medId) || aiNarrativeErrors[item.medId]) return;
+
+    if (item.plainLanguageExplanation && item.plainLanguageExplanation.trim().length > 10) {
+      setAiNarratives((prev) => ({
+        ...prev,
+        [item.medId]: {
+          explanation: item.plainLanguageExplanation!,
+          questions: item.suggestedQuestions || [],
+        },
+      }));
+      return;
+    }
+
     aiInflightMeds.current.add(item.medId);
     setAiLoadingMeds((prev) => ({ ...prev, [item.medId]: true }));
     setAiNarrativeErrors((prev) => ({ ...prev, [item.medId]: false }));
@@ -174,7 +249,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         aiInflightMeds.current.delete(item.medId);
         setAiLoadingMeds((prev) => ({ ...prev, [item.medId]: false }));
       });
-  }, [viewMode, walkIndex, reconciledItems, effectivePatientId, aiNarratives, aiRetryNonce]);
+  }, [viewMode, walkIndex, reconciledItems, effectivePatientId, aiNarratives, aiNarrativeErrors, aiRetryNonce]);
 
   const handleRetryAiNarrative = (medId: string) => {
     setAiNarratives((prev) => {
@@ -381,7 +456,7 @@ export const RxBridgeView: React.FC<RxBridgeViewProps> = ({
         const pre = meds.map((m) => ({ medName: m.genericName || m.brandName || 'Medication', dose: m.dosage || 'Standard', frequency: m.frequency || 'Once daily' }));
         const dis = meds.map((m) => ({ medName: m.genericName || m.brandName || 'Medication', dose: m.dosage || 'Standard', frequency: m.frequency || 'Once daily', status: 'CONTINUED' as const, reason: 'Doctor order' }));
         const ds = { ...emptyDataset, preAdmissionMeds: pre, dischargeMeds: dis } as unknown as Patient3ListDischargeDataset;
-        loadReconciliation(ds);
+        loadReconciliation(ds, true);
         setActiveDataset(ds);
       }
     };

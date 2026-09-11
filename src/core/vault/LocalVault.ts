@@ -590,20 +590,24 @@ export class LocalVaultManager {
 
   public async storeInteractionEvaluation(entry: StoredInteractionEvaluation): Promise<StoredInteractionEvaluation> {
     const key = interactionCacheId(entry.patientId, entry.regimenHash);
-    await this.writeDirect('interaction_cache', {
-      id: key,
-      patientId: entry.patientId,
-      regimenHash: entry.regimenHash,
-      engineVersion: entry.engineVersion,
-      computedAt: entry.computedAt,
-      medFingerprint: entry.medFingerprint,
-      dietFlags: entry.dietFlags,
-      arcs: entry.arcs,
-      dietBadges: entry.dietBadges,
-      duplicateAlerts: entry.duplicateAlerts,
-      medCount: entry.medCount,
-    });
     this.interactionCache.set(key, entry);
+    try {
+      await this.writeDirect('interaction_cache', {
+        id: key,
+        patientId: entry.patientId,
+        regimenHash: entry.regimenHash,
+        engineVersion: entry.engineVersion,
+        computedAt: entry.computedAt,
+        medFingerprint: entry.medFingerprint,
+        dietFlags: entry.dietFlags,
+        arcs: entry.arcs,
+        dietBadges: entry.dietBadges,
+        duplicateAlerts: entry.duplicateAlerts,
+        medCount: entry.medCount,
+      });
+    } catch (err) {
+      console.warn('[LocalVault] Failed to persist interaction evaluation to Supabase (cached locally):', err);
+    }
     return entry;
   }
 

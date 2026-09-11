@@ -3,6 +3,7 @@ import { HelpCircle, Sparkles, Send, Plus, Check, Pill, ChevronDown, ChevronRigh
 import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { localVault } from '@/core/vault/LocalVault';
 import { eventBus } from '@/core/events/eventBus';
+import { BIOMARKER_STANDARDS } from '@/tools/labStoryTools';
 import type { QuestionBankItem } from '@/types/vault';
 
 interface AskWhyPanelProps {
@@ -40,13 +41,43 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
     return () => off();
   }, []);
 
-  const presetQueries = [
-    { label: 'Kidney change — medicines?', marker: 'eGFR', query: 'Why did my kidney test change?' },
-    { label: 'Sugar spike — why?', marker: 'Glucose Fasting', query: 'What caused my sugar to go up?' },
-    { label: 'Creatinine high — why?', marker: 'Creatinine', query: 'Why is my creatinine high?' },
-    { label: 'Potassium — medicines?', marker: 'Potassium', query: 'Why is my potassium a little high?' },
-    { label: 'Cholesterol — better?', marker: 'LDL', query: 'Why did my cholesterol get better?' },
-  ];
+  const [availableMarkers, setAvailableMarkers] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const patientLabs = localVault.getLabs(patientId) || [];
+      const distinctPatientMarkers = Array.from(new Set(patientLabs.map((l: any) => l.marker).filter(Boolean)));
+      const standardMarkers = Object.values(BIOMARKER_STANDARDS).map((s) => s.canonicalName);
+      const combined = Array.from(new Set([...distinctPatientMarkers, ...standardMarkers]));
+      setAvailableMarkers(combined);
+      if (!initialMarker && distinctPatientMarkers.length > 0 && !marker) {
+        setMarker(distinctPatientMarkers[0]);
+      }
+    } catch {
+      setAvailableMarkers(Object.values(BIOMARKER_STANDARDS).map((s) => s.canonicalName));
+    }
+  }, [patientId]);
+
+  const presetQueries = React.useMemo(() => {
+    try {
+      const patientLabs = localVault.getLabs(patientId) || [];
+      if (patientLabs.length > 0) {
+        const distinct = Array.from(new Set(patientLabs.map((l: any) => l.marker)));
+        return distinct.slice(0, 5).map((m) => ({
+          label: `${m} — medicines?`,
+          marker: m,
+          query: `Why did my ${m} change?`
+        }));
+      }
+    } catch {}
+    return [
+      { label: 'Kidney change — medicines?', marker: 'eGFR', query: 'Why did my kidney test change?' },
+      { label: 'Sugar spike — why?', marker: 'Glucose Fasting', query: 'What caused my sugar to go up?' },
+      { label: 'Creatinine high — why?', marker: 'Creatinine', query: 'Why is my creatinine high?' },
+      { label: 'Potassium — medicines?', marker: 'Potassium', query: 'Why is my potassium a little high?' },
+      { label: 'Cholesterol — better?', marker: 'LDL', query: 'Why did my cholesterol get better?' },
+    ];
+  }, [patientId]);
 
   useEffect(() => {
     try {
@@ -136,13 +167,11 @@ export const AskWhyPanel: React.FC<AskWhyPanelProps> = ({ patientId, initialMark
           className="px-3 py-2.5 bg-canvas-muted border border-canvas-border rounded-xl text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[44px] sm:w-[160px]"
           aria-label="Test name"
         >
-          <option value="eGFR">Kidney (eGFR)</option>
-          <option value="Creatinine">Creatinine</option>
-          <option value="HbA1c">HbA1c</option>
-          <option value="Glucose Fasting">Sugar (fasting)</option>
-          <option value="Potassium">Potassium</option>
-          <option value="LDL">LDL</option>
-          <option value="Cholesterol Total">Cholesterol</option>
+          {availableMarkers.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
         </select>
         <div className="relative flex-1">
           <input

@@ -140,6 +140,14 @@ const SNAKE_TO_CAMEL: { [key: string]: string } = {
   plain_explanation: 'plainExplanation',
   plain_narration: 'plainNarration',
   approval_status: 'approvalStatus',
+  regimen_hash: 'regimenHash',
+  engine_version: 'engineVersion',
+  computed_at: 'computedAt',
+  med_fingerprint: 'medFingerprint',
+  diet_flags: 'dietFlags',
+  diet_badges: 'dietBadges',
+  duplicate_alerts: 'duplicateAlerts',
+  med_count: 'medCount',
 };
 
 function normalizeRow(table: string, raw: unknown): { [key: string]: unknown } {

@@ -14,10 +14,10 @@ import type { MedicationRecord } from '../../types/vault.ts';
 import type { AuditLogEntry } from '../../types/vault.ts';
 
 export const DEFAULT_DIET_FLAGS: DietFlags = {
-  drinksGrapefruitDaily: true,
-  frequentHighVitKGreens: true,
-  dairyBreakfast: true,
-  usesPotassiumSaltSubstitute: true,
+  drinksGrapefruitDaily: false,
+  frequentHighVitKGreens: false,
+  dairyBreakfast: false,
+  usesPotassiumSaltSubstitute: false,
 };
 
 export interface InteractionEvaluationResult extends StoredInteractionEvaluation {
@@ -108,7 +108,11 @@ export class HealthRepository {
       ClinicalInteractionEngine.checkDuplicateIngredients(dupInput),
     ]);
     const entry = buildStoredEvaluation({ patientId, meds: inputs, dietFlags, arcs, dietBadges, duplicateAlerts });
-    await this.vault.storeInteractionEvaluation(entry);
+    try {
+      await this.vault.storeInteractionEvaluation(entry);
+    } catch (err) {
+      console.warn('[HealthRepository] Failed to persist interaction evaluation to storage:', err);
+    }
     return { ...entry, fromCache: false };
   }
 

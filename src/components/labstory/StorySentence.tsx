@@ -45,68 +45,46 @@ export const StorySentence: React.FC<StorySentenceProps> = ({ marker, labs, clas
 
   const delta = Math.round((last.normalizedValue - first.normalizedValue) * 100) / 100;
 
+
+  const isCritical = last.isCritical || last.flag === 'CRITICAL_HIGH' || last.flag === 'CRITICAL_LOW';
+  const isHigh = last.flag === 'HIGH' || (last.referenceRange && typeof last.referenceRange.high === 'number' && last.normalizedValue > last.referenceRange.high);
+  const isLow = last.flag === 'LOW' || (last.referenceRange && typeof last.referenceRange.low === 'number' && last.normalizedValue < last.referenceRange.low);
+  const isBorderline = Boolean(last.isBorderline);
+
   let storySentence = '';
   let trendIcon = <Minus className="w-4 h-4 text-muted" />;
   let badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
 
-  if ((marker ?? '').toLowerCase().includes('egfr')) {
-    if (last.normalizedValue < 30) {
-      storySentence = `eGFR ${last.normalizedValue} — low. Was ${first.normalizedValue}.`;
-      trendIcon = <TrendingDown className="w-4 h-4 text-rose-600" />;
-      badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-    } else if (delta < 0) {
-      storySentence = `eGFR down to ${last.normalizedValue}.`;
-      trendIcon = <TrendingDown className="w-4 h-4 text-amber-600" />;
-      badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-    } else {
-      storySentence = `eGFR stable at ${last.normalizedValue}.`;
-      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
-      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    }
-  } else if ((marker ?? '').toLowerCase().includes('creat')) {
-    if (last.normalizedValue > 1.5) {
-      storySentence = `Creatinine high at ${last.normalizedValue}.`;
-      trendIcon = <TrendingUp className="w-4 h-4 text-rose-600" />;
-      badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-    } else {
-      storySentence = `Creatinine ok at ${last.normalizedValue}.`;
-      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
-      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    }
-  } else if ((marker ?? '').toLowerCase().includes('glucose') || (marker ?? '').toLowerCase().includes('a1c')) {
-    if (delta > 10) {
-      storySentence = `${marker} up to ${last.normalizedValue}.`;
-      trendIcon = <TrendingUp className="w-4 h-4 text-amber-600" />;
-      badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-    } else {
-      storySentence = `${marker} steady at ${last.normalizedValue}.`;
-      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
-      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    }
-  } else if ((marker ?? '').toLowerCase().includes('potassium')) {
-    if (last.normalizedValue > 5.0) {
-      storySentence = `Potassium high at ${last.normalizedValue}.`;
-      trendIcon = <AlertTriangle className="w-4 h-4 text-amber-600" />;
-      badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-    } else {
-      storySentence = `Potassium ok at ${last.normalizedValue}.`;
-      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
-      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    }
-  } else if ((marker ?? '').toLowerCase().includes('ldl') || (marker ?? '').toLowerCase().includes('cholesterol')) {
-    if (delta < 0) {
-      storySentence = `${marker} down to ${last.normalizedValue}.`;
-      trendIcon = <TrendingDown className="w-4 h-4 text-emerald-600" />;
-      badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    } else {
-      storySentence = `${marker} ${last.normalizedValue}.`;
-      trendIcon = <Minus className="w-4 h-4 text-muted" />;
-      badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
-    }
+  const unitStr = last.normalizedUnit ? ` ${last.normalizedUnit}` : '';
+  const prevStr = count > 1 ? ` (previously ${first.normalizedValue}${unitStr})` : '';
+
+  if (isCritical) {
+    storySentence = `${marker} is critically ${isLow || last.flag === 'CRITICAL_LOW' ? 'low' : 'high'} at ${last.normalizedValue}${unitStr}${prevStr}.`;
+    trendIcon = delta > 0 ? <TrendingUp className="w-4 h-4 text-rose-600" /> : <TrendingDown className="w-4 h-4 text-rose-600" />;
+    badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+  } else if (isHigh) {
+    const trendDetail = count > 1 && delta !== 0 ? (delta > 0 ? ` (up from ${first.normalizedValue})` : ` (down from ${first.normalizedValue})`) : '';
+    storySentence = `${marker} is elevated at ${last.normalizedValue}${unitStr}${trendDetail}.`;
+    trendIcon = delta > 0 ? <TrendingUp className="w-4 h-4 text-amber-600" /> : <Minus className="w-4 h-4 text-amber-600" />;
+    badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+  } else if (isLow) {
+    const trendDetail = count > 1 && delta !== 0 ? (delta < 0 ? ` (down from ${first.normalizedValue})` : ` (up from ${first.normalizedValue})`) : '';
+    storySentence = `${marker} is low at ${last.normalizedValue}${unitStr}${trendDetail}.`;
+    trendIcon = delta < 0 ? <TrendingDown className="w-4 h-4 text-amber-600" /> : <Minus className="w-4 h-4 text-amber-600" />;
+    badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+  } else if (isBorderline) {
+    storySentence = `${marker} is borderline at ${last.normalizedValue}${unitStr}${prevStr}.`;
+    trendIcon = <AlertTriangle className="w-4 h-4 text-amber-600" />;
+    badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
   } else {
-    storySentence = `${marker} ${last.normalizedValue} ${last.normalizedUnit}.`;
-    trendIcon = <Minus className="w-4 h-4 text-muted" />;
-    badgeColor = 'bg-muted-subtle text-muted border-canvas-border';
+    if (count > 1 && Math.abs(delta) > 0) {
+      storySentence = `${marker} is stable within range at ${last.normalizedValue}${unitStr} (${delta > 0 ? 'up' : 'down'} from ${first.normalizedValue}).`;
+      trendIcon = delta > 0 ? <TrendingUp className="w-4 h-4 text-emerald-600" /> : <TrendingDown className="w-4 h-4 text-emerald-600" />;
+    } else {
+      storySentence = `${marker} is in normal range at ${last.normalizedValue}${unitStr}.`;
+      trendIcon = <CheckCircle2 className="w-4 h-4 text-emerald-600" />;
+    }
+    badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
   }
 
   const inner = (

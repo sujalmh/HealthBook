@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Pill,
   Sparkles,
@@ -51,7 +50,7 @@ export interface PillMapViewProps {
 }
 
 export const PillMapView: React.FC<PillMapViewProps> = ({
-  patientId = '',
+  patientId,
   activeProfile = { userId: '', name: 'Patient', role: 'patient' }
 }) => {
   const effectivePatientId = resolvePatientId(patientId || (activeProfile as unknown as { userId?: string })?.userId || '');
@@ -65,6 +64,9 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   const [ghostShifts, setGhostShifts] = useState<GhostPreviewShift[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [evalError, setEvalError] = useState(false);
+
+  const isEvaluatingRef = useRef(false);
+  const lastEvaluatedFingerprintRef = useRef<string>('');
 
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState<ScheduleSuggestionResult | null>(null);
@@ -135,46 +137,80 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   };
 
   const recalculateEvaluations = async (vaultMeds: { id?: string; patientId?: string; brandName?: string; genericName?: string; name?: string; dosage?: string; frequency?: string; timingSlots?: TimeSlot[]; withFood?: boolean }[]) => {
+    const facts = effectivePatientId ? localVault.getFacts(effectivePatientId) : [];
+    const dietFacts = facts.filter((f) => f.category === 'diet_habit');
+    const dietText = dietFacts.map((f) => `${f.name} ${f.value || ''} ${f.plainExplanation || ''}`).join(' ').toLowerCase();
+
     const dietFlags = {
-      drinksGrapefruitDaily: true,
-      frequentHighVitKGreens: true,
-      dairyBreakfast: true,
-      usesPotassiumSaltSubstitute: true
+      drinksGrapefruitDaily: dietText.includes('grapefruit'),
+      frequentHighVitKGreens: dietText.includes('vitamin k') || dietText.includes('greens') || dietText.includes('spinach') || dietText.includes('kale'),
+      dairyBreakfast: dietText.includes('dairy') || dietText.includes('milk') || dietText.includes('calcium'),
+      usesPotassiumSaltSubstitute: dietText.includes('potassium') || dietText.includes('salt substitute')
     };
 
     type EvalMeds = Parameters<typeof healthRepository.evaluateInteractions>[1];
     try {
       const fullMeds = effectivePatientId ? healthRepository.getActiveMedications(effectivePatientId) : [];
-
       const evalMeds = (fullMeds.length > 0 ? fullMeds : vaultMeds) as unknown as EvalMeds;
 
-      let needsFetch = true;
-      try {
-        needsFetch = !healthRepository.hasFreshEvaluation(effectivePatientId, evalMeds, dietFlags);
-      } catch {
-        needsFetch = true;
+      if (!evalMeds || evalMeds.length === 0) {
+        setInteractionArcs([]);
+        setDietBadges([]);
+        setDuplicateAlerts([]);
+        setIsChecking(false);
+        setEvalError(false);
+        lastEvaluatedFingerprintRef.current = `${effectivePatientId}:empty`;
+        return;
       }
-      if (needsFetch) setIsChecking(true);
+
+      const currentFingerprint = `${effectivePatientId}:${evalMeds
+        .map((m) => `${m.brandName || m.genericName || m.name || ''}:${m.dosage || ''}`)
+        .sort()
+        .join('|')}`;
+
+      // Skip re-evaluating if regimen hasn't changed and previous evaluation succeeded
+      if (lastEvaluatedFingerprintRef.current === currentFingerprint && !evalError) {
+        return;
+      }
+
+      // Avoid overlapping concurrent in-flight evaluations
+      if (isEvaluatingRef.current) {
+        return;
+      }
+
+      let isFresh = false;
+      try {
+        isFresh = healthRepository.hasFreshEvaluation(effectivePatientId, evalMeds, dietFlags);
+      } catch {
+        isFresh = false;
+      }
+
+      if (!isFresh) {
+        setIsChecking(true);
+      }
+      isEvaluatingRef.current = true;
+
       try {
         const result = await healthRepository.evaluateInteractions(effectivePatientId, evalMeds, dietFlags);
-        setInteractionArcs(result.arcs);
-        setDietBadges(result.dietBadges);
-        setDuplicateAlerts(result.duplicateAlerts);
+        setInteractionArcs(result.arcs || []);
+        setDietBadges(result.dietBadges || []);
+        setDuplicateAlerts(result.duplicateAlerts || []);
         setEvalError(false);
+        lastEvaluatedFingerprintRef.current = currentFingerprint;
       } finally {
-        if (needsFetch) setIsChecking(false);
+        isEvaluatingRef.current = false;
+        setIsChecking(false);
       }
-    } catch {
-
-      setInteractionArcs([]);
-      setDietBadges([]);
-      setDuplicateAlerts([]);
+    } catch (err) {
+      console.warn('[PillMapView] Interaction evaluation failed:', err);
       setIsChecking(false);
+      isEvaluatingRef.current = false;
       setEvalError(true);
     }
   };
 
   useEffect(() => {
+    lastEvaluatedFingerprintRef.current = '';
     loadMedicationsFromVault();
 
     const isRelevantMedPayload = (p: unknown) => {
@@ -198,23 +234,53 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
     };
   }, [effectivePatientId]);
 
+interface PharmClassDescriptor {
+  stemRegex: RegExp;
+  category: string;
+  color: string;
+  shape: 'round' | 'capsule' | 'oval';
+}
+
+const PHARM_CLASS_REGISTRY: PharmClassDescriptor[] = [
+  { stemRegex: /(xaban|parin|grel|gatran|warfarin|aspirin)/i, category: 'Anticoagulant / Antiplatelet', color: '#3B82F6', shape: 'round' },
+  { stemRegex: /(formin|gliptin|gliflozin|glitazone|glinide|insulin)/i, category: 'Antidiabetic Agent', color: '#10B981', shape: 'oval' },
+  { stemRegex: /(pril)/i, category: 'ACE Inhibitor', color: '#0EA5E9', shape: 'round' },
+  { stemRegex: /(sartan)/i, category: 'Angiotensin Receptor Blocker', color: '#0EA5E9', shape: 'round' },
+  { stemRegex: /(olol|lol)/i, category: 'Beta-Blocker', color: '#0EA5E9', shape: 'round' },
+  { stemRegex: /(dipine)/i, category: 'Calcium Channel Blocker', color: '#0EA5E9', shape: 'capsule' },
+  { stemRegex: /(semide|thiazide|actone)/i, category: 'Diuretic Agent', color: '#0284C7', shape: 'round' },
+  { stemRegex: /(statin)/i, category: 'HMG-CoA Reductase Inhibitor', color: '#6366F1', shape: 'round' },
+  { stemRegex: /(cillin|cycline|oxacin|mycin|micin|conazole|vir|amox|cipro)/i, category: 'Antimicrobial Agent', color: '#F59E0B', shape: 'oval' },
+  { stemRegex: /(traline|oxetine|pram|faxine|triptyline|zodone|zoloft)/i, category: 'Psychotropic / Antidepressant', color: '#8B5CF6', shape: 'oval' },
+  { stemRegex: /(profen|coxib|fenac|salicylate|acetaminophen|paracetamol|tylenol|advil|aleve)/i, category: 'Analgesic / Anti-inflammatory', color: '#F43F5E', shape: 'round' },
+  { stemRegex: /(prazole|tidine)/i, category: 'Gastrointestinal Agent', color: '#14B8A6', shape: 'capsule' },
+  { stemRegex: /(sone|olone|onide|predni)/i, category: 'Corticosteroid', color: '#A855F7', shape: 'capsule' },
+  { stemRegex: /(thyrox)/i, category: 'Thyroid Hormone', color: '#EAB308', shape: 'round' }
+];
+
+function resolvePharmDescriptor(genericName: string): { category: string; color: string; shape: 'round' | 'capsule' | 'oval' } {
+  const lower = (genericName ?? '').toLowerCase().trim();
+  for (const item of PHARM_CLASS_REGISTRY) {
+    if (item.stemRegex.test(lower)) {
+      return { category: item.category, color: item.color, shape: item.shape };
+    }
+  }
+  const hash = Array.from(lower).reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const fallbackColors = ['#64748B', '#0284C7', '#475569', '#6D28D9', '#059669', '#D97706'];
+  const fallbackShapes: Array<'round' | 'capsule' | 'oval'> = ['round', 'capsule', 'oval'];
+  return {
+    category: 'Prescription Regimen',
+    color: fallbackColors[hash % fallbackColors.length],
+    shape: fallbackShapes[hash % fallbackShapes.length]
+  };
+}
+
   function getCategoryColor(genericName: string): string {
-    const lower = (genericName ?? '').toLowerCase();
-    if (lower.includes('apixaban') || lower.includes('warfarin') || lower.includes('clopidogrel') || lower.includes('aspirin')) return '#3B82F6';
-    if (lower.includes('metformin') || lower.includes('glipizide') || lower.includes('jardiance')) return '#10B981';
-    if (lower.includes('lisinopril') || lower.includes('amlodipine') || lower.includes('carvedilol') || lower.includes('furosemide')) return '#0EA5E9';
-    if (lower.includes('atorvastatin') || lower.includes('simvastatin')) return '#6366F1';
-    if (lower.includes('cipro') || lower.includes('doxycycline') || lower.includes('amoxil')) return '#F59E0B';
-    if (lower.includes('sertraline') || lower.includes('zoloft')) return '#8B5CF6';
-    if (lower.includes('ibuprofen') || lower.includes('advil') || lower.includes('aleve') || lower.includes('tylenol')) return '#F43F5E';
-    return '#64748B';
+    return resolvePharmDescriptor(genericName).color;
   }
 
   function getPillShape(genericName: string): 'round' | 'capsule' | 'oval' {
-    const lower = (genericName ?? '').toLowerCase();
-    if (lower.includes('apixaban') || lower.includes('atorvastatin') || lower.includes('lisinopril')) return 'round';
-    if (lower.includes('sertraline') || lower.includes('cipro') || lower.includes('metformin')) return 'oval';
-    return 'capsule';
+    return resolvePharmDescriptor(genericName).shape;
   }
 
   const handleDropPill = async (dragData: { name?: string; dosage?: string; dose?: string }, targetDay: DayOfWeek, targetSlot: TimeSlot) => {
@@ -396,13 +462,7 @@ export const PillMapView: React.FC<PillMapViewProps> = ({
   };
 
   function getCategoryName(genericName: string): string {
-    const lower = (genericName ?? '').toLowerCase();
-    if (lower.includes('apixaban')) return 'DOAC Anticoagulant';
-    if (lower.includes('metformin')) return 'Biguanide Antidiabetic';
-    if (lower.includes('lisinopril')) return 'ACE Inhibitor';
-    if (lower.includes('atorvastatin')) return 'HMG-CoA Reductase Inhibitor';
-    if (lower.includes('sertraline')) return 'SSRI Antidepressant';
-    return 'Prescription Regimen';
+    return resolvePharmDescriptor(genericName).category;
   }
 
   const handleAddMedSubmit = async (newMed: { name: string; genericName: string; dosage: string; frequency: string; timingSlots: TimeSlot[]; withFood: boolean; emptyStomach: boolean; avoidGrapefruit: boolean; avoidAlcohol: boolean; avoidDairy: boolean }) => {

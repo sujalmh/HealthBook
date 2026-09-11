@@ -5,6 +5,7 @@ import { buildFHIRR4Bundle } from '../core/vault/fhirExporter.ts';
 import { extractWithAI } from '../core/ai/client.ts';
 import { getAIConfig, getAIConfigSource, isAIEnabled } from '../core/ai/config.ts';
 import { verifyFactsWithWebEvidence } from '../core/search/factVerification.ts';
+import { findBiomarkerStandard } from './labStoryTools.ts';
 
 function resolveFileDataUrl(params: unknown, rawText?: string): string | undefined {
   const p = params as { imageDataUrl?: unknown; fileDataUrl?: unknown; imageBlob?: unknown; image_blob?: unknown; imageUrl?: unknown; dataUrl?: unknown };
@@ -273,35 +274,47 @@ export const confirmFactTool: WebMCPToolDefinition = {
         if (labVal === null) {
           console.warn('[confirm_fact] Could not parse a numeric value for lab fact, skipping lab propagation:', name);
         } else {
-        const lowerName = (name ?? '').toLowerCase();
-        let flag: 'NORMAL' | 'HIGH' | 'LOW' | 'CRITICAL_HIGH' | 'CRITICAL_LOW' = 'NORMAL';
-        if (lowerName.includes('creatinine') && labVal > 1.2) flag = labVal > 3.0 ? 'CRITICAL_HIGH' : 'HIGH';
-        else if (lowerName.includes('egfr') && labVal < 60) flag = labVal < 15 ? 'CRITICAL_LOW' : 'LOW';
-        else if (lowerName.includes('potassium') && (labVal > 5.0 || labVal < 3.5)) flag = labVal > 5.0 ? 'HIGH' : 'LOW';
-        else if (lowerName.includes('glucose') && labVal > 140) flag = 'HIGH';
-        else if (lowerName.includes('hba1c') && labVal > 6.5) flag = 'HIGH';
+          const rangeMatch = (fact.plainExplanation || '').match(/\((\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*([A-Za-z\/°²^0-9]*)\s*\)/);
+          const parsedRange = rangeMatch ? { low: Number(rangeMatch[1]), high: Number(rangeMatch[2]) } : undefined;
+          const std = findBiomarkerStandard(name ?? '');
+          const refRange = parsedRange || (std ? std.refRange : undefined);
 
-        const rangeMatch = (fact.plainExplanation || '').match(/\((\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*([A-Za-z\/°²^0-9]*)\s*\)/);
+          let flag: 'NORMAL' | 'HIGH' | 'LOW' | 'CRITICAL_HIGH' | 'CRITICAL_LOW' = 'NORMAL';
+          let isCritical = false;
 
-        await context.vault.addLab(
-          {
-            id: `lab_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
-            patientId,
-            marker: name,
-            value: labVal,
-            unit: unit || '',
-            normalizedValue: labVal,
-            normalizedUnit: unit || '',
-            drawDate: resolveFactDate(fact, 0),
-            referenceRange: rangeMatch ? { low: Number(rangeMatch[1]), high: Number(rangeMatch[2]) } as unknown as LabRecord['referenceRange'] : undefined as unknown as LabRecord['referenceRange'],
-            optimalRange: undefined as unknown as LabRecord['optimalRange'],
-            isBorderline: false,
-            isCritical: flag.startsWith('CRITICAL'),
-            flag: flag,
-            sourceDocId: fact.sourceDocId
-          },
-          userAudit
-        );
+          if (std?.criticalHigh && labVal >= std.criticalHigh) {
+            isCritical = true;
+            flag = 'CRITICAL_HIGH';
+          } else if (std?.criticalLow && labVal <= std.criticalLow) {
+            isCritical = true;
+            flag = 'CRITICAL_LOW';
+          } else if (refRange) {
+            if (labVal > refRange.high) {
+              flag = 'HIGH';
+            } else if (labVal < refRange.low) {
+              flag = 'LOW';
+            }
+          }
+
+          await context.vault.addLab(
+            {
+              id: `lab_${(name ?? '').toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`,
+              patientId,
+              marker: std?.canonicalName || name,
+              value: labVal,
+              unit: unit || std?.standardUnit || '',
+              normalizedValue: labVal,
+              normalizedUnit: unit || std?.standardUnit || '',
+              drawDate: resolveFactDate(fact, 0),
+              referenceRange: refRange as unknown as LabRecord['referenceRange'],
+              optimalRange: std?.optimalRange as unknown as LabRecord['optimalRange'],
+              isBorderline: false,
+              isCritical,
+              flag,
+              sourceDocId: fact.sourceDocId
+            },
+            userAudit
+          );
         }
       }
 

@@ -1,5 +1,5 @@
 
-import { ClinicalInteractionEngine, normalizeMedName } from './interactionEngine.ts';
+import { ClinicalInteractionEngine, normalizeMedName, type DietFlags } from './interactionEngine.ts';
 import type {
   PreAdmissionMedItem,
   InHospitalMedItem,
@@ -140,7 +140,7 @@ export class ClinicalReconciliationEngine {
 
   public static async reconcileThreeListsAI(
     dataset: Patient3ListDischargeDataset,
-    opts?: { imageDataUrl?: string; documentContext?: string }
+    opts?: { imageDataUrl?: string; documentContext?: string; dietFlags?: Partial<DietFlags> }
   ): Promise<ReconciledMedChangeItem[]> {
 
     let aliasMap: Record<string, string> = {};
@@ -179,7 +179,7 @@ export class ClinicalReconciliationEngine {
       required: ['explanations'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical discharge reconciliation specialist. Given 3-list medication changes, generate grounded plain-language explanations and targeted doctor questions per medication. Consider kidney, bleeding, diabetes, heart failure nuances and document context. Return ONLY valid JSON with shape {"explanations": [{"medId": string, "plainExplanation": string, "questions": string[], "confidence": number, "reasoning": string}]}. Provide confidence 0-1 and grounded reasoning. Use vision+text context if provided. No markdown.`;
+    const systemPrompt = `You are a clinical discharge reconciliation specialist. Given 3-list medication changes, generate grounded plain-language explanations and targeted doctor questions per medication. Consider clinical transition rationale, dose modifications, acute versus chronic indications, organ system monitoring requirements, and document context. Return ONLY valid JSON with shape {"explanations": [{"medId": string, "plainExplanation": string, "questions": string[], "confidence": number, "reasoning": string}]}. Provide confidence 0-1 and grounded reasoning. Use vision+text context if provided. No markdown.`;
     const itemsSummary = items.map(i => ({
       medId: i.medId,
       medName: i.medName,
@@ -208,7 +208,7 @@ export class ClinicalReconciliationEngine {
     }
 
     try {
-      await this.enrichInteractionsAI(items, dataset);
+      await this.enrichInteractionsAI(items, dataset, opts?.dietFlags);
     } catch (e) {
       console.warn('[reconciliationEngine] AI interaction screening failed, items keep narratives:', (e as any)?.message || e);
     }
@@ -235,7 +235,7 @@ export class ClinicalReconciliationEngine {
       required: ['plainExplanation', 'confidence', 'reasoning'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical discharge educator. Generate an accessible plain-language explanation for a medication change given pre-admission dose, in-hospital action, discharge dose, status badge, and clinical reason. Consider kidney/bleeding/diabetes context and use vision+text document context if provided. Return ONLY valid JSON with shape {"plainExplanation": string, "confidence": number, "reasoning": string}. Be concise, include grounded reasoning and confidence. No markdown.`;
+    const systemPrompt = `You are a clinical discharge educator. Generate an accessible plain-language explanation for a medication change given pre-admission dose, in-hospital action, discharge dose, status badge, and clinical reason. Ground the explanation in therapeutic indications, safety considerations, and clinical document context if provided. Return ONLY valid JSON with shape {"plainExplanation": string, "confidence": number, "reasoning": string}. Be concise, include grounded reasoning and confidence. No markdown.`;
     const preStr = preDose && preDose !== 'None' ? preDose : 'no home dose';
     const postStr = postDose || 'discontinued';
     const docCtx = opts?.documentContext ? `Document: ${opts.documentContext.slice(0, 1500)}` : 'No document context';
@@ -265,7 +265,7 @@ export class ClinicalReconciliationEngine {
       required: ['questions', 'confidence', 'reasoning'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical care coordinator. Generate targeted doctor questions for a medication change (status badge, doses, reason). Use vision+text document context if available. Return ONLY valid JSON with shape {"questions": string[], "confidence": number, "reasoning": string}. Questions should be specific (e.g., kidney labs recheck, bleeding signs, HbA1c timing). Include confidence and grounded reasoning. No markdown.`;
+    const systemPrompt = `You are a clinical care coordinator. Generate targeted doctor questions for a medication change (status badge, doses, reason). Use vision+text document context if available. Return ONLY valid JSON with shape {"questions": string[], "confidence": number, "reasoning": string}. Questions should be actionable and focused on monitoring timelines, therapeutic efficacy, and safety precautions. Include confidence and grounded reasoning. No markdown.`;
     const docCtx = opts?.documentContext ? `Document: ${opts.documentContext.slice(0, 1500)}` : 'No document context';
     const userText = `Med: ${medName} (generic ${generic})\nStatus: ${statusBadge}\nPre: ${preDose || 'none'}\nPost: ${postDose || 'none'}\n${docCtx}\nGenerate JSON only.`;
     const parsed = await callReconciliationAI(systemPrompt, userText, schema, opts?.imageDataUrl);
@@ -310,7 +310,8 @@ export class ClinicalReconciliationEngine {
 
   public static async enrichInteractionsAI(
     items: ReconciledMedChangeItem[],
-    dataset: Patient3ListDischargeDataset
+    dataset: Patient3ListDischargeDataset,
+    dietFlags?: Partial<DietFlags>
   ): Promise<void> {
     const activeDischargeMeds = items.filter((i) => i.statusBadge !== 'STOPPED').map((i) => i.medName);
     const preOTCs = dataset.preAdmissionMeds.filter((p) => p.isOTC).map((p) => p.medName);
@@ -330,10 +331,10 @@ export class ClinicalReconciliationEngine {
         };
     });
     const dietBadges = await ClinicalInteractionEngine.checkDietInteractions(activeDischargeMeds, {
-        drinksGrapefruitDaily: true,
-        frequentHighVitKGreens: true,
-        dairyBreakfast: true,
-        usesPotassiumSaltSubstitute: true
+        drinksGrapefruitDaily: Boolean(dietFlags?.drinksGrapefruitDaily),
+        frequentHighVitKGreens: Boolean(dietFlags?.frequentHighVitKGreens),
+        dairyBreakfast: Boolean(dietFlags?.dairyBreakfast),
+        usesPotassiumSaltSubstitute: Boolean(dietFlags?.usesPotassiumSaltSubstitute)
     });
     const flaggedDiet: FlaggedDietInteraction[] = dietBadges.map((badge) => ({
         id: badge.id,
@@ -367,9 +368,8 @@ export class ClinicalReconciliationEngine {
   ): TeachBackCheck {
     const text = patientResponse.trim().toLowerCase();
 
-    const stoppedMeds = dataset.dischargeMeds
-      .filter((d) => d.status === 'STOPPED')
-      .map((d) => normalizeMedName(d.medName));
+    const stoppedMedItems = dataset.dischargeMeds.filter((d) => d.status === 'STOPPED');
+    const stoppedMeds = stoppedMedItems.map((d) => normalizeMedName(d.medName));
 
     const isStoppedMedAffirmative = stoppedMeds.some((m) => {
       if (!text.includes(m)) return false;
@@ -386,26 +386,29 @@ export class ClinicalReconciliationEngine {
     });
 
     if (isStoppedMedAffirmative) {
+      const stoppedExample = stoppedMedItems.slice(0, 2).map((s) => s.medName).join(' or ') || 'discontinued medications';
       return {
         patientId: dataset.patientId,
         promptQuestion: 'Can you tell me in your own words what you will take tomorrow morning and with food or without?',
         patientResponse,
         comprehensionScore: 'misunderstood',
-        feedbackNarration: '⚠️ Safety Alert: You mentioned taking a medication that was STOPPED in the hospital (e.g. Lisinopril or Aspirin). Please do NOT take your old supply. Only take medications listed on your green and blue discharge cards.',
+        feedbackNarration: `⚠️ Safety Alert: You mentioned taking a medication that was STOPPED in the hospital (e.g. ${stoppedExample}). Please do NOT take your old supply. Only take medications listed on your green and blue discharge cards.`,
         verifiedAt: new Date().toISOString()
       };
     }
 
     const mentionsMorning = text.includes('morning') || text.includes('breakfast') || text.includes('wake up') || text.includes('am');
     const mentionsFoodOrEmpty = text.includes('food') || text.includes('empty stomach') || text.includes('meal') || text.includes('water') || text.includes('breakfast');
-    const mentionsKeyMed =
-      text.includes('levothyroxine') ||
-      text.includes('metformin') ||
-      text.includes('apixaban') ||
-      text.includes('eliquis') ||
-      text.includes('blood thinner') ||
-      text.includes('thyroid') ||
-      text.includes('diabetes');
+    
+    const activeDischargeMeds = dataset.dischargeMeds.filter((d) => d.status !== 'STOPPED' && d.dose !== '0mg');
+    const mentionsKeyMed = activeDischargeMeds.some((m) => {
+      const norm = normalizeMedName(m.medName);
+      return (norm.length > 2 && text.includes(norm)) || text.includes(m.medName.toLowerCase());
+    }) ||
+      text.includes('prescription') ||
+      text.includes('medicine') ||
+      text.includes('medication') ||
+      text.includes('pill');
 
     if (mentionsKeyMed && mentionsFoodOrEmpty && (mentionsMorning || text.length > 30)) {
       return {
@@ -418,12 +421,34 @@ export class ClinicalReconciliationEngine {
       };
     }
 
+    const morningActiveMeds = activeDischargeMeds.filter(
+      (m) => m.dietInstructions || (m.timingSlots && m.timingSlots.includes('morning'))
+    );
+    const sortedReminders = [...(morningActiveMeds.length > 0 ? morningActiveMeds : activeDischargeMeds)].sort((a, b) => {
+      const aDiet = a.dietInstructions ? 1 : 0;
+      const bDiet = b.dietInstructions ? 1 : 0;
+      return bDiet - aDiet;
+    });
+
+    const reminderItems = sortedReminders
+      .map((m) => {
+        if (m.dietInstructions) return `${m.medName} (${m.dietInstructions})`;
+        if (m.timingSlots?.includes('morning')) return `${m.medName} in the morning`;
+        return m.medName;
+      })
+      .slice(0, 4)
+      .join(', ');
+
+    const reminderNarration = reminderItems
+      ? `ℹ️ Almost there! Remember to check timing and food instructions for your active discharge medications: ${reminderItems}.`
+      : 'ℹ️ Almost there! Remember to verify food timing and morning schedules for your prescribed medications.';
+
     return {
       patientId: dataset.patientId,
       promptQuestion: 'Can you tell me in your own words what you will take tomorrow morning and with food or without?',
       patientResponse,
       comprehensionScore: 'minor_confusion',
-      feedbackNarration: 'ℹ️ Almost there! Remember to take Levothyroxine first thing in the morning on an empty stomach with a glass of water, and Metformin with breakfast.',
+      feedbackNarration: reminderNarration,
       verifiedAt: new Date().toISOString()
     };
   }
@@ -480,12 +505,26 @@ export class ClinicalReconciliationEngine {
       { slot: 'bedtime' as const, timeString: '10:00 PM (Sleep)', meds: bedtimeMeds }
     ].filter((s) => s.meds.length > 0);
 
-    const foodRules = [
-      'Take Levothyroxine on an empty stomach with a full glass of water 30-60m before breakfast; avoid calcium/dairy for 4 hours.',
-      'Take Metformin with meals (breakfast and dinner) to prevent stomach upset.',
-      'Avoid grapefruit and grapefruit juice while taking Atorvastatin.',
-      'Take Apixaban consistently with or without food 12 hours apart.'
-    ];
+    const foodRules: string[] = [];
+    for (const d of dataset.dischargeMeds) {
+      if (d.status === 'STOPPED' || d.dose === '0mg') continue;
+      if (d.dietInstructions) {
+        foodRules.push(`${d.medName}: ${d.dietInstructions}`);
+      }
+    }
+    for (const item of reconciled) {
+      if (item.dietInteractions && !foodRules.some((r) => r.startsWith(item.medName))) {
+        foodRules.push(`${item.medName}: ${item.dietInteractions}`);
+      }
+    }
+    if (foodRules.length === 0) {
+      foodRules.push(
+        'Take all prescribed medications with a full glass of water unless fluid-restricted.',
+        'Consult your doctor or pharmacist before taking new supplements, vitamins, or making sudden dietary changes.'
+      );
+    } else if (foodRules.length < 2) {
+      foodRules.push('Take your medications consistently at the same times each day with water unless instructed otherwise.');
+    }
 
     const redFlags = [
       'Unusual bruising, bleeding gums, nosebleeds, or dark tarry stools (call clinic immediately)',
@@ -509,10 +548,29 @@ export class ClinicalReconciliationEngine {
       activeDailySchedule: schedule,
       foodAndDietRules: foodRules,
       redFlagWarningSymptoms: redFlags,
-      doctorQuestionBankItems: questions.length > 0 ? questions : [
-        'When should my kidney labs (creatinine/eGFR) and blood pressure be rechecked by my primary doctor?',
-        'Are there any OTC supplements or pain relievers I must strictly avoid with my new blood thinner?'
-      ],
+      doctorQuestionBankItems: questions.length > 0 ? questions : (() => {
+        const fallbacks: string[] = [];
+        const stopped = reconciled.filter((r) => r.statusBadge === 'STOPPED');
+        const newMeds = reconciled.filter((r) => r.statusBadge === 'NEW');
+        const doseChanged = reconciled.filter((r) => r.statusBadge === 'DOSE_CHANGED');
+
+        if (stopped.length > 0) {
+          fallbacks.push(`Confirm that I should permanently stop taking ${stopped.map((s) => s.medName).join(', ')} at home.`);
+        }
+        if (newMeds.length > 0) {
+          fallbacks.push(`What are the key side effects to watch for with my new prescription for ${newMeds.map((n) => n.medName).join(', ')}?`);
+        }
+        if (doseChanged.length > 0) {
+          fallbacks.push(`When should my follow-up labs or vitals be checked after the dosage adjustment for ${doseChanged.map((d) => d.medName).join(', ')}?`);
+        }
+        if (fallbacks.length === 0) {
+          fallbacks.push(
+            'When should my routine follow-up labs and vital signs be rechecked by my primary care provider?',
+            'Are there any OTC medications or supplements I should avoid with my current prescriptions?'
+          );
+        }
+        return fallbacks;
+      })(),
       emergencyContact: {
         clinicName: 'Healthcare Facility Outpatient Clinic',
         phone: '1-800-555-CARD',
@@ -523,4 +581,5 @@ export class ClinicalReconciliationEngine {
     };
   }
 }
+
 

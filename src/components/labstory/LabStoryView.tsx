@@ -11,6 +11,7 @@ import { webMCPEngine } from '@/core/webmcp/WebMCPEngine';
 import { eventBus } from '@/core/events/eventBus';
 import { ModalPortal } from '../common/ModalPortal';
 import { resolvePatientId } from '@/components/common/resolvePatientId';
+import { BIOMARKER_STANDARDS, findBiomarkerStandard } from '@/tools/labStoryTools';
 import type { LabRecord } from '@/types/vault';
 
 interface LabStoryViewProps {
@@ -304,18 +305,19 @@ export const LabStoryView: React.FC<LabStoryViewProps> = ({
               <select
                 id="manual-marker"
                 value={manualMarker}
-                onChange={(e) => setManualMarker(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setManualMarker(val);
+                  const std = findBiomarkerStandard(val);
+                  if (std?.standardUnit) setManualUnit(std.standardUnit);
+                }}
                 className="w-full bg-canvas-muted border border-canvas-border rounded-xl p-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary min-h-[44px]"
               >
-                <option value="Creatinine">Creatinine (mg/dL)</option>
-                <option value="eGFR">eGFR (mL/min/1.73m2)</option>
-                <option value="HbA1c">HbA1c (%)</option>
-                <option value="Glucose Fasting">Glucose Fasting (mg/dL)</option>
-                <option value="Potassium">Potassium (mEq/L)</option>
-                <option value="Cholesterol Total">Cholesterol Total (mg/dL)</option>
-                <option value="LDL">LDL (mg/dL)</option>
-                <option value="HDL">HDL (mg/dL)</option>
-                <option value="Triglycerides">Triglycerides (mg/dL)</option>
+                {Object.values(BIOMARKER_STANDARDS).map((std) => (
+                  <option key={std.canonicalName} value={std.canonicalName}>
+                    {std.canonicalName} {std.standardUnit ? `(${std.standardUnit})` : ''}
+                  </option>
+                ))}
               </select>
             </div>
 

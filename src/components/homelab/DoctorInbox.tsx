@@ -33,18 +33,33 @@ export const DoctorInbox: React.FC<DoctorInboxProps> = ({
   onCommentPinned
 }) => {
 
-  const [selectedLabId, setSelectedLabId] = useState<string>(labs[0]?.id || 'lab_egfr_current');
-  const [pinnedText, setPinnedText] = useState<string>(
-    'Stage 4 renal strain detected. eGFR 28 mL/min. Halve Metformin to 500mg QAM to avoid lactic acidosis.'
-  );
+  const defaultMed = React.useMemo(() => {
+    try {
+      const meds = localVault.getMedications(patientId) || [];
+      return meds[0] || null;
+    } catch {
+      return null;
+    }
+  }, [patientId]);
+
+  const [selectedLabId, setSelectedLabId] = useState<string>(labs[0]?.id || 'lab_current');
+  const [pinnedText, setPinnedText] = useState<string>(() => {
+    if (labs[0]) {
+      return `Reviewing ${labs[0].marker} (${labs[0].normalizedValue} ${labs[0].normalizedUnit || ''}). Clinical monitoring plan outlined below.`;
+    }
+    return '';
+  });
   const [isPinning, setIsPinning] = useState(false);
 
-  const [propMedName, setPropMedName] = useState('Metformin');
-  const [propCurrentDose, setPropCurrentDose] = useState('1000mg BID');
-  const [propNewDose, setPropNewDose] = useState('500mg Daily (Morning Only)');
-  const [propReason, setPropReason] = useState(
-    'Kidney filtration decreased to 28 mL/min on remote lab slip. Dose reduction avoids drug accumulation.'
-  );
+  const [propMedName, setPropMedName] = useState(() => defaultMed?.genericName || defaultMed?.name || '');
+  const [propCurrentDose, setPropCurrentDose] = useState(() => defaultMed?.dosage || '');
+  const [propNewDose, setPropNewDose] = useState('');
+  const [propReason, setPropReason] = useState(() => {
+    if (labs[0] && defaultMed) {
+      return `Adjust dosage of ${defaultMed.genericName || defaultMed.name} based on recent ${labs[0].marker} level (${labs[0].normalizedValue} ${labs[0].normalizedUnit || ''}).`;
+    }
+    return '';
+  });
   const [isSubmittingProposal, setIsSubmittingProposal] = useState(false);
 
   const [nextCadence, setNextCadence] = useState('4_weeks');

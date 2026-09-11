@@ -70,6 +70,7 @@ export interface DietFlagsInput {
   usesPotassiumSaltSubstitute?: boolean;
   alcoholFrequency?: string;
 }
+export type DietFlags = DietFlagsInput;
 
 export function normalizeMedName(name: string): string {
   return (name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -90,7 +91,7 @@ export class ClinicalInteractionEngine {
       required: ['generic', 'confidence', 'reasoning'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical pharmacology assistant. Resolve the generic name for a given drug brand or generic alias. Return ONLY valid JSON with shape {"generic": string, "confidence": number, "reasoning": string}. Be precise, handle compounds like "Apixaban (Eliquis)" -> "Apixaban". No markdown.`;
+    const systemPrompt = `You are a clinical pharmacology assistant. Resolve the generic name for a given drug brand or generic alias. Map proprietary trade names to their standard international non-proprietary generic counterparts. Return ONLY valid JSON with shape {"generic": string, "confidence": number, "reasoning": string}. Be precise. No markdown.`;
     try {
       const parsed = await callKnowledgeAI(systemPrompt, `Drug name: "${trimmed}"\nReturn JSON only.`, schema);
       if (parsed && typeof parsed.generic === 'string' && parsed.generic.trim() !== '') {
@@ -127,7 +128,7 @@ export class ClinicalInteractionEngine {
       required: ['mappings', 'confidence', 'reasoning'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical pharmacology assistant. Resolve the generic names for each of the following medications. Handle brand/generic aliases and compounds like "Apixaban (Eliquis)" -> "Apixaban". Return ONLY valid JSON with shape {"mappings": [{"input": string, "generic": string}], "confidence": number, "reasoning": string}. Echo each input exactly. No markdown.`;
+    const systemPrompt = `You are a clinical pharmacology assistant. Resolve the generic names for each of the following medications. Map brand and proprietary trade names to their standard international non-proprietary generic counterparts. Return ONLY valid JSON with shape {"mappings": [{"input": string, "generic": string}], "confidence": number, "reasoning": string}. Echo each input exactly. No markdown.`;
     try {
       const parsed = await callKnowledgeAI(systemPrompt, `Medications: ${JSON.stringify(unique)}\nReturn JSON only.`, schema);
       const map: Record<string, string> = {};
@@ -185,22 +186,44 @@ export class ClinicalInteractionEngine {
       required: ['interactions'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical pharmacology specialist. Analyze drug-drug interactions for the provided medication list. Consider brand/generic aliases, mechanisms (e.g., CYP450, bleeding risk, additive hypotension, potassium retention, chelation), severity grading, and clinical guidance. Use the provided Exa highlights as grounding when available. Grading rubric — CONTRAINDICATED only for label-contraindicated co-use; MAJOR for avoid-combinations (dual anticoagulation, serotonergic crisis risk, strong CYP3A4/P-gp induction collapsing DOAC levels, ACEi plus potassium-retaining drugs); MODERATE for monitor-and-manage pairs (dose-dependent fish-oil bleed risk, ACE inhibitor plus NSAID renal effects, ginkgo plus warfarin, levothyroxine plus calcium/iron separation issues). Prefer MAJOR over CONTRAINDICATED unless co-use is never acceptable. Return ONLY valid JSON with shape {"interactions": [{"drugA": string, "drugB": string, "severity": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include confidence 0-1 and grounded reasoning per interaction. No markdown.`;
+    const systemPrompt = `You are a clinical pharmacology specialist. Analyze drug-drug interactions for the provided medication list based on evidence-based pharmacology principles. Consider pharmacokinetic pathways (absorption, CYP450 metabolism, transport, renal excretion) and pharmacodynamic effects (additive toxicity, antagonism, synergy). Use Exa highlights as grounding when available.
+
+Severity Grading Rubric:
+- CONTRAINDICATED: Strictly prohibited co-administration due to life-threatening risks or catastrophic toxicity.
+- MAJOR: Clinically significant combinations with high risk of adverse events or substantial loss of therapeutic efficacy that require avoiding the combination or selecting alternative therapy.
+- MODERATE: Interactions that require clinical monitoring, dosage adjustments, or separation of administration timing.
+- MINOR: Negligible or theoretical interactions without meaningful clinical consequence; do NOT report MINOR interactions.
+
+Clinical Pragmatism Guidelines:
+- Exercise clinical judgment and avoid hyper-skepticism or alarmism.
+- Do NOT flag routine, guideline-directed, standard-of-care co-prescriptions (such as complementary multi-drug regimens for hypertension, diabetes, secondary cardiovascular prevention, or heart failure) as adverse conflicts unless an evidence-based severe contraindication exists.
+- Exclude theoretical interactions lacking documented clinical consequence.
+- Return ONLY clinically actionable interactions with confidence >= 0.70.
+
+Return ONLY valid JSON with shape {"interactions": [{"drugA": string, "drugB": string, "severity": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include confidence 0-1 and grounded clinical reasoning. No markdown.`;
     const userText = `Medications: ${JSON.stringify(list)}${exaContext ? `\nExa evidence highlights: ${exaContext}` : ''}\nProvide JSON only with AI reasoning and confidence.`;
     try {
       const parsed = await callKnowledgeAI(systemPrompt, userText, schema);
       if (parsed && Array.isArray(parsed.interactions)) {
-        return parsed.interactions.map((it: any) => ({
-          id: deterministicArcId(it.drugA || 'drugA', it.drugB || 'drugB', it.severity || 'MODERATE', it.mechanism || it.reasoning || 'AI-assessed'),
-          drugA: it.drugA,
-          drugB: it.drugB,
-          severity: (it.severity || 'MODERATE') as any,
-          arcColor: it.arcColor || severityToArcColor(it.severity),
-          mechanism: it.mechanism || it.reasoning || 'AI-assessed interaction mechanism',
-          clinicalGuidance: it.clinicalGuidance || 'Consult clinician for monitoring guidance.',
-          affectedSlots: [{ day: 'monday', slot: 'morning' }],
-          ...(it.confidence !== undefined ? { confidence: it.confidence } : {}),
-        } as any));
+        return parsed.interactions
+          .filter((it: any) => {
+            if (!it || !it.drugA || !it.drugB) return false;
+            const sev = (it.severity || '').toUpperCase();
+            if (sev === 'MINOR') return false;
+            if (typeof it.confidence === 'number' && it.confidence < 0.70) return false;
+            return true;
+          })
+          .map((it: any) => ({
+            id: deterministicArcId(it.drugA || 'drugA', it.drugB || 'drugB', it.severity || 'MODERATE', it.mechanism || it.reasoning || 'AI-assessed'),
+            drugA: it.drugA,
+            drugB: it.drugB,
+            severity: (it.severity || 'MODERATE') as any,
+            arcColor: it.arcColor || severityToArcColor(it.severity),
+            mechanism: it.mechanism || it.reasoning || 'AI-assessed interaction mechanism',
+            clinicalGuidance: it.clinicalGuidance || 'Consult clinician for monitoring guidance.',
+            affectedSlots: [{ day: 'monday', slot: 'morning' }],
+            ...(it.confidence !== undefined ? { confidence: it.confidence } : {}),
+          } as any));
       }
       throw new AIUnavailableError('Drug interaction analysis returned no usable result');
     } catch (e) {
@@ -249,20 +272,34 @@ export class ClinicalInteractionEngine {
       required: ['dietInteractions'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical nutrition-pharmacology specialist. Analyze drug-diet interactions for the medication list and patient diet profile (grapefruit daily, Vit K greens, dairy breakfast, potassium salt substitutes, alcohol). Use Exa highlights when provided. Reference points: atorvastatin plus grapefruit — a typical glass raises levels ~37%, only excessive intake above ~1.2L/day matters (moderate, dose-aware, not absolute avoidance); simvastatin plus grapefruit is stricter (major, avoid); levothyroxine needs an empty stomach 30-60 minutes before breakfast with calcium/iron separated by 4 hours; metronidazole plus alcohol is contraindicated during therapy and for 3 days after (including propylene glycol); warfarin needs consistent vitamin K intake, not elimination; ACE inhibitors plus potassium salt substitutes risk hyperkalemia. Return ONLY valid JSON with shape {"dietInteractions": [{"drugName": string, "dietItem": string, "severity": string, "badgeText": string, "plateArcColor": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include grounded reasoning and confidence per badge. No markdown.`;
+    const systemPrompt = `You are a clinical nutrition-pharmacology specialist. Analyze drug-diet and food-drug interactions for the provided medication list and patient diet profile based on verified clinical nutrition and pharmacokinetic principles. Consider food effects on bioavailability, nutrient-drug binding/chelation, dietary enzyme/transporter modulation, electrolyte balance, and metabolic incompatibility. Use Exa highlights when provided.
+
+Severity Grading Rubric:
+- CONTRAINDICATED: Severe or hazardous food/beverage incompatibility requiring strict avoidance.
+- MAJOR: Clinically significant interaction requiring strict dietary avoidance or medication substitution.
+- MODERATE: Meaningful interaction manageable via meal timing, consistent dietary intake, or routine monitoring.
+
+Clinical Pragmatism Guidelines:
+- Report only clinically meaningful dietary interactions that warrant actionable patient lifestyle guidance or specific meal separation timing.
+- Do not flag trivial, non-actionable, or unproven food interactions.
+- Return ONLY interactions with confidence >= 0.70.
+
+Return ONLY valid JSON with shape {"dietInteractions": [{"drugName": string, "dietItem": string, "severity": string, "badgeText": string, "plateArcColor": string, "mechanism": string, "clinicalGuidance": string, "confidence": number, "reasoning": string}]}. Include grounded reasoning and confidence per badge. No markdown.`;
     try {
       const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(list)}\nDiet: ${JSON.stringify(patientDiet)}${exaContext ? `\nExa highlights: ${exaContext}` : ''}\nReturn JSON only.`, schema);
       if (parsed && Array.isArray(parsed.dietInteractions)) {
-        return parsed.dietInteractions.map((b: any) => ({
-          id: `diet_${(b.drugName || 'drug').replace(/[^a-z0-9]/gi, '_')}_${(b.dietItem || 'diet').replace(/[^a-z0-9]/gi, '_')}`,
-          drugName: b.drugName,
-          dietItem: b.dietItem,
-          severity: b.severity,
-          badgeText: b.badgeText,
-          plateArcColor: b.plateArcColor || severityToPlateColor(b.severity),
-          mechanism: b.mechanism || b.reasoning,
-          clinicalGuidance: b.clinicalGuidance,
-        } as DietBadge));
+        return parsed.dietInteractions
+          .filter((b: any) => b && b.drugName && b.dietItem && (typeof b.confidence !== 'number' || b.confidence >= 0.70))
+          .map((b: any) => ({
+            id: `diet_${(b.drugName || 'drug').replace(/[^a-z0-9]/gi, '_')}_${(b.dietItem || 'diet').replace(/[^a-z0-9]/gi, '_')}`,
+            drugName: b.drugName,
+            dietItem: b.dietItem,
+            severity: b.severity,
+            badgeText: b.badgeText,
+            plateArcColor: b.plateArcColor || severityToPlateColor(b.severity),
+            mechanism: b.mechanism || b.reasoning,
+            clinicalGuidance: b.clinicalGuidance,
+          } as DietBadge));
       }
       throw new AIUnavailableError('Drug-diet analysis returned no usable result');
     } catch (e) {
@@ -299,19 +336,28 @@ export class ClinicalInteractionEngine {
       required: ['duplicateAlerts'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical pharmacy specialist. Detect duplicate active ingredients across brand/generic meds (e.g., Acetaminophen in Tylenol plus Percocet, Ibuprofen overlap, NSAID class co-use). Compute cumulative mg and max safe dose, flag over-limit. Reference ceilings: acetaminophen 4000mg per 24h across all sources, ibuprofen prescription max 3200mg per day, atorvastatin max 80mg per day, metformin max 2550mg per day. Same-class pairs (e.g. two NSAIDs) count as duplication even without shared molecules. For class-level duplicates, narrate counts of medicines rather than milligrams. Return ONLY valid JSON with shape {"duplicateAlerts": [{"ingredient": string, "drugsInvolved": [{"name": string, "dose": string, "ingredientAmountMg": number}], "totalCumulativeDoseMg": number, "maxSafeDailyDoseMg": number, "isOverLimit": boolean, "plainNarration": string, "confidence": number, "reasoning": string}]}. Include confidence and grounded reasoning. No markdown.`;
+    const systemPrompt = `You are a clinical pharmacy specialist. Evaluate medication lists to detect duplicate active chemical ingredients across brand and generic products, as well as redundant same-class therapeutic duplications that increase toxicity risk without incremental benefit.
+Clinical Principles:
+1. Active Ingredient Duplication: Identify when multiple products contain the identical active moiety (e.g., a single-ingredient drug co-prescribed with a combination product containing the same molecule). Compute the cumulative daily dose and compare against standard maximum daily dosing ceilings established in clinical pharmacopeias. Flag as over-limit only when the combined total exceeds established maximum daily dosage guidelines.
+2. Therapeutic Class Duplication: Flag co-prescriptions within the same narrow pharmacological class where co-administration is contraindicated or clinically redundant (e.g., multiple systemic agents of the same class causing additive organ toxicity).
+3. Distinguish Rational Multi-Therapy: Do NOT flag intentional, guideline-directed combination regimens with complementary mechanisms of action as duplicates.
+4. Confidence & Objectivity: Provide an objective confidence score (0.00 to 1.00) and grounded pharmacological rationale. For class-level duplications where milligram equivalencies are not directly additive, narrate medicine counts and clinical risk.
+
+Return ONLY valid JSON with shape {"duplicateAlerts": [{"ingredient": string, "drugsInvolved": [{"name": string, "dose": string, "ingredientAmountMg": number}], "totalCumulativeDoseMg": number, "maxSafeDailyDoseMg": number, "isOverLimit": boolean, "plainNarration": string, "confidence": number, "reasoning": string}]}. No markdown.`;
     try {
       const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(list)}\nReturn JSON only.`, schema);
       if (parsed && Array.isArray(parsed.duplicateAlerts)) {
-        return parsed.duplicateAlerts.map((a: any) => ({
-          id: deterministicDuplicateId(a.ingredient || 'ing', (a.drugsInvolved || []).map((d: any) => d?.name || 'drug')),
-          ingredient: a.ingredient,
-          drugsInvolved: a.drugsInvolved,
-          totalCumulativeDoseMg: a.totalCumulativeDoseMg,
-          maxSafeDailyDoseMg: a.maxSafeDailyDoseMg,
-          isOverLimit: a.isOverLimit,
-          plainNarration: a.plainNarration || (a.reasoning ? `${a.ingredient}: ${a.reasoning}` : `Duplicate ${a.ingredient}`),
-        } as DuplicateIngredientAlert));
+        return parsed.duplicateAlerts
+          .filter((a: any) => a && a.ingredient && (typeof a.confidence !== 'number' || a.confidence >= 0.70))
+          .map((a: any) => ({
+            id: deterministicDuplicateId(a.ingredient || 'ing', (a.drugsInvolved || []).map((d: any) => d?.name || 'drug')),
+            ingredient: a.ingredient,
+            drugsInvolved: a.drugsInvolved,
+            totalCumulativeDoseMg: a.totalCumulativeDoseMg,
+            maxSafeDailyDoseMg: a.maxSafeDailyDoseMg,
+            isOverLimit: a.isOverLimit,
+            plainNarration: a.plainNarration || (a.reasoning ? `${a.ingredient}: ${a.reasoning}` : `Duplicate ${a.ingredient}`),
+          } as DuplicateIngredientAlert));
       }
       throw new AIUnavailableError('Duplicate-ingredient analysis returned no usable result');
     } catch (e) {
@@ -355,7 +401,7 @@ export class ClinicalInteractionEngine {
       required: ['proposedShifts', 'resolvedConflictsCount', 'plainExplanation', 'confidence', 'reasoning'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical chronotherapy specialist. Given medications with current time slots and patient chronotype, suggest personalized timing shifts to optimize efficacy and minimize interactions (e.g., statins at bedtime for overnight cholesterol synthesis, diuretics in the morning to prevent nighttime urination, separate calcium from levothyroxine by 4 hours). Return ONLY valid JSON with shape {"proposedShifts": [{"medId": string, "medName": string, "fromSlot": string, "toSlot": string, "reason": string, "confidence": number}], "resolvedConflictsCount": number, "plainExplanation": string, "confidence": number}. Include confidence and grounded reasoning per shift. No markdown.`;
+    const systemPrompt = `You are a clinical chronotherapy specialist. Given medications with current time slots and patient chronotype, suggest personalized timing shifts to optimize therapeutic efficacy, align with circadian pharmacokinetics, separate binding/chelating interactions by appropriate absorption windows, prevent nocturnal sleep disruption, and minimize adverse effects. Return ONLY valid JSON with shape {"proposedShifts": [{"medId": string, "medName": string, "fromSlot": string, "toSlot": string, "reason": string, "confidence": number}], "resolvedConflictsCount": number, "plainExplanation": string, "confidence": number}. Include confidence and grounded reasoning per shift. No markdown.`;
     try {
       const parsed = await callKnowledgeAI(systemPrompt, `Meds: ${JSON.stringify(list)}\nChronotype: ${chronotype}\nReturn JSON only.`, schema);
       if (parsed && Array.isArray(parsed.proposedShifts)) {
@@ -403,7 +449,7 @@ export class ClinicalInteractionEngine {
       required: ['medName', 'clinicalImpactSummary', 'recoveryProtocol', 'confidence', 'reasoning'],
       additionalProperties: false,
     } as any;
-    const systemPrompt = `You are a clinical pharmacology educator. A patient missed a dose of the given medication. Estimate the clinical impact in plain language, the likely biomarker change with units, and a safe recovery protocol. Rules: NEVER advise taking two doses at once — the recovery protocol must say to take the missed dose as soon as remembered unless close to the next dose, and never double up. Consider drug half-life and indication (e.g., anticoagulants lose protection within hours; blood-pressure meds rebound; metformin raises glucose). Return ONLY valid JSON with shape {"medName": string, "clinicalImpactSummary": string, "projectedBiomarkerDelta": {"biomarker": string, "estimatedChange": string}, "recoveryProtocol": string, "confidence": number, "reasoning": string}. No markdown.`;
+    const systemPrompt = `You are a clinical pharmacology educator. A patient missed a dose of the given medication. Estimate the clinical impact in plain language, the likely biomarker change with units, and a safe recovery protocol. Rules: NEVER advise taking two doses at once — the recovery protocol must say to take the missed dose as soon as remembered unless close to the next dose, and never double up. Evaluate pharmacological half-life, clearance kinetics, therapeutic window, and indication severity to explain the clinical consequence of the missed dose. Return ONLY valid JSON with shape {"medName": string, "clinicalImpactSummary": string, "projectedBiomarkerDelta": {"biomarker": string, "estimatedChange": string}, "recoveryProtocol": string, "confidence": number, "reasoning": string}. No markdown.`;
     try {
       const parsed = await callKnowledgeAI(systemPrompt, `Medication: ${name}\nMissed: ${missedSlot.day} ${missedSlot.slot}\nReturn JSON only.`, schema);
       if (parsed && typeof parsed.clinicalImpactSummary === 'string' && typeof parsed.recoveryProtocol === 'string') {
